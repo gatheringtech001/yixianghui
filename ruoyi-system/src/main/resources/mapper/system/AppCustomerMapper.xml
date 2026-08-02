@@ -1,0 +1,553 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppCustomerMapper">
+    
+    <resultMap type="AppCustomer" id="AppCustomerResult">
+        <result property="consultantName"    column="rel_consultant_name"    />
+        <result property="deptName"    column="rel_dept_name"    />
+        <result property="customerId"    column="customer_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="customerName"    column="customer_name"    />
+        <result property="buyRecords"    column="buy_records"    />
+        <result property="deptId"    column="dept_id"    />
+        <result property="customerNo"    column="customer_no"    />
+        <result property="linkMobile"    column="link_mobile"    />
+        <result property="signTime"    column="sign_time"    />
+        <result property="insuranceEvaStatus"    column="insurance_eva_status"    />
+        <result property="returnVisit"    column="return_visit"    />
+        <result property="returnVisitRemark"    column="return_visit_remark"    />
+        <result property="returnVisitFirst"    column="return_visit_first"    />
+        <result property="returnVisitSecond"    column="return_visit_second"    />
+        <result property="returnVisitLast"    column="return_visit_last"    />
+        <result property="acquisitionChannel"    column="acquisition_channel"    />
+        <result property="customerLabel"    column="customer_label"    />
+        <result property="customerInfo"    column="customer_info"    />
+        <result property="customerGoods"    column="customer_goods"    />
+        <result property="consultantId"    column="consultant_id"    />
+        <result property="idcard"    column="idcard"    />
+        <result property="sex"    column="sex"    />
+        <result property="birthday"    column="birthday"    />
+        <result property="age"    column="age"    />
+        <result property="nation"    column="nation"    />
+        <result property="haveSpecialCard"    column="have_special_card"    />
+        <result property="education"    column="education"    />
+        <result property="religion"    column="religion"    />
+        <result property="marital"    column="marital"    />
+        <result property="liveAddress"    column="live_address"    />
+        <result property="idcardAddress"    column="idcard_address"    />
+        <result property="liveInro"    column="live_inro"    />
+        <result property="houseType"    column="house_type"    />
+        <result property="familyGt65Count"    column="family_gt65_count"    />
+        <result property="familyDwalkCount"    column="family_dwalk_count"    />
+        <result property="link1Name"    column="link1_name"    />
+        <result property="link1Relation"    column="link1_relation"    />
+        <result property="link1Mobile"    column="link1_mobile"    />
+        <result property="link2Name"    column="link2_name"    />
+        <result property="link2Relation"    column="link2_relation"    />
+        <result property="link2Mobile"    column="link2_mobile"    />
+        <result property="infoPersonName"    column="info_person_name"    />
+        <result property="infoPersonRelation"    column="info_person_relation"    />
+        <result property="healthTest"    column="health_test"    />
+        <result property="diseaseDementia"    column="disease_dementia"    />
+        <result property="diseaseMental"    column="disease_mental"    />
+        <result property="diseaseBody"    column="disease_body"    />
+        <result property="diseaseOther"    column="disease_other"    />
+        <result property="medicationLong"    column="medication_long"    />
+        <result property="checkUpYear"    column="check_up_year"    />
+        <result property="chronicDiseaseCheck"    column="chronic_disease_check"    />
+        <result property="selfAbility"    column="self_ability"    />
+        <result property="membersEvaluate"    column="members_evaluate"    />
+        <result property="children"    column="children"    />
+        <result property="childrenNearly"    column="children_nearly"    />
+        <result property="membersRelation"    column="members_relation"    />
+        <result property="caregiver"    column="caregiver"    />
+        <result property="caregiverCount"    column="caregiver_count"    />
+        <result property="caregiverExperience"    column="caregiver_experience"    />
+        <result property="careContent"    column="care_content"    />
+        <result property="careTimes"    column="care_times"    />
+        <result property="elderlyCareEvaluate"    column="elderly_care_evaluate"    />
+        <result property="elderlyCareSubsidy"    column="elderly_care_subsidy"    />
+        <result property="insuranceLongCare"    column="insurance_long_care"    />
+        <result property="medicalPayMethod"    column="medical_pay_method"    />
+        <result property="medicalPayMethodRemark"    column="medical_pay_method_remark"    />
+        <result property="pensionMonth"    column="pension_month"    />
+        <result property="elderlyCareReport"    column="elderly_care_report"    />
+        <result property="organizationCare"    column="organization_care"    />
+        <result property="elderlyService"    column="elderly_service"    />
+        <result property="rehabilitationService"    column="rehabilitation_service"    />
+        <result property="medicalInstitution"    column="medical_institution"    />
+        <result property="familyService"    column="family_service"    />
+        <result property="elderlyCareAi"    column="elderly_care_ai"    />
+        <result property="chineseMedicalService"    column="chinese_medical_service"    />
+        <result property="careToDoor"    column="care_to_door"    />
+        <result property="purchasedCemetery"    column="purchased_cemetery"    />
+        <result property="attach"    column="attach"    />
+        <result property="consultant"    column="consultant_"    />
+        <result property="medicalCare"    column="medical_care"    />
+        <result property="parentRecord"    column="parent_record"    />
+        <result property="remark"    column="remark"    />
+
+        <result property="medicationRemark"    column="medication_remark"    />
+        <result property="childPensionMonth"    column="child_pension_month"    />
+
+
+        <result property="status"    column="status"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="delFlag"    column="del_flag"    />
+    </resultMap>
+
+    <resultMap id="custStaticMap" type="CustomerStatic">
+        <result property="dataCount"    column="stat_count"    />
+        <result property="groupColOne"    column="group_col_one"    />
+        <result property="groupColTwo"    column="group_col_two"    />
+    </resultMap>
+
+    <sql id="selectAppCustomerVo">
+        select customer_id, user_id, customer_name, buy_records, dept_id, customer_no, link_mobile, sign_time,
+        insurance_eva_status, return_visit, return_visit_remark, return_visit_first, return_visit_second,
+        return_visit_last, acquisition_channel, customer_label, customer_info, customer_goods, consultant_id,
+        idcard, sex, birthday, age, nation, have_special_card, education, religion, marital, live_address,
+        idcard_address, live_inro, house_type, family_gt65_count, family_dwalk_count, link1_name, link1_relation,
+        link1_mobile, link2_name, link2_relation, link2_mobile, info_person_name, info_person_relation, health_test,
+        disease_dementia, disease_mental, disease_body, disease_other, medication_long, check_up_year, chronic_disease_check,
+        self_ability, members_evaluate, children, children_nearly, members_relation, caregiver, caregiver_count,
+        caregiver_experience, care_content, care_times, elderly_care_evaluate, elderly_care_subsidy, insurance_long_care,
+        medical_pay_method, medical_pay_method_remark, pension_month, elderly_care_report, organization_care,
+        elderly_service, rehabilitation_service, medical_institution, family_service, elderly_care_ai,
+        chinese_medical_service, care_to_door, purchased_cemetery, attach, consultant_, medical_care, parent_record,
+        remark, medication_remark, child_pension_month, status, create_by, create_time, update_by, update_time,
+        del_flag from app_customer
+    </sql>
+
+    <select id="selectAppCustomerList" parameterType="AppCustomer" resultMap="AppCustomerResult">
+        select c.*, ac.consultant_name as rel_consultant_name, d.dept_name as rel_dept_name
+        from app_customer c
+        left join app_consultant ac on ac.consultant_id = c.consultant_id
+        left join sys_dept d on d.dept_id = c.dept_id
+        <where>
+            <if test="params != null and params.keyword != null and params.keyword != ''">
+                and (
+                    c.customer_name like concat('%', #{params.keyword}, '%')
+                    or c.customer_no like concat('%', #{params.keyword}, '%')
+                    or c.link_mobile like concat('%', #{params.keyword}, '%')
+                    or c.idcard like concat('%', #{params.keyword}, '%')
+                )
+            </if>
+            <if test="params != null and params.beginSignTime != null and params.beginSignTime != ''">
+                and date_format(c.sign_time,'%y%m%d') &gt;= date_format(#{params.beginSignTime},'%y%m%d')
+            </if>
+            <if test="params != null and params.endSignTime != null and params.endSignTime != ''">
+                and date_format(c.sign_time,'%y%m%d') &lt;= date_format(#{params.endSignTime},'%y%m%d')
+            </if>
+            <if test="userId != null "> and c.user_id = #{userId}</if>
+            <if test="customerName != null  and customerName != ''"> and c.customer_name like concat('%', #{customerName}, '%')</if>
+            <if test="buyRecords != null  and buyRecords != ''"> and c.buy_records = #{buyRecords}</if>
+            <if test="deptId != null "> and c.dept_id = #{deptId}</if>
+            <if test="customerNo != null  and customerNo != ''"> and c.customer_no like concat('%', #{customerNo}, '%')</if>
+            <if test="linkMobile != null  and linkMobile != ''"> and c.link_mobile like concat('%', #{linkMobile}, '%')</if>
+            <if test="signTime != null "> and c.sign_time = #{signTime}</if>
+            <if test="insuranceEvaStatus != null  and insuranceEvaStatus != ''"> and c.insurance_eva_status = #{insuranceEvaStatus}</if>
+            <if test="returnVisit != null "> and c.return_visit = #{returnVisit}</if>
+            <if test="returnVisitRemark != null  and returnVisitRemark != ''"> and c.return_visit_remark = #{returnVisitRemark}</if>
+            <if test="returnVisitFirst != null "> and c.return_visit_first = #{returnVisitFirst}</if>
+            <if test="returnVisitSecond != null "> and c.return_visit_second = #{returnVisitSecond}</if>
+            <if test="returnVisitLast != null "> and c.return_visit_last = #{returnVisitLast}</if>
+            <if test="acquisitionChannel != null  and acquisitionChannel != ''"> and c.acquisition_channel = #{acquisitionChannel}</if>
+            <if test="customerLabel != null  and customerLabel != ''"> and c.customer_label = #{customerLabel}</if>
+            <if test="customerInfo != null  and customerInfo != ''"> and c.customer_info = #{customerInfo}</if>
+            <if test="customerGoods != null  and customerGoods != ''"> and c.customer_goods = #{customerGoods}</if>
+            <if test="consultantId != null "> and c.consultant_id = #{consultantId}</if>
+            <if test="idcard != null  and idcard != ''"> and c.idcard like concat('%', #{idcard}, '%')</if>
+            <if test="sex != null  and sex != ''"> and c.sex = #{sex}</if>
+            <if test="birthday != null "> and c.birthday = #{birthday}</if>
+            <if test="age != null "> and c.age = #{age}</if>
+            <if test="nation != null  and nation != ''"> and c.nation = #{nation}</if>
+            <if test="haveSpecialCard != null  and haveSpecialCard != ''"> and c.have_special_card = #{haveSpecialCard}</if>
+            <if test="education != null  and education != ''"> and c.education = #{education}</if>
+            <if test="religion != null  and religion != ''"> and c.religion = #{religion}</if>
+            <if test="marital != null  and marital != ''"> and c.marital = #{marital}</if>
+            <if test="liveAddress != null  and liveAddress != ''"> and c.live_address = #{liveAddress}</if>
+            <if test="idcardAddress != null  and idcardAddress != ''"> and c.idcard_address = #{idcardAddress}</if>
+            <if test="liveInro != null  and liveInro != ''"> and c.live_inro = #{liveInro}</if>
+            <if test="houseType != null  and houseType != ''"> and c.house_type = #{houseType}</if>
+            <if test="familyGt65Count != null "> and c.family_gt65_count = #{familyGt65Count}</if>
+            <if test="familyDwalkCount != null "> and c.family_dwalk_count = #{familyDwalkCount}</if>
+            <if test="link1Name != null  and link1Name != ''"> and c.link1_name like concat('%', #{link1Name}, '%')</if>
+            <if test="link1Relation != null  and link1Relation != ''"> and c.link1_relation = #{link1Relation}</if>
+            <if test="link1Mobile != null  and link1Mobile != ''"> and c.link1_mobile = #{link1Mobile}</if>
+            <if test="link2Name != null  and link2Name != ''"> and c.link2_name like concat('%', #{link2Name}, '%')</if>
+            <if test="link2Relation != null  and link2Relation != ''"> and c.link2_relation = #{link2Relation}</if>
+            <if test="link2Mobile != null  and link2Mobile != ''"> and c.link2_mobile = #{link2Mobile}</if>
+            <if test="infoPersonName != null  and infoPersonName != ''"> and c.info_person_name like concat('%', #{infoPersonName}, '%')</if>
+            <if test="infoPersonRelation != null  and infoPersonRelation != ''"> and c.info_person_relation = #{infoPersonRelation}</if>
+            <if test="healthTest != null  and healthTest != ''"> and c.health_test = #{healthTest}</if>
+            <if test="diseaseDementia != null  and diseaseDementia != ''"> and c.disease_dementia = #{diseaseDementia}</if>
+            <if test="diseaseMental != null  and diseaseMental != ''"> and c.disease_mental = #{diseaseMental}</if>
+            <if test="diseaseOther != null  and diseaseOther != ''"> and c.disease_other = #{diseaseOther}</if>
+            <if test="medicationLong != null  and medicationLong != ''"> and c.medication_long = #{medicationLong}</if>
+            <if test="checkUpYear != null  and checkUpYear != ''"> and c.check_up_year = #{checkUpYear}</if>
+            <if test="chronicDiseaseCheck != null  and chronicDiseaseCheck != ''"> and c.chronic_disease_check = #{chronicDiseaseCheck}</if>
+            <if test="selfAbility != null  and selfAbility != ''"> and c.self_ability = #{selfAbility}</if>
+            <if test="membersEvaluate != null  and membersEvaluate != ''"> and c.members_evaluate = #{membersEvaluate}</if>
+            <if test="children != null  and children != ''"> and c.children = #{children}</if>
+            <if test="childrenNearly != null  and childrenNearly != ''"> and c.children_nearly = #{childrenNearly}</if>
+            <if test="membersRelation != null  and membersRelation != ''"> and c.members_relation = #{membersRelation}</if>
+            <if test="caregiver != null  and caregiver != ''"> and c.caregiver = #{caregiver}</if>
+            <if test="caregiverCount != null "> and c.caregiver_count = #{caregiverCount}</if>
+            <if test="caregiverExperience != null  and caregiverExperience != ''"> and c.caregiver_experience = #{caregiverExperience}</if>
+            <if test="careContent != null  and careContent != ''"> and c.care_content = #{careContent}</if>
+            <if test="careTimes != null  and careTimes != ''"> and c.care_times = #{careTimes}</if>
+            <if test="elderlyCareEvaluate != null  and elderlyCareEvaluate != ''"> and c.elderly_care_evaluate = #{elderlyCareEvaluate}</if>
+            <if test="elderlyCareSubsidy != null  and elderlyCareSubsidy != ''"> and c.elderly_care_subsidy = #{elderlyCareSubsidy}</if>
+            <if test="insuranceLongCare != null  and insuranceLongCare != ''"> and c.insurance_long_care = #{insuranceLongCare}</if>
+            <if test="medicalPayMethod != null  and medicalPayMethod != ''"> and c.medical_pay_method = #{medicalPayMethod}</if>
+            <if test="medicalPayMethodRemark != null  and medicalPayMethodRemark != ''"> and c.medical_pay_method_remark = #{medicalPayMethodRemark}</if>
+            <if test="pensionMonth != null  and pensionMonth != ''"> and c.pension_month = #{pensionMonth}</if>
+            <if test="elderlyCareReport != null  and elderlyCareReport != ''"> and c.elderly_care_report = #{elderlyCareReport}</if>
+            <if test="organizationCare != null  and organizationCare != ''"> and c.organization_care = #{organizationCare}</if>
+            <if test="elderlyService != null  and elderlyService != ''"> and c.elderly_service = #{elderlyService}</if>
+            <if test="rehabilitationService != null  and rehabilitationService != ''"> and c.rehabilitation_service = #{rehabilitationService}</if>
+            <if test="medicalInstitution != null  and medicalInstitution != ''"> and c.medical_institution = #{medicalInstitution}</if>
+            <if test="familyService != null  and familyService != ''"> and c.family_service = #{familyService}</if>
+            <if test="elderlyCareAi != null  and elderlyCareAi != ''"> and c.elderly_care_ai = #{elderlyCareAi}</if>
+            <if test="chineseMedicalService != null  and chineseMedicalService != ''"> and c.chinese_medical_service = #{chineseMedicalService}</if>
+            <if test="careToDoor != null  and careToDoor != ''"> and c.care_to_door = #{careToDoor}</if>
+            <if test="purchasedCemetery != null  and purchasedCemetery != ''"> and c.purchased_cemetery = #{purchasedCemetery}</if>
+            <if test="attach != null  and attach != ''"> and c.attach = #{attach}</if>
+            <if test="consultant != null  and consultant != ''"> and c.consultant_ = #{consultant}</if>
+            <if test="medicalCare != null  and medicalCare != ''"> and c.medical_care = #{medicalCare}</if>
+            <if test="parentRecord != null  and parentRecord != ''"> and c.parent_record = #{parentRecord}</if>
+            <if test="status != null  and status != ''"> and c.status = #{status}</if>
+        </where>
+        order by c.sign_time desc, c.customer_id desc
+    </select>
+    
+    <select id="selectAppCustomerByCustomerId" parameterType="Long" resultMap="AppCustomerResult">
+        <include refid="selectAppCustomerVo"/>
+        where customer_id = #{customerId}
+    </select>
+    <select id="selectCustomerByCustomerName" parameterType="String" resultMap="AppCustomerResult">
+        <include refid="selectAppCustomerVo"/>
+        where customer_name like concat('%', #{customerName}, '%')
+    </select>
+    <select id="selectAppCustomerByUserId" parameterType="Long" resultMap="AppCustomerResult">
+        <include refid="selectAppCustomerVo"/>
+        where user_id = #{userId}
+    </select>
+
+    <insert id="insertAppCustomer" parameterType="AppCustomer" useGeneratedKeys="true" keyProperty="customerId">
+        insert into app_customer
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="customerName != null">customer_name,</if>
+            <if test="buyRecords != null">buy_records,</if>
+            <if test="deptId != null">dept_id,</if>
+            <if test="customerNo != null">customer_no,</if>
+            <if test="linkMobile != null">link_mobile,</if>
+            <if test="signTime != null">sign_time,</if>
+            <if test="insuranceEvaStatus != null">insurance_eva_status,</if>
+            <if test="returnVisit != null">return_visit,</if>
+            <if test="returnVisitRemark != null">return_visit_remark,</if>
+            <if test="returnVisitFirst != null">return_visit_first,</if>
+            <if test="returnVisitSecond != null">return_visit_second,</if>
+            <if test="returnVisitLast != null">return_visit_last,</if>
+            <if test="acquisitionChannel != null">acquisition_channel,</if>
+            <if test="customerLabel != null">customer_label,</if>
+            <if test="customerInfo != null">customer_info,</if>
+            <if test="customerGoods != null">customer_goods,</if>
+            <if test="consultantId != null">consultant_id,</if>
+            <if test="idcard != null">idcard,</if>
+            <if test="sex != null">sex,</if>
+            <if test="birthday != null">birthday,</if>
+            <if test="age != null">age,</if>
+            <if test="nation != null">nation,</if>
+            <if test="haveSpecialCard != null">have_special_card,</if>
+            <if test="education != null">education,</if>
+            <if test="religion != null">religion,</if>
+            <if test="marital != null">marital,</if>
+            <if test="liveAddress != null">live_address,</if>
+            <if test="idcardAddress != null">idcard_address,</if>
+            <if test="liveInro != null">live_inro,</if>
+            <if test="houseType != null">house_type,</if>
+            <if test="familyGt65Count != null">family_gt65_count,</if>
+            <if test="familyDwalkCount != null">family_dwalk_count,</if>
+            <if test="link1Name != null">link1_name,</if>
+            <if test="link1Relation != null">link1_relation,</if>
+            <if test="link1Mobile != null">link1_mobile,</if>
+            <if test="link2Name != null">link2_name,</if>
+            <if test="link2Relation != null">link2_relation,</if>
+            <if test="link2Mobile != null">link2_mobile,</if>
+            <if test="infoPersonName != null">info_person_name,</if>
+            <if test="infoPersonRelation != null">info_person_relation,</if>
+            <if test="healthTest != null">health_test,</if>
+            <if test="diseaseDementia != null">disease_dementia,</if>
+            <if test="diseaseMental != null">disease_mental,</if>
+            <if test="diseaseBody != null">disease_body,</if>
+            <if test="diseaseOther != null">disease_other,</if>
+            <if test="medicationLong != null">medication_long,</if>
+            <if test="checkUpYear != null">check_up_year,</if>
+            <if test="chronicDiseaseCheck != null">chronic_disease_check,</if>
+            <if test="selfAbility != null">self_ability,</if>
+            <if test="membersEvaluate != null">members_evaluate,</if>
+            <if test="children != null">children,</if>
+            <if test="childrenNearly != null">children_nearly,</if>
+            <if test="membersRelation != null">members_relation,</if>
+            <if test="caregiver != null">caregiver,</if>
+            <if test="caregiverCount != null">caregiver_count,</if>
+            <if test="caregiverExperience != null">caregiver_experience,</if>
+            <if test="careContent != null">care_content,</if>
+            <if test="careTimes != null">care_times,</if>
+            <if test="elderlyCareEvaluate != null">elderly_care_evaluate,</if>
+            <if test="elderlyCareSubsidy != null">elderly_care_subsidy,</if>
+            <if test="insuranceLongCare != null">insurance_long_care,</if>
+            <if test="medicalPayMethod != null">medical_pay_method,</if>
+            <if test="medicalPayMethodRemark != null">medical_pay_method_remark,</if>
+            <if test="pensionMonth != null">pension_month,</if>
+            <if test="elderlyCareReport != null">elderly_care_report,</if>
+            <if test="organizationCare != null">organization_care,</if>
+            <if test="elderlyService != null">elderly_service,</if>
+            <if test="rehabilitationService != null">rehabilitation_service,</if>
+            <if test="medicalInstitution != null">medical_institution,</if>
+            <if test="familyService != null">family_service,</if>
+            <if test="elderlyCareAi != null">elderly_care_ai,</if>
+            <if test="chineseMedicalService != null">chinese_medical_service,</if>
+            <if test="careToDoor != null">care_to_door,</if>
+            <if test="purchasedCemetery != null">purchased_cemetery,</if>
+            <if test="attach != null">attach,</if>
+            <if test="consultant != null">consultant_,</if>
+            <if test="medicalCare != null">medical_care,</if>
+            <if test="parentRecord != null">parent_record,</if>
+            <if test="remark != null">remark,</if>
+            <if test="medicationRemark != null">medication_remark,</if>
+            <if test="childPensionMonth != null">child_pension_month,</if>
+            <if test="status != null">status,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="delFlag != null">del_flag,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="customerName != null">#{customerName},</if>
+            <if test="buyRecords != null">#{buyRecords},</if>
+            <if test="deptId != null">#{deptId},</if>
+            <if test="customerNo != null">#{customerNo},</if>
+            <if test="linkMobile != null">#{linkMobile},</if>
+            <if test="signTime != null">#{signTime},</if>
+            <if test="insuranceEvaStatus != null">#{insuranceEvaStatus},</if>
+            <if test="returnVisit != null">#{returnVisit},</if>
+            <if test="returnVisitRemark != null">#{returnVisitRemark},</if>
+            <if test="returnVisitFirst != null">#{returnVisitFirst},</if>
+            <if test="returnVisitSecond != null">#{returnVisitSecond},</if>
+            <if test="returnVisitLast != null">#{returnVisitLast},</if>
+            <if test="acquisitionChannel != null">#{acquisitionChannel},</if>
+            <if test="customerLabel != null">#{customerLabel},</if>
+            <if test="customerInfo != null">#{customerInfo},</if>
+            <if test="customerGoods != null">#{customerGoods},</if>
+            <if test="consultantId != null">#{consultantId},</if>
+            <if test="idcard != null">#{idcard},</if>
+            <if test="sex != null">#{sex},</if>
+            <if test="birthday != null">#{birthday},</if>
+            <if test="age != null">#{age},</if>
+            <if test="nation != null">#{nation},</if>
+            <if test="haveSpecialCard != null">#{haveSpecialCard},</if>
+            <if test="education != null">#{education},</if>
+            <if test="religion != null">#{religion},</if>
+            <if test="marital != null">#{marital},</if>
+            <if test="liveAddress != null">#{liveAddress},</if>
+            <if test="idcardAddress != null">#{idcardAddress},</if>
+            <if test="liveInro != null">#{liveInro},</if>
+            <if test="houseType != null">#{houseType},</if>
+            <if test="familyGt65Count != null">#{familyGt65Count},</if>
+            <if test="familyDwalkCount != null">#{familyDwalkCount},</if>
+            <if test="link1Name != null">#{link1Name},</if>
+            <if test="link1Relation != null">#{link1Relation},</if>
+            <if test="link1Mobile != null">#{link1Mobile},</if>
+            <if test="link2Name != null">#{link2Name},</if>
+            <if test="link2Relation != null">#{link2Relation},</if>
+            <if test="link2Mobile != null">#{link2Mobile},</if>
+            <if test="infoPersonName != null">#{infoPersonName},</if>
+            <if test="infoPersonRelation != null">#{infoPersonRelation},</if>
+            <if test="healthTest != null">#{healthTest},</if>
+            <if test="diseaseDementia != null">#{diseaseDementia},</if>
+            <if test="diseaseMental != null">#{diseaseMental},</if>
+            <if test="diseaseBody != null">#{diseaseBody},</if>
+            <if test="diseaseOther != null">#{diseaseOther},</if>
+            <if test="medicationLong != null">#{medicationLong},</if>
+            <if test="checkUpYear != null">#{checkUpYear},</if>
+            <if test="chronicDiseaseCheck != null">#{chronicDiseaseCheck},</if>
+            <if test="selfAbility != null">#{selfAbility},</if>
+            <if test="membersEvaluate != null">#{membersEvaluate},</if>
+            <if test="children != null">#{children},</if>
+            <if test="childrenNearly != null">#{childrenNearly},</if>
+            <if test="membersRelation != null">#{membersRelation},</if>
+            <if test="caregiver != null">#{caregiver},</if>
+            <if test="caregiverCount != null">#{caregiverCount},</if>
+            <if test="caregiverExperience != null">#{caregiverExperience},</if>
+            <if test="careContent != null">#{careContent},</if>
+            <if test="careTimes != null">#{careTimes},</if>
+            <if test="elderlyCareEvaluate != null">#{elderlyCareEvaluate},</if>
+            <if test="elderlyCareSubsidy != null">#{elderlyCareSubsidy},</if>
+            <if test="insuranceLongCare != null">#{insuranceLongCare},</if>
+            <if test="medicalPayMethod != null">#{medicalPayMethod},</if>
+            <if test="medicalPayMethodRemark != null">#{medicalPayMethodRemark},</if>
+            <if test="pensionMonth != null">#{pensionMonth},</if>
+            <if test="elderlyCareReport != null">#{elderlyCareReport},</if>
+            <if test="organizationCare != null">#{organizationCare},</if>
+            <if test="elderlyService != null">#{elderlyService},</if>
+            <if test="rehabilitationService != null">#{rehabilitationService},</if>
+            <if test="medicalInstitution != null">#{medicalInstitution},</if>
+            <if test="familyService != null">#{familyService},</if>
+            <if test="elderlyCareAi != null">#{elderlyCareAi},</if>
+            <if test="chineseMedicalService != null">#{chineseMedicalService},</if>
+            <if test="careToDoor != null">#{careToDoor},</if>
+            <if test="purchasedCemetery != null">#{purchasedCemetery},</if>
+            <if test="attach != null">#{attach},</if>
+            <if test="consultant != null">#{consultant},</if>
+            <if test="medicalCare != null">#{medicalCare},</if>
+            <if test="parentRecord != null">#{parentRecord},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="medicationRemark != null">#{medicationRemark},</if>
+            <if test="childPensionMonth != null">#{childPensionMonth},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="delFlag != null">#{delFlag},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppCustomer" parameterType="AppCustomer">
+        update app_customer
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="customerName != null">customer_name = #{customerName},</if>
+            <if test="buyRecords != null">buy_records = #{buyRecords},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="customerNo != null">customer_no = #{customerNo},</if>
+            <if test="linkMobile != null">link_mobile = #{linkMobile},</if>
+            <if test="signTime != null">sign_time = #{signTime},</if>
+            <if test="insuranceEvaStatus != null">insurance_eva_status = #{insuranceEvaStatus},</if>
+            <if test="returnVisit != null">return_visit = #{returnVisit},</if>
+            <if test="returnVisitRemark != null">return_visit_remark = #{returnVisitRemark},</if>
+            <if test="returnVisitFirst != null">return_visit_first = #{returnVisitFirst},</if>
+            <if test="returnVisitSecond != null">return_visit_second = #{returnVisitSecond},</if>
+            <if test="returnVisitLast != null">return_visit_last = #{returnVisitLast},</if>
+            <if test="acquisitionChannel != null">acquisition_channel = #{acquisitionChannel},</if>
+            <if test="customerLabel != null">customer_label = #{customerLabel},</if>
+            <if test="customerInfo != null">customer_info = #{customerInfo},</if>
+            <if test="customerGoods != null">customer_goods = #{customerGoods},</if>
+            <if test="consultantId != null">consultant_id = #{consultantId},</if>
+            <if test="idcard != null">idcard = #{idcard},</if>
+            <if test="sex != null">sex = #{sex},</if>
+            <if test="birthday != null">birthday = #{birthday},</if>
+            <if test="age != null">age = #{age},</if>
+            <if test="nation != null">nation = #{nation},</if>
+            <if test="haveSpecialCard != null">have_special_card = #{haveSpecialCard},</if>
+            <if test="education != null">education = #{education},</if>
+            <if test="religion != null">religion = #{religion},</if>
+            <if test="marital != null">marital = #{marital},</if>
+            <if test="liveAddress != null">live_address = #{liveAddress},</if>
+            <if test="idcardAddress != null">idcard_address = #{idcardAddress},</if>
+            <if test="liveInro != null">live_inro = #{liveInro},</if>
+            <if test="houseType != null">house_type = #{houseType},</if>
+            <if test="familyGt65Count != null">family_gt65_count = #{familyGt65Count},</if>
+            <if test="familyDwalkCount != null">family_dwalk_count = #{familyDwalkCount},</if>
+            <if test="link1Name != null">link1_name = #{link1Name},</if>
+            <if test="link1Relation != null">link1_relation = #{link1Relation},</if>
+            <if test="link1Mobile != null">link1_mobile = #{link1Mobile},</if>
+            <if test="link2Name != null">link2_name = #{link2Name},</if>
+            <if test="link2Relation != null">link2_relation = #{link2Relation},</if>
+            <if test="link2Mobile != null">link2_mobile = #{link2Mobile},</if>
+            <if test="infoPersonName != null">info_person_name = #{infoPersonName},</if>
+            <if test="infoPersonRelation != null">info_person_relation = #{infoPersonRelation},</if>
+            <if test="healthTest != null">health_test = #{healthTest},</if>
+            <if test="diseaseDementia != null">disease_dementia = #{diseaseDementia},</if>
+            <if test="diseaseMental != null">disease_mental = #{diseaseMental},</if>
+            <if test="diseaseBody != null">disease_body = #{diseaseBody},</if>
+            <if test="diseaseOther != null">disease_other = #{diseaseOther},</if>
+            <if test="medicationLong != null">medication_long = #{medicationLong},</if>
+            <if test="checkUpYear != null">check_up_year = #{checkUpYear},</if>
+            <if test="chronicDiseaseCheck != null">chronic_disease_check = #{chronicDiseaseCheck},</if>
+            <if test="selfAbility != null">self_ability = #{selfAbility},</if>
+            <if test="membersEvaluate != null">members_evaluate = #{membersEvaluate},</if>
+            <if test="children != null">children = #{children},</if>
+            <if test="childrenNearly != null">children_nearly = #{childrenNearly},</if>
+            <if test="membersRelation != null">members_relation = #{membersRelation},</if>
+            <if test="caregiver != null">caregiver = #{caregiver},</if>
+            <if test="caregiverCount != null">caregiver_count = #{caregiverCount},</if>
+            <if test="caregiverExperience != null">caregiver_experience = #{caregiverExperience},</if>
+            <if test="careContent != null">care_content = #{careContent},</if>
+            <if test="careTimes != null">care_times = #{careTimes},</if>
+            <if test="elderlyCareEvaluate != null">elderly_care_evaluate = #{elderlyCareEvaluate},</if>
+            <if test="elderlyCareSubsidy != null">elderly_care_subsidy = #{elderlyCareSubsidy},</if>
+            <if test="insuranceLongCare != null">insurance_long_care = #{insuranceLongCare},</if>
+            <if test="medicalPayMethod != null">medical_pay_method = #{medicalPayMethod},</if>
+            <if test="medicalPayMethodRemark != null">medical_pay_method_remark = #{medicalPayMethodRemark},</if>
+            <if test="pensionMonth != null">pension_month = #{pensionMonth},</if>
+            <if test="elderlyCareReport != null">elderly_care_report = #{elderlyCareReport},</if>
+            <if test="organizationCare != null">organization_care = #{organizationCare},</if>
+            <if test="elderlyService != null">elderly_service = #{elderlyService},</if>
+            <if test="rehabilitationService != null">rehabilitation_service = #{rehabilitationService},</if>
+            <if test="medicalInstitution != null">medical_institution = #{medicalInstitution},</if>
+            <if test="familyService != null">family_service = #{familyService},</if>
+            <if test="elderlyCareAi != null">elderly_care_ai = #{elderlyCareAi},</if>
+            <if test="chineseMedicalService != null">chinese_medical_service = #{chineseMedicalService},</if>
+            <if test="careToDoor != null">care_to_door = #{careToDoor},</if>
+            <if test="purchasedCemetery != null">purchased_cemetery = #{purchasedCemetery},</if>
+            <if test="attach != null">attach = #{attach},</if>
+            <if test="consultant != null">consultant_ = #{consultant},</if>
+            <if test="medicalCare != null">medical_care = #{medicalCare},</if>
+            <if test="parentRecord != null">parent_record = #{parentRecord},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="medicationRemark != null">medication_remark = #{medicationRemark},</if>
+            <if test="childPensionMonth != null">child_pension_month = #{childPensionMonth},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="delFlag != null">del_flag = #{delFlag},</if>
+        </trim>
+        where customer_id = #{customerId}
+    </update>
+
+    <delete id="deleteAppCustomerByCustomerId" parameterType="Long">
+        delete from app_customer where customer_id = #{customerId}
+    </delete>
+
+    <delete id="deleteAppCustomerByCustomerIds" parameterType="String">
+        delete from app_customer where customer_id in 
+        <foreach item="customerId" collection="array" open="(" separator="," close=")">
+            #{customerId}
+        </foreach>
+    </delete>
+    <select id="custGenderStatic" resultMap="custStaticMap">
+        select sum(1) stat_count,sex group_col_one from app_customer group by sex /*-- 性别统计--*/
+    </select>
+    <select id="custGoodsStatic" resultMap="custStaticMap">
+        select sum(1) stat_count,customer_goods group_col_one from app_customer group by customer_goods /*-- 商品统计--*/
+    </select>
+    <select id="custNumStatic" resultMap="custStaticMap">
+        select sum(1) stat_count,dept.dept_name group_col_one from app_customer appcust left join sys_dept dept on appcust.dept_id=dept.dept_id
+        group by dept.dept_name /*-- 客户数量--*/
+    </select>
+    <select id="custInsureEvaStatic" resultMap="custStaticMap">
+        select sum(1) stat_count,appcust.insurance_eva_status group_col_one,dept.dept_name group_col_two from app_customer appcust left join sys_dept dept on appcust.dept_id=dept.dept_id
+        group by appcust.insurance_eva_status,dept.dept_name /*-- 长护险--*/
+    </select>
+    <select id="custResidentialStatic" resultMap="custStaticMap">
+        select sum(1) stat_count,live_inro group_col_one from app_customer group by live_inro /*-- 居住情况--*/
+    </select>
+
+    <select id="countByConsultantId" resultType="java.lang.Long">
+        select count(1) from app_customer where consultant_id = #{consultantId}
+    </select>
+</mapper>

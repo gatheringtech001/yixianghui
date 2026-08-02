@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppUserBankMapper">
+    
+    <resultMap type="AppUserBank" id="AppUserBankResult">
+        <result property="bankId"    column="bank_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="bankType"    column="bank_type"    />
+        <result property="bankName"    column="bank_name"    />
+        <result property="bankTitle"    column="bank_title"    />
+        <result property="bankSubbranch"    column="bank_subbranch"    />
+        <result property="bankAccountName"    column="bank_account_name"    />
+        <result property="bankAccountNum"    column="bank_account_num"    />
+        <result property="extendData"    column="extend_data"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppUserBankVo">
+        select bank_id, user_id, bank_type, bank_name, bank_title, bank_subbranch, bank_account_name, bank_account_num, extend_data, create_time, status from app_user_bank
+    </sql>
+
+    <select id="selectAppUserBankList" parameterType="AppUserBank" resultMap="AppUserBankResult">
+        <include refid="selectAppUserBankVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="bankType != null  and bankType != ''"> and bank_type = #{bankType}</if>
+            <if test="bankName != null  and bankName != ''"> and bank_name like concat('%', #{bankName}, '%')</if>
+            <if test="bankTitle != null  and bankTitle != ''"> and bank_title = #{bankTitle}</if>
+            <if test="bankSubbranch != null  and bankSubbranch != ''"> and bank_subbranch = #{bankSubbranch}</if>
+            <if test="bankAccountName != null  and bankAccountName != ''"> and bank_account_name like concat('%', #{bankAccountName}, '%')</if>
+            <if test="bankAccountNum != null  and bankAccountNum != ''"> and bank_account_num = #{bankAccountNum}</if>
+            <if test="extendData != null  and extendData != ''"> and extend_data = #{extendData}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppUserBankByBankId" parameterType="Long" resultMap="AppUserBankResult">
+        <include refid="selectAppUserBankVo"/>
+        where bank_id = #{bankId}
+    </select>
+
+    <insert id="insertAppUserBank" parameterType="AppUserBank" useGeneratedKeys="true" keyProperty="bankId">
+        insert into app_user_bank
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="bankType != null">bank_type,</if>
+            <if test="bankName != null">bank_name,</if>
+            <if test="bankTitle != null">bank_title,</if>
+            <if test="bankSubbranch != null">bank_subbranch,</if>
+            <if test="bankAccountName != null">bank_account_name,</if>
+            <if test="bankAccountNum != null">bank_account_num,</if>
+            <if test="extendData != null">extend_data,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="bankType != null">#{bankType},</if>
+            <if test="bankName != null">#{bankName},</if>
+            <if test="bankTitle != null">#{bankTitle},</if>
+            <if test="bankSubbranch != null">#{bankSubbranch},</if>
+            <if test="bankAccountName != null">#{bankAccountName},</if>
+            <if test="bankAccountNum != null">#{bankAccountNum},</if>
+            <if test="extendData != null">#{extendData},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppUserBank" parameterType="AppUserBank">
+        update app_user_bank
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="bankType != null">bank_type = #{bankType},</if>
+            <if test="bankName != null">bank_name = #{bankName},</if>
+            <if test="bankTitle != null">bank_title = #{bankTitle},</if>
+            <if test="bankSubbranch != null">bank_subbranch = #{bankSubbranch},</if>
+            <if test="bankAccountName != null">bank_account_name = #{bankAccountName},</if>
+            <if test="bankAccountNum != null">bank_account_num = #{bankAccountNum},</if>
+            <if test="extendData != null">extend_data = #{extendData},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where bank_id = #{bankId}
+    </update>
+
+    <delete id="deleteAppUserBankByBankId" parameterType="Long">
+        delete from app_user_bank where bank_id = #{bankId}
+    </delete>
+
+    <delete id="deleteAppUserBankByBankIds" parameterType="String">
+        delete from app_user_bank where bank_id in 
+        <foreach item="bankId" collection="array" open="(" separator="," close=")">
+            #{bankId}
+        </foreach>
+    </delete>
+</mapper>

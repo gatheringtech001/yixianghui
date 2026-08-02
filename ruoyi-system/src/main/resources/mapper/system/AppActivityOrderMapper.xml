@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppActivityOrderMapper">
+    
+    <resultMap type="AppActivityOrder" id="AppActivityOrderResult">
+        <result property="orderId"    column="order_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="activityId"    column="activity_id"    />
+        <result property="orderNo"    column="order_no"    />
+        <result property="signName"    column="sign_name"    />
+        <result property="signMobile"    column="sign_mobile"    />
+        <result property="signCount"    column="sign_count"    />
+        <result property="moneyPayable"    column="money_payable"    />
+        <result property="payStatus"    column="pay_status"    />
+        <result property="payMoney"    column="pay_money"    />
+        <result property="payType"    column="pay_type"    />
+        <result property="payTime"    column="pay_time"    />
+        <result property="remark"    column="remark"    />
+        <result property="orderNum"    column="order_num"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppActivityOrderVo">
+        select order_id, user_id, activity_id, order_no, sign_name, sign_mobile, sign_count, money_payable, pay_status, pay_money, pay_type, pay_time, remark, order_num, create_time, status from app_activity_order
+    </sql>
+
+    <select id="selectAppActivityOrderList" parameterType="AppActivityOrder" resultMap="AppActivityOrderResult">
+        <include refid="selectAppActivityOrderVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="activityId != null "> and activity_id = #{activityId}</if>
+            <if test="orderNo != null and orderNo != ''"> and order_no like concat('%', #{orderNo}, '%')</if>
+            <if test="signName != null  and signName != ''"> and sign_name like concat('%', #{signName}, '%')</if>
+            <if test="signMobile != null  and signMobile != ''"> and sign_mobile = #{signMobile}</if>
+            <if test="signCount != null "> and sign_count = #{signCount}</if>
+            <if test="payStatus != null  and payStatus != ''"> and pay_status = #{payStatus}</if>
+            <if test="orderNum != null "> and order_num = #{orderNum}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="params != null and params.expireBefore != null"> and create_time &lt;= #{params.expireBefore}</if>
+        </where>
+        order by order_id desc
+    </select>
+    
+    <select id="selectAppActivityOrderByOrderId" parameterType="Long" resultMap="AppActivityOrderResult">
+        <include refid="selectAppActivityOrderVo"/>
+        where order_id = #{orderId}
+    </select>
+
+    <insert id="insertAppActivityOrder" parameterType="AppActivityOrder" useGeneratedKeys="true" keyProperty="orderId">
+        insert into app_activity_order
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="activityId != null">activity_id,</if>
+            <if test="orderNo != null and orderNo != ''">order_no,</if>
+            <if test="signName != null">sign_name,</if>
+            <if test="signMobile != null">sign_mobile,</if>
+            <if test="signCount != null">sign_count,</if>
+            <if test="moneyPayable != null">money_payable,</if>
+            <if test="payStatus != null and payStatus != ''">pay_status,</if>
+            <if test="payMoney != null">pay_money,</if>
+            <if test="payType != null and payType != ''">pay_type,</if>
+            <if test="payTime != null">pay_time,</if>
+            <if test="remark != null">remark,</if>
+            <if test="orderNum != null">order_num,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="status != null and status != ''">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="activityId != null">#{activityId},</if>
+            <if test="orderNo != null and orderNo != ''">#{orderNo},</if>
+            <if test="signName != null">#{signName},</if>
+            <if test="signMobile != null">#{signMobile},</if>
+            <if test="signCount != null">#{signCount},</if>
+            <if test="moneyPayable != null">#{moneyPayable},</if>
+            <if test="payStatus != null and payStatus != ''">#{payStatus},</if>
+            <if test="payMoney != null">#{payMoney},</if>
+            <if test="payType != null and payType != ''">#{payType},</if>
+            <if test="payTime != null">#{payTime},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="orderNum != null">#{orderNum},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="status != null and status != ''">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppActivityOrder" parameterType="AppActivityOrder">
+        update app_activity_order
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="activityId != null">activity_id = #{activityId},</if>
+            <if test="orderNo != null and orderNo != ''">order_no = #{orderNo},</if>
+            <if test="signName != null">sign_name = #{signName},</if>
+            <if test="signMobile != null">sign_mobile = #{signMobile},</if>
+            <if test="signCount != null">sign_count = #{signCount},</if>
+            <if test="moneyPayable != null">money_payable = #{moneyPayable},</if>
+            <if test="payStatus != null and payStatus != ''">pay_status = #{payStatus},</if>
+            <if test="payMoney != null">pay_money = #{payMoney},</if>
+            <if test="payType != null and payType != ''">pay_type = #{payType},</if>
+            <if test="payTime != null">pay_time = #{payTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="orderNum != null">order_num = #{orderNum},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+        </trim>
+        where order_id = #{orderId}
+    </update>
+
+    <delete id="deleteAppActivityOrderByOrderId" parameterType="Long">
+        delete from app_activity_order where order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteAppActivityOrderByOrderIds" parameterType="String">
+        delete from app_activity_order where order_id in 
+        <foreach item="orderId" collection="array" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+    </delete>
+</mapper>

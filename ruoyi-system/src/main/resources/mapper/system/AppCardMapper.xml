@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppCardMapper">
+    
+    <resultMap type="AppCard" id="AppCardResult">
+        <result property="cardId"    column="card_id"    />
+        <result property="cardName"    column="card_name"    />
+        <result property="cardKey"    column="card_key"    />
+        <result property="cardImage"    column="card_image"    />
+        <result property="description"    column="description"    />
+        <result property="price"    column="price"    />
+        <result property="expiration"    column="expiration"    />
+        <result property="content"    column="content"    />
+        <result property="discountType"    column="discount_type"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppCardVo">
+        select card_id, card_name, card_key, card_image, description, price, expiration, content, discount_type, create_time, update_time, status from app_card
+    </sql>
+
+    <select id="selectAppCardList" parameterType="AppCard" resultMap="AppCardResult">
+        <include refid="selectAppCardVo"/>
+        <where>  
+            <if test="cardName != null  and cardName != ''"> and card_name like concat('%', #{cardName}, '%')</if>
+            <if test="cardKey != null  and cardKey != ''"> and card_key = #{cardKey}</if>
+            <if test="cardImage != null  and cardImage != ''"> and card_image = #{cardImage}</if>
+            <if test="description != null  and description != ''"> and description = #{description}</if>
+            <if test="content != null  and content != ''"> and content = #{content}</if>
+            <if test="discountType != null  and discountType != ''"> and discount_type = #{discountType}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppCardByCardId" parameterType="Long" resultMap="AppCardResult">
+        <include refid="selectAppCardVo"/>
+        where card_id = #{cardId}
+    </select>
+
+    <insert id="insertAppCard" parameterType="AppCard" useGeneratedKeys="true" keyProperty="cardId">
+        insert into app_card
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="cardName != null and cardName != ''">card_name,</if>
+            <if test="cardKey != null and cardKey != ''">card_key,</if>
+            <if test="cardImage != null">card_image,</if>
+            <if test="description != null">description,</if>
+            <if test="price != null">price,</if>
+            <if test="expiration != null">expiration,</if>
+            <if test="content != null">content,</if>
+            <if test="discountType != null">discount_type,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="status != null and status != ''">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="cardName != null and cardName != ''">#{cardName},</if>
+            <if test="cardKey != null and cardKey != ''">#{cardKey},</if>
+            <if test="cardImage != null">#{cardImage},</if>
+            <if test="description != null">#{description},</if>
+            <if test="price != null">#{price},</if>
+            <if test="expiration != null">#{expiration},</if>
+            <if test="content != null">#{content},</if>
+            <if test="discountType != null">#{discountType},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="status != null and status != ''">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppCard" parameterType="AppCard">
+        update app_card
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="cardName != null and cardName != ''">card_name = #{cardName},</if>
+            <if test="cardKey != null and cardKey != ''">card_key = #{cardKey},</if>
+            <if test="cardImage != null">card_image = #{cardImage},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="expiration != null">expiration = #{expiration},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="discountType != null">discount_type = #{discountType},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+        </trim>
+        where card_id = #{cardId}
+    </update>
+
+    <delete id="deleteAppCardByCardId" parameterType="Long">
+        delete from app_card where card_id = #{cardId}
+    </delete>
+
+    <delete id="deleteAppCardByCardIds" parameterType="String">
+        delete from app_card where card_id in 
+        <foreach item="cardId" collection="array" open="(" separator="," close=")">
+            #{cardId}
+        </foreach>
+    </delete>
+</mapper>

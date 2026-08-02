@@ -1,0 +1,1037 @@
+{
+  "meta": {
+    "title": "智享居管理系统 API Catalog",
+    "version": "2026-05-28",
+    "baseUrl": "/api",
+    "fullBaseUrlExample": "http://localhost:8080/api",
+    "sourcePackage": "com.ruoyi.web.controller.app",
+    "swaggerUi": "/api/swagger-ui/index.html",
+    "authHeader": "Authorization",
+    "authFormat": "Bearer {jwt_token}"
+  },
+  "conventions": {
+    "listResponse": "TableDataInfo { total, rows, code, msg }",
+    "actionResponse": "AjaxResult { code, msg, data? }",
+    "paginationQuery": ["pageNum", "pageSize", "orderByColumn", "isAsc"],
+    "adminCrudPattern": {
+      "list": { "method": "GET", "pathSuffix": "/list", "permSuffix": ":list" },
+      "export": { "method": "POST", "pathSuffix": "/export", "permSuffix": ":export" },
+      "get": { "method": "GET", "pathSuffix": "/{id}", "permSuffix": ":query" },
+      "add": { "method": "POST", "pathSuffix": "", "permSuffix": ":add" },
+      "edit": { "method": "PUT", "pathSuffix": "", "permSuffix": ":edit" },
+      "remove": { "method": "DELETE", "pathSuffix": "/{ids}", "permSuffix": ":remove" }
+    }
+  },
+  "apis": [
+    {
+      "operationId": "auth.wxmnpLogin",
+      "summary": "微信小程序登录",
+      "method": "GET",
+      "path": "/api/system/auth/wxmnp/login",
+      "group": "认证",
+      "auth": { "type": "none" },
+      "queryParams": ["code", "inviterId"],
+      "responseType": "AjaxResult",
+      "responseNotes": "data.token 为 JWT"
+    },
+    {
+      "operationId": "auth.socialLogin",
+      "summary": "第三方授权登录",
+      "method": "REQUEST",
+      "path": "/api/system/auth/social-login/{source}",
+      "group": "认证",
+      "auth": { "type": "none" },
+      "pathParams": ["source"],
+      "responseType": "AjaxResult"
+    },
+
+    {
+      "operationId": "mnp.index.getSite",
+      "summary": "根据经纬度查询所在分站",
+      "method": "GET",
+      "path": "/api/mnp/index/get_site",
+      "group": "小程序-公共",
+      "auth": { "type": "none" },
+      "queryParams": ["lng", "lat"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.getSiteByDeptId",
+      "summary": "按部门ID查询分站",
+      "method": "GET",
+      "path": "/api/mnp/index/get_site_bydepId/{deptId}",
+      "group": "小程序-公共",
+      "auth": { "type": "none" },
+      "pathParams": ["deptId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.getSiteList",
+      "summary": "查询分站列表",
+      "method": "GET",
+      "path": "/api/mnp/index/get_site_list",
+      "group": "小程序-公共",
+      "auth": { "type": "none" },
+      "responseType": "TableDataInfo"
+    },
+    {
+      "operationId": "mnp.index.getGoodsCategory",
+      "summary": "查询商品分类",
+      "method": "GET",
+      "path": "/api/mnp/index/get_goods_category",
+      "group": "小程序-商品",
+      "auth": { "type": "none" },
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.getGoodsList",
+      "summary": "查询商品列表",
+      "method": "GET",
+      "path": "/api/mnp/index/get_goods_list",
+      "group": "小程序-商品",
+      "auth": { "type": "none" },
+      "queryParams": ["deptId", "categoryId", "pageNum", "pageSize"],
+      "responseType": "TableDataInfo"
+    },
+    {
+      "operationId": "mnp.index.queryGoodsList",
+      "summary": "查询商品列表(POST)",
+      "method": "POST",
+      "path": "/api/mnp/index/queryGoodsList",
+      "group": "小程序-商品",
+      "auth": { "type": "none" },
+      "requestBody": "AppGoods",
+      "responseType": "TableDataInfo"
+    },
+    {
+      "operationId": "mnp.index.getGoodsInfo",
+      "summary": "查询商品详情",
+      "method": "GET",
+      "path": "/api/mnp/index/get_goods_info/{goodsId}",
+      "group": "小程序-商品",
+      "auth": { "type": "none" },
+      "pathParams": ["goodsId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.getAdPositionList",
+      "summary": "查询广告位列表",
+      "method": "GET",
+      "path": "/api/mnp/index/get_ad_position_list",
+      "group": "小程序-运营",
+      "auth": { "type": "none" },
+      "responseType": "TableDataInfo"
+    },
+    {
+      "operationId": "mnp.index.getAdContentList",
+      "summary": "查询广告内容列表",
+      "method": "GET",
+      "path": "/api/mnp/index/get_ad_content_list",
+      "group": "小程序-运营",
+      "auth": { "type": "none" },
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.getAdContentByPosition",
+      "summary": "按广告位查内容",
+      "method": "GET",
+      "path": "/api/mnp/index/get_ad_content_list_by_position_id/{positionId}",
+      "group": "小程序-运营",
+      "auth": { "type": "none" },
+      "pathParams": ["positionId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.getArticleCategoryList",
+      "summary": "查询图文分类列表",
+      "method": "GET",
+      "path": "/api/mnp/index/get_article_category_list",
+      "group": "小程序-内容",
+      "auth": { "type": "none" },
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.getArticleList",
+      "summary": "查询图文列表",
+      "method": "GET",
+      "path": "/api/mnp/index/get_article_list",
+      "group": "小程序-内容",
+      "auth": { "type": "none" },
+      "responseType": "TableDataInfo"
+    },
+    {
+      "operationId": "mnp.index.getSinglePage",
+      "summary": "查询单页文章详情",
+      "method": "GET",
+      "path": "/api/mnp/index/get_single_page/{pageId}",
+      "group": "小程序-内容",
+      "auth": { "type": "none" },
+      "pathParams": ["pageId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.cardList",
+      "summary": "查询会员卡列表",
+      "method": "GET",
+      "path": "/api/mnp/index/card_list",
+      "group": "小程序-会员卡",
+      "auth": { "type": "none" },
+      "responseType": "TableDataInfo"
+    },
+    {
+      "operationId": "mnp.index.cardInfo",
+      "summary": "获取会员卡详细信息",
+      "method": "GET",
+      "path": "/api/mnp/index/card_info/{cardId}",
+      "group": "小程序-会员卡",
+      "auth": { "type": "none" },
+      "pathParams": ["cardId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.activityCategoryList",
+      "summary": "查询活动分类列表",
+      "method": "GET",
+      "path": "/api/mnp/index/activity_category_list",
+      "group": "小程序-活动",
+      "auth": { "type": "none" },
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.activityCategoryInfo",
+      "summary": "获取活动分类详细信息",
+      "method": "GET",
+      "path": "/api/mnp/index/activity_category_info/{categoryId}",
+      "group": "小程序-活动",
+      "auth": { "type": "none" },
+      "pathParams": ["categoryId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.activityList",
+      "summary": "查询活动列表",
+      "method": "GET",
+      "path": "/api/mnp/index/activity_list",
+      "group": "小程序-活动",
+      "auth": { "type": "none" },
+      "responseType": "TableDataInfo"
+    },
+    {
+      "operationId": "mnp.index.activityInfo",
+      "summary": "获取活动详细信息",
+      "method": "GET",
+      "path": "/api/mnp/index/activity_info/{activityId}",
+      "group": "小程序-活动",
+      "auth": { "type": "none" },
+      "pathParams": ["activityId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.goodsSkuList",
+      "summary": "获取商品SKU属性",
+      "method": "REQUEST",
+      "path": "/api/mnp/index/goods_sku_list",
+      "group": "小程序-商品",
+      "auth": { "type": "none" },
+      "queryParams": ["goodsId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.goodsSkuOption",
+      "summary": "获取商品SKU选项",
+      "method": "REQUEST",
+      "path": "/api/mnp/index/goods_sku_option",
+      "group": "小程序-商品",
+      "auth": { "type": "none" },
+      "queryParams": ["skuId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.goodsSkuData",
+      "summary": "获取商品SKU组合数据",
+      "method": "REQUEST",
+      "path": "/api/mnp/index/goods_sku_data",
+      "group": "小程序-商品",
+      "auth": { "type": "none" },
+      "queryParams": ["goodsId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.index.goodsSkuDataInfo",
+      "summary": "获取商品SKU组合数据详情",
+      "method": "REQUEST",
+      "path": "/api/mnp/index/goods_sku_data_info",
+      "group": "小程序-商品",
+      "auth": { "type": "none" },
+      "queryParams": ["skuDataId"],
+      "responseType": "AjaxResult"
+    },
+
+    {
+      "operationId": "mnp.user.getData",
+      "summary": "获取个人信息",
+      "method": "GET",
+      "path": "/api/mnp/app_user/data",
+      "group": "小程序-用户",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.updateByMnp",
+      "summary": "修改个人信息",
+      "method": "POST",
+      "path": "/api/mnp/app_user/update_by_mnp",
+      "group": "小程序-用户",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "requestBody": "SysUser",
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.statisticAll",
+      "summary": "获取用户各项统计",
+      "method": "REQUEST",
+      "path": "/api/mnp/app_user/user_statistic/all",
+      "group": "小程序-用户",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.collectList",
+      "summary": "查询收藏列表",
+      "method": "GET",
+      "path": "/api/mnp/app_user/collect/list",
+      "group": "小程序-收藏",
+      "auth": { "type": "login" },
+      "responseType": "TableDataInfo"
+    },
+    {
+      "operationId": "mnp.user.collectAdd",
+      "summary": "新增收藏",
+      "method": "POST",
+      "path": "/api/mnp/app_user/collect/add",
+      "group": "小程序-收藏",
+      "auth": { "type": "login" },
+      "requestBody": "AppGoodsCollect",
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.collectDelete",
+      "summary": "删除收藏",
+      "method": "POST",
+      "path": "/api/mnp/app_user/collect/delete",
+      "group": "小程序-收藏",
+      "auth": { "type": "login" },
+      "queryParams": ["collectId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.cartList",
+      "summary": "查询用户购物车列表",
+      "method": "GET",
+      "path": "/api/mnp/app_user/cart/list",
+      "group": "小程序-购物车",
+      "auth": { "type": "login" },
+      "responseType": "TableDataInfo"
+    },
+    {
+      "operationId": "mnp.user.cartAdd",
+      "summary": "新增购物车商品",
+      "method": "POST",
+      "path": "/api/mnp/app_user/cart/add",
+      "group": "小程序-购物车",
+      "auth": { "type": "login" },
+      "requestBody": "AppGoodsCart",
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.cartEdit",
+      "summary": "修改购物车商品",
+      "method": "POST",
+      "path": "/api/mnp/app_user/cart/edit",
+      "group": "小程序-购物车",
+      "auth": { "type": "login" },
+      "requestBody": "AppGoodsCart",
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.cartDelete",
+      "summary": "删除购物车商品",
+      "method": "POST",
+      "path": "/api/mnp/app_user/cart/delete",
+      "group": "小程序-购物车",
+      "auth": { "type": "login" },
+      "queryParams": ["cartId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.cartClear",
+      "summary": "清空购物车商品",
+      "method": "POST",
+      "path": "/api/mnp/app_user/cart/clear",
+      "group": "小程序-购物车",
+      "auth": { "type": "login" },
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.getCouponList",
+      "summary": "获取我的优惠券列表",
+      "method": "GET",
+      "path": "/api/mnp/app_user/get_coupon_list",
+      "group": "小程序-优惠券",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "responseType": "TableDataInfo"
+    },
+    {
+      "operationId": "mnp.user.getCouponEnableList",
+      "summary": "订单获取可用优惠券",
+      "method": "GET",
+      "path": "/api/mnp/app_user/get_coupon_enable_list",
+      "group": "小程序-优惠券",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "queryParams": ["goodsId"],
+      "responseType": "TableDataInfo"
+    },
+    {
+      "operationId": "mnp.user.addGoodsOrder",
+      "summary": "创建商品订单",
+      "method": "POST",
+      "path": "/api/mnp/app_user/add_goods_order",
+      "group": "小程序-订单",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "requestBody": "AppGoodsOrder",
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.getGoodsOrderList",
+      "summary": "获取商品订单列表",
+      "method": "GET",
+      "path": "/api/mnp/app_user/get_goods_order_list",
+      "group": "小程序-订单",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "responseType": "TableDataInfo"
+    },
+    {
+      "operationId": "mnp.user.getGoodsOrder",
+      "summary": "获取商品订单详细信息",
+      "method": "GET",
+      "path": "/api/mnp/app_user/get_goods_order",
+      "group": "小程序-订单",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "queryParams": ["orderId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.payGoodsOrder",
+      "summary": "订单支付",
+      "method": "POST",
+      "path": "/api/mnp/app_user/pay_goods_order",
+      "group": "小程序-订单",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "requestBody": "AppGoodsOrder",
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.cancelOrder",
+      "summary": "取消订单",
+      "method": "POST",
+      "path": "/api/mnp/app_user/cacelOrder",
+      "group": "小程序-订单",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "queryParams": ["orderId"],
+      "responseType": "AjaxResult",
+      "notes": "路径拼写为 cacelOrder"
+    },
+    {
+      "operationId": "mnp.user.refundOrder",
+      "summary": "订单退款",
+      "method": "POST",
+      "path": "/api/mnp/app_user/appRefundOrder",
+      "group": "小程序-订单",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "requestBody": "AppGoodsOrderAfter",
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.wxpayNotify",
+      "summary": "微信支付通知回调",
+      "method": "REQUEST",
+      "path": "/api/mnp/app_user/wxpay_notify",
+      "group": "小程序-支付回调",
+      "auth": { "type": "none" },
+      "responseType": "string"
+    },
+    {
+      "operationId": "mnp.user.wxpayRefundNotify",
+      "summary": "微信退款通知回调",
+      "method": "REQUEST",
+      "path": "/api/mnp/app_user/wxpay_refund_notify",
+      "group": "小程序-支付回调",
+      "auth": { "type": "none" },
+      "responseType": "string"
+    },
+    {
+      "operationId": "mnp.user.getGoldenRule",
+      "summary": "签到获取金币规则",
+      "method": "GET",
+      "path": "/api/mnp/app_user/get_golden_rule",
+      "group": "小程序-金币",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.signGotGolden",
+      "summary": "签到获取金币",
+      "method": "POST",
+      "path": "/api/mnp/app_user/sign_got_golden",
+      "group": "小程序-金币",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.getGoldLog",
+      "summary": "查询金币记录",
+      "method": "GET",
+      "path": "/api/mnp/app_user/get_gold_log",
+      "group": "小程序-金币",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.addressList",
+      "summary": "查询用户地址列表",
+      "method": "GET",
+      "path": "/api/mnp/app_user/address/list",
+      "group": "小程序-地址",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "responseType": "TableDataInfo"
+    },
+    {
+      "operationId": "mnp.user.addressAdd",
+      "summary": "新增用户地址",
+      "method": "POST",
+      "path": "/api/mnp/app_user/address/add",
+      "group": "小程序-地址",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "requestBody": "AppUserAddress",
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.addressEdit",
+      "summary": "修改用户地址",
+      "method": "POST",
+      "path": "/api/mnp/app_user/address/edit",
+      "group": "小程序-地址",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "requestBody": "AppUserAddress",
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.addressDelete",
+      "summary": "删除用户地址",
+      "method": "POST",
+      "path": "/api/mnp/app_user/address/delete/{addressId}",
+      "group": "小程序-地址",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "pathParams": ["addressId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.applyConsultant",
+      "summary": "申请成为顾问",
+      "method": "POST",
+      "path": "/api/mnp/app_user/apply_consultant",
+      "group": "小程序-顾问",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "requestBody": "AppConsultant",
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.consultantParent",
+      "summary": "查询上级信息",
+      "method": "GET",
+      "path": "/api/mnp/app_user/consultant/parent",
+      "group": "小程序-顾问",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.consultantChildren",
+      "summary": "查询下级顾问列表",
+      "method": "GET",
+      "path": "/api/mnp/app_user/consultant/children",
+      "group": "小程序-顾问",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "responseType": "TableDataInfo"
+    },
+    {
+      "operationId": "mnp.user.consultantCustomerList",
+      "summary": "查询客户列表",
+      "method": "GET",
+      "path": "/api/mnp/app_user/consultant/customer_list",
+      "group": "小程序-顾问",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.activityOrderList",
+      "summary": "查询活动预约列表",
+      "method": "GET",
+      "path": "/api/mnp/app_user/acticity_order/list",
+      "group": "小程序-活动预约",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "responseType": "TableDataInfo",
+      "notes": "路径拼写 acticity"
+    },
+    {
+      "operationId": "mnp.user.activityOrderAdd",
+      "summary": "活动预约报名",
+      "method": "POST",
+      "path": "/api/mnp/app_user/acticity_order/add",
+      "group": "小程序-活动预约",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "requestBody": "AppActivityOrder",
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.activityOrderCancel",
+      "summary": "取消活动预约",
+      "method": "POST",
+      "path": "/api/mnp/app_user/acticity_order/cancel",
+      "group": "小程序-活动预约",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "queryParams": ["orderId"],
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.userCardPrepay",
+      "summary": "用户会员卡预购买",
+      "method": "POST",
+      "path": "/api/mnp/app_user/user_card/prepay",
+      "group": "小程序-会员卡",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "requestBody": "AppCard",
+      "responseType": "AjaxResult"
+    },
+    {
+      "operationId": "mnp.user.userCardPay",
+      "summary": "用户会员卡支付",
+      "method": "POST",
+      "path": "/api/mnp/app_user/user_card/pay",
+      "group": "小程序-会员卡",
+      "auth": { "type": "permission", "value": "system:mnp:user" },
+      "requestBody": "AppUserCard",
+      "responseType": "AjaxResult"
+    }
+  ],
+  "adminModules": [
+    {
+      "moduleId": "app_activity_category",
+      "tag": "活动分类管理",
+      "basePath": "/api/system/app_activity_category",
+      "idField": "categoryId",
+      "idsField": "categoryIds",
+      "entity": "AppActivityCategory",
+      "permPrefix": "system:app_activity_category"
+    },
+    {
+      "moduleId": "app_activity",
+      "tag": "活动管理",
+      "basePath": "/api/system/app_activity",
+      "idField": "activityId",
+      "idsField": "activityIds",
+      "entity": "AppActivity",
+      "permPrefix": "system:app_activity"
+    },
+    {
+      "moduleId": "app_activity_order",
+      "tag": "活动预约管理",
+      "basePath": "/api/system/app_activity_order",
+      "idField": "orderId",
+      "idsField": "orderIds",
+      "entity": "AppActivityOrder",
+      "permPrefix": "system:app_activity_order"
+    },
+    {
+      "moduleId": "app_ad_content",
+      "tag": "广告内容管理",
+      "basePath": "/api/system/app_ad_content",
+      "idField": "contentId",
+      "idsField": "contentIds",
+      "entity": "AppAdContent",
+      "permPrefix": "system:app_ad_content"
+    },
+    {
+      "moduleId": "app_ad_position",
+      "tag": "广告管理管理",
+      "basePath": "/api/system/app_ad_position",
+      "idField": "positionId",
+      "idsField": "positionIds",
+      "entity": "AppAdPosition",
+      "permPrefix": "system:app_ad_position"
+    },
+    {
+      "moduleId": "app_area",
+      "tag": "行政区域管理",
+      "basePath": "/api/system/app_area",
+      "idField": "areaId",
+      "idsField": "areaIds",
+      "entity": "AppArea",
+      "permPrefix": "system:app_area"
+    },
+    {
+      "moduleId": "app_article_category",
+      "tag": "内容分类管理",
+      "basePath": "/api/system/app_article_category",
+      "idField": "categoryId",
+      "idsField": "categoryIds",
+      "entity": "AppArticleCategory",
+      "permPrefix": "system:app_article_category"
+    },
+    {
+      "moduleId": "app_article",
+      "tag": "图文内容管理",
+      "basePath": "/api/system/app_article",
+      "idField": "articleId",
+      "idsField": "articleIds",
+      "entity": "AppArticle",
+      "permPrefix": "system:app_article"
+    },
+    {
+      "moduleId": "attachments",
+      "tag": "附件管理",
+      "basePath": "/api/system/attachments",
+      "idField": "attachmentId",
+      "idsField": "attachmentIds",
+      "entity": "AppAttachments",
+      "permPrefix": "system:attachments"
+    },
+    {
+      "moduleId": "app_card",
+      "tag": "会员卡管理",
+      "basePath": "/api/system/app_card",
+      "idField": "cardId",
+      "idsField": "cardIds",
+      "entity": "AppCard",
+      "permPrefix": "system:app_card"
+    },
+    {
+      "moduleId": "app_config",
+      "tag": "商城配置管理",
+      "basePath": "/api/system/app_config",
+      "idField": "configId",
+      "idsField": "configIds",
+      "entity": "AppConfig",
+      "permPrefix": "system:app_config"
+    },
+    {
+      "moduleId": "app_consultant",
+      "tag": "康养顾问管理",
+      "basePath": "/api/system/app_consultant",
+      "idField": "consultantId",
+      "idsField": "consultantIds",
+      "entity": "AppConsultant",
+      "permPrefix": "system:app_consultant",
+      "extraApis": [
+        { "operationId": "admin.app_consultant.importData", "method": "POST", "path": "/importData", "summary": "导入顾问资料", "perm": "system:app_consultant:import" },
+        { "operationId": "admin.app_consultant.importTemplate", "method": "POST", "path": "/importTemplate", "summary": "下载导入模板", "perm": null }
+      ]
+    },
+    {
+      "moduleId": "app_customer",
+      "tag": "客户资料管理",
+      "basePath": "/api/system/app_customer",
+      "idField": "customerId",
+      "idsField": "customerIds",
+      "entity": "AppCustomer",
+      "permPrefix": "system:app_customer",
+      "extraApis": [
+        { "operationId": "admin.app_customer.alllist", "method": "GET", "path": "/alllist", "summary": "查询全部客户列表", "perm": "system:app_customer:list" },
+        { "operationId": "admin.app_customer.importData", "method": "POST", "path": "/importData", "summary": "导入客户资料", "perm": "system:app_customer:import" },
+        { "operationId": "admin.app_customer.importTemplate", "method": "POST", "path": "/importTemplate", "summary": "下载导入模板", "perm": null }
+      ]
+    },
+    {
+      "moduleId": "app_customer_income",
+      "tag": "收入明细管理",
+      "basePath": "/api/system/app_customer_income",
+      "idField": "incomeId",
+      "idsField": "incomeIds",
+      "entity": "AppCustomerIncome",
+      "permPrefix": "system:app_customer_income",
+      "extraApis": [
+        { "operationId": "admin.app_customer_income.stat", "method": "GET", "path": "/stat", "summary": "查询收入明细统计", "perm": "system:app_customer_income:list" }
+      ]
+    },
+    {
+      "moduleId": "app_express",
+      "tag": "快递公司管理",
+      "basePath": "/api/system/app_express",
+      "idField": "expressId",
+      "idsField": "expressIds",
+      "entity": "AppExpress",
+      "permPrefix": "system:app_express"
+    },
+    {
+      "moduleId": "app_goods_category",
+      "tag": "商品分类管理",
+      "basePath": "/api/system/app_goods_category",
+      "idField": "categoryId",
+      "idsField": "categoryIds",
+      "entity": "AppGoodsCategory",
+      "permPrefix": "system:app_goods_category"
+    },
+    {
+      "moduleId": "app_goods",
+      "tag": "商品管理",
+      "basePath": "/api/system/app_goods",
+      "idField": "goodsId",
+      "idsField": "goodsIds",
+      "entity": "AppGoods",
+      "permPrefix": "system:app_goods"
+    },
+    {
+      "moduleId": "app_goods_cart",
+      "tag": "用户购物车管理",
+      "basePath": "/api/system/app_goods_cart",
+      "idField": "cartId",
+      "idsField": "cartIds",
+      "entity": "AppGoodsCart",
+      "permPrefix": "system:app_goods_cart",
+      "extraApis": [
+        { "operationId": "admin.app_goods_cart.deleteOne", "method": "POST", "path": "/delete/{cartId}", "summary": "删除单条购物车", "perm": "system:app_goods_cart:remove" },
+        { "operationId": "admin.app_goods_cart.clear", "method": "POST", "path": "/clear", "summary": "清空购物车", "perm": "system:app_goods_cart:remove" }
+      ]
+    },
+    {
+      "moduleId": "app_goods_collect",
+      "tag": "商品收藏管理",
+      "basePath": "/api/system/app_goods_collect",
+      "idField": "collectId",
+      "idsField": "collectIds",
+      "entity": "AppGoodsCollect",
+      "permPrefix": "system:app_goods_collect"
+    },
+    {
+      "moduleId": "app_goods_comment",
+      "tag": "商品评价管理",
+      "basePath": "/api/system/app_goods_comment",
+      "idField": "commentId",
+      "idsField": "commentIds",
+      "entity": "AppGoodsComment",
+      "permPrefix": "system:app_goods_comment"
+    },
+    {
+      "moduleId": "app_goods_coupon",
+      "tag": "商品优惠券管理",
+      "basePath": "/api/system/app_goods_coupon",
+      "idField": "couponId",
+      "idsField": "couponIds",
+      "entity": "AppGoodsCoupon",
+      "permPrefix": "system:app_goods_coupon"
+    },
+    {
+      "moduleId": "app_goods_coupon_got",
+      "tag": "优惠券领取记录管理",
+      "basePath": "/api/system/app_goods_coupon_got",
+      "idField": "gotId",
+      "idsField": "gotIds",
+      "entity": "AppGoodsCouponGot",
+      "permPrefix": "system:app_goods_coupon_got",
+      "extraApis": [
+        { "operationId": "admin.app_goods_coupon_got.enableList", "method": "GET", "path": "/enable_list", "summary": "获取可用优惠券", "perm": "system:app_goods_coupon_got:list", "queryParams": ["goodsId"] }
+      ]
+    },
+    {
+      "moduleId": "app_goods_order",
+      "tag": "商品订单管理",
+      "basePath": "/api/system/app_goods_order",
+      "idField": "orderId",
+      "idsField": "orderIds",
+      "entity": "AppGoodsOrder",
+      "permPrefix": "system:app_goods_order",
+      "extraApis": [
+        { "operationId": "admin.app_goods_order.pay", "method": "POST", "path": "/pay", "summary": "商品订单发起支付", "perm": "system:mnp:user" }
+      ]
+    },
+    {
+      "moduleId": "app_goods_order_after",
+      "tag": "订单商品售后管理",
+      "basePath": "/api/system/app_goods_order_after",
+      "idField": "afterId",
+      "idsField": "afterIds",
+      "entity": "AppGoodsOrderAfter",
+      "permPrefix": "system:app_goods_order_after",
+      "extraApis": [
+        { "operationId": "admin.app_goods_order_after.refundPrepay", "method": "POST", "path": "/refundPrepay", "summary": "退款微信对接", "perm": "system:app_goods_order_after:edit" }
+      ]
+    },
+    {
+      "moduleId": "app_goods_order_detail",
+      "tag": "订单详细管理",
+      "basePath": "/api/system/app_goods_order_detail",
+      "idField": "detailId",
+      "idsField": "detailIds",
+      "entity": "AppGoodsOrderDetail",
+      "permPrefix": "system:app_goods_order_detail"
+    },
+    {
+      "moduleId": "app_goods_sku",
+      "tag": "商品属性管理",
+      "basePath": "/api/system/app_goods_sku",
+      "idField": "skuId",
+      "idsField": "skuIds",
+      "entity": "AppGoodsSku",
+      "permPrefix": "system:app_goods_sku"
+    },
+    {
+      "moduleId": "app_goods_sku_data",
+      "tag": "型号信息管理",
+      "basePath": "/api/system/app_goods_sku_data",
+      "idField": "dataId",
+      "idsField": "dataIds",
+      "entity": "AppGoodsSkuData",
+      "permPrefix": "system:app_goods_sku_data"
+    },
+    {
+      "moduleId": "app_goods_sku_option",
+      "tag": "属性选项管理",
+      "basePath": "/api/system/app_goods_sku_option",
+      "idField": "optionId",
+      "idsField": "optionIds",
+      "entity": "AppGoodsSkuOption",
+      "permPrefix": "system:app_goods_sku_option"
+    },
+    {
+      "moduleId": "app_pay_log",
+      "tag": "支付记录管理",
+      "basePath": "/api/system/app_pay_log",
+      "idField": "logId",
+      "idsField": "logIds",
+      "entity": "AppPayLog",
+      "permPrefix": "system:app_pay_log"
+    },
+    {
+      "moduleId": "app_pay_refund_log",
+      "tag": "退款记录管理",
+      "basePath": "/api/system/app_pay_refund_log",
+      "idField": "logId",
+      "idsField": "logIds",
+      "entity": "AppPayRefundLog",
+      "permPrefix": "system:app_pay_refund_log"
+    },
+    {
+      "moduleId": "app_single_page",
+      "tag": "单页文章管理",
+      "basePath": "/api/system/app_single_page",
+      "idField": "pageId",
+      "idsField": "pageIds",
+      "entity": "AppSinglePage",
+      "permPrefix": "system:app_single_page"
+    },
+    {
+      "moduleId": "app_supplier",
+      "tag": "供应商管理",
+      "basePath": "/api/system/app_supplier",
+      "idField": "supplierId",
+      "idsField": "supplierIds",
+      "entity": "AppSupplier",
+      "permPrefix": "system:app_supplier"
+    },
+    {
+      "moduleId": "app_user_address",
+      "tag": "用户地址管理",
+      "basePath": "/api/system/app_user_address",
+      "idField": "addressId",
+      "idsField": "addressIds",
+      "entity": "AppUserAddress",
+      "permPrefix": "system:app_user_address",
+      "extraApis": [
+        { "operationId": "admin.app_user_address.deleteOne", "method": "POST", "path": "/delete/{addressId}", "summary": "删除单条地址", "perm": "system:app_user_address:remove" }
+      ]
+    },
+    {
+      "moduleId": "app_user_bank",
+      "tag": "用户银行卡管理",
+      "basePath": "/api/system/app_user_bank",
+      "idField": "bankId",
+      "idsField": "bankIds",
+      "entity": "AppUserBank",
+      "permPrefix": "system:app_user_bank"
+    },
+    {
+      "moduleId": "app_user_card",
+      "tag": "用户会员卡管理",
+      "basePath": "/api/system/app_user_card",
+      "idField": "recordId",
+      "idsField": "recordIds",
+      "entity": "AppUserCard",
+      "permPrefix": "system:app_user_card",
+      "extraApis": [
+        { "operationId": "admin.app_user_card.info", "method": "GET", "path": "/info", "summary": "查询用户会员卡详细信息", "perm": "system:app_user_card:query" }
+      ]
+    },
+    {
+      "moduleId": "app_user_cash",
+      "tag": "用户提现管理",
+      "basePath": "/api/system/app_user_cash",
+      "idField": "cashId",
+      "idsField": "cashIds",
+      "entity": "AppUserCash",
+      "permPrefix": "system:app_user_cash"
+    },
+    {
+      "moduleId": "app_user_charge",
+      "tag": "用户充值管理",
+      "basePath": "/api/system/app_user_charge",
+      "idField": "chargeId",
+      "idsField": "chargeIds",
+      "entity": "AppUserCharge",
+      "permPrefix": "system:app_user_charge"
+    },
+    {
+      "moduleId": "app_user_gold_log",
+      "tag": "金币记录管理",
+      "basePath": "/api/system/app_user_gold_log",
+      "idField": "logId",
+      "idsField": "logIds",
+      "entity": "AppUserGoldLog",
+      "permPrefix": "system:app_user_gold_log"
+    },
+    {
+      "moduleId": "app_user_info",
+      "tag": "用户信息管理",
+      "basePath": "/api/system/app_user_info",
+      "idField": "userId",
+      "idsField": "userIds",
+      "entity": "AppUserInfo",
+      "permPrefix": "system:app_user_info"
+    },
+    {
+      "moduleId": "app_user_inviter",
+      "tag": "邀请记录管理",
+      "basePath": "/api/system/app_user_inviter",
+      "idField": "inviterId",
+      "idsField": "inviterIds",
+      "entity": "AppUserInviter",
+      "permPrefix": "system:app_user_inviter"
+    },
+    {
+      "moduleId": "app_user_money_log",
+      "tag": "钱包记录管理",
+      "basePath": "/api/system/app_user_money_log",
+      "idField": "logId",
+      "idsField": "logIds",
+      "entity": "AppUserMoneyLog",
+      "permPrefix": "system:app_user_money_log"
+    },
+    {
+      "moduleId": "app_user_score_log",
+      "tag": "积分记录管理",
+      "basePath": "/api/system/app_user_score_log",
+      "idField": "logId",
+      "idsField": "logIds",
+      "entity": "AppUserScoreLog",
+      "permPrefix": "system:app_user_score_log"
+    }
+  ]
+}

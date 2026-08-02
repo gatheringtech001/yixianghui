@@ -1,0 +1,73 @@
+.head-banner{
+	overflow: hidden;
+	margin: 20rpx;
+	image{
+		width: 100%;
+	}
+}
+.reject-tip {
+	display: flex;
+	align-items: flex-start;
+	margin: 0 24rpx 16rpx;
+	padding: 20rpx 24rpx;
+	background: #fff8f0;
+	border-radius: 12rpx;
+	border: 1rpx solid #ffe4cc;
+
+	text {
+		flex: 1;
+		margin-left: 12rpx;
+		font-size: 26rpx;
+		color: #ff6b00;
+		line-height: 1.6;
+	}
+}
+.apply{
+	margin: 24rpx;
+	margin-top: 50rpx;
+	.title{
+		text-align: center;
+		font-size: 32rpx;
+		line-height: 2;
+		margin-top: 20rpx;
+		text{
+			color: #C30D24;
+		}
+	}
+	.form-box{
+		background: #fff;
+		margin: 30rpx 0;
+		padding: 12rpx;
+		box-shadow: 0 0 7rpx #b4b4b4;
+		border-radius: 16rpx;
+		overflow: hidden;
+		.u-form-item{
+			padding: 12rpx 24rpx !important;
+		}
+		.u-form-item--left {
+			.u-form-item--left__content{
+				font-size: 30rpx;
+				color: #666;
+				font-weight: 500;
+			}
+		}
+		.u-form-item--right{
+			.u-form-item--right__content{
+				font-size: 32rpx;
+				color: #000;
+				font-weight: 600;
+			}
+		}
+	}
+	.tips{
+		.article{
+			color: royalblue;
+		}
+	}
+}
+.submit{
+	margin: 50rpx 24rpx;
+}
+.status-box{
+	padding: 120rpx 24rpx;
+}

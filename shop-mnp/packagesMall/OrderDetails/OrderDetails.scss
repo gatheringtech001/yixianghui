@@ -1,0 +1,449 @@
+$accent: #701018;
+$ink: #111111;
+$muted: #777777;
+$line: #e8e1d8;
+$paper: #ffffff;
+$soft: #f7f7f5;
+$shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
+
+.page{
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background-color: $soft;
+}
+
+/* 订单状态 */
+.order-status{
+	width: 100%;
+	min-height: 128rpx;
+	background: linear-gradient(90deg, #701018, #9e3d25);
+	.status{
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 128rpx;
+		text{
+			font-size: 38rpx;
+			font-weight: 860;
+			color: #FFFFFF;
+		}
+		.iconfont{
+			margin-right: 20rpx;
+		}
+	}
+	.reason{
+		display: flex;
+		justify-content: center;
+		width: 100%;
+		padding: 0 40rpx 24rpx;
+		text{
+			font-size: 26rpx;
+			line-height: 1.5;
+			color: rgba(255, 255, 255, 0.88);
+			text-align: center;
+		}
+	}
+}
+
+.after-sale-box{
+	margin: 20rpx 4%;
+	padding: 24rpx;
+	background: $paper;
+	border: 1rpx solid $line;
+	border-radius: 20rpx;
+	box-shadow: $shadow;
+	.box-title{
+		font-size: 28rpx;
+		font-weight: 700;
+		color: $ink;
+		margin-bottom: 16rpx;
+	}
+	.box-row{
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 20rpx;
+		padding: 10rpx 0;
+		.label{
+			flex-shrink: 0;
+			font-size: 26rpx;
+			color: $muted;
+		}
+		.value{
+			flex: 1;
+			text-align: right;
+			font-size: 26rpx;
+			color: $ink;
+			word-break: break-all;
+			&.danger{
+				color: $accent;
+				font-weight: 700;
+			}
+		}
+	}
+}
+
+/* 收货地址 */
+.shipping-address{
+	width: 92%;
+	min-height: 200rpx;
+	background-color: $paper;
+	border: 1rpx solid $line;
+	border-radius: 20rpx;
+	box-shadow: $shadow;
+	margin: -20rpx auto 20rpx;
+	.name-phone{
+		display: flex;
+		align-items: center;
+		padding: 0 4%;
+		height: 80rpx;
+		text{
+			font-size: 28rpx;
+			font-weight: bold;
+			color: $ink;
+			margin-right: 20rpx;
+		}
+	}
+	.address{
+		display: flex;
+		padding: 0 4%;
+		height: 100rpx;
+		margin-left: 50rpx;
+		text{
+			font-size: 26rpx;
+			color: $muted;
+		}
+	}
+}
+
+/* 教育课程 - 报名联系信息 */
+.education-contact{
+	width: 92%;
+	background-color: $paper;
+	border: 1rpx solid $line;
+	border-radius: 20rpx;
+	box-shadow: $shadow;
+	margin: 20rpx auto 0;
+	padding: 10rpx 4%;
+	box-sizing: border-box;
+	.contact-list{
+		.list{
+			display: flex;
+			align-items: flex-start;
+			padding: 16rpx 0;
+			border-bottom: 1rpx solid $line;
+			&:last-child{
+				border-bottom: none;
+			}
+			.title{
+				flex: 0 0 160rpx;
+				font-size: 26rpx;
+				color: $muted;
+			}
+			.content{
+				flex: 1;
+				font-size: 26rpx;
+				color: $ink;
+				line-height: 1.5;
+			}
+		}
+	}
+}
+
+/* 教育课程 - 课程信息 */
+.education-course-info{
+	width: 92%;
+	background-color: $paper;
+	border: 1rpx solid $line;
+	border-radius: 20rpx;
+	box-shadow: $shadow;
+	margin: 20rpx auto 0;
+	padding: 24rpx 4%;
+	box-sizing: border-box;
+	.info-title{
+		font-size: 30rpx;
+		font-weight: 700;
+		color: $ink;
+		margin-bottom: 16rpx;
+	}
+	.info-grid{
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 16rpx;
+		.info-item{
+			display: flex;
+			flex-direction: column;
+			gap: 6rpx;
+			.label{
+				font-size: 22rpx;
+				color: $muted;
+			}
+			.value{
+				font-size: 26rpx;
+				color: $ink;
+				font-weight: 600;
+				line-height: 1.4;
+				word-break: break-all;
+			}
+		}
+	}
+}
+
+/* 订单商品 */
+.order-goods{
+	width: 92%;
+	margin: 20rpx auto 0;
+	background-color: $paper;
+	border: 1rpx solid $line;
+	border-radius: 20rpx;
+	box-shadow: $shadow;
+	overflow: hidden;
+	.goods-list{
+		padding: 0 4%;
+		.list{
+			display: flex;
+			align-items: center;
+			width: 100%;
+			min-height: 200rpx;
+			.thumb{
+				display: flex;
+				width: 30%;
+				image{
+					width: 160rpx;
+					height: 160rpx;
+					border-radius: 10rpx;
+				}
+			}
+			.item{
+				width: 70%;
+				height: 100%;
+				.title{
+					display: flex;
+					align-items: center;
+					width: 100%;
+					height: 60rpx;
+					text{
+						font-size: 26rpx;
+						color: $ink;
+					}
+				}
+				.num-size{
+					display: flex;
+					align-items: center;
+					width: 100%;
+					height: 60rpx;
+					text{
+						font-size: 26rpx;
+						color: $muted;
+						margin-right: 20rpx;
+					}
+					text:last-child{
+						margin-right: 0;
+					}
+				}
+				.price{
+					display: flex;
+					align-items: center;
+					width: 100%;
+					height: 60rpx;
+					text{
+						font-size: 28rpx;
+						font-weight: bold;
+						color: $ink;
+					}
+				}
+				.order-btn{
+					display: flex;
+					align-items: center;
+					justify-content: flex-end;
+					width: 100%;
+					height: 100rpx;
+					.btn{
+						padding: 10rpx 30rpx;
+						color: $ink;
+						font-size: 26rpx;
+						border: 2rpx solid $line;
+						border-radius: 100rpx;
+						background: $paper;
+					}
+				}
+			}
+		}
+	}
+	.selected-dates-info {
+		width: 100%;
+		margin-top: 20rpx;
+		padding: 20rpx;
+		background-color: $soft;
+		border-radius: 10rpx;
+		text-align: center;
+		color: $muted;
+		font-size: 28rpx;
+		box-sizing: border-box;
+	}
+	.contact{
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100rpx;
+		background-color: $paper;
+		border-top: 1rpx solid $line;
+		border-radius: 0 0 20rpx 20rpx;
+		text{
+			font-size: 28rpx;
+			color: #555555;
+		}
+		.iconfont{
+			font-size: 34rpx;
+			margin-right: 20rpx;
+		}
+	}
+}
+
+/* 订单信息 */
+.order-info{
+	width: 92%;
+	background-color: $paper;
+	border: 1rpx solid $line;
+	border-radius: 20rpx;
+	box-shadow: $shadow;
+	margin: 20rpx auto;
+	overflow: hidden;
+	.info-list{
+		padding: 0 4%;
+		.list{
+			display: flex;
+			align-items: center;
+			width: 100%;
+			height: 100rpx;
+			border-bottom: 1rpx solid $line;
+			&:last-child{
+				border-bottom: 0;
+			}
+			.title{
+				font-size: 26rpx;
+				color: $muted;
+			}
+			.content{
+				display: flex;
+				align-items: center;
+				margin-left: 20rpx;
+				text{
+					font-size: 26rpx;
+					font-weight: bold;
+					color: $ink;
+				}
+				.btn{
+					padding: 6rpx 20rpx;
+					background-color: $soft;
+					color: #555555;
+					font-size: 24rpx;
+					border: 1rpx solid $line;
+					border-radius: 50rpx;
+					margin-left: 40rpx;
+				}
+			}
+		}
+	}
+}
+
+/* 订单明细 */
+.order-details{
+	width: 92%;
+	background-color: $paper;
+	border: 1rpx solid $line;
+	border-radius: 20rpx;
+	box-shadow: $shadow;
+	margin: 20rpx auto;
+	padding-bottom: 200rpx;
+	overflow: hidden;
+	.details-list{
+		padding: 0 4%;
+		.list{
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			width: 100%;
+			height: 100rpx;
+			border-bottom: 1rpx solid $line;
+			&:last-child{
+				border-bottom: 0;
+			}
+			.title{
+				font-size: 26rpx;
+				color: $muted;
+			}
+			.price{
+				font-size: 26rpx;
+				font-weight: bold;
+				color: $ink;
+			}
+		}
+		.action{
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			.price{
+				font-size: 32rpx;
+				font-weight: 900;
+				color: $accent;
+			}
+		}
+	}
+}
+
+.footer-btn{
+	position: fixed;
+	left: 0;
+	bottom: 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	height: auto;
+	background-color: $paper;
+	border-top: 1rpx solid $line;
+	padding: 20rpx 4%;
+	padding-bottom: constant(safe-area-inset-bottom); /*兼容 IOS<11.2*/
+	padding-bottom: env(safe-area-inset-bottom); /*兼容 IOS>11.2*/
+	box-sizing: border-box;
+	.del{
+		display: flex;
+		align-items: center;
+		text{
+			padding: 10rpx 30rpx;
+			font-size: 30rpx;
+			font-weight: bold;
+			color: $ink;
+		}
+	}
+	.btn{
+		display: flex;
+		align-items: center;
+		text{
+			padding: 12rpx 32rpx;
+			font-size: 28rpx;
+			border: 1rpx solid $line;
+			border-radius: 16rpx;
+			color: $muted;
+			margin-left: 16rpx;
+			background: $paper;
+			font-weight: 700;
+		}
+		.after{
+			color: $accent;
+			border: 1rpx solid $accent;
+			background: $paper;
+		}
+		.action{
+			background-color: $accent;
+			color: #FFFFFF;
+			border: 1rpx solid $accent;
+		}
+	}
+}

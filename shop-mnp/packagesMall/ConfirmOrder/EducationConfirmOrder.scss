@@ -1,0 +1,244 @@
+$accent: #701018;
+$ink: #111111;
+$muted: #777777;
+$line: #e8e1d8;
+$paper: #ffffff;
+$soft: #f7f7f5;
+
+.page_view {
+	min-height: 100vh;
+	background: $soft;
+	padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
+	box-sizing: border-box;
+}
+
+.page_scroll {
+	width: 100%;
+	padding: 20rpx 28rpx 0;
+	box-sizing: border-box;
+}
+
+.course-card {
+	display: flex;
+	gap: 20rpx;
+	padding: 24rpx;
+	border: 1rpx solid $line;
+	border-radius: 20rpx;
+	background: $paper;
+
+	> image {
+		width: 172rpx;
+		height: 172rpx;
+		border-radius: 16rpx;
+		flex-shrink: 0;
+	}
+
+	.course-body {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.course-name {
+		font-size: 34rpx;
+		font-weight: 820;
+		color: $ink;
+		line-height: 1.3;
+	}
+
+	.course-summary {
+		margin-top: 8rpx;
+		color: #555555;
+		font-size: 24rpx;
+		line-height: 1.5;
+	}
+}
+
+.info-card,
+.form-card,
+.price-card {
+	margin-top: 20rpx;
+	padding: 24rpx;
+	border: 1rpx solid $line;
+	border-radius: 20rpx;
+	background: $paper;
+}
+
+.card-title {
+	font-size: 30rpx;
+	font-weight: 820;
+	color: $ink;
+	margin-bottom: 16rpx;
+}
+
+.info-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 16rpx;
+
+	.info-item {
+		display: flex;
+		flex-direction: column;
+		gap: 6rpx;
+		min-width: 0;
+	}
+
+	.info-label {
+		color: $muted;
+		font-size: 22rpx;
+	}
+
+	.info-value {
+		color: $ink;
+		font-size: 26rpx;
+		font-weight: 700;
+		line-height: 1.35;
+		word-break: break-all;
+	}
+}
+
+.form-row {
+	margin-bottom: 20rpx;
+
+	&:last-child {
+		margin-bottom: 0;
+	}
+
+	.row-label {
+		margin-bottom: 10rpx;
+		color: $ink;
+		font-size: 26rpx;
+		font-weight: 700;
+	}
+
+	.row-hint {
+		margin-top: 8rpx;
+		color: $muted;
+		font-size: 22rpx;
+		line-height: 1.45;
+	}
+}
+
+.agreement-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 4rpx;
+	margin-top: 20rpx;
+	padding: 12rpx 0;
+	color: #555555;
+	font-size: 24rpx;
+	line-height: 1.5;
+	box-sizing: border-box;
+
+	.agreement-check {
+		display: inline-flex;
+		align-items: center;
+		padding: 4rpx 8rpx 4rpx 0;
+	}
+
+	.agreement-text {
+		flex: 1;
+		min-width: 0;
+		padding: 4rpx 0;
+	}
+
+	.agreement-link {
+		color: $accent;
+	}
+}
+
+.price-list {
+	.price-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 12rpx 0;
+		font-size: 26rpx;
+		color: $ink;
+
+		&.discount {
+			color: $muted;
+		}
+
+		&.total {
+			margin-top: 8rpx;
+			padding-top: 16rpx;
+			border-top: 1rpx solid $line;
+			font-size: 30rpx;
+			font-weight: 820;
+
+			.value {
+				color: $accent;
+			}
+		}
+	}
+}
+
+.page_foot_view {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 20;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20rpx;
+	padding: 20rpx 28rpx calc(20rpx + env(safe-area-inset-bottom));
+	background: rgba(255, 255, 255, 0.96);
+	border-top: 1rpx solid $line;
+	box-sizing: border-box;
+
+	.foot_price_view {
+		flex: 1;
+		min-width: 0;
+
+		.price_view {
+			color: $accent;
+			font-size: 24rpx;
+			font-weight: 700;
+
+			text {
+				font-size: 40rpx;
+				font-weight: 900;
+			}
+		}
+
+		.text_view {
+			margin-top: 4rpx;
+			color: $muted;
+			font-size: 22rpx;
+		}
+	}
+
+	.pay_button_view {
+		flex-shrink: 0;
+		min-width: 220rpx;
+		min-height: 84rpx;
+		padding: 0 28rpx;
+		border-radius: 16rpx;
+		background: $accent;
+		color: #fff;
+		font-size: 28rpx;
+		font-weight: 760;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+}
+
+.notice_popup_view {
+	padding: 28rpx;
+	max-height: 70vh;
+	box-sizing: border-box;
+
+	.notice_title_view {
+		font-size: 32rpx;
+		font-weight: 820;
+		color: $ink;
+		margin-bottom: 16rpx;
+	}
+
+	.notice_content_view {
+		max-height: 56vh;
+	}
+}

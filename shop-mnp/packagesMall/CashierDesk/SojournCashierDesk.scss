@@ -1,0 +1,165 @@
+$accent: #701018;
+$ink: #111111;
+$muted: #777777;
+$line: #e8e1d8;
+$paper: #ffffff;
+$soft: #f7f7f5;
+$shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
+
+.page_view {
+	margin: 0;
+	padding: 24rpx 28rpx calc(160rpx + env(safe-area-inset-bottom));
+	width: 100vw;
+	min-height: 100vh;
+	background-color: $soft;
+	display: flex;
+	flex-direction: column;
+	gap: 20rpx;
+	box-sizing: border-box;
+
+	.page_price_card {
+		width: 100%;
+		border: 1rpx solid $line;
+		border-radius: 20rpx;
+		background-color: $paper;
+		box-shadow: $shadow;
+		padding: 36rpx 28rpx;
+		text-align: center;
+		box-sizing: border-box;
+
+		.price_label_view {
+			display: block;
+			color: $muted;
+			font-size: 26rpx;
+			font-weight: 650;
+		}
+
+		.price_value_view {
+			display: block;
+			margin-top: 16rpx;
+			color: $accent;
+			font-size: 64rpx;
+			line-height: 1;
+			font-weight: 920;
+		}
+	}
+
+	.section_caption {
+		margin: 8rpx 4rpx 0;
+		color: $ink;
+		font-size: 32rpx;
+		font-weight: 860;
+	}
+
+	.page_base_view {
+		width: 100%;
+		border: 1rpx solid $line;
+		border-radius: 20rpx;
+		background-color: $paper;
+		box-shadow: $shadow;
+		overflow: hidden;
+		box-sizing: border-box;
+
+		.base_box_view {
+			width: 100%;
+			min-height: 96rpx;
+			display: flex;
+			align-items: center;
+			font-size: 28rpx;
+			padding: 20rpx 28rpx;
+			border-top: 1rpx solid $line;
+			box-sizing: border-box;
+
+			&:first-child {
+				border-top: 0;
+			}
+
+			.base_label_view {
+				width: 180rpx;
+				flex-shrink: 0;
+				color: $muted;
+				font-weight: 650;
+			}
+
+			.base_value_view {
+				flex: 1;
+				min-width: 0;
+				font-weight: 760;
+				color: $ink;
+				text-align: right;
+				line-height: 1.45;
+				word-break: break-all;
+			}
+
+			&.is_amount {
+				.base_value_view {
+					color: $accent;
+					font-weight: 900;
+					font-size: 32rpx;
+				}
+			}
+		}
+
+		.method_value {
+			.base_label_view {
+				width: auto;
+				flex: 1;
+				display: flex;
+				align-items: center;
+				gap: 16rpx;
+				color: $ink !important;
+				font-weight: 760;
+				font-size: 30rpx;
+			}
+
+			.base_value_view {
+				width: auto;
+				flex: 0 0 auto;
+				font-weight: bold;
+				display: flex;
+				justify-content: flex-end;
+				align-items: center;
+			}
+		}
+	}
+
+	.page_foot_view {
+		width: 100%;
+		min-height: 132rpx;
+		background-color: $paper;
+		position: fixed;
+		left: 0;
+		bottom: 0;
+		padding: 20rpx 28rpx calc(20rpx + env(safe-area-inset-bottom));
+		display: flex;
+		align-items: center;
+		z-index: 999;
+		border-top: 1rpx solid $line;
+		gap: 20rpx;
+		box-sizing: border-box;
+
+		.button_view {
+			flex: 1;
+			min-height: 88rpx;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-size: 30rpx;
+			font-weight: 760;
+			border-radius: 16rpx;
+			box-sizing: border-box;
+		}
+
+		.button_secondary {
+			background: $paper;
+			color: $accent;
+			border: 1rpx solid $accent;
+		}
+
+		.button_primary {
+			background: $accent;
+			color: #ffffff;
+			border: 1rpx solid $accent;
+		}
+	}
+}

@@ -1,0 +1,220 @@
+page{
+	background-color: #f4f5f7;
+}
+.page{
+	position: absolute;
+	width: 100%;
+}
+
+/* 搜索 */
+.search-index{
+	position: fixed;
+	left: 0;
+	z-index: 10;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+	height: 100rpx;
+	padding: 0 4%;
+	background-color: #EFEBDF;
+	.icon-info{
+		display: flex;
+		align-items: center;
+		height: 100%;
+		text{
+			font-size: 42rpx;
+			color: #727272;
+			margin-right: 6rpx;
+			font-weight: 500;
+			&.city{
+				font-size: 32rpx;
+				color: #454545;
+			}
+		}
+		image{
+			width: 42rpx;
+			height: 43rpx;
+		}
+		&.icon-right{
+			text{
+				font-size: 52rpx;
+				margin-right: 0;
+			}
+		}
+	}
+	.search{
+		flex: 1;
+		display: flex;
+		align-items: center;
+		padding: 0 3%;
+		height: 60rpx;
+		background-color: #f6f6f6;
+		border-radius: 60rpx;
+		.iconfont{
+			font-size: 28rpx;
+			color: #C0C0C0;
+		}
+		input{
+			flex: 1;
+			height: 100%;
+			color: #212121;
+			font-size: 24rpx;
+			margin-left: 10rpx;
+		}
+		
+		.search-text{
+			color: #000;
+			font-size: 30rpx;
+		}
+	}
+}
+
+/* 活动数据 */
+.activity-data{
+	display: flex;
+	width: 100%;
+	height: calc(100vh - 156rpx);
+	margin-top: 124rpx;
+	.activity-one{
+		width: 176rpx;
+		height: 100%;
+		background-color: #f6f6f6;
+		.activity-list{
+			width: 100%;
+			height: 100%;
+			.list{
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				width: 100%;
+				height: 80rpx;
+				text{
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					width: 100%;
+					color: #212121;
+					font-size: 26rpx;
+					box-sizing: border-box;
+				}
+			}
+			.action{
+				background-color: #FFFFFF;
+				font-size: 28rpx;
+				border-left: 6rpx solid $base;
+				box-sizing: border-box;
+				font-weight: 600;
+				color: #FF8B02;
+			}
+		}
+	}
+	.activity-two-three{
+		width: calc(100% - 176rpx);
+		height: 100%;
+		background-color: #fff;
+		.scroll{
+			width: 100%;
+			height: 100%;
+			.activity-two{
+				display: flex;
+				flex-wrap: wrap;
+				width: 100%;
+				.list{
+					width: calc(100% - 48rpx);
+					height: auto;
+					background: #fff;
+					box-shadow: 0 0 10rpx #ccc;
+					border-radius: 8rpx;
+					overflow: hidden;
+					margin: 24rpx;
+					padding: 12rpx;
+					.info{
+						display: flex;
+						align-items: center;
+						.img-box{
+							width: 180rpx;
+							height: 180rpx;
+							display: flex;
+							align-items: center;
+							text-align: center;
+							justify-content: center;
+							overflow: hidden;
+							image{
+								width: 180rpx;
+								height: 180rpx;
+							}
+						}
+						.content{
+							flex: 1;
+							max-width: calc(100% - 204rpx);
+							margin-left: 24rpx;
+							.name{
+								width: 100%;
+								line-height: 40rpx;
+								overflow: hidden;
+								display: -webkit-box;
+								text-overflow: ellipsis;
+								-webkit-box-orient: vertical;
+								-webkit-line-clamp: 2;
+								font-size: 30rpx;
+								color: #212121;
+							}
+							.time{
+								width: 100%;
+								font-size: 24rpx;
+								color: #FF8B02;
+								line-height: 2;
+								u-icon{
+									margin-right: 8rpx;
+								}
+							}
+							.address{
+								width: 100%;
+								height: 48rpx;
+								overflow: hidden;
+								white-space: nowrap;
+								text-overflow: ellipsis;
+								font-size: 24rpx;
+								color: #727272;
+								line-height: 48rpx;
+							}
+						}
+						
+					}
+					.bottom{
+						display: flex;
+						align-items: center;
+						justify-content: space-between;
+						margin-top: 16rpx;
+						border-top: 1rpx dotted #b4b5b7;
+						padding-top: 16rpx;
+						.num{
+							flex: 1;
+							font-size: 32rpx;
+							color: #333;
+							line-height: 2;
+							text{
+								color: #FF8B02;
+								margin-left: 24rpx;
+								font-size: 36rpx;
+								font-weight: 600;
+							}
+						}
+						.u-btn{
+							&::after{
+								display: none;
+							}
+						}
+					}
+				}
+				&.empty{
+					padding-top: 100rpx;
+					u-empty{
+						margin: 0 auto;
+					}
+				}
+			}
+		}
+	}
+}

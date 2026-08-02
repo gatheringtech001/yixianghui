@@ -1,0 +1,2110 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>逸享荟康养 P0 组件化原型</title>
+    <style>
+      :root {
+        --accent: #701018;
+        --accent-dark: #5e0d14;
+        --ink: #111111;
+        --text: #333333;
+        --muted: #777777;
+        --icon: #8a8a8a;
+        --line: #e8e1d8;
+        --paper: #ffffff;
+        --warm: #f5f1ea;
+        --soft: #f7f7f5;
+        --cream: #fbf6ef;
+        --shadow: 0 6px 18px rgba(17, 17, 17, 0.06);
+        --w: 414px;
+        --h: 783px;
+      }
+
+      * { box-sizing: border-box; }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #eee9e1;
+        color: var(--ink);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC",
+          "Microsoft YaHei", sans-serif;
+        letter-spacing: 0;
+      }
+
+      body {
+        display: grid;
+        place-items: start center;
+      }
+
+      button {
+        border: 0;
+        padding: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .phone {
+        width: min(100vw, var(--w));
+        height: min(100vh, var(--h));
+        min-height: min(100vh, var(--h));
+        overflow: hidden;
+        background: var(--soft);
+      }
+
+      .page {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--soft);
+      }
+
+      .page.white { background: var(--paper); }
+
+      .content {
+        flex: 1;
+        overflow: auto;
+        padding: 10px 14px 18px;
+        scrollbar-width: none;
+      }
+
+      .content::-webkit-scrollbar { display: none; }
+
+      .topbar {
+        flex: 0 0 56px;
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: 44px 1fr 92px;
+        align-items: center;
+        gap: 4px;
+        padding: 0 14px;
+        border-bottom: 1px solid rgba(232, 225, 216, 0.7);
+        background: var(--paper);
+      }
+
+      .topbar.compact {
+        flex-basis: 44px;
+      }
+
+      .coins-page .content {
+        padding-top: 0;
+      }
+
+      .topbar h1,
+      .brand-header h1 {
+        margin: 0;
+        font-size: 20px;
+        line-height: 1.25;
+        font-weight: 800;
+      }
+
+      .topbar h1 {
+        text-align: center;
+      }
+
+      .back {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+      }
+
+      .top-action,
+      .brand-pill {
+        justify-self: end;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 28px;
+        padding: 0 11px;
+        border: 1px solid var(--accent);
+        border-radius: 999px;
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 750;
+        white-space: nowrap;
+      }
+
+      .brand-header {
+        flex: 0 0 92px;
+        padding: 14px 14px 0;
+        background: var(--paper);
+      }
+
+      .brand-line {
+        min-height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .brand-pill {
+        justify-self: auto;
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .home-brand-header {
+        flex-basis: 98px;
+        padding-top: 10px;
+      }
+
+      .home-brand-line {
+        min-height: 34px;
+        justify-content: space-between;
+      }
+
+      .home-brand-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .brand-logo {
+        width: 36px;
+        height: 36px;
+        display: block;
+        border-radius: 7px;
+      }
+
+      .mini-capsule {
+        width: 78px;
+        height: 30px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: center;
+        overflow: hidden;
+        border: 1px solid rgba(112, 16, 24, 0.75);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--accent);
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .mini-capsule button {
+        height: 100%;
+        display: grid;
+        place-items: center;
+      }
+
+      .mini-capsule button + button {
+        border-left: 1px solid rgba(112, 16, 24, 0.35);
+      }
+
+      .topbar .mini-capsule {
+        justify-self: end;
+        border-color: #1f1f1f;
+        color: var(--ink);
+      }
+
+      .topbar .mini-capsule button + button {
+        border-left-color: #d8d8d8;
+      }
+
+      .home-brand-header .mini-capsule {
+        border-color: #1f1f1f;
+        color: var(--ink);
+      }
+
+      .home-brand-header .mini-capsule button + button {
+        border-left-color: #d8d8d8;
+      }
+
+      .search-bar {
+        width: 100%;
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        padding: 0 13px;
+        border: 1px solid #eee9e1;
+        border-radius: 999px;
+        background: var(--soft);
+        color: var(--muted);
+        text-align: left;
+        font-size: 14px;
+      }
+
+      .search-bar .search-action {
+        margin-left: auto;
+        color: var(--accent);
+        font-weight: 750;
+      }
+
+      .btn {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 16px;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 760;
+        white-space: nowrap;
+      }
+
+      .btn.primary {
+        background: var(--accent);
+      }
+
+      .btn.secondary {
+        border: 1px solid var(--line);
+        background: var(--paper);
+        color: var(--ink);
+      }
+
+      .btn.outline-red {
+        border: 1px solid var(--accent);
+        background: var(--paper);
+        color: var(--accent);
+      }
+
+      .btn.full { width: 100%; min-height: 50px; font-size: 18px; }
+
+      .chip,
+      .outline-chip,
+      .status-pill {
+        display: inline-flex;
+        min-height: 24px;
+        align-items: center;
+        padding: 0 9px;
+        border-radius: 5px;
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 720;
+      }
+
+      .chip { background: #f5e9e5; }
+
+      .outline-chip {
+        border: 1px solid rgba(139, 17, 29, 0.55);
+        background: var(--paper);
+      }
+
+      .status-pill {
+        min-height: 32px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 16px;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 16px 0 9px;
+      }
+
+      .section-title {
+        margin: 0;
+        font-size: 17px;
+        line-height: 1.25;
+        font-weight: 820;
+      }
+
+      .more {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .home-hero {
+        width: 100%;
+        height: 126px;
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 1fr 174px;
+        gap: 10px;
+        padding: 10px 10px 10px 13px;
+        border: 1px solid rgba(112, 16, 24, 0.28);
+        border-radius: 10px;
+        background: var(--cream);
+        text-align: left;
+      }
+
+      .hero-copy {
+        text-align: left;
+      }
+
+      .home-hero h2,
+      .card-title {
+        margin: 0;
+        color: var(--ink);
+        font-size: 18px;
+        line-height: 1.28;
+        font-weight: 840;
+      }
+
+      .home-hero p,
+      .meta {
+        margin: 5px 0 0;
+        color: #666666;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .home-hero img {
+        width: 174px;
+        height: 98px;
+        align-self: start;
+        margin-top: 8px;
+        border-radius: 8px;
+        object-fit: cover;
+      }
+
+      .home-hero .chip { min-height: 20px; padding: 0 7px; font-size: 10px; }
+      .home-hero .btn { margin-top: 6px; min-height: 28px; font-size: 12px; }
+
+      .housekeeper {
+        width: 100%;
+        min-height: 62px;
+        display: grid;
+        grid-template-columns: 50px 1fr 76px;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+        padding: 6px 8px 6px 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+        text-align: left;
+      }
+
+      .housekeeper-copy {
+        text-align: left;
+      }
+
+      .housekeeper img,
+      .avatar,
+      .staff-avatar {
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .housekeeper img {
+        width: 50px;
+        height: 50px;
+        object-fit: cover;
+        object-position: center;
+        background: #efe7de;
+      }
+
+      .home-page .content {
+        padding-top: 0;
+      }
+
+      .home-page .housekeeper {
+        margin-top: 6px;
+      }
+
+      .home-page .housekeeper .btn {
+        width: 76px;
+        min-height: 32px;
+        align-self: center;
+        margin-top: 0;
+        padding: 0;
+        font-size: 13px;
+      }
+
+      .profile-housekeeper {
+        position: relative;
+        overflow: visible;
+        min-height: 84px;
+        grid-template-columns: 88px 1fr auto;
+        padding: 2px 12px;
+        border-color: transparent;
+        background: var(--cream);
+        box-shadow: none;
+      }
+
+      .profile-housekeeper img {
+        position: absolute;
+        left: 10px;
+        bottom: 0;
+        width: 96px;
+        height: 100px;
+        border-radius: 0;
+        object-fit: contain;
+        object-position: center bottom;
+        background: transparent;
+        pointer-events: none;
+      }
+
+      .profile-housekeeper .housekeeper-copy {
+        grid-column: 2;
+      }
+
+      .profile-housekeeper .btn {
+        grid-column: 3;
+        min-height: 34px;
+        padding: 0 14px;
+      }
+
+      .entry-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .home-page .entry-grid {
+        margin-top: 6px;
+      }
+
+      .home-page .section-head {
+        margin: 8px 0 7px;
+      }
+
+      .home-page .recommend-head {
+        margin: 14px 0 7px;
+      }
+
+      .entry-card {
+        width: 100%;
+        position: relative;
+        min-height: 78px;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 50px 1fr;
+        align-items: center;
+        gap: 8px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--paper);
+        color: var(--ink);
+        text-align: left;
+      }
+
+      .entry-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background: linear-gradient(90deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.92) 50%, rgba(255,255,255,0.32) 78%, rgba(255,255,255,0.02) 100%);
+      }
+
+      .entry-card > img {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 0;
+        width: 104px;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .entry-card .icon,
+      .entry-card div {
+        position: relative;
+        z-index: 1;
+      }
+
+      .entry-card .icon {
+        width: 46px;
+        height: 46px;
+        padding: 11px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 0 0 1px rgba(17, 17, 17, 0.08);
+      }
+
+      .entry-card strong {
+        display: block;
+        font-size: 15px;
+      }
+
+      .entry-card span {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .city-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        grid-auto-rows: 98px;
+        gap: 7px;
+      }
+
+      .city-card {
+        width: 100%;
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px;
+        color: #fff;
+        text-align: left;
+      }
+
+      .city-card.large { grid-row: span 1; }
+
+      .city-card img,
+      .stay-card img,
+      .listing-card img,
+      .search-result-card img,
+      .detail-cover {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
+      .city-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.45));
+        display: none;
+      }
+
+      .city-card strong,
+      .city-card span {
+        position: absolute;
+        left: 10px;
+        z-index: 1;
+      }
+
+      .city-card strong { bottom: 24px; font-size: 15px; }
+      .city-card span { bottom: 9px; font-size: 11px; }
+
+      .home-page .city-card strong,
+      .home-page .city-card span {
+        display: none;
+      }
+
+      .product-list,
+      .activity-list,
+      .support-list,
+      .task-list {
+        display: grid;
+        align-content: start;
+        gap: 10px;
+      }
+
+      .product-card {
+        width: 100%;
+        align-self: start;
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 9px;
+        height: 86px;
+        min-height: 86px;
+        overflow: hidden;
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+        text-align: left;
+      }
+
+      .product-card .btn,
+      .stay-card .btn,
+      .listing-card .btn,
+      .search-result-card .btn {
+        min-height: 32px;
+        border-radius: 8px;
+        font-size: 12px;
+      }
+
+      .stay-card .btn,
+      .listing-card .btn {
+        min-width: 92px;
+        border-radius: 999px;
+      }
+
+      .product-card img {
+        width: 140px;
+        height: 72px;
+        border-radius: 8px;
+        object-fit: cover;
+      }
+
+      .product-card .card-title { font-size: 14px; }
+      .product-card .meta { font-size: 10px; line-height: 1.2; margin-top: 2px; }
+      .product-card .tags { margin-top: 3px; gap: 5px; }
+      .product-card .chip { min-height: 16px; padding: 0 7px; font-size: 10px; }
+      .product-card .price { font-size: 17px; }
+      .product-card .price-row { margin-top: 2px; }
+      .product-card .btn { min-height: 26px; padding: 0 13px; }
+
+      .home-page .product-card {
+        grid-template-columns: 148px 1fr;
+        height: 94px;
+        min-height: 94px;
+        padding: 4px 5px 4px 4px;
+      }
+
+      .home-page .product-card img {
+        width: 148px;
+        height: 86px;
+      }
+
+      .home-page .product-card .btn {
+        position: relative;
+        top: -1px;
+        width: 60px;
+        min-height: 22px;
+        margin-right: 7px;
+        padding: 0;
+      }
+
+      .home-page .product-card .meta {
+        visibility: hidden;
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 7px;
+      }
+
+      .price-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .price {
+        color: var(--accent);
+        font-size: 20px;
+        line-height: 1;
+        font-weight: 900;
+      }
+
+      .member-price {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 5px;
+        color: var(--accent);
+        white-space: nowrap;
+      }
+
+      .member-price span {
+        font-size: 11px;
+        font-weight: 760;
+      }
+
+      .switcher {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        margin-top: 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--paper);
+      }
+
+      .switcher button {
+        min-height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border-right: 1px solid var(--line);
+        background: var(--paper);
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 760;
+      }
+
+      .switcher button:last-child { border-right: 0; }
+
+      .switcher button.active {
+        position: relative;
+        background: var(--ink);
+        color: #fff;
+      }
+
+      .switcher button.active::after {
+        content: "";
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 0;
+        height: 2px;
+        border-radius: 99px;
+        background: var(--accent);
+      }
+
+      .browse-grid {
+        display: grid;
+        grid-template-columns: 90px 1fr;
+        gap: 10px;
+        margin: 12px -14px 0;
+      }
+
+      .browse-grid > .product-list,
+      .browse-grid > .activity-list {
+        padding-right: 14px;
+      }
+
+      .service-page .product-list {
+        gap: 8px;
+      }
+
+      .service-page .listing-body {
+        padding-top: 11px;
+      }
+
+      .service-page .stay-card .btn {
+        position: relative;
+        left: 7px;
+        top: -1px;
+        min-height: 31px;
+      }
+
+      .activity-page .brand-line {
+        justify-content: flex-start;
+      }
+
+      .activity-page .browse-grid {
+        grid-template-columns: 84px 1fr;
+        gap: 12px;
+        margin-top: 24px;
+      }
+
+      .activity-page .category-rail button {
+        min-height: 46px;
+      }
+
+      .category-rail {
+        min-height: 505px;
+        padding-top: 10px;
+        border-right: 1px solid #ede8df;
+        background: #f6f3ed;
+      }
+
+      .category-rail button {
+        position: relative;
+        width: 100%;
+        min-height: 54px;
+        color: #333333;
+        font-size: 13px;
+        font-weight: 720;
+      }
+
+      .category-rail button.active {
+        color: var(--accent);
+      }
+
+      .category-rail button.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 14px;
+        width: 4px;
+        height: 20px;
+        border-radius: 99px;
+        background: var(--accent);
+      }
+
+      .service-page .category-rail button.active::before {
+        top: -7px;
+        width: 3px;
+        height: 60px;
+        border-radius: 0 99px 99px 0;
+      }
+
+      .stay-card,
+      .listing-card,
+      .search-result-card {
+        width: 100%;
+        align-self: start;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--paper);
+        text-align: left;
+      }
+
+      .stay-card img { height: 150px; filter: saturate(1.16) contrast(0.96); }
+      .listing-card img { height: 188px; }
+      .listing-body { padding: 13px 14px 14px; }
+
+      .search-result-card img { height: 158px; }
+      .result-body { padding: 12px 13px 14px; }
+
+      .search-page .content {
+        padding: 2px 18px 18px;
+      }
+
+      .search-page .search-bar {
+        min-height: 42px;
+        margin-top: 0;
+      }
+
+      .search-page .product-list {
+        gap: 14px;
+      }
+
+      .search-page .search-result-card img {
+        height: 162px;
+      }
+
+      .search-page .result-body {
+        padding: 12px 16px 15px;
+      }
+
+      .search-page .search-result-card .card-title {
+        font-size: 18px;
+      }
+
+      .search-page .search-result-card .meta {
+        margin-top: 6px;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .search-page .search-result-card .price {
+        font-size: 24px;
+        font-weight: 780;
+      }
+
+      .search-page .search-result-card .price-row {
+        margin-top: 10px;
+      }
+
+      .search-page .search-result-card .btn {
+        min-height: 38px;
+        min-width: 100px;
+        margin-right: 4px;
+        padding: 0 18px;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+
+      .activity-meta {
+        display: grid;
+        gap: 8px;
+        margin-top: 9px;
+        color: #444;
+        font-size: 12px;
+      }
+
+      .activity-meta div {
+        display: grid;
+        grid-template-columns: 72px 1fr;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .activity-meta span { color: var(--muted); }
+
+      .activity-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .activity-label .icon {
+        width: 18px;
+        height: 18px;
+        color: var(--accent);
+      }
+
+      .detail-content {
+        padding: 0;
+      }
+
+      .detail-cover {
+        flex: 0 0 226px;
+        width: calc(100% + 28px);
+        height: 192px;
+        margin: -9px -14px 0;
+      }
+
+      .activity-cover {
+        flex-basis: 222px;
+        height: 222px;
+      }
+
+      .detail-panel {
+        width: calc(100% + 28px);
+        margin: -1px -14px 0;
+        padding: 20px 20px 26px;
+        border-radius: 16px 16px 0 0;
+        background: var(--paper);
+        min-height: 320px;
+      }
+
+      .product-detail-panel {
+        position: relative;
+        min-height: 132px;
+        padding-top: 14px;
+        padding-bottom: 24px;
+      }
+
+      .product-detail-panel .chip {
+        position: absolute;
+        left: 17px;
+        top: -29px;
+        min-height: 30px;
+        border-radius: 4px;
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .product-detail-panel h2 {
+        margin-top: 0;
+      }
+
+      .detail-panel h2 {
+        margin: 10px 0 6px;
+        font-size: 27px;
+        line-height: 1.25;
+        font-weight: 880;
+      }
+
+      .detail-panel p {
+        margin: 0 0 12px;
+        color: #585858;
+        font-size: 14px;
+        line-height: 1.65;
+      }
+
+      .info-row {
+        min-height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid var(--line);
+        color: #333;
+        font-size: 15px;
+      }
+
+      .progress {
+        width: 100%;
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #eeeeee;
+      }
+
+      .progress span {
+        display: block;
+        width: 8%;
+        height: 100%;
+        background: var(--accent);
+      }
+
+      .activity-detail-page .detail-panel {
+        width: auto;
+        min-height: 330px;
+        margin: 14px 6px 0;
+        padding: 14px 14px 18px;
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+      }
+
+      .activity-detail-page .detail-panel h2 {
+        margin-top: 12px;
+      }
+
+      .activity-detail-page .progress span {
+        width: 0;
+      }
+
+      .bottom-action {
+        flex: 0 0 64px;
+        display: grid;
+        grid-template-columns: 118px 1fr;
+        gap: 14px;
+        align-items: center;
+        padding: 10px 18px;
+        border-top: 1px solid var(--line);
+        background: var(--paper);
+      }
+
+      .bottom-action .btn { border-radius: 4px; min-height: 38px; }
+
+      .profile-head {
+        margin: -10px -14px 0;
+        padding: 31px 20px 24px;
+        background: var(--paper);
+      }
+
+      .profile-top {
+        display: grid;
+        grid-template-columns: 72px 1fr auto;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .avatar { width: 72px; height: 72px; }
+
+      .settings {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: #333;
+        font-size: 12px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        margin-top: 16px;
+        text-align: center;
+      }
+
+      .stats strong {
+        display: block;
+        color: var(--ink);
+        font-size: 19px;
+      }
+
+      .stats span {
+        color: #555;
+        font-size: 11px;
+      }
+
+      .order-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        min-height: 92px;
+        padding: 14px 5px 12px;
+      }
+
+      .order-panel {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+
+      .order-grid button {
+        display: grid;
+        justify-items: center;
+        align-content: center;
+        gap: 6px;
+        color: #333;
+        font-size: 11px;
+      }
+
+      .order-grid button .icon {
+        width: 24px;
+        height: 24px;
+        color: var(--ink);
+      }
+
+      .order-shortcuts {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border-top: 1px solid var(--line);
+      }
+
+      .order-shortcuts button {
+        min-height: 74px;
+        display: grid;
+        grid-template-columns: 26px 1fr;
+        align-items: center;
+        gap: 8px;
+        padding: 0 10px;
+        border-right: 1px solid var(--line);
+        color: #333;
+        text-align: left;
+        font-size: 11px;
+      }
+
+      .order-shortcuts button:last-child { border-right: 0; }
+
+      .order-shortcuts button .icon {
+        width: 22px;
+        height: 22px;
+        color: var(--ink);
+      }
+
+      .order-shortcuts strong {
+        display: block;
+        color: var(--ink);
+        font-size: 12px;
+        line-height: 1.2;
+      }
+
+      .order-shortcuts span {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.2;
+      }
+
+      .service-list {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+      }
+
+      .service-row {
+        width: 100%;
+        min-height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 14px;
+        border-bottom: 1px solid var(--line);
+        color: #333;
+        text-align: left;
+        font-size: 14px;
+        font-weight: 720;
+      }
+
+      .service-row:last-child { border-bottom: 0; }
+
+      .service-row .row-left {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .service-row .icon {
+        width: 22px;
+        height: 22px;
+        color: var(--ink);
+      }
+
+      .support-info {
+        position: relative;
+        display: grid;
+        grid-template-columns: 148px 1fr;
+        gap: 56px;
+        align-items: center;
+        margin-top: -10px;
+        min-height: 204px;
+        padding: 18px 26px 16px;
+        border: 0;
+        border-radius: 8px;
+        background: #fbf8f3;
+      }
+
+      .support-info::before {
+        content: "";
+        position: absolute;
+        left: 198px;
+        top: 34px;
+        width: 1px;
+        height: 138px;
+        background: #e4ddd4;
+      }
+
+      .support-qr {
+        width: 144px;
+        height: 144px;
+        border-radius: 6px;
+        object-fit: cover;
+      }
+
+      .support-qr-block {
+        display: grid;
+        justify-items: center;
+        gap: 10px;
+        color: var(--ink);
+        font-size: 15px;
+        font-weight: 760;
+      }
+
+      .support-time {
+        color: var(--ink);
+        font-size: 22px;
+        line-height: 1.25;
+        font-weight: 860;
+      }
+
+      .support-card {
+        display: grid;
+        grid-template-columns: 72px 1fr;
+        gap: 10px 18px;
+        min-height: 148px;
+        padding: 11px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--paper);
+        text-align: left;
+      }
+
+      .staff-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .support-actions {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-top: 0;
+      }
+
+      .support-actions .btn {
+        min-height: 42px;
+        padding: 0 12px;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .support-actions .btn.primary {
+        gap: 6px;
+      }
+
+      .support-actions .btn.primary .icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .coin-summary {
+        min-height: 132px;
+        position: relative;
+        overflow: hidden;
+        margin: 0 -14px;
+        padding: 10px 22px 14px 34px;
+        background: #eee5d6;
+      }
+
+      .coins-page .top-action {
+        width: 76px;
+        min-height: 32px;
+        gap: 2px;
+        padding: 0 6px;
+        font-size: 12px;
+      }
+
+      .coins-page .top-action .icon {
+        width: 16px;
+        height: 16px;
+      }
+
+      .coin-topline {
+        position: absolute;
+        left: 22px;
+        right: 18px;
+        top: 16px;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .coin-topline h1 {
+        margin: 0;
+        font-size: 20px;
+        line-height: 1.25;
+        font-weight: 860;
+      }
+
+      .coin-guide {
+        min-height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 10px;
+        border: 1px solid var(--accent);
+        border-radius: 999px;
+        color: var(--accent);
+        background: rgba(255,255,255,0.8);
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      .coin-summary img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: brightness(1.06) saturate(0.82);
+      }
+
+      .coin-summary::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.13));
+      }
+
+      .coin-summary > div {
+        position: relative;
+        z-index: 1;
+      }
+
+      .coin-number {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--accent);
+        font-size: 44px;
+        line-height: 1;
+        font-weight: 920;
+      }
+
+      .coin-number img {
+        position: static;
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+      }
+
+      .signin {
+        position: relative;
+        z-index: 1;
+        min-height: 318px;
+        margin: -4px -10px 0;
+        padding: 20px 18px 16px;
+        border-radius: 8px;
+        background: var(--paper);
+        text-align: center;
+      }
+
+      .signin h2 {
+        margin: 0 0 14px;
+        font-size: 20px;
+        font-weight: 820;
+      }
+
+      .coins-page .signin .btn.full {
+        width: calc(100% - 13px);
+        min-height: 48px;
+        margin: 9px 7px 0 6px;
+      }
+
+      .days {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .day {
+        min-height: 110px;
+        overflow: visible;
+        display: grid;
+        justify-items: center;
+        align-content: center;
+        gap: 7px;
+        border: 1px solid #efe8dc;
+        border-radius: 7px;
+        background: #f8f5ec;
+        color: #5a3b2e;
+        font-size: 12px;
+      }
+
+      .day strong {
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      .day img {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+      }
+
+      .day.active {
+        position: relative;
+        border-color: var(--accent);
+        background: var(--paper);
+      }
+
+      .day.active strong {
+        width: 100%;
+        margin-top: -10px;
+        padding: 5px 0;
+        border-radius: 6px 6px 0 0;
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .day.active::after {
+        content: "✓";
+        position: absolute;
+        left: 50%;
+        bottom: -11px;
+        width: 22px;
+        height: 22px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 900;
+        transform: translateX(-50%);
+      }
+
+      .tomorrow {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        margin-bottom: 18px;
+        padding: 0 24px;
+        border-radius: 8px;
+        background: #f7eee8;
+        color: var(--accent);
+        font-size: 13px;
+      }
+
+      .task-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 18px 0 5px;
+        font-size: 18px;
+        font-weight: 820;
+      }
+
+      .task-title::before,
+      .task-title::after {
+        content: "";
+        width: 13px;
+        height: 2px;
+        background: var(--accent);
+      }
+
+      .task {
+        display: grid;
+        grid-template-columns: 58px 1fr auto;
+        gap: 12px;
+        align-items: center;
+        padding: 11px 14px;
+        border-radius: 8px;
+        background: #fbf4ed;
+      }
+
+      .task .btn.outline-red {
+        border: 1px solid var(--accent);
+        background: var(--paper);
+        color: var(--accent);
+      }
+
+      .task-icon {
+        width: 54px;
+        height: 54px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: #efe4da;
+        color: var(--accent);
+      }
+
+      .task-icon img {
+        width: 34px;
+        height: 34px;
+        display: block;
+        border-radius: 0;
+        object-fit: contain;
+        object-position: center;
+      }
+
+      .task-icon.invite img {
+        width: 36px;
+        height: 36px;
+      }
+
+      .footer {
+        flex: 0 0 74px;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        border-top: 1px solid var(--line);
+        background: var(--paper);
+      }
+
+      .footer button {
+        position: relative;
+        display: grid;
+        justify-items: center;
+        align-content: center;
+        gap: 5px;
+        color: var(--icon);
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .footer button.active {
+        color: var(--ink);
+      }
+
+      .footer button.active::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        width: 24px;
+        height: 2px;
+        border-radius: 99px;
+        background: var(--accent);
+      }
+
+      .footer img {
+        width: 26px;
+        height: 26px;
+        display: block;
+        object-fit: contain;
+        opacity: 0.43;
+      }
+
+      .footer button.active img {
+        opacity: 0.92;
+      }
+
+      .icon {
+        width: 22px;
+        height: 22px;
+        display: inline-block;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 24px;
+        z-index: 50;
+        min-width: 150px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(17, 17, 17, 0.88);
+        color: #fff;
+        font-size: 14px;
+        text-align: center;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(-50%) translateY(12px);
+        transition: 0.18s ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      @media (min-width: 600px) {
+        body {
+          min-height: 100vh;
+          place-items: center;
+        }
+
+        .phone {
+          width: var(--w);
+          height: var(--h);
+          box-shadow: 0 16px 42px rgba(17, 17, 17, 0.14);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="phone" id="app" aria-label="逸享荟康养 P0 组件化原型"></main>
+    <div class="toast" id="toast"></div>
+
+    <script>
+      const A = "design-assets/";
+      const ASSET_VERSION = "precision-20260701-40";
+      function asset(file) {
+        return `${A}${file}?v=${ASSET_VERSION}`;
+      }
+      function legacyAsset(file) {
+        return `assets/${file}?v=${ASSET_VERSION}`;
+      }
+      const products = [
+        ["昆明古滇基地", "昆明古滇优选基地，生态宜居，休养旅居。", "¥990", asset("search-hotel.jpg")],
+        ["昆明六号温泉基地", "天然温泉配套，适老友好，管家服务。", "¥990", asset("search-yard.jpg")]
+      ];
+      const searchProducts = [
+        ["昆明古滇基地", "滇池畔度假康养胜地，生态宜居，休闲舒适。", "¥990", asset("search-hotel.jpg")],
+        ["昆明六号温泉基地", "天然温泉康养胜地，环境清幽，身心放松。", "¥990", asset("source-search-yard.jpg")]
+      ];
+
+      const app = document.getElementById("app");
+      const toast = document.getElementById("toast");
+      const historyStack = [];
+      const uiState = {
+        serviceCategory: "全部",
+        activityCategory: "全部",
+        signDay: 1
+      };
+
+      function currentRoute() {
+        const route = location.hash.replace("#", "");
+        return pages[route] ? route : "home";
+      }
+
+      function nav(route) {
+        if (route === "back") {
+          location.hash = historyStack.pop() || "home";
+          return;
+        }
+        if (route === "toast") {
+          showToast("已点击");
+          return;
+        }
+        if (!pages[route]) return;
+        const prev = currentRoute();
+        if (prev !== route) historyStack.push(prev);
+        location.hash = route;
+      }
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("show");
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => toast.classList.remove("show"), 1200);
+      }
+
+      function rerender() {
+        app.innerHTML = pages[currentRoute()]();
+      }
+
+      function setCategory(scope, item) {
+        if (scope === "service") uiState.serviceCategory = item;
+        if (scope === "activity") uiState.activityCategory = item;
+        rerender();
+      }
+
+      function setSignDay(day) {
+        uiState.signDay = day;
+        rerender();
+      }
+
+      function shell({ header = "", body = "", footer = "", action = "", white = false, pageClass = "" }) {
+        return `<section class="page ${white ? "white" : ""} ${pageClass}">${header}<div class="content">${body}</div>${action}${footer}</section>`;
+      }
+
+      function brandHeader(searchText = "搜索热门商品", pillText = "逸享品质 · 康养生活") {
+        return `<header class="brand-header">
+          <div class="brand-line"><h1>逸享荟康养</h1><span class="brand-pill">${pillText}</span></div>
+          ${search(searchText)}
+        </header>`;
+      }
+
+      function homeHeader() {
+        return `<header class="brand-header home-brand-header">
+          <div class="brand-line home-brand-line">
+            <div class="home-brand-left"><img class="brand-logo" src="${asset("brand-mark.png")}" alt=""><h1>逸享荟康养</h1></div>
+            <div class="mini-capsule" aria-label="小程序菜单">
+              <button onclick="showToast('更多')">•••</button>
+              <button onclick="showToast('关闭')">○</button>
+            </div>
+          </div>
+          ${search("搜索热门商品")}
+        </header>`;
+      }
+
+      function titleHeader(title, { back = false, action = "", actionIcon = "", compact = false } = {}) {
+        return `<header class="topbar ${compact ? "compact" : ""}">
+          ${back ? `<button class="back" onclick="nav('back')" aria-label="返回">${icon("back")}</button>` : "<span></span>"}
+          <h1>${title}</h1>
+          ${action ? `<button class="top-action" onclick="showToast('${action}')">${actionIcon ? icon(actionIcon) : ""}${action}</button>` : miniCapsule("小程序菜单")}
+        </header>`;
+      }
+
+      function miniCapsule(label = "小程序菜单") {
+        return `<div class="mini-capsule" aria-label="${label}">
+          <button onclick="showToast('更多')">•••</button>
+          <button onclick="showToast('关闭')">○</button>
+        </div>`;
+      }
+
+      function search(text, route = "search", value = "") {
+        return `<button class="search-bar" onclick="${value ? "showToast('搜索')" : `nav('${route}')`}" aria-label="${text}">
+          ${icon("search")}<span>${value || text}</span>${value ? `<span class="search-action">搜索</span>` : ""}
+        </button>`;
+      }
+
+      function footer(active) {
+        const items = [
+          ["home", "首页", "tab-home.png"],
+          ["service", "服务", "tab-service.png"],
+          ["coins", "领金币", "tab-coins.png"],
+          ["support", "客服", "tab-support.png"],
+          ["profile", "我的", "tab-profile.png"]
+        ];
+        return `<nav class="footer" aria-label="底部导航">${items.map(([route, label, image]) =>
+          `<button class="${active === route ? "active" : ""}" onclick="nav('${route}')" aria-label="${label}"><img src="${asset(image)}" alt=""><span>${label}</span></button>`
+        ).join("")}</nav>`;
+      }
+
+      function homeHero() {
+        return `<section class="home-hero" aria-label="康养旅居精选">
+          <div class="hero-copy"><span class="chip">康养旅居</span><h2 style="margin-top:8px">康养旅居精选</h2><p>精选目的地 · 管家陪同 · 适老友好</p><button class="btn primary" onclick="nav('service')">查看推荐</button></div>
+          <img src="${asset("source-home-banner.jpg")}" alt="">
+        </section>`;
+      }
+
+      function housekeeper(title = "添加逸享荟小管家", text = "添加") {
+        return `<article class="housekeeper" aria-label="${title}">
+          <img src="${asset("support-avatar-1.png")}" alt="">
+          <div class="housekeeper-copy"><h3 class="card-title">${title}</h3><p class="meta">全程管家式服务，为您的生活保驾护航</p></div>
+          <button class="btn" onclick="nav('support')">${text}</button>
+        </article>`;
+      }
+
+      function entryCard(label, desc, route, type, image) {
+        return `<button class="entry-card" onclick="nav('${route}')" aria-label="${label}">
+          ${image ? `<img src="${asset(image)}" alt="">` : ""}${icon(type)}<div><strong>${label}</strong><span>${desc}</span></div>
+        </button>`;
+      }
+
+      function city(title, img, large = false) {
+        return `<button class="city-card ${large ? "large" : ""}" onclick="nav('service')" aria-label="${title}">
+          <img src="${img}" alt="">
+        </button>`;
+      }
+
+      function productCard(product, imgOverride, options = {}) {
+        const [title, desc, price, img] = product;
+        const tags = options.tags || ["优选高档", "温泉"];
+        const actionText = options.actionText || "查看详情";
+        return `<article class="product-card" aria-label="${title}">
+          <img src="${imgOverride || img}" alt="${title}">
+          <div><h3 class="card-title">${title}</h3><p class="meta">${desc}</p>
+          <div class="tags">${tags.map((tag) => `<span class="chip">${tag}</span>`).join("")}</div>
+          <div class="price-row"><span class="member-price"><span>会员价</span><strong class="price">${price}</strong></span><button class="btn primary" onclick="nav('product')">${actionText}</button></div></div>
+        </article>`;
+      }
+
+      function listingCard(product, image) {
+        const [title, desc, price] = product;
+        return `<article class="stay-card" aria-label="${title}">
+          <img src="${image}" alt="${title}">
+          <div class="listing-body"><h3 class="card-title">${title}</h3><p class="meta">${desc}</p>
+          <div class="tags"><span class="outline-chip">油菜花油菜花</span></div>
+          <div class="price-row"><strong class="price">${price}</strong><button class="btn primary" onclick="nav('product')">查看详情</button></div></div>
+        </article>`;
+      }
+
+      function resultCard(product) {
+        const [title, desc, price, img] = product;
+        return `<article class="search-result-card" aria-label="${title}">
+          <img src="${img}" alt="${title}">
+          <div class="result-body"><h3 class="card-title">${title}</h3><p class="meta">${desc}</p>
+          <div class="tags"><span class="chip">商圈</span><span class="chip">购物</span><span class="chip">美食</span></div>
+          <div class="price-row"><strong class="price">${price}</strong><button class="btn primary" onclick="nav('product')">查看详情</button></div></div>
+        </article>`;
+      }
+
+      function switcher(active) {
+        return `<section class="switcher">
+          <button class="${active === "stay" ? "active" : ""}" onclick="nav('service')" aria-label="全国旅居">${icon("globe")}全国旅居</button>
+          <button class="${active === "activity" ? "active" : ""}" onclick="nav('activity')" aria-label="聚会活动">${icon("group")}聚会活动</button>
+        </section>`;
+      }
+
+      function categoryRail(items, scope) {
+        const active = scope === "activity" ? uiState.activityCategory : uiState.serviceCategory;
+        return `<nav class="category-rail">${items.map((item, i) =>
+          `<button class="${active === item ? "active" : ""}" onclick="setCategory('${scope}', '${item}')" aria-label="${item}">${item}</button>`
+        ).join("")}</nav>`;
+      }
+
+      function activityCard() {
+        return `<button class="listing-card" onclick="nav('activityDetail')" aria-label="服务站开业活动">
+          <img src="${asset("source-activity-station.jpg")}" alt="">
+          <div class="listing-body"><h3 class="card-title">服务站开业活动</h3>
+          <div class="activity-meta">
+            <div><span class="activity-label">${icon("clock")}<span>时间</span></span><strong>2025年6月30日上午9点--12点</strong></div>
+            <div><span class="activity-label">${icon("pin")}<span>地址</span></span><strong>佳园小区</strong></div>
+            <div><span class="activity-label">${icon("people")}<span>报名人数</span></span><strong style="color:var(--accent)">0 / 15</strong></div>
+          </div></div>
+        </button>`;
+      }
+
+      function bottomAction(primary, secondary, disabled = false) {
+        return `<div class="bottom-action">
+          <button class="btn secondary" onclick="nav('support')">${secondary}</button>
+          <button class="btn primary" onclick="showToast('${primary}')">${primary}</button>
+        </div>`;
+      }
+
+      function stat(value, label) {
+        return `<div><strong>${value}</strong><span>${label}</span></div>`;
+      }
+
+      function supportCard(name, phone, avatar) {
+        return `<article class="support-card"><img class="staff-avatar" src="${asset(avatar)}" alt="">
+          <div><h3 class="card-title">${name}</h3><p class="meta">手机/微信：${phone}</p>
+          </div><div class="support-actions"><button class="btn secondary" onclick="showToast('复制微信号')">复制微信号</button><button class="btn primary" onclick="showToast('添加微信')">${icon("wechat")}添加微信</button></div>
+        </article>`;
+      }
+
+      function profileHousekeeper() {
+        return `<article class="housekeeper profile-housekeeper" aria-label="添加逸享荟小管家">
+          <img src="${asset("profile-steward-cutout.png")}" alt="">
+          <div class="housekeeper-copy"><h3 class="card-title">添加逸享荟小管家</h3><p class="meta">全程管家式服务，为您的生活保驾护航。</p></div>
+          <button class="btn" onclick="nav('support')">添加管家</button>
+        </article>`;
+      }
+
+      function profileOrderPanel() {
+        const orders = [
+          ["待付款", "wallet"],
+          ["待发货", "box"],
+          ["待收货", "truck"],
+          ["待评价", "comment"],
+          ["退款", "refund"]
+        ];
+        const shortcuts = [
+          ["待确认", "查看待确认", "check"],
+          ["旅行订单", "我的旅行订单", "trip"],
+          ["售后", "退换售后服务", "service"]
+        ];
+        return `<section class="order-panel">
+          <div class="order-grid">${orders.map(([item, iconType]) => `<button onclick="showToast('${item}')">${icon(iconType)}<span>${item}</span></button>`).join("")}</div>
+          <div class="order-shortcuts">${shortcuts.map(([item, desc, iconType]) => `<button onclick="showToast('${item}')">${icon(iconType)}<span><strong>${item}</strong><span>${desc}</span></span></button>`).join("")}</div>
+        </section>`;
+      }
+
+      function day(num, reward) {
+        return `<button class="day ${uiState.signDay === num ? "active" : ""}" onclick="setSignDay(${num})" aria-label="第${num}天">
+          <strong>第${num}天</strong><img src="${asset("coin-token.png")}" alt=""><span>金币+${reward}</span>
+        </button>`;
+      }
+
+      function task(title, desc, action, image) {
+        const taskType = image.includes("invite") ? "invite" : "order";
+        const centeredImage = taskType === "invite" ? "task-invite-centered.png" : "task-order-centered.png";
+        return `<article class="task">
+          <div class="task-icon ${taskType}"><img src="${asset(centeredImage)}" alt=""></div>
+          <div><h3 class="card-title">${title}</h3><p class="meta">${desc}</p></div>
+          <button class="btn outline-red" onclick="showToast('${action}')">${action} ${icon("next")}</button>
+        </article>`;
+      }
+
+      const pages = {
+        home() {
+          return shell({
+            header: homeHeader(),
+            footer: footer("home"),
+            pageClass: "home-page",
+            body: `
+              ${homeHero()}
+              ${housekeeper()}
+              <section class="entry-grid">
+                ${entryCard("全国旅居", "旅居好去处", "service", "suitcase", "source-entry-stay-right.jpg")}
+                ${entryCard("聚会活动", "精彩活动汇聚", "activity", "group", "source-entry-activity-right.jpg")}
+              </section>
+              <div class="section-head"><h2 class="section-title">热门城市</h2><button class="more" onclick="nav('service')">查看全部 &gt;</button></div>
+              <section class="city-grid">
+                ${city("昆明", asset("city-kunming.jpg"), true)}
+                ${city("大理", asset("city-dali.jpg"))}
+                ${city("曲靖", asset("city-qujing.jpg"))}
+                ${city("腾冲", asset("city-tengchong.jpg"))}
+                ${city("全国", asset("city-all.jpg"))}
+              </section>
+              <div class="section-head recommend-head"><h2 class="section-title">精选推荐</h2><button class="more" onclick="nav('service')">查看更多 &gt;</button></div>
+              <section class="product-list">${productCard(products[0], asset("source-home-product-1.jpg"), { tags: ["商圈", "购物", "美食"], actionText: "预订" })}${productCard(products[1], asset("home-product-2.jpg"), { tags: ["温泉", "康养", "旅居"], actionText: "预订" })}</section>
+            `
+          });
+        },
+
+        service() {
+          return shell({
+            header: brandHeader(),
+            footer: footer("service"),
+            pageClass: "service-page",
+            body: `
+              ${switcher("stay")}
+              <section class="browse-grid">
+                ${categoryRail(["全部", "昆明", "曲靖", "腾冲", "大理", "分类5", "分类6", "分类7", "分类8"], "service")}
+                <section class="product-list">
+                  ${listingCard(["油菜花油菜花", "油菜花油菜花", "¥999"], asset("source-product-field.jpg"))}
+                  ${listingCard(["油菜花油菜花", "油菜花油菜花", "¥999"], asset("source-product-field.jpg"))}
+                </section>
+              </section>
+            `
+          });
+        },
+
+        search() {
+          return shell({
+            header: titleHeader("搜索", { back: true }),
+            footer: footer("service"),
+            white: true,
+            pageClass: "search-page",
+            body: `
+              ${search("昆明", "search", "昆明")}
+              <section class="product-list" style="margin-top:14px">${searchProducts.map(resultCard).join("")}</section>
+            `
+          });
+        },
+
+        product() {
+          return shell({
+            header: titleHeader("旅居商品详情", { back: true, action: "逸享荟康养" }),
+            footer: footer("service"),
+            action: bottomAction("查看房源", "联系客服"),
+            body: `
+              <img class="detail-cover" src="${asset("detail-field.jpg")}" alt="旅居商品详情">
+              <section class="detail-panel product-detail-panel"><span class="chip">${icon("tag")}优选高档</span><h2>油菜花油菜花</h2><p>油菜花油菜花</p><span class="outline-chip">油菜花油菜花</span></section>
+            `
+          });
+        },
+
+        activity() {
+          return shell({
+            header: brandHeader("搜索活动", "康养生活 · 逸享美好"),
+            footer: footer("service"),
+            pageClass: "activity-page",
+            body: `
+              ${switcher("activity")}
+              <section class="browse-grid">
+                ${categoryRail(["全部", "昆明", "上海"], "activity")}
+                <section class="activity-list">${activityCard()}</section>
+              </section>
+            `
+          });
+        },
+
+        activityDetail() {
+          return shell({
+            header: titleHeader("服务站开业活动", { back: true, action: "活动详情" }),
+            footer: footer("service"),
+            pageClass: "activity-detail-page",
+            action: bottomAction("报名已截止", "分享", true),
+            body: `
+              <img class="detail-cover activity-cover" src="${asset("source-activity-mountain.jpg")}" alt="服务站开业活动">
+              <section class="detail-panel"><span class="status-pill">报名中</span><h2>服务站开业活动</h2>
+                <div class="info-row"><span>报名人数</span><strong class="price">0 / 15</strong></div>
+                <div class="progress"><span></span></div>
+                <div class="info-row"><span>活动标签</span><strong><span class="outline-chip">活动</span> <span class="outline-chip">开业</span> <span class="outline-chip">礼品</span></strong></div>
+                <div class="info-row"><span>活动地点</span><button class="more" onclick="showToast('导航')">佳园小区 &gt; 导航</button></div>
+              </section>
+            `
+          });
+        },
+
+        profile() {
+          const profileServices = [
+            ["康养顾问中心", "headset"],
+            ["收货地址", "location"],
+            ["我的收藏", "star"]
+          ];
+          return shell({
+            footer: footer("profile"),
+            body: `
+              <section class="profile-head"><div class="profile-top"><img class="avatar" src="${asset("profile-avatar.png")}" alt="">
+                <div><h2 style="margin:0;font-size:22px">枫Kevin</h2></div>
+                <button class="settings" onclick="showToast('设置')">${icon("gear")}设置</button></div>
+                <div class="stats">${stat("14", "我的金币")}${stat("0", "我的优惠券")}${stat("0", "我的收藏")}${stat("0", "我的预约")}</div>
+              </section>
+              ${profileHousekeeper()}
+              <div class="section-head"><h2 class="section-title">我的订单</h2><button class="more" onclick="showToast('全部订单')">全部订单 &gt;</button></div>
+              ${profileOrderPanel()}
+              <div class="section-head"><h2 class="section-title">我的服务</h2></div>
+              <section class="service-list">${profileServices.map(([item, iconType]) => `<button class="service-row" onclick="showToast('${item}')"><span class="row-left">${icon(iconType)}<span>${item}</span></span><span>&gt;</span></button>`).join("")}</section>
+            `
+          });
+        },
+
+        support() {
+          return shell({
+            header: titleHeader("客服", { action: "客服", actionIcon: "headset" }),
+            footer: footer("support"),
+            body: `
+              <section class="support-info">
+                <div class="support-qr-block"><img class="support-qr" src="${asset("support-qr.png")}" alt="客服二维码"><span>点击二维码加群</span></div>
+                <div><h3 class="card-title">客服在线时间</h3><div class="support-time">08:30~21:00</div></div>
+              </section>
+              <section class="support-list" style="margin-top:12px">
+                ${supportCard("客服：小刘", "1362606366", "support-avatar-1.png")}
+                ${supportCard("客服：小兰", "19065018556", "support-avatar-2.png")}
+                ${supportCard("客服：小陈", "15220745133", "support-avatar-3.png")}
+              </section>
+            `
+          });
+        },
+
+        coins() {
+          return shell({
+            header: titleHeader("签到领金币", { action: "金币攻略", actionIcon: "book", compact: true }),
+            footer: footer("coins"),
+            pageClass: "coins-page",
+            body: `
+              <section class="coin-summary"><img src="${asset("source-coin-hero-bg-clean.png")}" alt=""><div><p class="meta">我的金币</p><div class="coin-number">14<img src="${asset("coin-token.png")}" alt=""> <span style="font-size:18px;color:var(--ink)">金币</span></div><p class="meta"><strong style="color:var(--accent)">100金币</strong> = 1元钱</p></div></section>
+              <section class="signin"><h2>已连续签到 <strong style="color:var(--accent)">1</strong> 天</h2><div class="days">${day(1, 1)}${day(2, 2)}${day(3, 3)}${day(4, 5)}${day(5, 6)}</div><div class="tomorrow">${icon("calendar")} 明日签到可得 <strong>&nbsp;2&nbsp;</strong> 金币</div><button class="btn primary full" onclick="showToast('立即签到')">立即签到</button></section>
+              <div class="task-title">做任务 赚金币</div>
+              <section class="task-list">${task("邀请新用户", "邀请新用户个人注册<br>赚取1000积分", "去邀请", "source-task-invite.png")}${task("下单送积分", "预计得金币<br>下单支付1元奖励1积分", "去下单", "source-task-order.png")}</section>
+            `
+          });
+        }
+      };
+
+      function icon(type) {
+        const map = {
+          home: '<svg class="icon" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-6h5v6"/></svg>',
+          grid: '<svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>',
+          coin: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M9 10.5h6"/><path d="M9 13.5h6"/><path d="M12 8v8"/></svg>',
+          globe: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16"/><path d="M12 4c2.1 2.2 3.2 4.9 3.2 8S14.1 17.8 12 20"/><path d="M12 4c-2.1 2.2-3.2 4.9-3.2 8S9.9 17.8 12 20"/></svg>',
+          chat: '<svg class="icon" viewBox="0 0 24 24"><path d="M5 6.5h14v9H9l-4 3v-12Z"/><path d="M8 10h8"/><path d="M8 13h5"/></svg>',
+          user: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 20c1.4-4 12.6-4 14 0"/></svg>',
+          userPlus: '<svg class="icon" viewBox="0 0 24 24"><circle cx="10" cy="8" r="4"/><path d="M3.5 20c1.1-3.6 10-3.6 11.1 0"/><path d="M18 10v6"/><path d="M15 13h6"/></svg>',
+          cart: '<svg class="icon" viewBox="0 0 24 24"><path d="M4 5h2l2 10h9l2-7H7"/><circle cx="10" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/></svg>',
+          suitcase: '<svg class="icon" viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="12" rx="2"/><path d="M9 7V5h6v2"/><path d="M9 11v4"/><path d="M15 11v4"/></svg>',
+          group: '<svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.5"/><path d="M3.5 19c.8-4.5 10.2-4.5 11 0"/><path d="M15 6.5a3 3 0 0 1 0 6"/><path d="M17 16c1.8.5 3 1.5 3.5 3"/></svg>',
+          search: '<svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg>',
+          tag: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M4 12V5h7l9 9-7 7-9-9Z"/><circle cx="8" cy="8" r="1.4"/></svg>',
+          clock: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg>',
+          pin: '<svg class="icon" viewBox="0 0 24 24"><path d="M12 21s7-5.2 7-11a7 7 0 0 0-14 0c0 5.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2.4"/></svg>',
+          people: '<svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3"/><path d="M4 19c.8-4 9.2-4 10 0"/><path d="M15 7a2.8 2.8 0 0 1 0 5.5"/><path d="M17 16c1.7.5 2.8 1.5 3.2 3"/></svg>',
+          book: '<svg class="icon" viewBox="0 0 24 24"><path d="M5 4h6.5a3 3 0 0 1 3 3v13H8a3 3 0 0 0-3 3V4Z"/><path d="M19 4h-6.5a3 3 0 0 0-3 3v13H16a3 3 0 0 1 3 3V4Z"/></svg>',
+          calendar: '<svg class="icon" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M4 10h16"/></svg>',
+          back: '<svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>',
+          next: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="m9 18 6-6-6-6"/></svg>',
+          wallet: '<svg class="icon" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="13" rx="2"/><path d="M4 9h16"/><path d="M15.5 14h2"/></svg>',
+          box: '<svg class="icon" viewBox="0 0 24 24"><path d="M4 8.5 12 4l8 4.5v8.8L12 22l-8-4.7Z"/><path d="m4 8.5 8 4.5 8-4.5"/><path d="M12 13v9"/></svg>',
+          truck: '<svg class="icon" viewBox="0 0 24 24"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
+          comment: '<svg class="icon" viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4Z"/><path d="M8 9h8"/><path d="M8 12h5"/></svg>',
+          refund: '<svg class="icon" viewBox="0 0 24 24"><path d="M8 7H5v3"/><path d="M5 7c2.2-3 7.4-4 11-1.4 3.9 2.8 4.2 8.4.7 11.5-3.1 2.7-7.9 2.5-10.7-.4"/><path d="M12 8v8"/><path d="M9.5 10.5h5"/></svg>',
+          check: '<svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="m8 12 3 3 5-6"/></svg>',
+          trip: '<svg class="icon" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="14" rx="2"/><path d="M9 6V4h6v2"/><path d="M9 11h6"/><path d="M9 15h4"/></svg>',
+          service: '<svg class="icon" viewBox="0 0 24 24"><path d="M5 12a7 7 0 0 1 14 0"/><path d="M5 12v4a2 2 0 0 0 2 2h2v-6H5Z"/><path d="M19 12v4a2 2 0 0 1-2 2h-2v-6h4Z"/><path d="M12 19h3"/></svg>',
+          headset: '<svg class="icon" viewBox="0 0 24 24"><path d="M5 12a7 7 0 0 1 14 0"/><path d="M5 12v4a2 2 0 0 0 2 2h2v-6H5Z"/><path d="M19 12v4a2 2 0 0 1-2 2h-2v-6h4Z"/><path d="M12 19h3"/></svg>',
+          location: '<svg class="icon" viewBox="0 0 24 24"><path d="M12 21s7-5.2 7-11a7 7 0 0 0-14 0c0 5.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+          star: '<svg class="icon" viewBox="0 0 24 24"><path d="m12 4 2.3 4.7 5.2.8-3.8 3.7.9 5.2-4.6-2.4-4.6 2.4.9-5.2-3.8-3.7 5.2-.8Z"/></svg>',
+          wechat: '<svg class="icon" viewBox="0 0 24 24"><path d="M9.5 6C5.9 6 3 8.4 3 11.4c0 1.6.8 3 2.1 4l-.5 2.1 2.4-1.2c.8.3 1.6.5 2.5.5 3.6 0 6.5-2.4 6.5-5.4S13.1 6 9.5 6Z"/><path d="M14.7 10.6c3.1.2 5.3 2.2 5.3 4.6 0 1.3-.6 2.4-1.7 3.3l.4 1.8-2-1c-.7.3-1.4.4-2.2.4-2.7 0-5-1.7-5.5-3.9"/><path d="M7.5 10h.1"/><path d="M11.4 10h.1"/></svg>',
+          file: '<svg class="icon" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5"/></svg>',
+          gear: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a7 7 0 0 0-1.8-1L14.4 3h-4.8L9.3 6.1a7 7 0 0 0-1.8 1l-2.4-1-2 3.4L5.1 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7 7 0 0 0 1.8 1l.3 3.1h4.8l.3-3.1a7 7 0 0 0 1.8-1l2.4 1 2-3.4-2-1.5c.1-.3.1-.7.1-1Z"/></svg>'
+        };
+        return map[type] || "";
+      }
+
+      function render() {
+        app.innerHTML = pages[currentRoute()]();
+      }
+
+      window.nav = nav;
+      window.showToast = showToast;
+      window.setCategory = setCategory;
+      window.setSignDay = setSignDay;
+      window.addEventListener("hashchange", render);
+      if (!location.hash) history.replaceState(null, "", "#home");
+      render();
+    </script>
+  </body>
+</html>

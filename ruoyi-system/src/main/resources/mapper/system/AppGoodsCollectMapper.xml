@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppGoodsCollectMapper">
+    
+    <resultMap type="AppGoodsCollect" id="AppGoodsCollectResult">
+        <result property="collectId"    column="collect_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="collectType"    column="collect_type"    />
+        <result property="goodsId"    column="goods_id"    />
+        <result property="activityId"    column="activity_id"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppGoodsCollectVo">
+        select collect_id, user_id, collect_type, goods_id, activity_id, create_time, update_time, status from app_goods_collect
+    </sql>
+
+    <select id="selectAppGoodsCollectList" parameterType="AppGoodsCollect" resultMap="AppGoodsCollectResult">
+        <include refid="selectAppGoodsCollectVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="collectType != null  and collectType != ''"> and collect_type = #{collectType}</if>
+            <if test="goodsId != null "> and goods_id = #{goodsId}</if>
+            <if test="activityId != null "> and activity_id = #{activityId}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+        order by create_time desc
+    </select>
+    
+    <select id="selectAppGoodsCollectByCollectId" parameterType="Long" resultMap="AppGoodsCollectResult">
+        <include refid="selectAppGoodsCollectVo"/>
+        where collect_id = #{collectId}
+    </select>
+
+    <insert id="insertAppGoodsCollect" parameterType="AppGoodsCollect" useGeneratedKeys="true" keyProperty="collectId">
+        insert into app_goods_collect
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="collectType != null">collect_type,</if>
+            <if test="goodsId != null">goods_id,</if>
+            <if test="activityId != null">activity_id,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="collectType != null">#{collectType},</if>
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="activityId != null">#{activityId},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppGoodsCollect" parameterType="AppGoodsCollect">
+        update app_goods_collect
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="collectType != null">collect_type = #{collectType},</if>
+            <if test="goodsId != null">goods_id = #{goodsId},</if>
+            <if test="activityId != null">activity_id = #{activityId},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where collect_id = #{collectId}
+    </update>
+
+    <delete id="deleteAppGoodsCollectByCollectId" parameterType="Long">
+        delete from app_goods_collect where collect_id = #{collectId}
+    </delete>
+
+    <delete id="deleteAppGoodsCollectByCollectIds" parameterType="String">
+        delete from app_goods_collect where collect_id in 
+        <foreach item="collectId" collection="array" open="(" separator="," close=")">
+            #{collectId}
+        </foreach>
+    </delete>
+</mapper>

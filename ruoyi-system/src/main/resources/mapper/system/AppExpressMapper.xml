@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppExpressMapper">
+    
+    <resultMap type="AppExpress" id="AppExpressResult">
+        <result property="expressId"    column="express_id"    />
+        <result property="expressName"    column="express_name"    />
+        <result property="simpleName"    column="simple_name"    />
+        <result property="expressImage"    column="express_image"    />
+        <result property="expressPhone"    column="express_phone"    />
+        <result property="expressUrl"    column="express_url"    />
+        <result property="description"    column="description"    />
+        <result property="firstPrice"    column="first_price"    />
+        <result property="secondPrice"    column="second_price"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppExpressVo">
+        select express_id, express_name, simple_name, express_image, express_phone, express_url, description, first_price, second_price, create_time, status from app_express
+    </sql>
+
+    <select id="selectAppExpressList" parameterType="AppExpress" resultMap="AppExpressResult">
+        <include refid="selectAppExpressVo"/>
+        <where>  
+            <if test="expressName != null  and expressName != ''"> and express_name like concat('%', #{expressName}, '%')</if>
+            <if test="simpleName != null  and simpleName != ''"> and simple_name like concat('%', #{simpleName}, '%')</if>
+            <if test="expressImage != null  and expressImage != ''"> and express_image = #{expressImage}</if>
+            <if test="expressPhone != null  and expressPhone != ''"> and express_phone = #{expressPhone}</if>
+            <if test="expressUrl != null  and expressUrl != ''"> and express_url = #{expressUrl}</if>
+            <if test="description != null  and description != ''"> and description = #{description}</if>
+            <if test="firstPrice != null "> and first_price = #{firstPrice}</if>
+            <if test="secondPrice != null "> and second_price = #{secondPrice}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppExpressByExpressId" parameterType="Long" resultMap="AppExpressResult">
+        <include refid="selectAppExpressVo"/>
+        where express_id = #{expressId}
+    </select>
+
+    <insert id="insertAppExpress" parameterType="AppExpress" useGeneratedKeys="true" keyProperty="expressId">
+        insert into app_express
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="expressName != null">express_name,</if>
+            <if test="simpleName != null">simple_name,</if>
+            <if test="expressImage != null">express_image,</if>
+            <if test="expressPhone != null">express_phone,</if>
+            <if test="expressUrl != null">express_url,</if>
+            <if test="description != null">description,</if>
+            <if test="firstPrice != null">first_price,</if>
+            <if test="secondPrice != null">second_price,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="expressName != null">#{expressName},</if>
+            <if test="simpleName != null">#{simpleName},</if>
+            <if test="expressImage != null">#{expressImage},</if>
+            <if test="expressPhone != null">#{expressPhone},</if>
+            <if test="expressUrl != null">#{expressUrl},</if>
+            <if test="description != null">#{description},</if>
+            <if test="firstPrice != null">#{firstPrice},</if>
+            <if test="secondPrice != null">#{secondPrice},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppExpress" parameterType="AppExpress">
+        update app_express
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="expressName != null">express_name = #{expressName},</if>
+            <if test="simpleName != null">simple_name = #{simpleName},</if>
+            <if test="expressImage != null">express_image = #{expressImage},</if>
+            <if test="expressPhone != null">express_phone = #{expressPhone},</if>
+            <if test="expressUrl != null">express_url = #{expressUrl},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="firstPrice != null">first_price = #{firstPrice},</if>
+            <if test="secondPrice != null">second_price = #{secondPrice},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where express_id = #{expressId}
+    </update>
+
+    <delete id="deleteAppExpressByExpressId" parameterType="Long">
+        delete from app_express where express_id = #{expressId}
+    </delete>
+
+    <delete id="deleteAppExpressByExpressIds" parameterType="String">
+        delete from app_express where express_id in 
+        <foreach item="expressId" collection="array" open="(" separator="," close=")">
+            #{expressId}
+        </foreach>
+    </delete>
+</mapper>

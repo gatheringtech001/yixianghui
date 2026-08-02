@@ -1,0 +1,16 @@
+.DS_Store
+
+# Local runtime credentials
+/lankong-admin/src/main/resources/application.yml
+/lankong-admin/src/main/resources/application-druid.yml
+/lankong-admin/src/main/resources/application-druid-prod.yml
+/lankong-admin/src/main/resources/wxpay/apiclient_cert.p12
+/lankong-admin/src/main/resources/wxpay/apiclient_cert.pem
+/lankong-admin/src/main/resources/wxpay/apiclient_key.pem
+
+# Production database exports
+/sql/lk-shzxj-re.sql
+/sql/lk-shzxj-rm.sql
+
+# Archive contains an unsanitized copy of the OAuth example
+/插件/集成JustAuth实现第三方授权登录.zip

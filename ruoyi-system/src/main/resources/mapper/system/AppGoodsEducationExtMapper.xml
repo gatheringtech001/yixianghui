@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppGoodsEducationExtMapper">
+
+    <resultMap type="AppGoodsEducationExt" id="AppGoodsEducationExtResult">
+        <result property="extId" column="ext_id" />
+        <result property="goodsId" column="goods_id" />
+        <result property="courseTime" column="course_time" />
+        <result property="coursePlace" column="course_place" />
+        <result property="teacherName" column="teacher_name" />
+        <result property="lessonCount" column="lesson_count" />
+        <result property="classSizeMax" column="class_size_max" />
+        <result property="classSizeMin" column="class_size_min" />
+        <result property="startDate" column="start_date" />
+        <result property="signupStart" column="signup_start" />
+        <result property="signupEnd" column="signup_end" />
+        <result property="materialNote" column="material_note" />
+        <result property="consultPhone" column="consult_phone" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="selectAppGoodsEducationExtVo">
+        select ext_id, goods_id, course_time, course_place, teacher_name, lesson_count,
+               class_size_max, class_size_min, start_date, signup_start, signup_end,
+               material_note, consult_phone, create_time, update_time
+        from app_goods_education_ext
+    </sql>
+
+    <select id="selectAppGoodsEducationExtByGoodsId" parameterType="Long" resultMap="AppGoodsEducationExtResult">
+        <include refid="selectAppGoodsEducationExtVo"/>
+        where goods_id = #{goodsId}
+    </select>
+
+    <insert id="insertAppGoodsEducationExt" parameterType="AppGoodsEducationExt" useGeneratedKeys="true" keyProperty="extId">
+        insert into app_goods_education_ext
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="goodsId != null">goods_id,</if>
+            <if test="courseTime != null">course_time,</if>
+            <if test="coursePlace != null">course_place,</if>
+            <if test="teacherName != null">teacher_name,</if>
+            <if test="lessonCount != null">lesson_count,</if>
+            <if test="classSizeMax != null">class_size_max,</if>
+            <if test="classSizeMin != null">class_size_min,</if>
+            <if test="startDate != null">start_date,</if>
+            <if test="signupStart != null">signup_start,</if>
+            <if test="signupEnd != null">signup_end,</if>
+            <if test="materialNote != null">material_note,</if>
+            <if test="consultPhone != null">consult_phone,</if>
+            create_time
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="courseTime != null">#{courseTime},</if>
+            <if test="coursePlace != null">#{coursePlace},</if>
+            <if test="teacherName != null">#{teacherName},</if>
+            <if test="lessonCount != null">#{lessonCount},</if>
+            <if test="classSizeMax != null">#{classSizeMax},</if>
+            <if test="classSizeMin != null">#{classSizeMin},</if>
+            <if test="startDate != null">#{startDate},</if>
+            <if test="signupStart != null">#{signupStart},</if>
+            <if test="signupEnd != null">#{signupEnd},</if>
+            <if test="materialNote != null">#{materialNote},</if>
+            <if test="consultPhone != null">#{consultPhone},</if>
+            sysdate()
+        </trim>
+    </insert>
+
+    <update id="updateAppGoodsEducationExt" parameterType="AppGoodsEducationExt">
+        update app_goods_education_ext
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="courseTime != null">course_time = #{courseTime},</if>
+            <if test="coursePlace != null">course_place = #{coursePlace},</if>
+            <if test="teacherName != null">teacher_name = #{teacherName},</if>
+            <if test="lessonCount != null">lesson_count = #{lessonCount},</if>
+            <if test="classSizeMax != null">class_size_max = #{classSizeMax},</if>
+            <if test="classSizeMin != null">class_size_min = #{classSizeMin},</if>
+            <if test="startDate != null">start_date = #{startDate},</if>
+            <if test="signupStart != null">signup_start = #{signupStart},</if>
+            <if test="signupEnd != null">signup_end = #{signupEnd},</if>
+            <if test="materialNote != null">material_note = #{materialNote},</if>
+            <if test="consultPhone != null">consult_phone = #{consultPhone},</if>
+            update_time = sysdate()
+        </trim>
+        where goods_id = #{goodsId}
+    </update>
+
+    <delete id="deleteAppGoodsEducationExtByGoodsId" parameterType="Long">
+        delete from app_goods_education_ext where goods_id = #{goodsId}
+    </delete>
+</mapper>

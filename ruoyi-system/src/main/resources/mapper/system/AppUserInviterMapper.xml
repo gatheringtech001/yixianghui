@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppUserInviterMapper">
+    
+    <resultMap type="AppUserInviter" id="AppUserInviterResult">
+        <result property="inviterId"    column="inviter_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="newUserId"    column="new_user_id"    />
+        <result property="inviterCode"    column="inviter_code"    />
+        <result property="totalAward"    column="total_award"    />
+        <result property="remark"    column="remark"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="status"    column="status"    />
+        <result property="inviterNickName"    column="inviter_nick_name"    />
+        <result property="inviterPhonenumber"    column="inviter_phonenumber"    />
+        <result property="inviterAvatar"    column="inviter_avatar"    />
+        <result property="newUserNickName"    column="new_user_nick_name"    />
+        <result property="newUserPhonenumber"    column="new_user_phonenumber"    />
+        <result property="newUserAvatar"    column="new_user_avatar"    />
+    </resultMap>
+
+    <sql id="selectAppUserInviterVo">
+        select i.inviter_id, i.user_id, i.new_user_id, i.inviter_code, i.total_award, i.remark, i.create_time, i.status,
+               u1.nick_name as inviter_nick_name, u1.phonenumber as inviter_phonenumber, u1.avatar as inviter_avatar,
+               u2.nick_name as new_user_nick_name, u2.phonenumber as new_user_phonenumber, u2.avatar as new_user_avatar
+        from app_user_inviter i
+        left join sys_user u1 on u1.user_id = i.user_id
+        left join sys_user u2 on u2.user_id = i.new_user_id
+    </sql>
+
+    <select id="selectAppUserInviterList" parameterType="AppUserInviter" resultMap="AppUserInviterResult">
+        <include refid="selectAppUserInviterVo"/>
+        <where>  
+            <if test="userId != null "> and i.user_id = #{userId}</if>
+            <if test="newUserId != null "> and i.new_user_id = #{newUserId}</if>
+            <if test="inviterCode != null  and inviterCode != ''"> and i.inviter_code = #{inviterCode}</if>
+            <if test="totalAward != null "> and i.total_award = #{totalAward}</if>
+            <if test="status != null  and status != ''"> and i.status = #{status}</if>
+        </where>
+        order by i.create_time desc, i.inviter_id desc
+    </select>
+    
+    <select id="selectAppUserInviterByInviterId" parameterType="Long" resultMap="AppUserInviterResult">
+        <include refid="selectAppUserInviterVo"/>
+        where i.inviter_id = #{inviterId}
+    </select>
+
+    <insert id="insertAppUserInviter" parameterType="AppUserInviter" useGeneratedKeys="true" keyProperty="inviterId">
+        insert into app_user_inviter
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="newUserId != null">new_user_id,</if>
+            <if test="inviterCode != null">inviter_code,</if>
+            <if test="totalAward != null">total_award,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="newUserId != null">#{newUserId},</if>
+            <if test="inviterCode != null">#{inviterCode},</if>
+            <if test="totalAward != null">#{totalAward},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppUserInviter" parameterType="AppUserInviter">
+        update app_user_inviter
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="newUserId != null">new_user_id = #{newUserId},</if>
+            <if test="inviterCode != null">inviter_code = #{inviterCode},</if>
+            <if test="totalAward != null">total_award = #{totalAward},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where inviter_id = #{inviterId}
+    </update>
+
+    <delete id="deleteAppUserInviterByInviterId" parameterType="Long">
+        delete from app_user_inviter where inviter_id = #{inviterId}
+    </delete>
+
+    <delete id="deleteAppUserInviterByInviterIds" parameterType="String">
+        delete from app_user_inviter where inviter_id in 
+        <foreach item="inviterId" collection="array" open="(" separator="," close=")">
+            #{inviterId}
+        </foreach>
+    </delete>
+
+    <select id="countByInviterUserId" resultType="java.lang.Long">
+        select count(1) from app_user_inviter where user_id = #{userId}
+    </select>
+
+    <select id="selectInviteUserList" resultType="com.ruoyi.system.domain.vo.ConsultantInviteVo">
+        select u.user_id as userId,
+               u.nick_name as nickName,
+               u.phonenumber as phonenumber,
+               u.avatar as avatar,
+               i.status as status,
+               i.create_time as createTime
+        from app_user_inviter i
+        inner join sys_user u on u.user_id = i.new_user_id
+        where i.user_id = #{userId}
+        order by i.create_time desc, i.inviter_id desc
+    </select>
+</mapper>

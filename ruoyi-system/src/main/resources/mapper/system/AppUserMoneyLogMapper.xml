@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppUserMoneyLogMapper">
+    
+    <resultMap type="AppUserMoneyLog" id="AppUserMoneyLogResult">
+        <result property="logId"    column="log_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="money"    column="money"    />
+        <result property="balance"    column="balance"    />
+        <result property="tradeType"    column="trade_type"    />
+        <result property="tradeTitle"    column="trade_title"    />
+        <result property="tradeDetail"    column="trade_detail"    />
+        <result property="tradeData"    column="trade_data"    />
+        <result property="payLogId"    column="pay_log_id"    />
+        <result property="payRefundLogId"    column="pay_refund_log_id"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppUserMoneyLogVo">
+        select log_id, user_id, money, balance, trade_type, trade_title, trade_detail, trade_data, pay_log_id, pay_refund_log_id, create_time, status from app_user_money_log
+    </sql>
+
+    <select id="selectAppUserMoneyLogList" parameterType="AppUserMoneyLog" resultMap="AppUserMoneyLogResult">
+        <include refid="selectAppUserMoneyLogVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="money != null "> and money = #{money}</if>
+            <if test="balance != null "> and balance = #{balance}</if>
+            <if test="tradeType != null "> and trade_type = #{tradeType}</if>
+            <if test="tradeTitle != null  and tradeTitle != ''"> and trade_title = #{tradeTitle}</if>
+            <if test="tradeDetail != null  and tradeDetail != ''"> and trade_detail = #{tradeDetail}</if>
+            <if test="tradeData != null  and tradeData != ''"> and trade_data = #{tradeData}</if>
+            <if test="payLogId != null "> and pay_log_id = #{payLogId}</if>
+            <if test="payRefundLogId != null "> and pay_refund_log_id = #{payRefundLogId}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppUserMoneyLogByLogId" parameterType="Long" resultMap="AppUserMoneyLogResult">
+        <include refid="selectAppUserMoneyLogVo"/>
+        where log_id = #{logId}
+    </select>
+
+    <insert id="insertAppUserMoneyLog" parameterType="AppUserMoneyLog" useGeneratedKeys="true" keyProperty="logId">
+        insert into app_user_money_log
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="money != null">money,</if>
+            <if test="balance != null">balance,</if>
+            <if test="tradeType != null">trade_type,</if>
+            <if test="tradeTitle != null">trade_title,</if>
+            <if test="tradeDetail != null">trade_detail,</if>
+            <if test="tradeData != null">trade_data,</if>
+            <if test="payLogId != null">pay_log_id,</if>
+            <if test="payRefundLogId != null">pay_refund_log_id,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="money != null">#{money},</if>
+            <if test="balance != null">#{balance},</if>
+            <if test="tradeType != null">#{tradeType},</if>
+            <if test="tradeTitle != null">#{tradeTitle},</if>
+            <if test="tradeDetail != null">#{tradeDetail},</if>
+            <if test="tradeData != null">#{tradeData},</if>
+            <if test="payLogId != null">#{payLogId},</if>
+            <if test="payRefundLogId != null">#{payRefundLogId},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppUserMoneyLog" parameterType="AppUserMoneyLog">
+        update app_user_money_log
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="money != null">money = #{money},</if>
+            <if test="balance != null">balance = #{balance},</if>
+            <if test="tradeType != null">trade_type = #{tradeType},</if>
+            <if test="tradeTitle != null">trade_title = #{tradeTitle},</if>
+            <if test="tradeDetail != null">trade_detail = #{tradeDetail},</if>
+            <if test="tradeData != null">trade_data = #{tradeData},</if>
+            <if test="payLogId != null">pay_log_id = #{payLogId},</if>
+            <if test="payRefundLogId != null">pay_refund_log_id = #{payRefundLogId},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where log_id = #{logId}
+    </update>
+
+    <delete id="deleteAppUserMoneyLogByLogId" parameterType="Long">
+        delete from app_user_money_log where log_id = #{logId}
+    </delete>
+
+    <delete id="deleteAppUserMoneyLogByLogIds" parameterType="String">
+        delete from app_user_money_log where log_id in 
+        <foreach item="logId" collection="array" open="(" separator="," close=")">
+            #{logId}
+        </foreach>
+    </delete>
+</mapper>

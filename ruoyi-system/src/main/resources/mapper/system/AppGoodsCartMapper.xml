@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppGoodsCartMapper">
+    
+    <resultMap type="AppGoodsCart" id="AppGoodsCartResult">
+        <result property="cartId"    column="cart_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="goodsId"    column="goods_id"    />
+        <result property="isSku"    column="is_sku"    />
+        <result property="dataId"    column="data_id"    />
+        <result property="dataValues"    column="data_values"    />
+        <result property="goodsCount"    column="goods_count"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppGoodsCartVo">
+        select cart_id, user_id, goods_id, is_sku, data_id, data_values, goods_count, create_time, update_time, status from app_goods_cart
+    </sql>
+
+    <select id="selectAppGoodsCartList" parameterType="AppGoodsCart" resultMap="AppGoodsCartResult">
+        <include refid="selectAppGoodsCartVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="goodsId != null "> and goods_id = #{goodsId}</if>
+            <if test="isSku != null "> and is_sku = #{isSku}</if>
+            <if test="dataId != null "> and data_id = #{dataId}</if>
+            <if test="dataValues != null  and dataValues != ''"> and data_values like concat('%', #{dataValues}, '%')</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppGoodsCartByCartId" parameterType="Long" resultMap="AppGoodsCartResult">
+        <include refid="selectAppGoodsCartVo"/>
+        where cart_id = #{cartId}
+    </select>
+
+    <insert id="insertAppGoodsCart" parameterType="AppGoodsCart" useGeneratedKeys="true" keyProperty="cartId">
+        insert into app_goods_cart
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="goodsId != null">goods_id,</if>
+            <if test="isSku != null">is_sku,</if>
+            <if test="dataId != null">data_id,</if>
+            <if test="dataValues != null">data_values,</if>
+            <if test="goodsCount != null">goods_count,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="isSku != null">#{isSku},</if>
+            <if test="dataId != null">#{dataId},</if>
+            <if test="dataValues != null">#{dataValues},</if>
+            <if test="goodsCount != null">#{goodsCount},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppGoodsCart" parameterType="AppGoodsCart">
+        update app_goods_cart
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="goodsId != null">goods_id = #{goodsId},</if>
+            <if test="isSku != null">is_sku = #{isSku},</if>
+            <if test="dataId != null">data_id = #{dataId},</if>
+            <if test="dataValues != null">data_values = #{dataValues},</if>
+            <if test="goodsCount != null">goods_count = #{goodsCount},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where cart_id = #{cartId}
+    </update>
+
+    <delete id="deleteAppGoodsCartByCartId" parameterType="Long">
+        delete from app_goods_cart where cart_id = #{cartId}
+    </delete>
+
+    <delete id="deleteAppGoodsCartByCartIds" parameterType="String">
+        delete from app_goods_cart where cart_id in 
+        <foreach item="cartId" collection="array" open="(" separator="," close=")">
+            #{cartId}
+        </foreach>
+    </delete>
+</mapper>

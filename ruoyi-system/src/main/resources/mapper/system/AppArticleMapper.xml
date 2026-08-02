@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppArticleMapper">
+    
+    <resultMap type="AppArticle" id="AppArticleResult">
+        <result property="articleId"    column="article_id"    />
+        <result property="categoryId"    column="category_id"    />
+        <result property="categoryIds"    column="category_ids"    />
+        <result property="articleName"    column="article_name"    />
+        <result property="author"    column="author"    />
+        <result property="articleCover"    column="article_cover"    />
+        <result property="description"    column="description"    />
+        <result property="tags"    column="tags"    />
+        <result property="isTop"    column="is_top"    />
+        <result property="isHot"    column="is_hot"    />
+        <result property="content"    column="content"    />
+        <result property="viewCount"    column="view_count"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppArticleVo">
+        select article_id, category_id, category_ids, article_name, author, article_cover, description, tags, is_top, is_hot, content, view_count, create_time, update_time, status from app_article
+    </sql>
+
+    <select id="selectAppArticleList" parameterType="AppArticle" resultMap="AppArticleResult">
+        <include refid="selectAppArticleVo"/>
+        <where>  
+            <if test="categoryId != null "> and category_id = #{categoryId}</if>
+            <if test="categoryIds != null  and categoryIds != ''"> and category_ids = #{categoryIds}</if>
+            <if test="articleName != null  and articleName != ''"> and article_name like concat('%', #{articleName}, '%')</if>
+            <if test="author != null  and author != ''"> and author = #{author}</if>
+            <if test="articleCover != null  and articleCover != ''"> and article_cover = #{articleCover}</if>
+            <if test="description != null  and description != ''"> and description = #{description}</if>
+            <if test="tags != null  and tags != ''"> and tags = #{tags}</if>
+            <if test="isTop != null "> and is_top = #{isTop}</if>
+            <if test="isHot != null "> and is_hot = #{isHot}</if>
+            <if test="content != null  and content != ''"> and content = #{content}</if>
+            <if test="viewCount != null "> and view_count = #{viewCount}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppArticleByArticleId" parameterType="Long" resultMap="AppArticleResult">
+        <include refid="selectAppArticleVo"/>
+        where article_id = #{articleId}
+    </select>
+
+    <insert id="insertAppArticle" parameterType="AppArticle" useGeneratedKeys="true" keyProperty="articleId">
+        insert into app_article
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="categoryId != null">category_id,</if>
+            <if test="categoryIds != null">category_ids,</if>
+            <if test="articleName != null and articleName != ''">article_name,</if>
+            <if test="author != null">author,</if>
+            <if test="articleCover != null">article_cover,</if>
+            <if test="description != null">description,</if>
+            <if test="tags != null">tags,</if>
+            <if test="isTop != null">is_top,</if>
+            <if test="isHot != null">is_hot,</if>
+            <if test="content != null">content,</if>
+            <if test="viewCount != null">view_count,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="categoryId != null">#{categoryId},</if>
+            <if test="categoryIds != null">#{categoryIds},</if>
+            <if test="articleName != null and articleName != ''">#{articleName},</if>
+            <if test="author != null">#{author},</if>
+            <if test="articleCover != null">#{articleCover},</if>
+            <if test="description != null">#{description},</if>
+            <if test="tags != null">#{tags},</if>
+            <if test="isTop != null">#{isTop},</if>
+            <if test="isHot != null">#{isHot},</if>
+            <if test="content != null">#{content},</if>
+            <if test="viewCount != null">#{viewCount},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppArticle" parameterType="AppArticle">
+        update app_article
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="categoryIds != null">category_ids = #{categoryIds},</if>
+            <if test="articleName != null and articleName != ''">article_name = #{articleName},</if>
+            <if test="author != null">author = #{author},</if>
+            <if test="articleCover != null">article_cover = #{articleCover},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="tags != null">tags = #{tags},</if>
+            <if test="isTop != null">is_top = #{isTop},</if>
+            <if test="isHot != null">is_hot = #{isHot},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="viewCount != null">view_count = #{viewCount},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where article_id = #{articleId}
+    </update>
+
+    <delete id="deleteAppArticleByArticleId" parameterType="Long">
+        delete from app_article where article_id = #{articleId}
+    </delete>
+
+    <delete id="deleteAppArticleByArticleIds" parameterType="String">
+        delete from app_article where article_id in 
+        <foreach item="articleId" collection="array" open="(" separator="," close=")">
+            #{articleId}
+        </foreach>
+    </delete>
+</mapper>

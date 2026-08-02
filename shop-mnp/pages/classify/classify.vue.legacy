@@ -1,0 +1,257 @@
+<template>
+	<view class="page_view">
+		<u-navbar class="page_head_view" :is-back="false" :background="{ background: '#EFEBDF' }" :border-bottom="false">
+			<view class="head_city_view" @click="switchSiteFn">
+				<text class="cuIcon-location"></text>
+				{{siteData.deptName || '昆明'}}
+			</view>
+			<view class="head_search_view" @click="searchFn">
+				<u-icon name="search" color="#333" size="36" />
+				搜索热门商品
+			</view>
+		</u-navbar>
+		<view class="page_navbar_view">
+			<view class="navbar_item_view" :class="navbarSelect == item.categoryId?'navbar_select':''"
+				v-for="(item, index) in navbarList" :key="index" @click="navbarFn(item)">
+				<image :src="host + item.categoryIcon" />
+				<view class="item_text_view">
+					{{item.categoryName}}
+				</view>
+			</view>
+		</view>
+		<view class="page_body_view">
+			<view class="body_menu_view">
+				<view class="menu_item_view" :class="goodsCatrgorySelect == item.categoryId ? 'menu_select':''"
+					v-for="(item, index) in goodsCatrgoryList" :key="index" @click="menuFn(item)">
+					{{item.categoryName}}
+				</view>
+			</view>
+			<view class="body_goods_view">
+				<view class="goods_item_view" v-for="(item, index) in goodsList" :key="index" @click="goodsFn(item)">
+					<image :src="host + item.image" mode="aspectFill" />
+					<view class="item_content_view">
+						<view class="content_title_view">{{item.goodsName}}</view>
+						<view class="content_desc_view">{{item.description}}</view>
+						<view class="content_tag_view">
+							<view class="tag_view"
+								:style="{backgroundColor:bgColorList[(index >= 4 ? (index % 4) : index)],color:colorList[(index >= 4 ? (index % 4) : index)],borderColor:colorList[(index >= 4 ? (index % 4) : index)]}"
+								v-for="(item, index) in item.tagList" :key="index">
+								{{ item }}
+							</view>
+						</view>
+						<view class="content_price_view">
+							<view class="price_view">
+								<text>￥<text>{{item.price}}</text></text>
+							</view>
+							<view class="button_view">查看详情</view>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
+		<TabBar ref="tabsBar" class="tabs-bar" :tabBarShow="1"></TabBar>
+	</view>
+</template>
+
+<script>
+	import TabBar from '@/components/TabBar/TabBar.vue'
+	import LocationService from '@/utils/location'
+	import {
+		getSite
+	} from '@/api/index'
+	import {
+		getGoodsCatrgorys,
+		getGoodsList
+	} from '@/api/shop/index'
+	export default {
+		components: {
+			TabBar,
+		},
+		data() {
+			return {
+				host: this.$host,
+				colorList: ['#D611DD', '#0C932C', '#019AC1', '#B1960D'],
+				bgColorList: ['#FAE2FB', '#E1F2E5', '#E0F3F7', '#FBF0E1'],
+				siteData: null, // 站点数据集
+				navbarList: [], // 导航数据集
+				navbarSelect: 0, // 导航数据选中值
+				goodsCatrgoryList: [], // 商品目录
+				goodsCatrgorySelect: 0, // 目录选中值
+				goodsList: [], // 商品数据集合
+			};
+		},
+		onLoad() {
+			if (uni.getStorageSync('cls')) {
+				this.navbarList = uni.getStorageSync('cls').filter(e => e.parentId == 0)
+				if (this.navbarList.length > 0) {
+					const cls = uni.getStorageSync('currentCls')
+					const matched = cls ? this.navbarList.find(v => v.categoryId == cls) : null
+					this.navbarSelect = matched ? matched.categoryId : this.navbarList[0].categoryId
+				}
+			}
+		},
+		async onShow() {
+			const prevDeptId = this.siteData?.deptId
+			let site = uni.getStorageSync('site')
+			if (!site) {
+				await this.getCurrentLocationFn()
+				site = this.siteData
+			} else {
+				this.siteData = site
+			}
+			const siteChanged = prevDeptId !== site?.deptId
+			if (this.navbarList.length > 0) {
+				const cls = uni.getStorageSync('currentCls')
+				if (cls && cls !== '' && cls !== undefined) {
+					const matched = this.navbarList.find(v => v.categoryId == cls)
+					uni.removeStorageSync('currentCls')
+					if (matched) {
+						if (matched.linkType === 'activity') {
+							uni.navigateTo({
+								url: '/packagesMall/Activity/index'
+							})
+							return
+						}
+						this.navbarSelect = matched.categoryId
+						this.goodsCatrgorySelect = 0
+						this.getGoodsCatrgoryFn(this.navbarSelect)
+						return
+					}
+				}
+				if (!this.goodsCatrgoryList.length) {
+					this.getGoodsCatrgoryFn(this.navbarSelect)
+				} else if (siteChanged) {
+					this.getGoodsListFn()
+				}
+			}
+		},
+		methods: {
+			// 点击搜索时触发的方法
+			searchFn() {
+				uni.navigateTo({
+					url: '/packagesMall/search/search'
+				})
+			},
+			// 切换站点方法
+			switchSiteFn() {
+				const site = this.siteData || uni.getStorageSync('site')
+				if (!site?.deptId) {
+					uni.showToast({
+						title: '正在获取定位，请稍后再试',
+						icon: 'none'
+					})
+					return
+				}
+				uni.navigateTo({
+					url: `/packagesPublic/site/index?id=${site.deptId}`
+				})
+			},
+			// 获取当前位置方法
+			async getCurrentLocationFn() {
+				try {
+					// 获取经纬度
+					const {
+						latitude,
+						longitude
+					} = await LocationService.getLocation()
+					let {
+						data
+					} = await getSite({
+						lat: latitude,
+						lng: longitude
+					})
+					this.siteData = data
+					uni.setStorageSync('site', data)
+				} catch (error) {
+					console.error('定位错误:', error)
+				}
+			},
+			// 导航栏点击方法
+			navbarFn(data) {
+				if (data.linkType === 'activity') {
+					uni.navigateTo({
+						url: '/packagesMall/Activity/index'
+					})
+					return
+				}
+				this.navbarSelect = data.categoryId
+				this.goodsCatrgorySelect = 0
+				this.getGoodsCatrgoryFn(this.navbarSelect)
+			},
+			// 获取商品目录数据集
+			getGoodsCatrgoryFn(id) {
+				this.goodsCatrgoryList = []
+				getGoodsCatrgorys({
+					parentId: id
+				}).then(res => {
+					this.goodsCatrgoryList = [{
+						categoryId: 0,
+						categoryName: '全部'
+					}]
+					res.data.forEach(item => {
+						this.goodsCatrgoryList.push({
+							categoryId: item.categoryId,
+							categoryName: item.categoryName
+						})
+					})
+					this.getGoodsListFn()
+				}).catch(err => {
+					console.log('getGoodsCatrgorys', err)
+				})
+			},
+			// 获取商品数据集合
+			getGoodsListFn() {
+				// 后续该接口应该添加分页参数
+				getGoodsList({
+						categoryId: this.goodsCatrgorySelect == 0 ? this.navbarSelect : this.goodsCatrgorySelect
+					})
+					.then(res => {
+						this.goodsList = []
+						res.data.forEach((item, index) => {
+							let tagList = [],
+								image = '';
+							if (item.tags) {
+								tagList = item.tags.split('，')
+							}
+							if (item.goodsImages) {
+								image = item.goodsImages.split(',')[0]
+							}
+							this.goodsList.push({
+								goodsId: item.goodsId,
+								goodsName: item.goodsName,
+								tagList,
+								image,
+								price: item.price,
+								unit: item.unit,
+								goodsType: item.goodsType,
+								description: item.description
+							})
+						})
+					}).catch(err => {
+						console.log('getGoodsList', err)
+					})
+			},
+			// 菜单选择方法
+			menuFn(data) {
+				this.goodsCatrgorySelect = data.categoryId
+				this.getGoodsListFn()
+			},
+			// 点击商品方法
+			goodsFn(data) {
+				if (data.goodsType == 'hotel') {
+					uni.navigateTo({
+						url: `/packagesMall/GoodsDetails/SojournGoodsDetails?id=${data.goodsId}`
+					})
+				} else {
+					uni.navigateTo({
+						url: `/packagesMall/GoodsDetails/GoodsDetails?id=${data.goodsId}`
+					})
+				}
+			}
+		}
+	}
+</script>
+
+<style scoped lang="scss">
+	@import 'classify.scss'
+</style>

@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppGoodsOrderDetailMapper">
+    
+    <resultMap type="AppGoodsOrderDetail" id="AppGoodsOrderDetailResult">
+        <result property="detailId"    column="detail_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="orderId"    column="order_id"    />
+        <result property="goodsId"    column="goods_id"    />
+        <result property="goodsCount"    column="goods_count"    />
+        <result property="goodsMoney"    column="goods_money"    />
+        <result property="discountMoney"    column="discount_money"    />
+        <result property="isSku"    column="is_sku"    />
+        <result property="skuDataId"    column="sku_data_id"    />
+        <result property="skuDataValues"    column="sku_data_values"    />
+        <result property="goodsBackId"    column="goods_back_id"    />
+        <result property="refundMoney"    column="refund_money"    />
+        <result property="remark"    column="remark"    />
+        <result property="isComment"    column="is_comment"    />
+        <result property="status"    column="status"    />
+        <result property="orderStartDate"    column="order_start_date"    />
+        <result property="orderEndDate"    column="order_end_date"    />
+        <result property="skuId"    column="sku_id"    />
+        <result property="selfSkuId"    column="self_sku_id"    />
+        <result property="skuSeqNo"    column="sku_seq_no"    />
+        <result property="selfGoodsCount"    column="self_goods_count"    />
+        <result property="interCount"    column="inter_count"    />
+    </resultMap>
+
+    <sql id="selectAppGoodsOrderDetailVo">
+        select detail_id, user_id, order_id, goods_id, goods_count, goods_money, discount_money, is_sku, sku_data_id, sku_data_values, goods_back_id, refund_money, remark, is_comment, status, order_start_date, order_end_date, sku_id, self_sku_id, sku_seq_no, self_goods_count, inter_count from app_goods_order_detail
+    </sql>
+
+    <select id="selectAppGoodsOrderDetailList" parameterType="AppGoodsOrderDetail" resultMap="AppGoodsOrderDetailResult">
+        <include refid="selectAppGoodsOrderDetailVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="orderId != null "> and order_id = #{orderId}</if>
+            <if test="goodsId != null "> and goods_id = #{goodsId}</if>
+            <if test="goodsCount != null "> and goods_count = #{goodsCount}</if>
+            <if test="goodsMoney != null "> and goods_money = #{goodsMoney}</if>
+            <if test="discountMoney != null "> and discount_money = #{discountMoney}</if>
+            <if test="isSku != null "> and is_sku = #{isSku}</if>
+            <if test="skuDataId != null "> and sku_data_id = #{skuDataId}</if>
+            <if test="skuDataValues != null  and skuDataValues != ''"> and sku_data_values = #{skuDataValues}</if>
+            <if test="goodsBackId != null "> and goods_back_id = #{goodsBackId}</if>
+            <if test="refundMoney != null "> and refund_money = #{refundMoney}</if>
+            <if test="isComment != null "> and is_comment = #{isComment}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="orderStartDate != null "> and DATE_FORMAT(order_start_date,'%Y-%m-%d') = DATE_FORMAT(#{orderStartDate},'%Y-%m-%d')</if>
+            <if test="orderEndDate != null "> and DATE_FORMAT(order_end_date,'%Y-%m-%d') = DATE_FORMAT(#{orderEndDate},'%Y-%m-%d')</if>
+            <if test="skuId != null "> and sku_id = #{skuId}</if>
+            <if test="selfSkuId != null "> and self_sku_id = #{selfSkuId}</if>
+            <if test="skuSeqNo != null "> and sku_seq_no = #{skuSeqNo}</if>
+            <if test="selfGoodsCount != null "> and self_goods_count = #{selfGoodsCount}</if>
+            <if test="interCount != null "> and inter_count = #{interCount}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppGoodsOrderDetailByDetailId" parameterType="Long" resultMap="AppGoodsOrderDetailResult">
+        <include refid="selectAppGoodsOrderDetailVo"/>
+        where detail_id = #{detailId}
+    </select>
+
+    <insert id="insertAppGoodsOrderDetail" parameterType="AppGoodsOrderDetail" useGeneratedKeys="true" keyProperty="detailId">
+        insert into app_goods_order_detail
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="orderId != null">order_id,</if>
+            <if test="goodsId != null">goods_id,</if>
+            <if test="goodsCount != null">goods_count,</if>
+            <if test="goodsMoney != null">goods_money,</if>
+            <if test="discountMoney != null">discount_money,</if>
+            <if test="isSku != null">is_sku,</if>
+            <if test="skuDataId != null">sku_data_id,</if>
+            <if test="skuDataValues != null">sku_data_values,</if>
+            <if test="goodsBackId != null">goods_back_id,</if>
+            <if test="refundMoney != null">refund_money,</if>
+            <if test="remark != null">remark,</if>
+            <if test="isComment != null">is_comment,</if>
+            <if test="status != null and status != ''">status,</if>
+            <if test="orderStartDate != null">order_start_date,</if>
+            <if test="orderEndDate != null">order_end_date,</if>
+            <if test="skuId != null">sku_id,</if>
+            <if test="selfSkuId != null">self_sku_id,</if>
+            <if test="skuSeqNo != null">sku_seq_no,</if>
+            <if test="selfGoodsCount != null">self_goods_count,</if>
+            <if test="interCount != null">inter_count,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="orderId != null">#{orderId},</if>
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="goodsCount != null">#{goodsCount},</if>
+            <if test="goodsMoney != null">#{goodsMoney},</if>
+            <if test="discountMoney != null">#{discountMoney},</if>
+            <if test="isSku != null">#{isSku},</if>
+            <if test="skuDataId != null">#{skuDataId},</if>
+            <if test="skuDataValues != null">#{skuDataValues},</if>
+            <if test="goodsBackId != null">#{goodsBackId},</if>
+            <if test="refundMoney != null">#{refundMoney},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="isComment != null">#{isComment},</if>
+            <if test="status != null and status != ''">#{status},</if>
+            <if test="orderStartDate != null">#{orderStartDate},</if>
+            <if test="orderEndDate != null">#{orderEndDate},</if>
+            <if test="skuId != null">#{skuId},</if>
+            <if test="selfSkuId != null">#{selfSkuId},</if>
+            <if test="skuSeqNo != null">#{skuSeqNo},</if>
+            <if test="selfGoodsCount != null">#{selfGoodsCount},</if>
+            <if test="interCount != null">#{interCount},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppGoodsOrderDetail" parameterType="AppGoodsOrderDetail">
+        update app_goods_order_detail
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="orderId != null">order_id = #{orderId},</if>
+            <if test="goodsId != null">goods_id = #{goodsId},</if>
+            <if test="goodsCount != null">goods_count = #{goodsCount},</if>
+            <if test="goodsMoney != null">goods_money = #{goodsMoney},</if>
+            <if test="discountMoney != null">discount_money = #{discountMoney},</if>
+            <if test="isSku != null">is_sku = #{isSku},</if>
+            <if test="skuDataId != null">sku_data_id = #{skuDataId},</if>
+            <if test="skuDataValues != null">sku_data_values = #{skuDataValues},</if>
+            <if test="goodsBackId != null">goods_back_id = #{goodsBackId},</if>
+            <if test="refundMoney != null">refund_money = #{refundMoney},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="isComment != null">is_comment = #{isComment},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="orderStartDate != null">order_start_date = #{orderStartDate},</if>
+            <if test="orderEndDate != null">order_end_date = #{orderEndDate},</if>
+            <if test="skuId != null">sku_id = #{skuId},</if>
+            <if test="selfSkuId != null">self_sku_id = #{selfSkuId},</if>
+            <if test="skuSeqNo != null">sku_seq_no = #{skuSeqNo},</if>
+            <if test="selfGoodsCount != null">self_goods_count = #{selfGoodsCount},</if>
+            <if test="interCount != null">inter_count = #{interCount},</if>
+        </trim>
+        where detail_id = #{detailId}
+    </update>
+
+    <delete id="deleteAppGoodsOrderDetailByDetailId" parameterType="Long">
+        delete from app_goods_order_detail where detail_id = #{detailId}
+    </delete>
+
+    <delete id="deleteAppGoodsOrderDetailByDetailIds" parameterType="String">
+        delete from app_goods_order_detail where detail_id in 
+        <foreach item="detailId" collection="array" open="(" separator="," close=")">
+            #{detailId}
+        </foreach>
+    </delete>
+</mapper>

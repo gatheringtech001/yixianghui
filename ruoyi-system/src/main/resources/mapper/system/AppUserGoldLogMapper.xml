@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppUserGoldLogMapper">
+    
+    <resultMap type="AppUserGoldLog" id="AppUserGoldLogResult">
+        <result property="logId"    column="log_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="gold"    column="gold"    />
+        <result property="balance"    column="balance"    />
+        <result property="tradeType"    column="trade_type"    />
+        <result property="tradeTitle"    column="trade_title"    />
+        <result property="tradeDetail"    column="trade_detail"    />
+        <result property="tradeData"    column="trade_data"    />
+        <result property="businessType"    column="business_type"    />
+        <result property="businessId"    column="business_id"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppUserGoldLogVo">
+        select log_id, user_id, gold, balance, trade_type, trade_title, trade_detail, trade_data, business_type, business_id, create_time, status from app_user_gold_log
+    </sql>
+
+    <select id="selectAppUserGoldLogList" parameterType="AppUserGoldLog" resultMap="AppUserGoldLogResult">
+        <include refid="selectAppUserGoldLogVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="gold != null "> and gold = #{gold}</if>
+            <if test="balance != null "> and balance = #{balance}</if>
+            <if test="tradeType != null "> and trade_type = #{tradeType}</if>
+            <if test="tradeTitle != null  and tradeTitle != ''"> and trade_title = #{tradeTitle}</if>
+            <if test="tradeDetail != null  and tradeDetail != ''"> and trade_detail = #{tradeDetail}</if>
+            <if test="tradeData != null  and tradeData != ''"> and trade_data = #{tradeData}</if>
+            <if test="businessType != null  and businessType != ''"> and business_type = #{businessType}</if>
+            <if test="businessId != null "> and business_id = #{businessId}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+        order by log_id desc
+    </select>
+    
+    <select id="selectAppUserGoldLogByLogId" parameterType="Long" resultMap="AppUserGoldLogResult">
+        <include refid="selectAppUserGoldLogVo"/>
+        where log_id = #{logId}
+    </select>
+
+    <insert id="insertAppUserGoldLog" parameterType="AppUserGoldLog" useGeneratedKeys="true" keyProperty="logId">
+        insert into app_user_gold_log
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="gold != null">gold,</if>
+            <if test="balance != null">balance,</if>
+            <if test="tradeType != null">trade_type,</if>
+            <if test="tradeTitle != null">trade_title,</if>
+            <if test="tradeDetail != null">trade_detail,</if>
+            <if test="tradeData != null">trade_data,</if>
+            <if test="businessType != null">business_type,</if>
+            <if test="businessId != null">business_id,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="gold != null">#{gold},</if>
+            <if test="balance != null">#{balance},</if>
+            <if test="tradeType != null">#{tradeType},</if>
+            <if test="tradeTitle != null">#{tradeTitle},</if>
+            <if test="tradeDetail != null">#{tradeDetail},</if>
+            <if test="tradeData != null">#{tradeData},</if>
+            <if test="businessType != null">#{businessType},</if>
+            <if test="businessId != null">#{businessId},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppUserGoldLog" parameterType="AppUserGoldLog">
+        update app_user_gold_log
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="gold != null">gold = #{gold},</if>
+            <if test="balance != null">balance = #{balance},</if>
+            <if test="tradeType != null">trade_type = #{tradeType},</if>
+            <if test="tradeTitle != null">trade_title = #{tradeTitle},</if>
+            <if test="tradeDetail != null">trade_detail = #{tradeDetail},</if>
+            <if test="tradeData != null">trade_data = #{tradeData},</if>
+            <if test="businessType != null">business_type = #{businessType},</if>
+            <if test="businessId != null">business_id = #{businessId},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where log_id = #{logId}
+    </update>
+
+    <delete id="deleteAppUserGoldLogByLogId" parameterType="Long">
+        delete from app_user_gold_log where log_id = #{logId}
+    </delete>
+
+    <delete id="deleteAppUserGoldLogByLogIds" parameterType="String">
+        delete from app_user_gold_log where log_id in 
+        <foreach item="logId" collection="array" open="(" separator="," close=")">
+            #{logId}
+        </foreach>
+    </delete>
+</mapper>

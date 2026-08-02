@@ -1,0 +1,293 @@
+$page-accent: #701018;
+$page-line: #e8e1d8;
+$page-soft: #f7f7f5;
+$page-paper: #ffffff;
+
+.page_container {
+	min-height: 100vh;
+	background-color: $page-soft;
+}
+
+.page_scroll {
+	width: 100%;
+	background-color: $page-soft;
+}
+
+.head {
+	width: 100%;
+	height: 572rpx;
+	overflow: hidden;
+	background: #e7e1d7;
+
+	image {
+		width: 100%;
+		height: 100%;
+		display: block;
+	}
+}
+
+.activity-sheet {
+	margin: 20rpx 28rpx 40rpx;
+	padding: 32rpx;
+	border: 1rpx solid $page-line;
+	border-radius: 20rpx;
+	background: $page-paper;
+}
+
+.activity-title-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 16rpx;
+	margin-bottom: 24rpx;
+
+	.status-pill {
+		flex-shrink: 0;
+		min-height: 56rpx;
+		padding: 0 24rpx;
+		border-radius: 999rpx;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		font-size: 26rpx;
+		font-weight: 820;
+		background: #eeeeee;
+		color: #777777;
+
+		&.active {
+			background: $page-accent;
+			color: #ffffff;
+		}
+
+		&.closed {
+			background: #f4ebe6;
+			color: $page-accent;
+		}
+
+		&.ended {
+			background: #eeeeee;
+			color: #777777;
+		}
+	}
+
+	.activity-name {
+		flex: 1;
+		min-width: 0;
+		font-size: 42rpx;
+		line-height: 1.25;
+		font-weight: 880;
+		color: #111111;
+		word-break: break-word;
+		white-space: normal;
+	}
+
+	.btn-collect {
+		flex-shrink: 0;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 112rpx;
+		min-height: 56rpx;
+		padding: 0 20rpx;
+		border-radius: 999rpx;
+		border: 2rpx solid rgba(112, 16, 24, 0.45);
+		background: #fff;
+		color: $page-accent;
+		font-size: 24rpx;
+		font-weight: 700;
+		line-height: 1;
+		box-sizing: border-box;
+	}
+
+	.btn-collect.collected {
+		border-color: rgba(112, 16, 24, 0.2);
+		background: #FFF3EE;
+	}
+}
+
+.activity-progress-block,
+.activity-field {
+	padding: 26rpx 0;
+	border-top: 1rpx solid $page-line;
+}
+
+.activity-progress-head,
+.activity-field {
+	display: grid;
+	grid-template-columns: 200rpx 1fr;
+	gap: 20rpx;
+	align-items: center;
+}
+
+.field-label {
+	color: #777777;
+	font-size: 28rpx;
+	font-weight: 680;
+}
+
+.field-value {
+	justify-self: end;
+	color: #111111;
+	font-size: 28rpx;
+	font-weight: 860;
+	line-height: 1.5;
+	text-align: right;
+}
+
+.activity-progress-head .field-value {
+	color: $page-accent;
+}
+
+.fee-free {
+	color: $page-accent;
+}
+
+.fee-paid {
+	color: $page-accent;
+}
+
+.progress {
+	width: 100%;
+	height: 16rpx;
+	margin-top: 18rpx;
+	overflow: hidden;
+	border-radius: 999rpx;
+	background: #eeeeee;
+
+	.progress-bar {
+		height: 100%;
+		background: $page-accent;
+		border-radius: 999rpx;
+	}
+}
+
+.activity-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 14rpx;
+	justify-content: flex-end;
+}
+
+.outline-chip {
+	min-height: 48rpx;
+	padding: 0 18rpx;
+	border: 1rpx solid rgba(139, 17, 29, 0.55);
+	border-radius: 10rpx;
+	background: $page-paper;
+	color: $page-accent;
+	font-size: 24rpx;
+	font-weight: 720;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+}
+
+.activity-nav {
+	justify-self: end;
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 20rpx;
+	max-width: 100%;
+
+	.nav-address {
+		color: #111111;
+		font-size: 28rpx;
+		font-weight: 860;
+		line-height: 1.5;
+		text-align: right;
+	}
+
+	.nav-btn {
+		flex-shrink: 0;
+		min-height: 60rpx;
+		padding: 0 20rpx;
+		border: 1rpx solid $page-accent;
+		border-radius: 999rpx;
+		color: $page-accent;
+		font-size: 24rpx;
+		font-weight: 760;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+	}
+}
+
+.activity-description {
+	align-items: start;
+}
+
+.description-content {
+	grid-column: 2;
+	justify-self: end;
+	width: 100%;
+	color: #444444;
+	font-size: 30rpx;
+	line-height: 1.65;
+	text-align: left;
+	word-break: break-word;
+}
+
+.bottom {
+	background: $page-paper;
+	padding: 20rpx 36rpx;
+	padding-bottom: calc(20rpx + constant(safe-area-inset-bottom));
+	padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+	width: 100%;
+	box-sizing: border-box;
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	z-index: 10;
+	display: grid;
+	grid-template-columns: 236rpx 1fr;
+	gap: 28rpx;
+	align-items: center;
+	border-top: 1rpx solid $page-line;
+
+	.share-btn {
+		min-height: 76rpx;
+		background: $page-paper;
+		padding: 0;
+		margin: 0;
+		border: 1rpx solid $page-line;
+		border-radius: 12rpx;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		line-height: normal;
+
+		.btn-label {
+			display: block;
+			font-size: 24rpx;
+			color: #333333;
+			font-weight: 700;
+			text-align: center;
+		}
+
+		&::after {
+			display: none;
+		}
+	}
+
+	.apply-btn {
+		min-height: 76rpx;
+		border-radius: 12rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		background: $page-accent;
+		color: #ffffff;
+		font-size: 28rpx;
+		font-weight: 700;
+
+		&.disabled {
+			background: #d8d5cf;
+			color: #ffffff;
+		}
+	}
+}

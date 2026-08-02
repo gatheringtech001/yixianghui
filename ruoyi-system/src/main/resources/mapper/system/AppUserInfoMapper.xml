@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppUserInfoMapper">
+    
+    <resultMap type="AppUserInfo" id="AppUserInfoResult">
+        <result property="userId"    column="user_id"    />
+        <result property="appId"    column="app_id"    />
+        <result property="groupId"    column="group_id"    />
+        <result property="introId"    column="intro_id"    />
+        <result property="qrcodeUrl"    column="qrcode_url"    />
+        <result property="golden"    column="golden"    />
+        <result property="score"    column="score"    />
+        <result property="money"    column="money"    />
+        <result property="fansCount"    column="fans_count"    />
+        <result property="trueName"    column="true_name"    />
+        <result property="idcard"    column="idcard"    />
+        <result property="bankTitle"    column="bank_title"    />
+        <result property="bankUsername"    column="bank_username"    />
+        <result property="bankAccount"    column="bank_account"    />
+        <result property="city"    column="city"    />
+        <result property="wexinAccount"    column="wexin_account"    />
+        <result property="weixinOpenid"    column="weixin_openid"    />
+        <result property="alipayAccount"    column="alipay_account"    />
+    </resultMap>
+
+    <sql id="selectAppUserInfoVo">
+        select user_id, app_id, group_id, intro_id, qrcode_url, golden, score, money, fans_count, true_name, idcard, bank_title, bank_username, bank_account, city, wexin_account, weixin_openid, alipay_account from app_user_info
+    </sql>
+
+    <select id="selectAppUserInfoList" parameterType="AppUserInfo" resultMap="AppUserInfoResult">
+        <include refid="selectAppUserInfoVo"/>
+        <where>  
+            <if test="appId != null "> and app_id = #{appId}</if>
+            <if test="groupId != null "> and group_id = #{groupId}</if>
+            <if test="introId != null "> and intro_id = #{introId}</if>
+            <if test="qrcodeUrl != null  and qrcodeUrl != ''"> and qrcode_url = #{qrcodeUrl}</if>
+            <if test="golden != null "> and golden = #{golden}</if>
+            <if test="score != null "> and score = #{score}</if>
+            <if test="money != null "> and money = #{money}</if>
+            <if test="fansCount != null "> and fans_count = #{fansCount}</if>
+            <if test="trueName != null  and trueName != ''"> and true_name like concat('%', #{trueName}, '%')</if>
+            <if test="idcard != null  and idcard != ''"> and idcard = #{idcard}</if>
+            <if test="bankTitle != null  and bankTitle != ''"> and bank_title = #{bankTitle}</if>
+            <if test="bankUsername != null  and bankUsername != ''"> and bank_username like concat('%', #{bankUsername}, '%')</if>
+            <if test="bankAccount != null  and bankAccount != ''"> and bank_account = #{bankAccount}</if>
+            <if test="city != null  and city != ''"> and city = #{city}</if>
+            <if test="wexinAccount != null  and wexinAccount != ''"> and wexin_account = #{wexinAccount}</if>
+            <if test="weixinOpenid != null  and weixinOpenid != ''"> and weixin_openid = #{weixinOpenid}</if>
+            <if test="alipayAccount != null  and alipayAccount != ''"> and alipay_account = #{alipayAccount}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppUserInfoByUserId" parameterType="Long" resultMap="AppUserInfoResult">
+        <include refid="selectAppUserInfoVo"/>
+        where user_id = #{userId}
+    </select>
+
+    <insert id="insertAppUserInfo" parameterType="AppUserInfo">
+        insert into app_user_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="appId != null">app_id,</if>
+            <if test="groupId != null">group_id,</if>
+            <if test="introId != null">intro_id,</if>
+            <if test="qrcodeUrl != null and qrcodeUrl != ''">qrcode_url,</if>
+            <if test="golden != null">golden,</if>
+            <if test="score != null">score,</if>
+            <if test="money != null">money,</if>
+            <if test="fansCount != null">fans_count,</if>
+            <if test="trueName != null">true_name,</if>
+            <if test="idcard != null">idcard,</if>
+            <if test="bankTitle != null">bank_title,</if>
+            <if test="bankUsername != null">bank_username,</if>
+            <if test="bankAccount != null">bank_account,</if>
+            <if test="city != null">city,</if>
+            <if test="wexinAccount != null">wexin_account,</if>
+            <if test="weixinOpenid != null">weixin_openid,</if>
+            <if test="alipayAccount != null">alipay_account,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="appId != null">#{appId},</if>
+            <if test="groupId != null">#{groupId},</if>
+            <if test="introId != null">#{introId},</if>
+            <if test="qrcodeUrl != null and qrcodeUrl != ''">#{qrcodeUrl},</if>
+            <if test="golden != null">#{golden},</if>
+            <if test="score != null">#{score},</if>
+            <if test="money != null">#{money},</if>
+            <if test="fansCount != null">#{fansCount},</if>
+            <if test="trueName != null">#{trueName},</if>
+            <if test="idcard != null">#{idcard},</if>
+            <if test="bankTitle != null">#{bankTitle},</if>
+            <if test="bankUsername != null">#{bankUsername},</if>
+            <if test="bankAccount != null">#{bankAccount},</if>
+            <if test="city != null">#{city},</if>
+            <if test="wexinAccount != null">#{wexinAccount},</if>
+            <if test="weixinOpenid != null">#{weixinOpenid},</if>
+            <if test="alipayAccount != null">#{alipayAccount},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppUserInfo" parameterType="AppUserInfo">
+        update app_user_info
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="appId != null">app_id = #{appId},</if>
+            <if test="groupId != null">group_id = #{groupId},</if>
+            <if test="introId != null">intro_id = #{introId},</if>
+            <if test="qrcodeUrl != null and qrcodeUrl != ''">qrcode_url = #{qrcodeUrl},</if>
+            <if test="golden != null">golden = #{golden},</if>
+            <if test="score != null">score = #{score},</if>
+            <if test="money != null">money = #{money},</if>
+            <if test="fansCount != null">fans_count = #{fansCount},</if>
+            <if test="trueName != null">true_name = #{trueName},</if>
+            <if test="idcard != null">idcard = #{idcard},</if>
+            <if test="bankTitle != null">bank_title = #{bankTitle},</if>
+            <if test="bankUsername != null">bank_username = #{bankUsername},</if>
+            <if test="bankAccount != null">bank_account = #{bankAccount},</if>
+            <if test="city != null">city = #{city},</if>
+            <if test="wexinAccount != null">wexin_account = #{wexinAccount},</if>
+            <if test="weixinOpenid != null">weixin_openid = #{weixinOpenid},</if>
+            <if test="alipayAccount != null">alipay_account = #{alipayAccount},</if>
+        </trim>
+        where user_id = #{userId}
+    </update>
+
+    <delete id="deleteAppUserInfoByUserId" parameterType="Long">
+        delete from app_user_info where user_id = #{userId}
+    </delete>
+
+    <delete id="deleteAppUserInfoByUserIds" parameterType="String">
+        delete from app_user_info where user_id in 
+        <foreach item="userId" collection="array" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </delete>
+</mapper>

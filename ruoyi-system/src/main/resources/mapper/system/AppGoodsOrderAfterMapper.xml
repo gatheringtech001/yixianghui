@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppGoodsOrderAfterMapper">
+    
+    <resultMap type="AppGoodsOrderAfter" id="AppGoodsOrderAfterResult">
+        <result property="afterId"    column="after_id"    />
+        <result property="afterType"    column="after_type"    />
+        <result property="userId"    column="user_id"    />
+        <result property="orderId"    column="order_id"    />
+        <result property="outOrderNo"    column="out_order_no"    />
+        <result property="orderMoney"    column="order_money"    />
+        <result property="goodsId"    column="goods_id"    />
+        <result property="goodsCount"    column="goods_count"    />
+        <result property="goodsMoney"    column="goods_money"    />
+        <result property="expressMoney"    column="express_money"    />
+        <result property="refundMoney"    column="refund_money"    />
+        <result property="backExpressName"    column="back_express_name"    />
+        <result property="backExpressNo"    column="back_express_no"    />
+        <result property="resendExpressName"    column="resend_express_name"    />
+        <result property="resendExpressNo"    column="resend_express_no"    />
+        <result property="remark"    column="remark"    />
+        <result property="status"    column="status"    />
+        <result property="refundReason"    column="refund_reason"    />
+        <result property="reasonDescription"    column="reason_description"    />
+        <result property="appRefundMoney"    column="app_refund_money"    />
+    </resultMap>
+
+    <sql id="selectAppGoodsOrderAfterVo">
+        select after_id, after_type, user_id, order_id, out_order_no, order_money, goods_id, goods_count, goods_money, express_money, refund_money, back_express_name, back_express_no, resend_express_name,
+               resend_express_no, remark, status,refund_reason,reason_description,app_refund_money from app_goods_order_after
+    </sql>
+
+    <select id="selectAppGoodsOrderAfterList" parameterType="AppGoodsOrderAfter" resultMap="AppGoodsOrderAfterResult">
+        <include refid="selectAppGoodsOrderAfterVo"/>
+        <where>  
+            <if test="afterType != null  and afterType != ''"> and after_type = #{afterType}</if>
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="orderId != null "> and order_id = #{orderId}</if>
+            <if test="outOrderNo != null  and outOrderNo != ''"> and out_order_no = #{outOrderNo}</if>
+            <if test="orderMoney != null "> and order_money = #{orderMoney}</if>
+            <if test="goodsId != null "> and goods_id = #{goodsId}</if>
+            <if test="goodsCount != null "> and goods_count = #{goodsCount}</if>
+            <if test="goodsMoney != null "> and goods_money = #{goodsMoney}</if>
+            <if test="expressMoney != null "> and express_money = #{expressMoney}</if>
+            <if test="refundMoney != null "> and refund_money = #{refundMoney}</if>
+            <if test="backExpressName != null  and backExpressName != ''"> and back_express_name like concat('%', #{backExpressName}, '%')</if>
+            <if test="backExpressNo != null  and backExpressNo != ''"> and back_express_no = #{backExpressNo}</if>
+            <if test="resendExpressName != null  and resendExpressName != ''"> and resend_express_name like concat('%', #{resendExpressName}, '%')</if>
+            <if test="resendExpressNo != null  and resendExpressNo != ''"> and resend_express_no = #{resendExpressNo}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="refundReason != null"> and refund_reason = #{refundReason}</if>
+            <if test="reasonDescription != null  and reasonDescription != ''"> and reason_description like concat('%', #{reasonDescription}, '%')</if>
+            <if test="appRefundMoney != null"> and app_refund_money = #{appRefundMoney}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppGoodsOrderAfterByAfterId" parameterType="Long" resultMap="AppGoodsOrderAfterResult">
+        <include refid="selectAppGoodsOrderAfterVo"/>
+        where after_id = #{afterId}
+    </select>
+
+    <insert id="insertAppGoodsOrderAfter" parameterType="AppGoodsOrderAfter" useGeneratedKeys="true" keyProperty="afterId">
+        insert into app_goods_order_after
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="afterType != null">after_type,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="orderId != null">order_id,</if>
+            <if test="outOrderNo != null">out_order_no,</if>
+            <if test="orderMoney != null">order_money,</if>
+            <if test="goodsId != null">goods_id,</if>
+            <if test="goodsCount != null">goods_count,</if>
+            <if test="goodsMoney != null">goods_money,</if>
+            <if test="expressMoney != null">express_money,</if>
+            <if test="refundMoney != null">refund_money,</if>
+            <if test="backExpressName != null">back_express_name,</if>
+            <if test="backExpressNo != null">back_express_no,</if>
+            <if test="resendExpressName != null">resend_express_name,</if>
+            <if test="resendExpressNo != null">resend_express_no,</if>
+            <if test="remark != null">remark,</if>
+            <if test="status != null and status != ''">status,</if>
+            <if test="refundReason != null">refund_reason,</if>
+            <if test="reasonDescription != null and reasonDescription != ''">reason_description,</if>
+            <if test="appRefundMoney != null">app_refund_money,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="afterType != null">#{afterType},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="orderId != null">#{orderId},</if>
+            <if test="outOrderNo != null">#{outOrderNo},</if>
+            <if test="orderMoney != null">#{orderMoney},</if>
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="goodsCount != null">#{goodsCount},</if>
+            <if test="goodsMoney != null">#{goodsMoney},</if>
+            <if test="expressMoney != null">#{expressMoney},</if>
+            <if test="refundMoney != null">#{refundMoney},</if>
+            <if test="backExpressName != null">#{backExpressName},</if>
+            <if test="backExpressNo != null">#{backExpressNo},</if>
+            <if test="resendExpressName != null">#{resendExpressName},</if>
+            <if test="resendExpressNo != null">#{resendExpressNo},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="status != null and status != ''">#{status},</if>
+            <if test="refundReason != null">#{refundReason},</if>
+            <if test="reasonDescription != null and reasonDescription != ''">#{reasonDescription},</if>
+            <if test="appRefundMoney != null">#{appRefundMoney},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppGoodsOrderAfter" parameterType="AppGoodsOrderAfter">
+        update app_goods_order_after
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="afterType != null">after_type = #{afterType},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="orderId != null">order_id = #{orderId},</if>
+            <if test="outOrderNo != null">out_order_no = #{outOrderNo},</if>
+            <if test="orderMoney != null">order_money = #{orderMoney},</if>
+            <if test="goodsId != null">goods_id = #{goodsId},</if>
+            <if test="goodsCount != null">goods_count = #{goodsCount},</if>
+            <if test="goodsMoney != null">goods_money = #{goodsMoney},</if>
+            <if test="expressMoney != null">express_money = #{expressMoney},</if>
+            <if test="refundMoney != null">refund_money = #{refundMoney},</if>
+            <if test="backExpressName != null">back_express_name = #{backExpressName},</if>
+            <if test="backExpressNo != null">back_express_no = #{backExpressNo},</if>
+            <if test="resendExpressName != null">resend_express_name = #{resendExpressName},</if>
+            <if test="resendExpressNo != null">resend_express_no = #{resendExpressNo},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="refundReason != null">refund_reason = #{refundReason},</if>
+            <if test="reasonDescription != null and reasonDescription != ''">reason_description = #{reasonDescription},</if>
+            <if test="appRefundMoney != null">app_refund_money = #{appRefundMoney},</if>
+        </trim>
+        where after_id = #{afterId}
+    </update>
+
+    <delete id="deleteAppGoodsOrderAfterByAfterId" parameterType="Long">
+        delete from app_goods_order_after where after_id = #{afterId}
+    </delete>
+
+    <delete id="deleteAppGoodsOrderAfterByAfterIds" parameterType="String">
+        delete from app_goods_order_after where after_id in 
+        <foreach item="afterId" collection="array" open="(" separator="," close=")">
+            #{afterId}
+        </foreach>
+    </delete>
+    <select id="selectAppGoodsOrderAfterByOutorderno" parameterType="String" resultMap="AppGoodsOrderAfterResult">
+        <include refid="selectAppGoodsOrderAfterVo"/>
+        where out_order_no = #{outOrderNo}
+    </select>
+</mapper>

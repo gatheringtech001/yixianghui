@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppUserCashMapper">
+    
+    <resultMap type="AppUserCash" id="AppUserCashResult">
+        <result property="cashId"    column="cash_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="cashType"    column="cash_type"    />
+        <result property="payNo"    column="pay_no"    />
+        <result property="money"    column="money"    />
+        <result property="cashFee"    column="cash_fee"    />
+        <result property="bankId"    column="bank_id"    />
+        <result property="alipayId"    column="alipay_id"    />
+        <result property="weixinId"    column="weixin_id"    />
+        <result property="replyContent"    column="reply_content"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppUserCashVo">
+        select cash_id, user_id, cash_type, pay_no, money, cash_fee, bank_id, alipay_id, weixin_id, reply_content, create_time, status from app_user_cash
+    </sql>
+
+    <select id="selectAppUserCashList" parameterType="AppUserCash" resultMap="AppUserCashResult">
+        <include refid="selectAppUserCashVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="cashType != null  and cashType != ''"> and cash_type = #{cashType}</if>
+            <if test="payNo != null  and payNo != ''"> and pay_no = #{payNo}</if>
+            <if test="money != null "> and money = #{money}</if>
+            <if test="cashFee != null "> and cash_fee = #{cashFee}</if>
+            <if test="bankId != null  and bankId != ''"> and bank_id = #{bankId}</if>
+            <if test="alipayId != null  and alipayId != ''"> and alipay_id = #{alipayId}</if>
+            <if test="weixinId != null  and weixinId != ''"> and weixin_id = #{weixinId}</if>
+            <if test="replyContent != null  and replyContent != ''"> and reply_content = #{replyContent}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+        order by create_time desc, cash_id desc
+    </select>
+
+    <select id="sumWithdrawnAmount" resultType="java.math.BigDecimal">
+        select COALESCE(SUM(money), 0)
+        from app_user_cash
+        where user_id = #{userId}
+          and status = '1'
+    </select>
+    
+    <select id="selectAppUserCashByCashId" parameterType="Long" resultMap="AppUserCashResult">
+        <include refid="selectAppUserCashVo"/>
+        where cash_id = #{cashId}
+    </select>
+
+    <insert id="insertAppUserCash" parameterType="AppUserCash" useGeneratedKeys="true" keyProperty="cashId">
+        insert into app_user_cash
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="cashType != null">cash_type,</if>
+            <if test="payNo != null">pay_no,</if>
+            <if test="money != null">money,</if>
+            <if test="cashFee != null">cash_fee,</if>
+            <if test="bankId != null">bank_id,</if>
+            <if test="alipayId != null">alipay_id,</if>
+            <if test="weixinId != null">weixin_id,</if>
+            <if test="replyContent != null">reply_content,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="cashType != null">#{cashType},</if>
+            <if test="payNo != null">#{payNo},</if>
+            <if test="money != null">#{money},</if>
+            <if test="cashFee != null">#{cashFee},</if>
+            <if test="bankId != null">#{bankId},</if>
+            <if test="alipayId != null">#{alipayId},</if>
+            <if test="weixinId != null">#{weixinId},</if>
+            <if test="replyContent != null">#{replyContent},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppUserCash" parameterType="AppUserCash">
+        update app_user_cash
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="cashType != null">cash_type = #{cashType},</if>
+            <if test="payNo != null">pay_no = #{payNo},</if>
+            <if test="money != null">money = #{money},</if>
+            <if test="cashFee != null">cash_fee = #{cashFee},</if>
+            <if test="bankId != null">bank_id = #{bankId},</if>
+            <if test="alipayId != null">alipay_id = #{alipayId},</if>
+            <if test="weixinId != null">weixin_id = #{weixinId},</if>
+            <if test="replyContent != null">reply_content = #{replyContent},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where cash_id = #{cashId}
+    </update>
+
+    <delete id="deleteAppUserCashByCashId" parameterType="Long">
+        delete from app_user_cash where cash_id = #{cashId}
+    </delete>
+
+    <delete id="deleteAppUserCashByCashIds" parameterType="String">
+        delete from app_user_cash where cash_id in 
+        <foreach item="cashId" collection="array" open="(" separator="," close=")">
+            #{cashId}
+        </foreach>
+    </delete>
+</mapper>

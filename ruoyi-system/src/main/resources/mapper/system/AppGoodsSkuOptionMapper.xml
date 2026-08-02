@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppGoodsSkuOptionMapper">
+    
+    <resultMap type="AppGoodsSkuOption" id="AppGoodsSkuOptionResult">
+        <result property="optionId"    column="option_id"    />
+        <result property="goodsId"    column="goods_id"    />
+        <result property="skuId"    column="sku_id"    />
+        <result property="optionType"    column="option_type"    />
+        <result property="optionName"    column="option_name"    />
+        <result property="optionValue"    column="option_value"    />
+        <result property="optionSort"    column="option_sort"    />
+        <result property="optionValueUnit"    column="option_value_unit"    />
+        <result property="optionParam"    column="option_param"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="status"    column="status"    />
+        <result property="skuSeqNo"    column="sku_seq_no"    />
+    </resultMap>
+
+    <sql id="selectAppGoodsSkuOptionVo">
+        select option_id, goods_id, sku_id, option_name, option_param, create_time, status, option_type, option_value, option_sort, option_value_unit, sku_seq_no from app_goods_sku_option
+    </sql>
+
+    <select id="selectAppGoodsSkuOptionList" parameterType="AppGoodsSkuOption" resultMap="AppGoodsSkuOptionResult">
+        <include refid="selectAppGoodsSkuOptionVo"/>
+        <where>  
+            <if test="goodsId != null "> and goods_id = #{goodsId}</if>
+            <if test="skuId != null "> and sku_id = #{skuId}</if>
+            <if test="optionName != null  and optionName != ''"> and option_name like concat('%', #{optionName}, '%')</if>
+            <if test="optionParam != null  and optionParam != ''"> and option_param = #{optionParam}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="optionType != null  and optionType != ''"> and option_type = #{optionType}</if>
+            <if test="optionValue != null  and optionValue != ''"> and option_value = #{optionValue}</if>
+            <if test="optionValueUnit != null  and optionValueUnit != ''"> and option_value_unit = #{optionValueUnit}</if>
+            <if test="optionSort != null  and optionSort != ''"> and option_sort = #{optionSort}</if>
+             <if test="skuSeqNo != null "> and sku_seq_no = #{skuSeqNo}</if>
+        </where>
+        order by sku_seq_no,option_sort
+    </select>
+    
+    <select id="selectAppGoodsSkuOptionByOptionId" parameterType="Long" resultMap="AppGoodsSkuOptionResult">
+        <include refid="selectAppGoodsSkuOptionVo"/>
+        where option_id = #{optionId}
+    </select>
+
+    <insert id="insertAppGoodsSkuOption" parameterType="AppGoodsSkuOption" useGeneratedKeys="true" keyProperty="optionId">
+        insert into app_goods_sku_option
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="goodsId != null">goods_id,</if>
+            <if test="skuId != null">sku_id,</if>
+            <if test="optionName != null and optionName != ''">option_name,</if>
+            <if test="optionParam != null and optionParam != ''">option_param,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="status != null">status,</if>
+            <if test="optionType != null">option_type,</if>
+            <if test="optionValue != null">option_value,</if>
+            <if test="optionValueUnit != null">option_value_unit,</if>
+            <if test="optionSort != null">option_sort,</if>
+            <if test="skuSeqNo != null">sku_seq_no,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="skuId != null">#{skuId},</if>
+            <if test="optionName != null and optionName != ''">#{optionName},</if>
+            <if test="optionParam != null and optionParam != ''">#{optionParam},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="status != null">#{status},</if>
+            <if test="optionType != null">#{optionType},</if>
+            <if test="optionValue != null">#{optionValue},</if>
+            <if test="optionValueUnit != null">#{optionValueUnit},</if>
+            <if test="optionSort != null">#{optionSort},</if>
+            <if test="skuSeqNo != null">#{skuSeqNo},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppGoodsSkuOption" parameterType="AppGoodsSkuOption">
+        update app_goods_sku_option
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="goodsId != null">goods_id = #{goodsId},</if>
+            <if test="skuId != null">sku_id = #{skuId},</if>
+            <if test="optionName != null and optionName != ''">option_name = #{optionName},</if>
+            <if test="optionParam != null and optionParam != ''">option_param = #{optionParam},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="optionType != null">option_type = #{optionType},</if>
+            <if test="optionValue != null">option_value = #{optionValue},</if>
+            <if test="optionValueUnit != null">option_value_unit = #{optionValueUnit},</if>
+            <if test="optionSort != null">option_sort = #{optionSort},</if>
+            <if test="skuSeqNo != null">sku_seq_no = #{skuSeqNo},</if>
+        </trim>
+        where option_id = #{optionId}
+    </update>
+
+    <delete id="deleteAppGoodsSkuOptionByOptionId" parameterType="Long">
+        delete from app_goods_sku_option where option_id = #{optionId}
+    </delete>
+
+    <delete id="deleteAppGoodsSkuOptionByOptionIds" parameterType="String">
+        delete from app_goods_sku_option where option_id in 
+        <foreach item="optionId" collection="array" open="(" separator="," close=")">
+            #{optionId}
+        </foreach>
+    </delete>
+</mapper>

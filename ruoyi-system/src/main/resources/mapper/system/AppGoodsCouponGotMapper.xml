@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppGoodsCouponGotMapper">
+    
+    <resultMap type="AppGoodsCouponGot" id="AppGoodsCouponGotResult">
+        <result property="gotId"    column="got_id"    />
+        <result property="couponId"    column="coupon_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="orderId"    column="order_id"    />
+        <result property="discountPrice"    column="discount_price"    />
+        <result property="getMethod"    column="get_method"    />
+        <result property="isUsed"    column="is_used"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppGoodsCouponGotVo">
+        select got_id, coupon_id, user_id, order_id, discount_price, get_method, is_used, create_time, update_time, status from app_goods_coupon_got
+    </sql>
+
+    <select id="selectAppGoodsCouponGotList" parameterType="AppGoodsCouponGot" resultMap="AppGoodsCouponGotResult">
+        <include refid="selectAppGoodsCouponGotVo"/>
+        <where>  
+            <if test="couponId != null "> and coupon_id = #{couponId}</if>
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="orderId != null "> and order_id = #{orderId}</if>
+            <if test="discountPrice != null "> and discount_price = #{discountPrice}</if>
+            <if test="getMethod != null  and getMethod != ''"> and get_method = #{getMethod}</if>
+            <if test="isUsed != null "> and is_used = #{isUsed}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppGoodsCouponGotByGotId" parameterType="Long" resultMap="AppGoodsCouponGotResult">
+        <include refid="selectAppGoodsCouponGotVo"/>
+        where got_id = #{gotId}
+    </select>
+
+    <insert id="insertAppGoodsCouponGot" parameterType="AppGoodsCouponGot" useGeneratedKeys="true" keyProperty="gotId">
+        insert into app_goods_coupon_got
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="couponId != null">coupon_id,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="orderId != null">order_id,</if>
+            <if test="discountPrice != null">discount_price,</if>
+            <if test="getMethod != null and getMethod != ''">get_method,</if>
+            <if test="isUsed != null">is_used,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="couponId != null">#{couponId},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="orderId != null">#{orderId},</if>
+            <if test="discountPrice != null">#{discountPrice},</if>
+            <if test="getMethod != null and getMethod != ''">#{getMethod},</if>
+            <if test="isUsed != null">#{isUsed},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppGoodsCouponGot" parameterType="AppGoodsCouponGot">
+        update app_goods_coupon_got
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="couponId != null">coupon_id = #{couponId},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="orderId != null">order_id = #{orderId},</if>
+            <if test="discountPrice != null">discount_price = #{discountPrice},</if>
+            <if test="getMethod != null and getMethod != ''">get_method = #{getMethod},</if>
+            <if test="isUsed != null">is_used = #{isUsed},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where got_id = #{gotId}
+    </update>
+
+    <delete id="deleteAppGoodsCouponGotByGotId" parameterType="Long">
+        delete from app_goods_coupon_got where got_id = #{gotId}
+    </delete>
+
+    <delete id="deleteAppGoodsCouponGotByGotIds" parameterType="String">
+        delete from app_goods_coupon_got where got_id in 
+        <foreach item="gotId" collection="array" open="(" separator="," close=")">
+            #{gotId}
+        </foreach>
+    </delete>
+</mapper>

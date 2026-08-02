@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppGoodsSkuDataMapper">
+    
+    <resultMap type="AppGoodsSkuData" id="AppGoodsSkuDataResult">
+        <result property="dataId"    column="data_id"    />
+        <result property="goodsId"    column="goods_id"    />
+        <result property="skuIds"    column="sku_ids"    />
+        <result property="optionIds"    column="option_ids"    />
+        <result property="dataValues"    column="data_values"    />
+        <result property="dataPrice"    column="data_price"    />
+        <result property="dataImage"    column="data_image"    />
+        <result property="dataStock"    column="data_stock"    />
+        <result property="remark"    column="remark"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppGoodsSkuDataVo">
+        select data_id, goods_id, sku_ids, option_ids, data_values, data_price, data_image, data_stock, remark, create_time, status from app_goods_sku_data
+    </sql>
+
+    <select id="selectAppGoodsSkuDataList" parameterType="AppGoodsSkuData" resultMap="AppGoodsSkuDataResult">
+        <include refid="selectAppGoodsSkuDataVo"/>
+        <where>  
+            <if test="goodsId != null "> and goods_id = #{goodsId}</if>
+            <if test="skuIds != null  and skuIds != ''"> and sku_ids = #{skuIds}</if>
+            <if test="optionIds != null  and optionIds != ''"> and option_ids = #{optionIds}</if>
+            <if test="dataValues != null  and dataValues != ''"> and data_values like concat('%', #{dataValues}, '%')</if>
+            <if test="dataStock != null "> and data_stock = #{dataStock}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppGoodsSkuDataByDataId" parameterType="Long" resultMap="AppGoodsSkuDataResult">
+        <include refid="selectAppGoodsSkuDataVo"/>
+        where data_id = #{dataId}
+    </select>
+
+    <insert id="insertAppGoodsSkuData" parameterType="AppGoodsSkuData" useGeneratedKeys="true" keyProperty="dataId">
+        insert into app_goods_sku_data
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="goodsId != null">goods_id,</if>
+            <if test="skuIds != null">sku_ids,</if>
+            <if test="optionIds != null">option_ids,</if>
+            <if test="dataValues != null">data_values,</if>
+            <if test="dataPrice != null">data_price,</if>
+            <if test="dataImage != null">data_image,</if>
+            <if test="dataStock != null">data_stock,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="skuIds != null">#{skuIds},</if>
+            <if test="optionIds != null">#{optionIds},</if>
+            <if test="dataValues != null">#{dataValues},</if>
+            <if test="dataPrice != null">#{dataPrice},</if>
+            <if test="dataImage != null">#{dataImage},</if>
+            <if test="dataStock != null">#{dataStock},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppGoodsSkuData" parameterType="AppGoodsSkuData">
+        update app_goods_sku_data
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="goodsId != null">goods_id = #{goodsId},</if>
+            <if test="skuIds != null">sku_ids = #{skuIds},</if>
+            <if test="optionIds != null">option_ids = #{optionIds},</if>
+            <if test="dataValues != null">data_values = #{dataValues},</if>
+            <if test="dataPrice != null">data_price = #{dataPrice},</if>
+            <if test="dataImage != null">data_image = #{dataImage},</if>
+            <if test="dataStock != null">data_stock = #{dataStock},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where data_id = #{dataId}
+    </update>
+
+    <delete id="deleteAppGoodsSkuDataByDataId" parameterType="Long">
+        delete from app_goods_sku_data where data_id = #{dataId}
+    </delete>
+
+    <delete id="deleteAppGoodsSkuDataByDataIds" parameterType="String">
+        delete from app_goods_sku_data where data_id in 
+        <foreach item="dataId" collection="array" open="(" separator="," close=")">
+            #{dataId}
+        </foreach>
+    </delete>
+</mapper>

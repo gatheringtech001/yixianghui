@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppUserAddressMapper">
+    
+    <resultMap type="AppUserAddress" id="AppUserAddressResult">
+        <result property="addressId"    column="address_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="regionCode"    column="region_code"    />
+        <result property="regionLabel"    column="region_label"    />
+        <result property="regionIds"    column="region_ids"    />
+        <result property="provinceCode"    column="province_code"    />
+        <result property="provinceName"    column="province_name"    />
+        <result property="cityCode"    column="city_code"    />
+        <result property="cityName"    column="city_name"    />
+        <result property="countyCode"    column="county_code"    />
+        <result property="countyName"    column="county_name"    />
+        <result property="streetName"    column="street_name"    />
+        <result property="streetCode"    column="street_code"    />
+        <result property="addressDetail"    column="address_detail"    />
+        <result property="linkPerson"    column="link_person"    />
+        <result property="linkMobile"    column="link_mobile"    />
+        <result property="postCode"    column="post_code"    />
+        <result property="isDefault"    column="is_default"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppUserAddressVo">
+        select address_id, user_id, region_code, region_label, region_ids, province_code, province_name, city_code, city_name, county_code, county_name, street_name, street_code, address_detail, link_person, link_mobile, post_code, is_default, status from app_user_address
+    </sql>
+
+    <select id="selectAppUserAddressList" parameterType="AppUserAddress" resultMap="AppUserAddressResult">
+        <include refid="selectAppUserAddressVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="regionCode != null  and regionCode != ''"> and region_code = #{regionCode}</if>
+            <if test="regionLabel != null  and regionLabel != ''"> and region_label = #{regionLabel}</if>
+            <if test="regionIds != null  and regionIds != ''"> and region_ids = #{regionIds}</if>
+            <if test="provinceCode != null  and provinceCode != ''"> and province_code = #{provinceCode}</if>
+            <if test="provinceName != null  and provinceName != ''"> and province_name like concat('%', #{provinceName}, '%')</if>
+            <if test="cityCode != null  and cityCode != ''"> and city_code = #{cityCode}</if>
+            <if test="cityName != null  and cityName != ''"> and city_name like concat('%', #{cityName}, '%')</if>
+            <if test="countyCode != null  and countyCode != ''"> and county_code = #{countyCode}</if>
+            <if test="countyName != null  and countyName != ''"> and county_name like concat('%', #{countyName}, '%')</if>
+            <if test="streetName != null  and streetName != ''"> and street_name like concat('%', #{streetName}, '%')</if>
+            <if test="streetCode != null  and streetCode != ''"> and street_code = #{streetCode}</if>
+            <if test="addressDetail != null  and addressDetail != ''"> and address_detail = #{addressDetail}</if>
+            <if test="linkPerson != null  and linkPerson != ''"> and link_person = #{linkPerson}</if>
+            <if test="linkMobile != null  and linkMobile != ''"> and link_mobile = #{linkMobile}</if>
+            <if test="postCode != null  and postCode != ''"> and post_code = #{postCode}</if>
+            <if test="isDefault != null "> and is_default = #{isDefault}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppUserAddressByAddressId" parameterType="Long" resultMap="AppUserAddressResult">
+        <include refid="selectAppUserAddressVo"/>
+        where address_id = #{addressId}
+    </select>
+
+    <insert id="insertAppUserAddress" parameterType="AppUserAddress" useGeneratedKeys="true" keyProperty="addressId">
+        insert into app_user_address
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="regionCode != null">region_code,</if>
+            <if test="regionLabel != null">region_label,</if>
+            <if test="regionIds != null">region_ids,</if>
+            <if test="provinceCode != null and provinceCode != ''">province_code,</if>
+            <if test="provinceName != null">province_name,</if>
+            <if test="cityCode != null and cityCode != ''">city_code,</if>
+            <if test="cityName != null">city_name,</if>
+            <if test="countyCode != null and countyCode != ''">county_code,</if>
+            <if test="countyName != null">county_name,</if>
+            <if test="streetName != null">street_name,</if>
+            <if test="streetCode != null">street_code,</if>
+            <if test="addressDetail != null">address_detail,</if>
+            <if test="linkPerson != null and linkPerson != ''">link_person,</if>
+            <if test="linkMobile != null and linkMobile != ''">link_mobile,</if>
+            <if test="postCode != null">post_code,</if>
+            <if test="isDefault != null">is_default,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="regionCode != null">#{regionCode},</if>
+            <if test="regionLabel != null">#{regionLabel},</if>
+            <if test="regionIds != null">#{regionIds},</if>
+            <if test="provinceCode != null and provinceCode != ''">#{provinceCode},</if>
+            <if test="provinceName != null">#{provinceName},</if>
+            <if test="cityCode != null and cityCode != ''">#{cityCode},</if>
+            <if test="cityName != null">#{cityName},</if>
+            <if test="countyCode != null and countyCode != ''">#{countyCode},</if>
+            <if test="countyName != null">#{countyName},</if>
+            <if test="streetName != null">#{streetName},</if>
+            <if test="streetCode != null">#{streetCode},</if>
+            <if test="addressDetail != null">#{addressDetail},</if>
+            <if test="linkPerson != null and linkPerson != ''">#{linkPerson},</if>
+            <if test="linkMobile != null and linkMobile != ''">#{linkMobile},</if>
+            <if test="postCode != null">#{postCode},</if>
+            <if test="isDefault != null">#{isDefault},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppUserAddress" parameterType="AppUserAddress">
+        update app_user_address
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="regionCode != null">region_code = #{regionCode},</if>
+            <if test="regionLabel != null">region_label = #{regionLabel},</if>
+            <if test="regionIds != null">region_ids = #{regionIds},</if>
+            <if test="provinceCode != null and provinceCode != ''">province_code = #{provinceCode},</if>
+            <if test="provinceName != null">province_name = #{provinceName},</if>
+            <if test="cityCode != null and cityCode != ''">city_code = #{cityCode},</if>
+            <if test="cityName != null">city_name = #{cityName},</if>
+            <if test="countyCode != null and countyCode != ''">county_code = #{countyCode},</if>
+            <if test="countyName != null">county_name = #{countyName},</if>
+            <if test="streetName != null">street_name = #{streetName},</if>
+            <if test="streetCode != null">street_code = #{streetCode},</if>
+            <if test="addressDetail != null">address_detail = #{addressDetail},</if>
+            <if test="linkPerson != null and linkPerson != ''">link_person = #{linkPerson},</if>
+            <if test="linkMobile != null and linkMobile != ''">link_mobile = #{linkMobile},</if>
+            <if test="postCode != null">post_code = #{postCode},</if>
+            <if test="isDefault != null">is_default = #{isDefault},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where address_id = #{addressId}
+    </update>
+
+    <delete id="deleteAppUserAddressByAddressId" parameterType="Long">
+        delete from app_user_address where address_id = #{addressId}
+    </delete>
+
+    <delete id="deleteAppUserAddressByAddressIds" parameterType="String">
+        delete from app_user_address where address_id in 
+        <foreach item="addressId" collection="array" open="(" separator="," close=")">
+            #{addressId}
+        </foreach>
+    </delete>
+
+    <update id="clearDefaultByUserId">
+        update app_user_address set is_default = 0
+        where user_id = #{userId} and is_default = 1
+        <if test="excludeAddressId != null">
+            and address_id != #{excludeAddressId}
+        </if>
+    </update>
+</mapper>

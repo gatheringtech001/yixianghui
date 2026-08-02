@@ -1,0 +1,85 @@
+.container {
+	padding: 24rpx;
+	background-color: #f5f6f8;
+	min-height: 100vh;
+
+	.record-list {
+		.record-card {
+			background: #fff;
+			border-radius: 16rpx;
+			padding: 28rpx 24rpx;
+			margin-bottom: 16rpx;
+			display: flex;
+			align-items: center;
+			box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+
+			.main {
+				flex: 1;
+				min-width: 0;
+
+				.title {
+					display: block;
+					font-size: 30rpx;
+					font-weight: 500;
+					color: #333;
+					line-height: 1.5;
+				}
+
+				.date,
+				.pay-no {
+					display: block;
+					font-size: 24rpx;
+					color: #bbb;
+					margin-top: 8rpx;
+				}
+			}
+
+			.side {
+				flex-shrink: 0;
+				text-align: right;
+				margin-left: 16rpx;
+
+				.amount {
+					display: block;
+					font-size: 34rpx;
+					font-weight: 700;
+					color: #333;
+				}
+
+				.status {
+					display: inline-block;
+					font-size: 22rpx;
+					margin-top: 8rpx;
+					padding: 4rpx 12rpx;
+					border-radius: 8rpx;
+
+					&.pending {
+						color: #ff8b02;
+						background: #fff3e6;
+					}
+
+					&.success {
+						color: #22aa44;
+						background: #eefbf0;
+					}
+
+					&.failed {
+						color: #fe435d;
+						background: #fff0f2;
+					}
+				}
+			}
+		}
+	}
+
+	.load-more {
+		padding: 20rpx 0 40rpx;
+	}
+
+	.empty,
+	.loading-wrap {
+		padding: 100rpx 0;
+		display: flex;
+		justify-content: center;
+	}
+}

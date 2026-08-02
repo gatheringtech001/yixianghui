@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppPayLogMapper">
+    
+    <resultMap type="AppPayLog" id="AppPayLogResult">
+        <result property="logId"    column="log_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="orderId"    column="order_id"    />
+        <result property="orderType"    column="order_type"    />
+        <result property="payNo"    column="pay_no"    />
+        <result property="payName"    column="pay_name"    />
+        <result property="payDescription"    column="pay_description"    />
+        <result property="payMoney"    column="pay_money"    />
+        <result property="payMethod"    column="pay_method"    />
+        <result property="agentName"    column="agent_name"    />
+        <result property="agentPayNo"    column="agent_pay_no"    />
+        <result property="notifyContent"    column="notify_content"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppPayLogVo">
+        select log_id, user_id, order_id, order_type, pay_no, pay_name, pay_description, pay_money, pay_method, agent_name, agent_pay_no, notify_content, create_time, update_time, status from app_pay_log
+    </sql>
+
+    <select id="selectAppPayLogList" parameterType="AppPayLog" resultMap="AppPayLogResult">
+        <include refid="selectAppPayLogVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="orderId != null "> and order_id = #{orderId}</if>
+            <if test="orderType != null  and orderType != ''"> and order_type = #{orderType}</if>
+            <if test="payNo != null  and payNo != ''"> and pay_no = #{payNo}</if>
+            <if test="payName != null  and payName != ''"> and pay_name like concat('%', #{payName}, '%')</if>
+            <if test="payDescription != null  and payDescription != ''"> and pay_description = #{payDescription}</if>
+            <if test="payMoney != null "> and pay_money = #{payMoney}</if>
+            <if test="payMethod != null  and payMethod != ''"> and pay_method = #{payMethod}</if>
+            <if test="agentName != null  and agentName != ''"> and agent_name like concat('%', #{agentName}, '%')</if>
+            <if test="agentPayNo != null  and agentPayNo != ''"> and agent_pay_no = #{agentPayNo}</if>
+            <if test="notifyContent != null  and notifyContent != ''"> and notify_content = #{notifyContent}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppPayLogByLogId" parameterType="Long" resultMap="AppPayLogResult">
+        <include refid="selectAppPayLogVo"/>
+        where log_id = #{logId}
+    </select>
+
+    <insert id="insertAppPayLog" parameterType="AppPayLog" useGeneratedKeys="true" keyProperty="logId">
+        insert into app_pay_log
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="orderId != null">order_id,</if>
+            <if test="orderType != null">order_type,</if>
+            <if test="payNo != null">pay_no,</if>
+            <if test="payName != null">pay_name,</if>
+            <if test="payDescription != null">pay_description,</if>
+            <if test="payMoney != null">pay_money,</if>
+            <if test="payMethod != null">pay_method,</if>
+            <if test="agentName != null">agent_name,</if>
+            <if test="agentPayNo != null">agent_pay_no,</if>
+            <if test="notifyContent != null">notify_content,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="status != null and status != ''">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="orderId != null">#{orderId},</if>
+            <if test="orderType != null">#{orderType},</if>
+            <if test="payNo != null">#{payNo},</if>
+            <if test="payName != null">#{payName},</if>
+            <if test="payDescription != null">#{payDescription},</if>
+            <if test="payMoney != null">#{payMoney},</if>
+            <if test="payMethod != null">#{payMethod},</if>
+            <if test="agentName != null">#{agentName},</if>
+            <if test="agentPayNo != null">#{agentPayNo},</if>
+            <if test="notifyContent != null">#{notifyContent},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="status != null and status != ''">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppPayLog" parameterType="AppPayLog">
+        update app_pay_log
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="orderId != null">order_id = #{orderId},</if>
+            <if test="orderType != null">order_type = #{orderType},</if>
+            <if test="payNo != null">pay_no = #{payNo},</if>
+            <if test="payName != null">pay_name = #{payName},</if>
+            <if test="payDescription != null">pay_description = #{payDescription},</if>
+            <if test="payMoney != null">pay_money = #{payMoney},</if>
+            <if test="payMethod != null">pay_method = #{payMethod},</if>
+            <if test="agentName != null">agent_name = #{agentName},</if>
+            <if test="agentPayNo != null">agent_pay_no = #{agentPayNo},</if>
+            <if test="notifyContent != null">notify_content = #{notifyContent},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+        </trim>
+        where log_id = #{logId}
+    </update>
+
+    <delete id="deleteAppPayLogByLogId" parameterType="Long">
+        delete from app_pay_log where log_id = #{logId}
+    </delete>
+
+    <delete id="deleteAppPayLogByLogIds" parameterType="String">
+        delete from app_pay_log where log_id in 
+        <foreach item="logId" collection="array" open="(" separator="," close=")">
+            #{logId}
+        </foreach>
+    </delete>
+
+    <select id="selectAppPayLogByAgentPayNo" parameterType="String" resultMap="AppPayLogResult">
+        <include refid="selectAppPayLogVo"/>
+        where agent_pay_no = #{agentPayNo}
+    </select>
+
+    <select id="selectAppPayLogByPayNo" parameterType="String" resultMap="AppPayLogResult">
+        <include refid="selectAppPayLogVo"/>
+        where pay_no = #{payNo}
+    </select>
+</mapper>

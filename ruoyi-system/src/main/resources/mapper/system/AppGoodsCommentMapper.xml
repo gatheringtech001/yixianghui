@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppGoodsCommentMapper">
+    
+    <resultMap type="AppGoodsComment" id="AppGoodsCommentResult">
+        <result property="commentId"    column="comment_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="goodsId"    column="goods_id"    />
+        <result property="orderId"    column="order_id"    />
+        <result property="detailId"    column="detail_id"    />
+        <result property="commentTags"    column="comment_tags"    />
+        <result property="commentContent"    column="comment_content"    />
+        <result property="commentImages"    column="comment_images"    />
+        <result property="goodsStar"    column="goods_star"    />
+        <result property="expressStar"    column="express_star"    />
+        <result property="waiterStar"    column="waiter_star"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppGoodsCommentVo">
+        select comment_id, user_id, goods_id, order_id, detail_id, comment_tags, comment_content, comment_images, goods_star, express_star, waiter_star, create_time, status from app_goods_comment
+    </sql>
+
+    <select id="selectAppGoodsCommentList" parameterType="AppGoodsComment" resultMap="AppGoodsCommentResult">
+        <include refid="selectAppGoodsCommentVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="goodsId != null "> and goods_id = #{goodsId}</if>
+            <if test="orderId != null "> and order_id = #{orderId}</if>
+            <if test="detailId != null "> and detail_id = #{detailId}</if>
+            <if test="commentTags != null  and commentTags != ''"> and comment_tags = #{commentTags}</if>
+            <if test="commentContent != null  and commentContent != ''"> and comment_content = #{commentContent}</if>
+            <if test="commentImages != null  and commentImages != ''"> and comment_images = #{commentImages}</if>
+            <if test="goodsStar != null "> and goods_star = #{goodsStar}</if>
+            <if test="expressStar != null "> and express_star = #{expressStar}</if>
+            <if test="waiterStar != null "> and waiter_star = #{waiterStar}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppGoodsCommentByCommentId" parameterType="Long" resultMap="AppGoodsCommentResult">
+        <include refid="selectAppGoodsCommentVo"/>
+        where comment_id = #{commentId}
+    </select>
+
+    <insert id="insertAppGoodsComment" parameterType="AppGoodsComment" useGeneratedKeys="true" keyProperty="commentId">
+        insert into app_goods_comment
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="goodsId != null">goods_id,</if>
+            <if test="orderId != null">order_id,</if>
+            <if test="detailId != null">detail_id,</if>
+            <if test="commentTags != null">comment_tags,</if>
+            <if test="commentContent != null">comment_content,</if>
+            <if test="commentImages != null">comment_images,</if>
+            <if test="goodsStar != null">goods_star,</if>
+            <if test="expressStar != null">express_star,</if>
+            <if test="waiterStar != null">waiter_star,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="orderId != null">#{orderId},</if>
+            <if test="detailId != null">#{detailId},</if>
+            <if test="commentTags != null">#{commentTags},</if>
+            <if test="commentContent != null">#{commentContent},</if>
+            <if test="commentImages != null">#{commentImages},</if>
+            <if test="goodsStar != null">#{goodsStar},</if>
+            <if test="expressStar != null">#{expressStar},</if>
+            <if test="waiterStar != null">#{waiterStar},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppGoodsComment" parameterType="AppGoodsComment">
+        update app_goods_comment
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="goodsId != null">goods_id = #{goodsId},</if>
+            <if test="orderId != null">order_id = #{orderId},</if>
+            <if test="detailId != null">detail_id = #{detailId},</if>
+            <if test="commentTags != null">comment_tags = #{commentTags},</if>
+            <if test="commentContent != null">comment_content = #{commentContent},</if>
+            <if test="commentImages != null">comment_images = #{commentImages},</if>
+            <if test="goodsStar != null">goods_star = #{goodsStar},</if>
+            <if test="expressStar != null">express_star = #{expressStar},</if>
+            <if test="waiterStar != null">waiter_star = #{waiterStar},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where comment_id = #{commentId}
+    </update>
+
+    <delete id="deleteAppGoodsCommentByCommentId" parameterType="Long">
+        delete from app_goods_comment where comment_id = #{commentId}
+    </delete>
+
+    <delete id="deleteAppGoodsCommentByCommentIds" parameterType="String">
+        delete from app_goods_comment where comment_id in 
+        <foreach item="commentId" collection="array" open="(" separator="," close=")">
+            #{commentId}
+        </foreach>
+    </delete>
+</mapper>

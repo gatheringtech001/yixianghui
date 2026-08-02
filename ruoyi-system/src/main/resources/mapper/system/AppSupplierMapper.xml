@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppSupplierMapper">
+    
+    <resultMap type="AppSupplier" id="AppSupplierResult">
+        <result property="supplierId"    column="supplier_id"    />
+        <result property="supplierName"    column="supplier_name"    />
+        <result property="supplierCode"    column="supplier_code"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppSupplierVo">
+        select supplier_id, supplier_name, supplier_code, status from app_supplier
+    </sql>
+
+    <select id="selectAppSupplierList" parameterType="AppSupplier" resultMap="AppSupplierResult">
+        <include refid="selectAppSupplierVo"/>
+        <where>  
+            <if test="supplierName != null  and supplierName != ''"> and supplier_name like concat('%', #{supplierName}, '%')</if>
+            <if test="supplierCode != null  and supplierCode != ''"> and supplier_code = #{supplierCode}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppSupplierBySupplierId" parameterType="Long" resultMap="AppSupplierResult">
+        <include refid="selectAppSupplierVo"/>
+        where supplier_id = #{supplierId}
+    </select>
+
+    <insert id="insertAppSupplier" parameterType="AppSupplier" useGeneratedKeys="true" keyProperty="supplierId">
+        insert into app_supplier
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="supplierName != null">supplier_name,</if>
+            <if test="supplierCode != null">supplier_code,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="supplierName != null">#{supplierName},</if>
+            <if test="supplierCode != null">#{supplierCode},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppSupplier" parameterType="AppSupplier">
+        update app_supplier
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="supplierName != null">supplier_name = #{supplierName},</if>
+            <if test="supplierCode != null">supplier_code = #{supplierCode},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where supplier_id = #{supplierId}
+    </update>
+
+    <delete id="deleteAppSupplierBySupplierId" parameterType="Long">
+        delete from app_supplier where supplier_id = #{supplierId}
+    </delete>
+
+    <delete id="deleteAppSupplierBySupplierIds" parameterType="String">
+        delete from app_supplier where supplier_id in 
+        <foreach item="supplierId" collection="array" open="(" separator="," close=")">
+            #{supplierId}
+        </foreach>
+    </delete>
+</mapper>

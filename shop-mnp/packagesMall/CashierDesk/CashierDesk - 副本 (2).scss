@@ -1,0 +1,217 @@
+.page {
+	background-color: #f5f5f5;
+	padding: 20rpx;
+}
+
+.order-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 20rpx 0;
+	border-bottom: 1rpx solid #ddd;
+	.order-no {
+		font-size: 32rpx;
+		font-weight: bold;
+	}
+	.back-btn {
+		font-size: 32rpx;
+	}
+}
+
+.property-info {
+	margin: 20rpx 0;
+	background: white;
+	border-radius: 10rpx;
+	overflow: hidden;
+	box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.1);
+
+	.info-title {
+		padding: 20rpx;
+		border-bottom: 1rpx solid #eee;
+		.title-icon {
+			color: #007AFF;
+			font-size: 24rpx;
+			margin-right: 8rpx;
+		}
+		.title-text {
+			font-size: 32rpx;
+			font-weight: bold;
+			color: #333;
+		}
+	}
+
+	.property-content {
+		display: flex;
+		padding: 20rpx;
+		.property-img {
+			width: 120rpx;
+			height: 90rpx;
+			object-fit: cover;
+			border-radius: 8rpx;
+		}
+		.property-detail {
+			flex: 1;
+			margin-left: 20rpx;
+			.property-name {
+				font-size: 28rpx;
+				color: #333;
+				line-height: 1.4;
+			}
+			.property-desc {
+				font-size: 24rpx;
+				color: #666;
+				line-height: 1.5;
+				margin-top: 8rpx;
+			}
+			.room-type {
+				font-size: 24rpx;
+				color: #999;
+				margin-top: 8rpx;
+			}
+		}
+	}
+}
+
+.booking-info {
+	margin: 20rpx 0;
+	background: white;
+	border-radius: 10rpx;
+	overflow: hidden;
+	box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.1);
+
+	.info-title {
+		padding: 20rpx;
+		border-bottom: 1rpx solid #eee;
+		.title-icon {
+			color: #007AFF;
+			font-size: 24rpx;
+			margin-right: 8rpx;
+		}
+		.title-text {
+			font-size: 32rpx;
+			font-weight: bold;
+			color: #333;
+		}
+	}
+
+	.booking-content {
+		padding: 20rpx;
+		.date-info {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 20rpx;
+			.date-label {
+				font-size: 24rpx;
+				color: #999;
+			}
+			.date-value {
+				font-size: 28rpx;
+				color: #333;
+				font-weight: bold;
+			}
+			.duration {
+				background: #007AFF;
+				color: white;
+				padding: 4rpx 16rpx;
+				border-radius: 16rpx;
+				font-size: 24rpx;
+			}
+		}
+
+		.contact-info {
+			display: flex;
+			margin-bottom: 20rpx;
+			.contact-name {
+				font-size: 24rpx;
+				color: #333;
+				margin-right: 16rpx;
+			}
+			.contact-phone {
+				font-size: 24rpx;
+				color: #333;
+			}
+		}
+
+		.booking-details {
+			font-size: 24rpx;
+			color: #333;
+			line-height: 1.5;
+			margin: 16rpx 0;
+			padding: 8rpx 0;
+			background: #f8f8f8;
+			border-radius: 8rpx;
+		}
+
+		.booking-time {
+			font-size: 24rpx;
+			color: #999;
+		}
+	}
+}
+
+.amount-info {
+	margin: 20rpx 0;
+	background: white;
+	border-radius: 10rpx;
+	overflow: hidden;
+	box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.1);
+
+	.info-title {
+		padding: 20rpx;
+		border-bottom: 1rpx solid #eee;
+		.title-icon {
+			color: #007AFF;
+			font-size: 24rpx;
+			margin-right: 8rpx;
+		}
+		.title-text {
+			font-size: 32rpx;
+			font-weight: bold;
+			color: #333;
+		}
+	}
+
+	.amount-content {
+		padding: 20rpx;
+		.amount-item {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 16rpx;
+			.amount-label {
+				font-size: 24rpx;
+				color: #999;
+			}
+			.amount-value {
+				font-size: 28rpx;
+				color: #333;
+				font-weight: bold;
+			}
+		}
+	}
+}
+
+.payment-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 20rpx;
+	.count-down {
+		font-size: 24rpx;
+		color: #333;
+		.time {
+			color: #FF3B30;
+			font-weight: bold;
+		}
+	}
+	.pay-btn {
+		width: 180rpx;
+		height: 60rpx;
+		background: #FF3B30;
+		color: white;
+		font-size: 28rpx;
+		border-radius: 30rpx;
+		border: none;
+	}
+}

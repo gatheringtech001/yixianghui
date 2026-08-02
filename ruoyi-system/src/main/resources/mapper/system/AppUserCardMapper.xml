@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppUserCardMapper">
+    
+    <resultMap type="AppUserCard" id="AppUserCardResult">
+        <result property="recordId"    column="record_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="cardId"    column="card_id"    />
+        <result property="activeType"    column="active_type"    />
+        <result property="enableStartTime"    column="enable_start_time"    />
+        <result property="enableEndTime"    column="enable_end_time"    />
+        <result property="enableDayCount"    column="enable_day_count"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="activeCode"    column="active_code"    />
+        <result property="activeTime"    column="active_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppUserCardVo">
+        select record_id, user_id, card_id, active_type, enable_start_time, enable_end_time, enable_day_count, create_time, update_time, active_code, active_time, status from app_user_card
+    </sql>
+
+    <select id="selectAppUserCardList" parameterType="AppUserCard" resultMap="AppUserCardResult">
+        <include refid="selectAppUserCardVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="cardId != null "> and card_id = #{cardId}</if>
+            <if test="activeType != null  and activeType != ''"> and active_type = #{activeType}</if>
+            <if test="enableStartTime != null "> and enable_start_time = #{enableStartTime}</if>
+            <if test="enableEndTime != null "> and enable_end_time = #{enableEndTime}</if>
+            <if test="enableDayCount != null "> and enable_day_count = #{enableDayCount}</if>
+            <if test="activeCode != null  and activeCode != ''"> and active_code = #{activeCode}</if>
+            <if test="activeTime != null "> and active_time = #{activeTime}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="params != null and params.expireBefore != null"> and create_time &lt;= #{params.expireBefore}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppUserCardByRecordId" parameterType="Long" resultMap="AppUserCardResult">
+        <include refid="selectAppUserCardVo"/>
+        where record_id = #{recordId}
+    </select>
+    <select id="selectAppUserCardByUserId" parameterType="Long" resultMap="AppUserCardResult">
+        <include refid="selectAppUserCardVo"/>
+        where user_id = #{userId}
+        order by record_id desc
+        limit 1
+    </select>
+
+    <insert id="insertAppUserCard" parameterType="AppUserCard" useGeneratedKeys="true" keyProperty="recordId">
+        insert into app_user_card
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="cardId != null">card_id,</if>
+            <if test="activeType != null">active_type,</if>
+            <if test="enableStartTime != null">enable_start_time,</if>
+            <if test="enableEndTime != null">enable_end_time,</if>
+            <if test="enableDayCount != null">enable_day_count,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="activeCode != null">active_code,</if>
+            <if test="activeTime != null">active_time,</if>
+            <if test="status != null and status != ''">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="cardId != null">#{cardId},</if>
+            <if test="activeType != null">#{activeType},</if>
+            <if test="enableStartTime != null">#{enableStartTime},</if>
+            <if test="enableEndTime != null">#{enableEndTime},</if>
+            <if test="enableDayCount != null">#{enableDayCount},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="activeCode != null">#{activeCode},</if>
+            <if test="activeTime != null">#{activeTime},</if>
+            <if test="status != null and status != ''">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppUserCard" parameterType="AppUserCard">
+        update app_user_card
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="cardId != null">card_id = #{cardId},</if>
+            <if test="activeType != null">active_type = #{activeType},</if>
+            <if test="enableStartTime != null">enable_start_time = #{enableStartTime},</if>
+            <if test="enableEndTime != null">enable_end_time = #{enableEndTime},</if>
+            <if test="enableDayCount != null">enable_day_count = #{enableDayCount},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="activeCode != null">active_code = #{activeCode},</if>
+            <if test="activeTime != null">active_time = #{activeTime},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+        </trim>
+        where record_id = #{recordId}
+    </update>
+
+    <delete id="deleteAppUserCardByRecordId" parameterType="Long">
+        delete from app_user_card where record_id = #{recordId}
+    </delete>
+
+    <delete id="deleteAppUserCardByRecordIds" parameterType="String">
+        delete from app_user_card where record_id in 
+        <foreach item="recordId" collection="array" open="(" separator="," close=")">
+            #{recordId}
+        </foreach>
+    </delete>
+</mapper>

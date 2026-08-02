@@ -1,0 +1,99 @@
+.calendar-container {
+  height: 750rpx;
+  border: 1px solid #ddd;
+
+  .month-header {
+	display: flex;
+    font-size: 36rpx;
+    font-weight: bold;
+    padding: 20rpx 0;
+    text-align: center;
+    background-color: #f8f9fa;
+  }
+
+  .weekdays {
+    display: flex;
+    justify-content: space-between;
+    font-size: 36rpx;
+    padding: 10px 0;
+    background-color: #f5f5f5;
+    text:nth-child(6), text:nth-child(7) {
+      color: red;
+    }
+  }
+
+  .days {
+    display: flex;
+    flex-wrap: wrap;
+    min-height: 700rpx; // 确保足够高以容纳6行日期
+    overflow: hidden;
+  }
+
+  .day-item {
+    width: 14.28%; // 7列
+    min-height: 50rpx; // 增加高度以容纳更多信息
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+
+  .day-number {
+    font-size: 28rpx;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .today-text {
+    position: absolute;
+    top: -20rpx;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20rpx;
+    color: #666;
+  }
+
+  .price-text {
+    font-size: 24rpx;
+    color: #999;
+    margin-top: 4rpx;
+  }
+
+  .bottom-actions {
+    display: flex;
+    justify-content: space-between;
+    padding: 20rpx 30rpx;
+    margin-top: 28rpx;
+    border-top: 1px solid #eee;
+  }
+
+  .confirm-btn {
+    background-color: #f56c6c;
+    color: white;
+    border-radius: 8rpx;
+    font-size: 28rpx;
+    min-width: 200rpx;
+  }
+
+  .clear-btn {
+    background-color: #fff;
+    border: 1px solid #f56c6c;
+    color: #f56c6c;
+    border-radius: 8rpx;
+    font-size: 28rpx;
+  }
+}
+.weekdays text:nth-child(6), .weekdays text:nth-child(7) {
+  color: red;
+}
+
+.day-item:nth-child(6n+6), .day-item:nth-child(6n+7) {
+  color: red;
+}
+// 为 swiper-item 设置固定高度
+.calendar-container swiper-item {
+  height: 800rpx; // 根据实际需要调整
+}

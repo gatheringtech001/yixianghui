@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppAttachmentsMapper">
+    
+    <resultMap type="AppAttachments" id="AppAttachmentsResult">
+        <result property="attachmentId"    column="attachment_id"    />
+        <result property="filePath"    column="file_path"    />
+        <result property="bussId"    column="buss_id"    />
+        <result property="bussType"    column="buss_type"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="attStatus"    column="att_status"    />
+    </resultMap>
+
+    <sql id="selectAppAttachmentsVo">
+        select attachment_id, file_path, buss_id, buss_type, create_time, update_time, att_status from app_attachments
+    </sql>
+
+    <select id="selectAppAttachmentsList" parameterType="AppAttachments" resultMap="AppAttachmentsResult">
+        <include refid="selectAppAttachmentsVo"/>
+        <where>  
+            <if test="filePath != null  and filePath != ''"> and file_path = #{filePath}</if>
+            <if test="bussId != null "> and buss_id = #{bussId}</if>
+            <if test="bussType != null  and bussType != ''"> and buss_type = #{bussType}</if>
+            <if test="attStatus != null  and attStatus != ''"> and att_status = #{attStatus}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppAttachmentsByAttachmentId" parameterType="Long" resultMap="AppAttachmentsResult">
+        <include refid="selectAppAttachmentsVo"/>
+        where attachment_id = #{attachmentId}
+    </select>
+
+    <insert id="insertAppAttachments" parameterType="AppAttachments" useGeneratedKeys="true" keyProperty="attachmentId">
+        insert into app_attachments
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="filePath != null">file_path,</if>
+            <if test="bussId != null">buss_id,</if>
+            <if test="bussType != null">buss_type,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="attStatus != null">att_status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="filePath != null">#{filePath},</if>
+            <if test="bussId != null">#{bussId},</if>
+            <if test="bussType != null">#{bussType},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="attStatus != null">#{attStatus},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppAttachments" parameterType="AppAttachments">
+        update app_attachments
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="filePath != null">file_path = #{filePath},</if>
+            <if test="bussId != null">buss_id = #{bussId},</if>
+            <if test="bussType != null">buss_type = #{bussType},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="attStatus != null">att_status = #{attStatus},</if>
+        </trim>
+        where attachment_id = #{attachmentId}
+    </update>
+
+    <delete id="deleteAppAttachmentsByAttachmentId" parameterType="Long">
+        delete from app_attachments where attachment_id = #{attachmentId}
+    </delete>
+
+    <delete id="deleteAppAttachmentsByAttachmentIds" parameterType="String">
+        delete from app_attachments where attachment_id in 
+        <foreach item="attachmentId" collection="array" open="(" separator="," close=")">
+            #{attachmentId}
+        </foreach>
+    </delete>
+</mapper>

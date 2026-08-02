@@ -1,0 +1,162 @@
+$accent: #701018;
+$muted: #777777;
+$line: #e8e1d8;
+$paper: #ffffff;
+$soft: #f7f7f5;
+$ink: #111111;
+
+.page{
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background-color: $soft;
+	padding: 24rpx 28rpx;
+	box-sizing: border-box;
+}
+
+/* 商品 */
+.goods-data{
+	width: 100%;
+	background-color: $paper;
+	border: 1rpx solid $line;
+	border-radius: 20rpx;
+	margin: 0 auto 20rpx;
+	box-sizing: border-box;
+	.goods-list{
+		padding: 0 28rpx;
+		.list{
+			display: flex;
+			align-items: center;
+			width: 100%;
+			height: 200rpx;
+			.thumb{
+				display: flex;
+				align-items: center;
+				width: 30%;
+				height: 100%;
+				image{
+					width: 160rpx;
+					height: 160rpx;
+					border-radius: 12rpx;
+					background: #eee9e1;
+				}
+			}
+			.item{
+				width: 70%;
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				.title{
+					display: flex;
+					align-items: center;
+					width: 100%;
+					margin-bottom: 12rpx;
+					text{
+						font-size: 28rpx;
+						font-weight: 600;
+						color: $ink;
+					}
+				}
+				.num-size{
+					display: flex;
+					align-items: center;
+					margin-bottom: 10rpx;
+					text{
+						font-size: 24rpx;
+						color: $muted;
+					}
+				}
+				.price{
+					display: flex;
+					align-items: center;
+					text{
+						font-size: 28rpx;
+						font-weight: 700;
+						color: $accent;
+					}
+				}
+			}
+		}
+	}
+}
+
+/* 售后类型选择 */
+.type-select{
+	width: 100%;
+	margin: 0 auto 20rpx;
+	background-color: $paper;
+	border: 1rpx solid $line;
+	border-radius: 20rpx;
+	overflow: hidden;
+	box-sizing: border-box;
+	.type-list{
+		padding: 0 28rpx;
+		.list{
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			width: 100%;
+			height: 108rpx;
+			border-bottom: 1rpx solid $line;
+			&:last-child{
+				border-bottom: none;
+			}
+			.title{
+				display: flex;
+				align-items: center;
+				image{
+					width: 40rpx;
+					height: 40rpx;
+				}
+				text{
+					font-size: 30rpx;
+					font-weight: 700;
+					color: $ink;
+					margin-left: 20rpx;
+				}
+			}
+			.content{
+				display: flex;
+				align-items: center;
+				text{
+					font-size: 26rpx;
+					color: $muted;
+					margin-left: 10rpx;
+				}
+				.iconfont{
+					color: $muted;
+				}
+			}
+		}
+	}
+}
+
+/* 联系客服 */
+.contact-service{
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100rpx;
+	background-color: $paper;
+	margin: 0 auto;
+	border: 1rpx solid $line;
+	border-radius: 20rpx;
+	box-sizing: border-box;
+	.btn{
+		display: flex;
+		align-items: center;
+		text{
+			font-size: 30rpx;
+			font-weight: 700;
+			color: $accent;
+		}
+		.iconfont{
+			margin-right: 16rpx;
+			color: $accent;
+		}
+	}
+}

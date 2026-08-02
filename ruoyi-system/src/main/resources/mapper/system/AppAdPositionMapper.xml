@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppAdPositionMapper">
+    
+    <resultMap type="AppAdPosition" id="AppAdPositionResult">
+        <result property="positionId"    column="position_id"    />
+        <result property="positionName"    column="position_name"    />
+        <result property="positionCode"    column="position_code"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <resultMap id="AppAdPositionAppAdContentResult" type="AppAdPosition" extends="AppAdPositionResult">
+        <collection property="appAdContentList" ofType="AppAdContent" column="position_id" select="selectAppAdContentList" />
+    </resultMap>
+
+    <resultMap type="AppAdContent" id="AppAdContentResult">
+        <result property="contentId"    column="content_id"    />
+        <result property="positionId"    column="position_id"    />
+        <result property="adName"    column="ad_name"    />
+        <result property="description"    column="description"    />
+        <result property="adImage"    column="ad_image"    />
+        <result property="adContent"    column="ad_content"    />
+        <result property="startTime"    column="start_time"    />
+        <result property="endTime"    column="end_time"    />
+        <result property="linkUrl"    column="link_url"    />
+        <result property="orderNum"    column="order_num"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppAdPositionVo">
+        select position_id, position_name, position_code, create_time, status from app_ad_position
+    </sql>
+
+    <select id="selectAppAdPositionList" parameterType="AppAdPosition" resultMap="AppAdPositionResult">
+        <include refid="selectAppAdPositionVo"/>
+        <where>  
+            <if test="positionId != null"> and position_id = #{positionId}</if>
+            <if test="positionName != null  and positionName != ''"> and position_name like concat('%', #{positionName}, '%')</if>
+            <if test="positionCode != null  and positionCode != ''"> and position_code = #{positionCode}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppAdPositionByPositionId" parameterType="Long" resultMap="AppAdPositionAppAdContentResult">
+        select position_id, position_name, position_code, create_time, status
+        from app_ad_position
+        where position_id = #{positionId}
+    </select>
+
+    <select id="selectAppAdContentList" resultMap="AppAdContentResult">
+        select content_id, position_id, ad_name, description, ad_image, ad_content, start_time, end_time, link_url, order_num, status
+        from app_ad_content
+        where position_id = #{position_id}
+    </select>
+
+    <insert id="insertAppAdPosition" parameterType="AppAdPosition" useGeneratedKeys="true" keyProperty="positionId">
+        insert into app_ad_position
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="positionName != null and positionName != ''">position_name,</if>
+            <if test="positionCode != null">position_code,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="status != null and status != ''">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="positionName != null and positionName != ''">#{positionName},</if>
+            <if test="positionCode != null">#{positionCode},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="status != null and status != ''">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppAdPosition" parameterType="AppAdPosition">
+        update app_ad_position
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="positionName != null and positionName != ''">position_name = #{positionName},</if>
+            <if test="positionCode != null">position_code = #{positionCode},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+        </trim>
+        where position_id = #{positionId}
+    </update>
+
+    <delete id="deleteAppAdPositionByPositionId" parameterType="Long">
+        delete from app_ad_position where position_id = #{positionId}
+    </delete>
+
+    <delete id="deleteAppAdPositionByPositionIds" parameterType="String">
+        delete from app_ad_position where position_id in 
+        <foreach item="positionId" collection="array" open="(" separator="," close=")">
+            #{positionId}
+        </foreach>
+    </delete>
+    
+    <delete id="deleteAppAdContentByPositionIds" parameterType="String">
+        delete from app_ad_content where position_id in 
+        <foreach item="positionId" collection="array" open="(" separator="," close=")">
+            #{positionId}
+        </foreach>
+    </delete>
+
+    <delete id="deleteAppAdContentByPositionId" parameterType="Long">
+        delete from app_ad_content where position_id = #{positionId}
+    </delete>
+
+    <insert id="batchAppAdContent">
+        insert into app_ad_content( content_id, position_id, ad_name, description, ad_image, ad_content, start_time, end_time, link_url, order_num, status) values
+        <foreach item="item" index="index" collection="list" separator=",">
+            ( #{item.contentId}, #{item.positionId}, #{item.adName}, #{item.description}, #{item.adImage}, #{item.adContent}, #{item.startTime}, #{item.endTime}, #{item.linkUrl}, #{item.orderNum}, #{item.status})
+        </foreach>
+    </insert>
+</mapper>

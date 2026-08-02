@@ -1,0 +1,83 @@
+.container {
+	min-height: 100vh;
+	padding: 24rpx;
+	background-color: #f5f6f8;
+
+	.page-header {
+		padding: 8rpx 8rpx 20rpx;
+
+		.header-title {
+			font-size: 28rpx;
+			color: #666;
+		}
+	}
+
+	.customer-list {
+		.customer-card {
+			background-color: #fff;
+			padding: 28rpx 24rpx;
+			margin-bottom: 20rpx;
+			border-radius: 16rpx;
+			box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+			display: flex;
+			align-items: center;
+
+			.info {
+				flex: 1;
+				margin-left: 24rpx;
+				min-width: 0;
+
+				text {
+					display: block;
+				}
+
+				.customer-name {
+					font-size: 32rpx;
+					font-weight: 600;
+					color: #333;
+					line-height: 1.5;
+				}
+
+				.customer-phone {
+					font-size: 26rpx;
+					color: #888;
+					margin-top: 4rpx;
+					line-height: 1.5;
+				}
+
+				.customer-time {
+					font-size: 22rpx;
+					color: #bbb;
+					margin-top: 4rpx;
+				}
+			}
+
+			.status {
+				flex-shrink: 0;
+
+				.status-tag {
+					display: inline-block;
+					padding: 6rpx 16rpx;
+					border-radius: 20rpx;
+					font-size: 22rpx;
+
+					&.joined {
+						background: #fff3e6;
+						color: #ff8b02;
+					}
+				}
+			}
+		}
+	}
+
+	.load-more {
+		padding: 20rpx 0 40rpx;
+	}
+
+	.empty,
+	.loading-wrap {
+		padding: 120rpx 0;
+		display: flex;
+		justify-content: center;
+	}
+}

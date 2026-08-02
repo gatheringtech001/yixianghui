@@ -1,0 +1,343 @@
+$accent: #701018;
+$muted: #777777;
+$line: #e8e1d8;
+$paper: #ffffff;
+$soft: #f7f7f5;
+$ink: #111111;
+
+.page{
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background-color: $soft;
+}
+
+/* 订单tab */
+.order-tab{
+	position: fixed;
+	left: 0;
+	top: 0;
+	/* #ifdef H5 */
+	top: 88rpx;
+	/* #endif */
+	z-index: 10;
+	display: flex;
+	align-items: center;
+	width: 100%;
+	height: 100rpx;
+	background-color: $paper;
+	border-bottom: 1rpx solid $line;
+	.tab{
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 25%;
+		height: 80%;
+		text{
+			font-size: 26rpx;
+			color: $muted;
+		}
+	}
+	.action{
+		text{
+			color: $accent;
+			font-weight: 700;
+		}
+		.line{
+			position: absolute;
+			left: 50%;
+			bottom: 0;
+			width: 60rpx;
+			height: 6rpx;
+			background: $accent;
+			border-radius: 6rpx;
+			transform: translate(-50%,0);
+		}
+	}
+}
+
+/* 售后申请 */
+.order-search{
+	display: flex;
+	align-items: center;
+	padding: 0 28rpx;
+	height: 80rpx;
+	background-color: $paper;
+	margin-top: 100rpx;
+	border-bottom: 1rpx solid $line;
+	.search{
+		display: flex;
+		align-items: center;
+		width: 90%;
+		height: 60rpx;
+		background-color: $soft;
+		border: 1rpx solid $line;
+		border-radius: 70rpx;
+		padding: 0 20rpx;
+		box-sizing: border-box;
+		text{
+			font-size: 32rpx;
+			color: $muted;
+		}
+		input{
+			width: 90%;
+			height: 100%;
+			font-size: 26rpx;
+			color: $ink;
+			margin-left: 3%;
+		}
+	}
+	.filtrate{
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		width: 10%;
+		height: 100%;
+		text{
+			font-size: 26rpx;
+			color: $muted;
+		}
+	}
+}
+
+/* 订单列表 */
+.order-list{
+	width: 100%;
+	padding: 20rpx 28rpx;
+	box-sizing: border-box;
+	.list{
+		padding: 24rpx 28rpx;
+		background-color: $paper;
+		border: 1rpx solid $line;
+		border-radius: 20rpx;
+		margin-bottom: 20rpx;
+		box-sizing: border-box;
+		.order-number{
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			width: 100%;
+			height: 60rpx;
+			.number{
+				display: flex;
+				align-items: center;
+				text{
+					font-size: 26rpx;
+					color: $muted;
+				}
+			}
+			.type{
+				display: flex;
+				align-items: center;
+				image{
+					width: 34rpx;
+					height: 34rpx;
+				}
+				text{
+					font-size: 26rpx;
+					font-weight: 700;
+					color: $ink;
+					margin-left: 10rpx;
+				}
+			}
+		}
+		.goods-list{
+			width: 100%;
+			height: 200rpx;
+			.list{
+				display: flex;
+				align-items: center;
+				width: 100%;
+				height: 200rpx;
+				padding: 0;
+				margin: 0;
+				border: none;
+				border-radius: 0;
+				.thumb{
+					display: flex;
+					align-items: center;
+					width: 30%;
+					height: 100%;
+					image{
+						width: 160rpx;
+						height: 160rpx;
+						border-radius: 12rpx;
+						background: #eee9e1;
+					}
+				}
+				.item{
+					width: 70%;
+					height: 100%;
+					.title{
+						display: flex;
+						align-items: center;
+						width: 100%;
+						height: 120rpx;
+						text{
+							color: $ink;
+							font-size: 26rpx;
+						}
+					}
+					.num{
+						display: flex;
+						width: 100%;
+						text{
+							color: $muted;
+							font-size: 26rpx;
+						}
+					}
+				}
+			}
+		}
+		.order-status{
+			display: flex;
+			align-items: center;
+			padding: 0 24rpx;
+			height: 100rpx;
+			background-color: $soft;
+			border: 1rpx solid $line;
+			border-radius: 16rpx;
+			text{
+				font-size: 28rpx;
+				color: $muted;
+			}
+			text:nth-child(1){
+				color: $accent;
+				font-weight: 700;
+				margin-right: 20rpx;
+			}
+		}
+		.order-btn{
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			width: 100%;
+			height: 100rpx;
+			background-color: $paper;
+			text{
+				padding: 12rpx 36rpx;
+				font-size: 26rpx;
+				color: $muted;
+				border: 1rpx solid $line;
+				border-radius: 100rpx;
+			}
+			.action{
+				border: 1rpx solid $accent;
+				background: $accent;
+				color: #FFFFFF;
+			}
+		}
+	}
+}
+
+/* 联系客服 */
+.contact-service{
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: calc(100% - 56rpx);
+	height: 100rpx;
+	background-color: $paper;
+	margin: 0 28rpx 28rpx;
+	border: 1rpx solid $line;
+	border-radius: 20rpx;
+	box-sizing: border-box;
+	.btn{
+		display: flex;
+		align-items: center;
+		text{
+			font-size: 30rpx;
+			font-weight: 700;
+			color: $accent;
+		}
+		.iconfont{
+			margin-right: 16rpx;
+			color: $accent;
+		}
+	}
+}
+
+/* 筛选弹窗 */
+.filtrate-win{
+	.cu-dialog{
+		top:0;
+		height:calc(100vh);
+		flex-basis: 90% !important;
+		background-color: $paper;
+		// 下单时间
+		.order-time{
+			padding: 0 28rpx;
+			.title{
+				display: flex;
+				align-items: center;
+				width: 100%;
+				height: 100rpx;
+				text{
+					font-size: 28rpx;
+					color: $ink;
+				}
+			}
+			.time-list{
+				display: flex;
+				flex-wrap: wrap;
+				justify-content: space-between;
+				width: 100%;
+				.list{
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					width: 48%;
+					height: 60rpx;
+					background-color: $soft;
+					border: 1rpx solid $line;
+					border-radius: 60rpx;
+					margin-bottom: 20rpx;
+					text{
+						font-size: 26rpx;
+						color: $ink;
+					}
+				}
+				.action{
+					background-color: rgba(112, 16, 24, 0.08);
+					border: 1rpx solid $accent;
+					text{
+						color: $accent;
+						font-weight: 600;
+					}
+				}
+			}
+		}
+		// 按钮
+		.footer-btn{
+			position: absolute;
+			left: 0;
+			bottom: 0;
+			display: flex;
+			align-items: center;
+			width: 100%;
+			height: 100rpx;
+			border-top: 1rpx solid $line;
+			.btn{
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				width: 50%;
+				height: 100%;
+				text{
+					font-size: 28rpx;
+					color: $muted;
+				}
+			}
+			.action{
+				background: $accent;
+				text{
+					color: #FFFFFF;
+					font-weight: 600;
+				}
+			}
+		}
+	}
+}

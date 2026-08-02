@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppConsultantMapper">
+    
+    <resultMap type="AppConsultant" id="AppConsultantResult">
+        <result property="consultantId"    column="consultant_id"    />
+        <result property="consultantNo"    column="consultant_no"    />
+        <result property="deptId"    column="dept_id"    />
+        <result property="consultantName"    column="consultant_name"    />
+        <result property="mobile"    column="mobile"    />
+        <result property="idcard"    column="idcard"    />
+        <result property="remark"    column="remark"    />
+        <result property="status"    column="status"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="userId"    column="user_id"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectAppConsultantVo">
+        select consultant_id, consultant_no, dept_id, consultant_name, mobile, idcard, remark, status, create_time, user_id, update_time from app_consultant
+    </sql>
+
+    <select id="selectAppConsultantList" parameterType="AppConsultant" resultMap="AppConsultantResult">
+        <include refid="selectAppConsultantVo"/>
+        <where>  
+            <if test="consultantNo != null  and consultantNo != ''"> and consultant_no = #{consultantNo}</if>
+            <if test="deptId != null "> and dept_id = #{deptId}</if>
+            <if test="consultantName != null  and consultantName != ''"> and consultant_name like concat('%', #{consultantName}, '%')</if>
+            <if test="mobile != null  and mobile != ''"> and mobile = #{mobile}</if>
+            <if test="idcard != null  and idcard != ''"> and idcard = #{idcard}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="userId != null "> and user_id = #{userId}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppConsultantByConsultantId" parameterType="Long" resultMap="AppConsultantResult">
+        <include refid="selectAppConsultantVo"/>
+        where consultant_id = #{consultantId}
+    </select>
+    <select id="selectAppConsultantByUserId" parameterType="Long" resultMap="AppConsultantResult">
+        <include refid="selectAppConsultantVo"/>
+        where user_id = #{userId}
+    </select>
+    <select id="selectAppConsultantByConsultantName" parameterType="String" resultMap="AppConsultantResult">
+        <include refid="selectAppConsultantVo"/>
+        where consultant_name = #{consultantName}
+    </select>
+    <select id="selectConsultantByConsultantNo" parameterType="String" resultMap="AppConsultantResult">
+        <include refid="selectAppConsultantVo"/>
+        where consultant_no = #{consultantNo}
+    </select>
+
+    <select id="selectUnclaimedConsultantByMobile" resultMap="AppConsultantResult">
+        <include refid="selectAppConsultantVo"/>
+        where mobile = #{mobile}
+          and user_id is null
+          and (status is null or status != '02')
+        <if test="approvedOnly">
+          and status = '01'
+        </if>
+        order by consultant_id asc
+        limit 1
+    </select>
+
+    <insert id="insertAppConsultant" parameterType="AppConsultant" useGeneratedKeys="true" keyProperty="consultantId">
+        insert into app_consultant
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="consultantNo != null">consultant_no,</if>
+            <if test="deptId != null">dept_id,</if>
+            <if test="consultantName != null">consultant_name,</if>
+            <if test="mobile != null">mobile,</if>
+            <if test="idcard != null">idcard,</if>
+            <if test="remark != null">remark,</if>
+            <if test="status != null">status,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="consultantNo != null">#{consultantNo},</if>
+            <if test="deptId != null">#{deptId},</if>
+            <if test="consultantName != null">#{consultantName},</if>
+            <if test="mobile != null">#{mobile},</if>
+            <if test="idcard != null">#{idcard},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="clearConsultantUserId">
+        update app_consultant
+        set user_id = null,
+            update_time = #{updateTime}
+        where consultant_id = #{consultantId}
+    </update>
+
+    <update id="updateAppConsultant" parameterType="AppConsultant">
+        update app_consultant
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="consultantNo != null">consultant_no = #{consultantNo},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="consultantName != null">consultant_name = #{consultantName},</if>
+            <if test="mobile != null">mobile = #{mobile},</if>
+            <if test="idcard != null">idcard = #{idcard},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where consultant_id = #{consultantId}
+    </update>
+
+    <delete id="deleteAppConsultantByConsultantId" parameterType="Long">
+        delete from app_consultant where consultant_id = #{consultantId}
+    </delete>
+
+    <delete id="deleteAppConsultantByConsultantIds" parameterType="String">
+        delete from app_consultant where consultant_id in 
+        <foreach item="consultantId" collection="array" open="(" separator="," close=")">
+            #{consultantId}
+        </foreach>
+    </delete>
+</mapper>

@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppGoodsOrderMapper">
+    
+    <resultMap type="AppGoodsOrder" id="AppGoodsOrderResult">
+        <result property="orderId"    column="order_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="goodsId"    column="goods_id"    />
+        <result property="deptId"    column="dept_id"    />
+        <result property="addressId"    column="address_id"    />
+        <result property="orderNo"    column="order_no"    />
+        <result property="moneyTotal"    column="money_total"    />
+        <result property="moneyDiscount"    column="money_discount"    />
+        <result property="moneyPayable"    column="money_payable"    />
+        <result property="moneyExpress"    column="money_express"    />
+        <result property="payStatus"    column="pay_status"    />
+        <result property="payMoney"    column="pay_money"    />
+        <result property="payType"    column="pay_type"    />
+        <result property="payTime"    column="pay_time"    />
+        <result property="goodsCount"    column="goods_count"    />
+        <result property="couponGotIds"    column="coupon_got_ids"    />
+        <result property="remark"    column="remark"    />
+        <result property="sendTime"    column="send_time"    />
+        <result property="sendExpressName"    column="send_express_name"    />
+        <result property="sendExpressSimple"    column="send_express_simple"    />
+        <result property="sendExpressNo"    column="send_express_no"    />
+        <result property="checkNum"    column="check_num"    />
+        <result property="isChecked"    column="is_checked"    />
+        <result property="receiveTime"    column="receive_time"    />
+        <result property="isAward"    column="is_award"    />
+        <result property="isComment"    column="is_comment"    />
+        <result property="isApplyCancel"    column="is_apply_cancel"    />
+        <result property="isCash"    column="is_cash"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="status"    column="status"    />
+        <result property="deptName"    column="dept_name"    />
+        <result property="checkInDate"    column="check_in_date"    />
+        <result property="checkOutDate"    column="check_out_date"    />
+        <result property="contactName"    column="contact_name"    />
+        <result property="contactPhone"    column="contact_phone"    />
+    </resultMap>
+
+    <sql id="selectAppGoodsOrderVo">
+        select order_id, user_id, goods_id, dept_id, address_id, order_no, money_total, money_discount, money_payable, money_express, pay_status, pay_money, pay_type, pay_time, goods_count, coupon_got_ids, remark, send_time, send_express_name, send_express_simple, send_express_no, check_num, is_checked, receive_time, is_award, is_comment, is_apply_cancel, is_cash, create_time, update_time, status,
+               check_in_date, check_out_date, contact_name, contact_phone from app_goods_order
+    </sql>
+
+    <sql id="selectAppGoodsOrderRefVo">
+        select appgoods.order_id, appgoods.user_id, appgoods.goods_id, appgoods.dept_id, appgoods.address_id, appgoods.order_no,
+               appgoods.money_total, appgoods.money_discount, appgoods.money_payable, appgoods.money_express, appgoods.pay_status, appgoods.pay_money,
+               appgoods.pay_type, appgoods.pay_time, appgoods.goods_count, appgoods.coupon_got_ids, appgoods.remark, appgoods.send_time, appgoods.send_express_name,
+               appgoods.send_express_simple, appgoods.send_express_no, appgoods.check_num, appgoods.is_checked, appgoods.receive_time, appgoods.is_award,
+               appgoods.is_comment, appgoods.is_apply_cancel,
+               appgoods.is_cash, appgoods.create_time, appgoods.update_time, appgoods.status,appgoods.check_in_date, appgoods.check_out_date,appgoods.contact_name, appgoods.contact_phone,dept.dept_name from app_goods_order appgoods
+                                                                                                                     LEFT JOIN sys_dept dept on appgoods.dept_id=dept.dept_id
+    </sql>
+
+    <select id="selectAppGoodsOrderList" parameterType="AppGoodsOrder" resultMap="AppGoodsOrderResult">
+        <include refid="selectAppGoodsOrderRefVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="goodsId != null "> and goods_id = #{goodsId}</if>
+            <if test="deptId != null "> and dept_id = #{deptId}</if>
+            <if test="addressId != null "> and address_id = #{addressId}</if>
+            <if test="orderNo != null  and orderNo != ''"> and order_no = #{orderNo}</if>
+            <if test="moneyTotal != null "> and money_total = #{moneyTotal}</if>
+            <if test="moneyDiscount != null "> and money_discount = #{moneyDiscount}</if>
+            <if test="moneyPayable != null "> and money_payable = #{moneyPayable}</if>
+            <if test="moneyExpress != null "> and money_express = #{moneyExpress}</if>
+            <if test="payStatus != null  and payStatus != ''"> and pay_status = #{payStatus}</if>
+            <if test="payMoney != null "> and pay_money = #{payMoney}</if>
+            <if test="payType != null  and payType != ''"> and pay_type = #{payType}</if>
+            <if test="payTime != null "> and pay_time = #{payTime}</if>
+            <if test="goodsCount != null "> and goods_count = #{goodsCount}</if>
+            <if test="couponGotIds != null  and couponGotIds != ''"> and coupon_got_ids = #{couponGotIds}</if>
+            <if test="sendTime != null "> and send_time = #{sendTime}</if>
+            <if test="sendExpressName != null  and sendExpressName != ''"> and send_express_name like concat('%', #{sendExpressName}, '%')</if>
+            <if test="sendExpressSimple != null  and sendExpressSimple != ''"> and send_express_simple = #{sendExpressSimple}</if>
+            <if test="sendExpressNo != null  and sendExpressNo != ''"> and send_express_no = #{sendExpressNo}</if>
+            <if test="checkNum != null  and checkNum != ''"> and check_num = #{checkNum}</if>
+            <if test="isChecked != null  and isChecked != ''"> and is_checked = #{isChecked}</if>
+            <if test="receiveTime != null "> and receive_time = #{receiveTime}</if>
+            <if test="isAward != null "> and is_award = #{isAward}</if>
+            <if test="isComment != null "> and is_comment = #{isComment}</if>
+            <if test="isApplyCancel != null "> and is_apply_cancel = #{isApplyCancel}</if>
+            <if test="isCash != null "> and is_cash = #{isCash}</if>
+            <if test="status != null  and status != ''"> and appgoods.status = #{status}</if>
+             <if test="checkInDate != null "> and check_in_date = #{checkInDate}</if>
+              <if test="checkOutDate != null "> and check_out_date = #{checkOutDate}</if>
+               <if test="contactName != null  and contactName != ''"> and contact_name = #{contactName}</if>
+                <if test="contactPhone != null  and contactPhone != ''"> and contact_phone = #{contactPhone}</if>
+            <if test="params != null and params.expireBefore != null"> and appgoods.create_time &lt;= #{params.expireBefore}</if>
+        </where>
+        order by order_id desc
+    </select>
+    
+    <select id="selectAppGoodsOrderByOrderId" parameterType="Long" resultMap="AppGoodsOrderResult">
+        <include refid="selectAppGoodsOrderVo"/>
+        where order_id = #{orderId}
+    </select>
+    <select id="selectAppGoodsOrderByOrderNo" parameterType="String" resultMap="AppGoodsOrderResult">
+        <include refid="selectAppGoodsOrderVo"/>
+                where order_no = #{orderNo}
+    </select>
+
+    <select id="countEducationActiveSignupByGoodsId" parameterType="Long" resultType="int">
+        select IFNULL(sum(goods_count), 0)
+        from app_goods_order
+        where goods_id = #{goodsId}
+          and status in ('0', '1', '3')
+    </select>
+
+    <insert id="insertAppGoodsOrder" parameterType="AppGoodsOrder" useGeneratedKeys="true" keyProperty="orderId">
+        insert into app_goods_order
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="goodsId != null">goods_id,</if>
+            <if test="deptId != null">dept_id,</if>
+            <if test="addressId != null">address_id,</if>
+            <if test="orderNo != null and orderNo != ''">order_no,</if>
+            <if test="moneyTotal != null">money_total,</if>
+            <if test="moneyDiscount != null">money_discount,</if>
+            <if test="moneyPayable != null">money_payable,</if>
+            <if test="moneyExpress != null">money_express,</if>
+            <if test="payStatus != null">pay_status,</if>
+            <if test="payMoney != null">pay_money,</if>
+            <if test="payType != null">pay_type,</if>
+            <if test="payTime != null">pay_time,</if>
+            <if test="goodsCount != null">goods_count,</if>
+            <if test="couponGotIds != null">coupon_got_ids,</if>
+            <if test="remark != null">remark,</if>
+            <if test="sendTime != null">send_time,</if>
+            <if test="sendExpressName != null">send_express_name,</if>
+            <if test="sendExpressSimple != null">send_express_simple,</if>
+            <if test="sendExpressNo != null">send_express_no,</if>
+            <if test="checkNum != null">check_num,</if>
+            <if test="isChecked != null">is_checked,</if>
+            <if test="receiveTime != null">receive_time,</if>
+            <if test="isAward != null">is_award,</if>
+            <if test="isComment != null">is_comment,</if>
+            <if test="isApplyCancel != null">is_apply_cancel,</if>
+            <if test="isCash != null">is_cash,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="status != null and status != ''">status,</if>
+            <if test="checkInDate != null">check_in_date,</if>
+            <if test="checkOutDate != null">check_out_date,</if>
+            <if test="contactName != null">contact_name,</if>
+            <if test="contactPhone != null">contact_phone,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="deptId != null">#{deptId},</if>
+            <if test="addressId != null">#{addressId},</if>
+            <if test="orderNo != null and orderNo != ''">#{orderNo},</if>
+            <if test="moneyTotal != null">#{moneyTotal},</if>
+            <if test="moneyDiscount != null">#{moneyDiscount},</if>
+            <if test="moneyPayable != null">#{moneyPayable},</if>
+            <if test="moneyExpress != null">#{moneyExpress},</if>
+            <if test="payStatus != null">#{payStatus},</if>
+            <if test="payMoney != null">#{payMoney},</if>
+            <if test="payType != null">#{payType},</if>
+            <if test="payTime != null">#{payTime},</if>
+            <if test="goodsCount != null">#{goodsCount},</if>
+            <if test="couponGotIds != null">#{couponGotIds},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="sendTime != null">#{sendTime},</if>
+            <if test="sendExpressName != null">#{sendExpressName},</if>
+            <if test="sendExpressSimple != null">#{sendExpressSimple},</if>
+            <if test="sendExpressNo != null">#{sendExpressNo},</if>
+            <if test="checkNum != null">#{checkNum},</if>
+            <if test="isChecked != null">#{isChecked},</if>
+            <if test="receiveTime != null">#{receiveTime},</if>
+            <if test="isAward != null">#{isAward},</if>
+            <if test="isComment != null">#{isComment},</if>
+            <if test="isApplyCancel != null">#{isApplyCancel},</if>
+            <if test="isCash != null">#{isCash},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="status != null and status != ''">#{status},</if>
+            <if test="checkInDate != null">#{checkInDate},</if>
+            <if test="checkOutDate != null">#{checkOutDate},</if>
+            <if test="contactName != null">#{contactName},</if>
+            <if test="contactPhone != null">#{contactPhone},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppGoodsOrder" parameterType="AppGoodsOrder">
+        update app_goods_order
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="goodsId != null">goods_id = #{goodsId},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="addressId != null">address_id = #{addressId},</if>
+            <if test="orderNo != null and orderNo != ''">order_no = #{orderNo},</if>
+            <if test="moneyTotal != null">money_total = #{moneyTotal},</if>
+            <if test="moneyDiscount != null">money_discount = #{moneyDiscount},</if>
+            <if test="moneyPayable != null">money_payable = #{moneyPayable},</if>
+            <if test="moneyExpress != null">money_express = #{moneyExpress},</if>
+            <if test="payStatus != null">pay_status = #{payStatus},</if>
+            <if test="payMoney != null">pay_money = #{payMoney},</if>
+            <if test="payType != null">pay_type = #{payType},</if>
+            <if test="payTime != null">pay_time = #{payTime},</if>
+            <if test="goodsCount != null">goods_count = #{goodsCount},</if>
+            <if test="couponGotIds != null">coupon_got_ids = #{couponGotIds},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="sendTime != null">send_time = #{sendTime},</if>
+            <if test="sendExpressName != null">send_express_name = #{sendExpressName},</if>
+            <if test="sendExpressSimple != null">send_express_simple = #{sendExpressSimple},</if>
+            <if test="sendExpressNo != null">send_express_no = #{sendExpressNo},</if>
+            <if test="checkNum != null">check_num = #{checkNum},</if>
+            <if test="isChecked != null">is_checked = #{isChecked},</if>
+            <if test="receiveTime != null">receive_time = #{receiveTime},</if>
+            <if test="isAward != null">is_award = #{isAward},</if>
+            <if test="isComment != null">is_comment = #{isComment},</if>
+            <if test="isApplyCancel != null">is_apply_cancel = #{isApplyCancel},</if>
+            <if test="isCash != null">is_cash = #{isCash},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="checkInDate != null">check_in_date = #{checkInDate},</if>
+            <if test="checkOutDate != null">check_out_date = #{checkOutDate},</if>
+            <if test="contactName != null">contact_name = #{contactName},</if>
+            <if test="contactPhone != null">contact_phone = #{contactPhone},</if>
+        </trim>
+        where order_id = #{orderId}
+    </update>
+
+    <delete id="deleteAppGoodsOrderByOrderId" parameterType="Long">
+        delete from app_goods_order where order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteAppGoodsOrderByOrderIds" parameterType="String">
+        delete from app_goods_order where order_id in 
+        <foreach item="orderId" collection="array" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+    </delete>
+    <select id="selAppGoodsOrderStatData" resultType="Map">
+        select sum(1) totalCou,sum(case when STATUS=1 then pay_money else 0 end) payAmount from app_goods_order
+    </select>
+</mapper>

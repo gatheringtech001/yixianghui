@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppGoodsSkuMapper">
+    
+    <resultMap type="AppGoodsSku" id="AppGoodsSkuResult">
+        <result property="skuId"    column="sku_id"    />
+        <result property="goodsId"    column="goods_id"    />
+        <result property="skuName"    column="sku_name"    />
+        <result property="skuType"    column="sku_type"    />
+        <result property="skuCode"    column="sku_code"    />
+        <result property="parSkuId"    column="par_sku_id"    />
+        <result property="sortOrder"    column="sort_order"    />
+        <result property="validTime"    column="valid_time"    />
+        <result property="invalidTime"    column="invalid_time"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="stock"    column="stock"    />
+        <result property="price"    column="price"    />
+        <result property="stockUnit"    column="stock_unit"    />
+        <result property="saleNum"    column="sale_num"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppGoodsSkuVo">
+        select sku_id, goods_id, sku_name, create_time, status, sku_type, sku_code, par_sku_id, sort_order, valid_time, invalid_time, stock, price, stock_unit, sale_num from app_goods_sku
+    </sql>
+
+    <select id="selectAppGoodsSkuList" parameterType="AppGoodsSku" resultMap="AppGoodsSkuResult">
+        <include refid="selectAppGoodsSkuVo"/>
+        <where>  
+            <if test="goodsId != null "> and goods_id = #{goodsId}</if>
+            <if test="skuName != null  and skuName != ''"> and sku_name like concat('%', #{skuName}, '%')</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="skuType != null  and skuType != ''"> and sku_type = #{skuType}</if>
+            <if test="skuCode != null  and skuCode != ''"> and sku_code = #{skuCode}</if>
+            <if test="parSkuId != null  and parSkuId != ''"> and par_sku_id = #{parSkuId}</if>
+            <if test="sortOrder != null"> and sort_order = #{sortOrder}</if>
+            <if test="validTime != null"> and valid_time = #{validTime}</if>
+            <if test="invalidTime != null"> and invalid_time = #{invalidTime}</if>
+            <if test="stock != null"> and stock = #{stock}</if>
+            <if test="price != null"> and price = #{price}</if>
+            <if test="stockUnit != null  and stockUnit != ''"> and stock_unit = #{stockUnit}</if>
+            <if test="saleNum != null"> and sale_num = #{saleNum}</if>
+        </where>
+        order by sort_order
+    </select>
+    
+    <select id="selectAppGoodsSkuBySkuId" parameterType="Long" resultMap="AppGoodsSkuResult">
+        <include refid="selectAppGoodsSkuVo"/>
+        where sku_id = #{skuId}
+    </select>
+
+    <insert id="insertAppGoodsSku" parameterType="AppGoodsSku" useGeneratedKeys="true" keyProperty="skuId">
+        insert into app_goods_sku
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="goodsId != null">goods_id,</if>
+            <if test="skuName != null and skuName != ''">sku_name,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="status != null">status,</if>
+            <if test="skuType != null">sku_type,</if>
+            <if test="skuCode != null">sku_code,</if>
+            <if test="parSkuId != null">par_sku_id,</if>
+            <if test="sortOrder != null">sort_order,</if>
+            <if test="validTime != null">valid_time,</if>
+            <if test="invalidTime != null">invalid_time,</if>
+            <if test="stock != null">stock,</if>
+            <if test="price != null">price,</if>
+            <if test="stockUnit != null">stock_unit,</if>
+            <if test="saleNum != null">sale_num,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="skuName != null and skuName != ''">#{skuName},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="status != null">#{status},</if>
+            <if test="skuType != null">#{skuType},</if>
+            <if test="skuCode != null">#{skuCode},</if>
+            <if test="parSkuId != null">#{parSkuId},</if>
+            <if test="sortOrder != null">#{sortOrder},</if>
+            <if test="validTime != null">#{validTime},</if>
+            <if test="invalidTime != null">#{invalidTime},</if>
+            <if test="stock != null">#{stock},</if>
+            <if test="price != null">#{price},</if>
+            <if test="stockUnit != null">#{stockUnit},</if>
+            <if test="saleNum != null">#{saleNum},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppGoodsSku" parameterType="AppGoodsSku">
+        update app_goods_sku
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="goodsId != null">goods_id = #{goodsId},</if>
+            <if test="skuName != null and skuName != ''">sku_name = #{skuName},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="skuType != null">sku_type = #{skuType},</if>
+            <if test="skuCode != null">sku_code = #{skuCode},</if>
+            <if test="parSkuId != null">par_sku_id = #{parSkuId},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="validTime != null">valid_time = #{validTime},</if>
+            <if test="invalidTime != null">invalid_time = #{invalidTime},</if>
+            <if test="stock != null">stock = #{stock},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="stockUnit != null">stock_unit = #{stockUnit},</if>
+            <if test="saleNum != null">sale_num = #{saleNum},</if>
+        </trim>
+        where sku_id = #{skuId}
+    </update>
+
+    <delete id="deleteAppGoodsSkuBySkuId" parameterType="Long">
+        delete from app_goods_sku where sku_id = #{skuId}
+    </delete>
+
+    <delete id="deleteAppGoodsSkuBySkuIds" parameterType="String">
+        delete from app_goods_sku where sku_id in 
+        <foreach item="skuId" collection="array" open="(" separator="," close=")">
+            #{skuId}
+        </foreach>
+    </delete>
+    <delete id="deleteByGoodsId" parameterType="Long">
+        delete from app_goods_sku where goods_id = #{goodsId}
+    </delete>
+</mapper>

@@ -1,0 +1,98 @@
+.page{
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background-color: #FFFFFF;
+}
+.acticity-list{
+	padding: 0 4%;
+	background-color: #FFFFFF;
+	margin-top: 20rpx;
+	padding-bottom: 120rpx;
+	.list{
+		display: flex;
+		align-items: center;
+		width: 100%;
+		height: 260rpx;
+		margin-bottom: 10rpx;
+		.thumb{
+			width: 40%;
+			height: 240rpx;
+			image{
+				width: 240rpx;
+				height: 240rpx;
+				border-radius: 10rpx;
+			}
+		}
+		.item{
+			width: 60%;
+			height: 100%;
+			border-bottom: 2rpx solid #EEEEEE;
+			.title-row{
+				display: flex;
+				align-items: flex-start;
+				justify-content: space-between;
+				gap: 12rpx;
+				width: 100%;
+				min-height: 100rpx;
+				text{
+					font-size: 26rpx;
+					color: #222222;
+				}
+				.two-omit{
+					flex: 1;
+					min-width: 0;
+				}
+				.status-tag{
+					flex-shrink: 0;
+					padding: 4rpx 14rpx;
+					border-radius: 999rpx;
+					font-size: 20rpx;
+					font-weight: 700;
+					&.pending{
+						background: rgba(112, 16, 24, 0.12);
+						color: #701018;
+					}
+					&.success{
+						background: #701018;
+						color: #fff;
+					}
+				}
+			}
+			.price-more{
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				width: 100%;
+				min-height: 80rpx;
+				.depreciate{
+					margin-left: 0;
+					font-size: 24rpx;
+					color: #666666;
+				}
+				.pending-tag{
+					margin-top: 8rpx;
+					color: #701018;
+					font-size: 24rpx;
+					font-weight: 700;
+				}
+				.paid-tag{
+					margin-top: 8rpx;
+					color: #333;
+					font-size: 24rpx;
+				}
+				.free-tag{
+					margin-top: 8rpx;
+					color: #701018;
+					font-size: 24rpx;
+				}
+			}
+		}
+	}
+}
+
+.empty{
+	padding-top: 100rpx;
+}

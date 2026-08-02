@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppGoodsMapper">
+    
+    <resultMap type="AppGoods" id="AppGoodsResult">
+        <result property="goodsId"    column="goods_id"    />
+        <result property="categoryId"    column="category_id"    />
+        <result property="categoryIds"    column="category_ids"    />
+        <result property="deptId"    column="dept_id"    />
+        <result property="goodsName"    column="goods_name"    />
+        <result property="goodsCover"    column="goods_cover"    />
+        <result property="goodsImages"    column="goods_images"    />
+        <result property="description"    column="description"    />
+        <result property="tags"    column="tags"    />
+        <result property="price"    column="price"    />
+        <result property="vipPrice"    column="vip_price"    />
+        <result property="unit"    column="unit"    />
+        <result property="specifications"    column="specifications"    />
+        <result property="stock"    column="stock"    />
+        <result property="goodsType"    column="goods_type"    />
+        <result property="isTop"    column="is_top"    />
+        <result property="isHot"    column="is_hot"    />
+        <result property="attrIds"    column="attr_ids"    />
+        <result property="attrValues"    column="attr_values"    />
+        <result property="isSku"    column="is_sku"    />
+        <result property="awardType"    column="award_type"    />
+        <result property="awardParentRatio"    column="award_parent_ratio"    />
+        <result property="awardGrandParentRatio"    column="award_grand_parent_ratio"    />
+        <result property="awardGolden"    column="award_golden"    />
+        <result property="content"    column="content"    />
+        <result property="expressFee"    column="express_fee"    />
+        <result property="weight"    column="weight"    />
+        <result property="viewCount"    column="view_count"    />
+        <result property="saleCount"    column="sale_count"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="status"    column="status"    />
+        <result property="deptName"    column="dept_name"    />
+    </resultMap>
+
+    <sql id="selectAppGoodsVo">
+        select goods_id, category_id, category_ids, dept_id, goods_name, goods_cover, goods_images, description, tags, price, vip_price, unit, specifications, stock, goods_type, is_top, is_hot, attr_ids, attr_values, is_sku, award_type, award_parent_ratio, award_grand_parent_ratio, award_golden, content, express_fee, weight, view_count, sale_count, create_time, update_time, status from app_goods
+    </sql>
+
+    <sql id="selectAppGoodsListVo">
+        select g.goods_id, g.category_id, g.category_ids, g.dept_id, g.goods_name, g.goods_cover, g.goods_images, g.description, g.tags, g.price, g.vip_price, g.unit, g.specifications, g.stock, g.goods_type, g.is_top, g.is_hot, g.attr_ids, g.attr_values, g.is_sku, g.award_type, g.award_parent_ratio, g.award_grand_parent_ratio, g.award_golden, g.content, g.express_fee, g.weight, g.view_count, g.sale_count, g.create_time, g.update_time, g.status, d.dept_name
+        from app_goods g
+        left join sys_dept d on g.dept_id = d.dept_id
+    </sql>
+
+    <select id="selectAppGoodsList" parameterType="AppGoods" resultMap="AppGoodsResult">
+        <include refid="selectAppGoodsListVo"/>
+        <where>
+            <if test="params != null and params.keyword != null and params.keyword != ''">
+                and (
+                    g.goods_name like concat('%', #{params.keyword}, '%')
+                    or g.tags like concat('%', #{params.keyword}, '%')
+                    or g.description like concat('%', #{params.keyword}, '%')
+                )
+            </if>
+            <if test="categoryId != null "> and g.category_id = #{categoryId}</if>
+            <if test="categoryIds != null "> and find_in_set(g.category_id, #{categoryIds})</if>
+             <if test="deptId != null"> and g.dept_id in(
+                 WITH RECURSIVE cte AS (
+                 SELECT dept_id, parent_id, dept_name
+                 FROM sys_dept
+                 WHERE dept_id = #{deptId}
+                 UNION ALL
+                 SELECT t.dept_id, t.parent_id, t.dept_name
+                 FROM sys_dept t
+                 INNER JOIN cte ON t.parent_id = cte.dept_id
+                 )
+                 SELECT dept_id FROM cte
+                 )</if>
+            <if test="goodsName != null  and goodsName != ''"> and g.goods_name like concat('%', #{goodsName}, '%')</if>
+            <if test="tags != null  and tags != ''"> and g.tags like concat('%', #{tags}, '%')</if>
+            <if test="stock != null "> and g.stock = #{stock}</if>
+            <if test="goodsType != null  and goodsType != ''"> and g.goods_type = #{goodsType}</if>
+            <if test="isTop != null "> and g.is_top = #{isTop}</if>
+            <if test="isHot != null "> and g.is_hot = #{isHot}</if>
+            <if test="isSku != null "> and g.is_sku = #{isSku}</if>
+            <if test="awardType != null  and awardType != ''"> and g.award_type = #{awardType}</if>
+            <if test="status != null  and status != ''"> and g.status = #{status}</if>
+        </where>
+        order by g.goods_id desc
+    </select>
+    
+    <select id="selectAppGoodsByGoodsId" parameterType="Long" resultMap="AppGoodsResult">
+        <include refid="selectAppGoodsVo"/>
+        where goods_id = #{goodsId}
+    </select>
+
+    <insert id="insertAppGoods" parameterType="AppGoods" useGeneratedKeys="true" keyProperty="goodsId">
+        insert into app_goods
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="categoryId != null">category_id,</if>
+            <if test="categoryIds != null">category_ids,</if>
+            <if test="deptId != null">dept_id,</if>
+            <if test="goodsName != null and goodsName != ''">goods_name,</if>
+            <if test="goodsCover != null">goods_cover,</if>
+            <if test="goodsImages != null">goods_images,</if>
+            <if test="description != null">description,</if>
+            <if test="tags != null">tags,</if>
+            <if test="price != null">price,</if>
+            <if test="vipPrice != null">vip_price,</if>
+            <if test="unit != null">unit,</if>
+            <if test="specifications != null">specifications,</if>
+            <if test="stock != null">stock,</if>
+            <if test="goodsType != null">goods_type,</if>
+            <if test="isTop != null">is_top,</if>
+            <if test="isHot != null">is_hot,</if>
+            <if test="attrIds != null">attr_ids,</if>
+            <if test="attrValues != null">attr_values,</if>
+            <if test="isSku != null">is_sku,</if>
+            <if test="awardType != null">award_type,</if>
+            <if test="awardParentRatio != null">award_parent_ratio,</if>
+            <if test="awardGrandParentRatio != null">award_grand_parent_ratio,</if>
+            <if test="awardGolden != null">award_golden,</if>
+            <if test="content != null">content,</if>
+            <if test="expressFee != null">express_fee,</if>
+            <if test="weight != null">weight,</if>
+            <if test="viewCount != null">view_count,</if>
+            <if test="saleCount != null">sale_count,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="categoryId != null">#{categoryId},</if>
+            <if test="categoryIds != null">#{categoryIds},</if>
+            <if test="deptId != null">#{deptId},</if>
+            <if test="goodsName != null and goodsName != ''">#{goodsName},</if>
+            <if test="goodsCover != null">#{goodsCover},</if>
+            <if test="goodsImages != null">#{goodsImages},</if>
+            <if test="description != null">#{description},</if>
+            <if test="tags != null">#{tags},</if>
+            <if test="price != null">#{price},</if>
+            <if test="vipPrice != null">#{vipPrice},</if>
+            <if test="unit != null">#{unit},</if>
+            <if test="specifications != null">#{specifications},</if>
+            <if test="stock != null">#{stock},</if>
+            <if test="goodsType != null">#{goodsType},</if>
+            <if test="isTop != null">#{isTop},</if>
+            <if test="isHot != null">#{isHot},</if>
+            <if test="attrIds != null">#{attrIds},</if>
+            <if test="attrValues != null">#{attrValues},</if>
+            <if test="isSku != null">#{isSku},</if>
+            <if test="awardType != null">#{awardType},</if>
+            <if test="awardParentRatio != null">#{awardParentRatio},</if>
+            <if test="awardGrandParentRatio != null">#{awardGrandParentRatio},</if>
+            <if test="awardGolden != null">#{awardGolden},</if>
+            <if test="content != null">#{content},</if>
+            <if test="expressFee != null">#{expressFee},</if>
+            <if test="weight != null">#{weight},</if>
+            <if test="viewCount != null">#{viewCount},</if>
+            <if test="saleCount != null">#{saleCount},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppGoods" parameterType="AppGoods">
+        update app_goods
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="categoryIds != null">category_ids = #{categoryIds},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="goodsName != null and goodsName != ''">goods_name = #{goodsName},</if>
+            <if test="goodsCover != null">goods_cover = #{goodsCover},</if>
+            <if test="goodsImages != null">goods_images = #{goodsImages},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="tags != null">tags = #{tags},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="vipPrice != null">vip_price = #{vipPrice},</if>
+            <if test="unit != null">unit = #{unit},</if>
+            <if test="specifications != null">specifications = #{specifications},</if>
+            <if test="stock != null">stock = #{stock},</if>
+            <if test="goodsType != null">goods_type = #{goodsType},</if>
+            <if test="isTop != null">is_top = #{isTop},</if>
+            <if test="isHot != null">is_hot = #{isHot},</if>
+            <if test="attrIds != null">attr_ids = #{attrIds},</if>
+            <if test="attrValues != null">attr_values = #{attrValues},</if>
+            <if test="isSku != null">is_sku = #{isSku},</if>
+            <if test="awardType != null">award_type = #{awardType},</if>
+            <if test="awardParentRatio != null">award_parent_ratio = #{awardParentRatio},</if>
+            <if test="awardGrandParentRatio != null">award_grand_parent_ratio = #{awardGrandParentRatio},</if>
+            <if test="awardGolden != null">award_golden = #{awardGolden},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="expressFee != null">express_fee = #{expressFee},</if>
+            <if test="weight != null">weight = #{weight},</if>
+            <if test="viewCount != null">view_count = #{viewCount},</if>
+            <if test="saleCount != null">sale_count = #{saleCount},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where goods_id = #{goodsId}
+    </update>
+
+    <delete id="deleteAppGoodsByGoodsId" parameterType="Long">
+        delete from app_goods where goods_id = #{goodsId}
+    </delete>
+
+    <delete id="deleteAppGoodsByGoodsIds" parameterType="String">
+        delete from app_goods where goods_id in 
+        <foreach item="goodsId" collection="array" open="(" separator="," close=")">
+            #{goodsId}
+        </foreach>
+    </delete>
+
+    <update id="reserveStock">
+        update app_goods
+        set stock = stock - #{count},
+            sale_count = IFNULL(sale_count, 0) + #{count},
+            update_time = sysdate()
+        where goods_id = #{goodsId}
+          and stock is not null
+          and stock >= #{count}
+    </update>
+
+    <update id="releaseStock">
+        update app_goods
+        set stock = IFNULL(stock, 0) + #{count},
+            sale_count = GREATEST(IFNULL(sale_count, 0) - #{count}, 0),
+            update_time = sysdate()
+        where goods_id = #{goodsId}
+    </update>
+</mapper>

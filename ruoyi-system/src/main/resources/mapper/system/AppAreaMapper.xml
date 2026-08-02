@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppAreaMapper">
+    
+    <resultMap type="AppArea" id="AppAreaResult">
+        <result property="areaId"    column="area_id"    />
+        <result property="province"    column="province"    />
+        <result property="city"    column="city"    />
+        <result property="county"    column="county"    />
+        <result property="areaCode"    column="area_code"    />
+        <result property="pinyin"    column="pinyin"    />
+        <result property="areaLevel"    column="area_level"    />
+        <result property="lng"    column="lng"    />
+        <result property="lat"    column="lat"    />
+        <result property="mapData"    column="map_data"    />
+        <result property="mapMaster"    column="map_master"    />
+    </resultMap>
+
+    <sql id="selectAppAreaVo">
+        select area_id, province, city, county, area_code, pinyin, area_level, lng, lat, map_data, map_master from app_area
+    </sql>
+
+    <select id="selectAppAreaList" parameterType="AppArea" resultMap="AppAreaResult">
+        <include refid="selectAppAreaVo"/>
+        <where>  
+            <if test="province != null  and province != ''"> and province = #{province}</if>
+            <if test="city != null  and city != ''"> and city = #{city}</if>
+            <if test="county != null  and county != ''"> and county = #{county}</if>
+            <if test="areaCode != null  and areaCode != ''"> and area_code = #{areaCode}</if>
+            <if test="pinyin != null  and pinyin != ''"> and pinyin = #{pinyin}</if>
+            <if test="areaLevel != null "> and area_level = #{areaLevel}</if>
+            <if test="lng != null "> and lng = #{lng}</if>
+            <if test="lat != null "> and lat = #{lat}</if>
+            <if test="mapData != null  and mapData != ''"> and map_data = #{mapData}</if>
+            <if test="mapMaster != null "> and map_master = #{mapMaster}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppAreaByAreaId" parameterType="Long" resultMap="AppAreaResult">
+        <include refid="selectAppAreaVo"/>
+        where area_id = #{areaId}
+    </select>
+
+    <insert id="insertAppArea" parameterType="AppArea" useGeneratedKeys="true" keyProperty="areaId">
+        insert into app_area
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="province != null">province,</if>
+            <if test="city != null">city,</if>
+            <if test="county != null">county,</if>
+            <if test="areaCode != null">area_code,</if>
+            <if test="pinyin != null">pinyin,</if>
+            <if test="areaLevel != null">area_level,</if>
+            <if test="lng != null">lng,</if>
+            <if test="lat != null">lat,</if>
+            <if test="mapData != null">map_data,</if>
+            <if test="mapMaster != null">map_master,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="province != null">#{province},</if>
+            <if test="city != null">#{city},</if>
+            <if test="county != null">#{county},</if>
+            <if test="areaCode != null">#{areaCode},</if>
+            <if test="pinyin != null">#{pinyin},</if>
+            <if test="areaLevel != null">#{areaLevel},</if>
+            <if test="lng != null">#{lng},</if>
+            <if test="lat != null">#{lat},</if>
+            <if test="mapData != null">#{mapData},</if>
+            <if test="mapMaster != null">#{mapMaster},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppArea" parameterType="AppArea">
+        update app_area
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="province != null">province = #{province},</if>
+            <if test="city != null">city = #{city},</if>
+            <if test="county != null">county = #{county},</if>
+            <if test="areaCode != null">area_code = #{areaCode},</if>
+            <if test="pinyin != null">pinyin = #{pinyin},</if>
+            <if test="areaLevel != null">area_level = #{areaLevel},</if>
+            <if test="lng != null">lng = #{lng},</if>
+            <if test="lat != null">lat = #{lat},</if>
+            <if test="mapData != null">map_data = #{mapData},</if>
+            <if test="mapMaster != null">map_master = #{mapMaster},</if>
+        </trim>
+        where area_id = #{areaId}
+    </update>
+
+    <delete id="deleteAppAreaByAreaId" parameterType="Long">
+        delete from app_area where area_id = #{areaId}
+    </delete>
+
+    <delete id="deleteAppAreaByAreaIds" parameterType="String">
+        delete from app_area where area_id in 
+        <foreach item="areaId" collection="array" open="(" separator="," close=")">
+            #{areaId}
+        </foreach>
+    </delete>
+</mapper>

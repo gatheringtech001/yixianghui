@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppGoodsRelatedMapper">
+    
+    <resultMap type="AppGoodsRelated" id="AppGoodsRelatedResult">
+        <result property="id"    column="id"    />
+        <result property="goodsId"    column="goods_id"    />
+        <result property="sectionId"    column="section_id"    />
+        <result property="sectionName"    column="section_name"    />
+        <result property="content"    column="content"    />
+        <result property="sortOrder"    column="sort_order"    />
+        <result property="minContentLength"    column="min_content_length"    />
+        <result property="createTime"    column="create_time"    />
+    </resultMap>
+
+    <sql id="selectAppGoodsRelatedVo">
+        select id, goods_id, section_id, section_name, content, sort_order, min_content_length, create_time from app_goods_related
+    </sql>
+
+    <select id="selectAppGoodsRelatedList" parameterType="AppGoodsRelated" resultMap="AppGoodsRelatedResult">
+        <include refid="selectAppGoodsRelatedVo"/>
+        <where>  
+            <if test="goodsId != null "> and goods_id = #{goodsId}</if>
+            <if test="sectionId != null  and sectionId != ''"> and section_id = #{sectionId}</if>
+            <if test="sectionName != null  and sectionName != ''"> and section_name like concat('%', #{sectionName}, '%')</if>
+            <if test="content != null  and content != ''"> and content = #{content}</if>
+            <if test="sortOrder != null "> and sort_order = #{sortOrder}</if>
+            <if test="minContentLength != null "> and min_content_length = #{minContentLength}</if>
+        </where>
+        order by sort_order asc, id asc
+    </select>
+    
+    <select id="selectAppGoodsRelatedById" parameterType="Long" resultMap="AppGoodsRelatedResult">
+        <include refid="selectAppGoodsRelatedVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertAppGoodsRelated" parameterType="AppGoodsRelated" useGeneratedKeys="true" keyProperty="id">
+        insert into app_goods_related
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="goodsId != null">goods_id,</if>
+            <if test="sectionId != null and sectionId != ''">section_id,</if>
+            <if test="sectionName != null and sectionName != ''">section_name,</if>
+            <if test="content != null">content,</if>
+            <if test="sortOrder != null">sort_order,</if>
+            <if test="minContentLength != null">min_content_length,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="sectionId != null and sectionId != ''">#{sectionId},</if>
+            <if test="sectionName != null and sectionName != ''">#{sectionName},</if>
+            <if test="content != null">#{content},</if>
+            <if test="sortOrder != null">#{sortOrder},</if>
+            <if test="minContentLength != null">#{minContentLength},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppGoodsRelated" parameterType="AppGoodsRelated">
+        update app_goods_related
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="goodsId != null">goods_id = #{goodsId},</if>
+            <if test="sectionId != null and sectionId != ''">section_id = #{sectionId},</if>
+            <if test="sectionName != null and sectionName != ''">section_name = #{sectionName},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="minContentLength != null">min_content_length = #{minContentLength},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteAppGoodsRelatedById" parameterType="Long">
+        delete from app_goods_related where id = #{id}
+    </delete>
+
+    <delete id="deleteAppGoodsRelatedByIds" parameterType="String">
+        delete from app_goods_related where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    <select id="selectProductRelate" parameterType="Map" resultMap="AppGoodsRelatedResult">
+            select id, goods_id, section_id, section_name, content, sort_order, min_content_length, create_time from app_goods_related
+            where goods_id = #{goodsId}
+            and section_id = #{sectionId}
+    </select>
+    <delete id="deleteByProductId" parameterType="Long">
+        delete from app_goods_related where goods_id = #{goodsId}
+    </delete>
+</mapper>

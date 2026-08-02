@@ -1,0 +1,252 @@
+.page{
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background-color: #f6f6f6;
+}
+/* 订单tab */
+.order-tab{
+	position: fixed;
+	left: 0;
+	top: 0;
+	z-index: 10;
+	display: flex;
+	align-items: center;
+	width: 100%;
+	height: 100rpx;
+	background-color: #FFFFFF;
+	.tab{
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 20%;
+		height: 80%;
+		text{
+			font-size: 26rpx;
+			color: #959595;
+		}
+	}
+	.action{
+		text{
+			color: #222222;
+		}
+		.line{
+			position: absolute;
+			left: 50%;
+			bottom: 0;
+			width: 60rpx;
+			height: 6rpx;
+			background: linear-gradient(to right,$base,#f6f6f6);
+			transform: translate(-50%,0);
+		}
+	}
+}
+
+/* 订单列表 */
+.order-list{
+	width: 100%;
+	margin-top: 120rpx;
+	.list{
+		padding: 0 4%;
+		min-height: 400rpx;
+		background-color: #FFFFFF;
+		border-radius: 20rpx;
+		margin-bottom: 20rpx;
+		.title-status{
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			width: 100%;
+			height: 100rpx;
+			.title{
+				display: flex;
+				align-items: center;
+				flex-wrap: wrap;
+				gap: 10rpx;
+				text{
+					font-size: 26rpx;
+					font-weight: bold;
+					color: #222222;
+				}
+				.order-type-tag{
+					padding: 4rpx 12rpx;
+					border-radius: 8rpx;
+					background: rgba(195, 13, 36, 0.1);
+					color: $base;
+					font-size: 22rpx;
+					font-weight: 700;
+				}
+			}
+			.status{
+				display: flex;
+				align-items: center;
+				text{
+					font-size: 26rpx;
+					color: $base;
+				}
+				.del{
+					padding: 10rpx;
+					font-size: 34rpx;
+					color: #222222;
+					background-color: #f6f6f6;
+					border-radius: 100%;
+					margin-left: 20rpx;
+				}
+			}
+		}
+		.after-feedback{
+			margin: 0 0 16rpx;
+			padding: 16rpx 20rpx;
+			border-radius: 12rpx;
+			background: rgba(195, 13, 36, 0.06);
+			.after-title{
+				display: block;
+				font-size: 24rpx;
+				font-weight: 700;
+				color: $base;
+				margin-bottom: 6rpx;
+			}
+			.after-reason{
+				display: block;
+				font-size: 22rpx;
+				line-height: 1.5;
+				color: #666666;
+			}
+		}
+		.goods-list{
+			width: 100%;
+			.goods{
+				display: flex;
+				align-items: flex-start;
+				width: 100%;
+				min-height: 200rpx;
+				.thumb{
+					display: flex;
+					align-items: center;
+					width: 200rpx;
+					height: 100%;
+					image{
+						width: 160rpx;
+						height: 160rpx;
+						border-radius: 10rpx;
+					}
+				}
+				.item{
+					flex: 1;
+					display: flex;
+					flex-direction: column;
+					justify-content: center;
+					min-height: 160rpx;
+					.item-top{
+						display: flex;
+						align-items: center;
+						width: 100%;
+					}
+					&.education-item{
+						min-height: 200rpx;
+					}
+					.goods-name{
+						flex: 1;
+						text{
+							font-size: 26rpx;
+							color: #555555;
+						}
+					}
+					.course-meta{
+						margin-top: 10rpx;
+						color: #666666;
+						font-size: 22rpx;
+						line-height: 1.5;
+						text{
+							color: #999999;
+						}
+					}
+					.signup-contact{
+						margin-top: 8rpx;
+						color: #666666;
+						font-size: 22rpx;
+						text{
+							color: #999999;
+						}
+					}
+					.content{
+						flex: 0 0 auto;
+						text-align: right;
+						margin-left: 20rpx;
+						.goods-price{
+							display: flex;
+							align-items: center;
+							justify-content: flex-end;
+							text{
+								color: #C30D24;
+								font-weight: 500;
+							}
+							.min{
+								font-size: 24rpx;
+							}
+							.max{
+								font-size: 36rpx;
+							}
+						}
+						.goods-counts{
+							line-height: 1.8;
+						}
+					}
+				}
+			}
+		}
+		.status-btn{
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			width: 100%;
+			height: 100rpx;
+			.price{
+				flex: 1;
+				margin-right: 30rpx;
+				text{
+					color: #C30D24;
+					font-weight: 500;
+					&::before{
+						content: '￥';
+					}
+				}
+			}
+			.btn{
+				padding: 10rpx 30rpx;
+				border: 2rpx solid #C30D24;
+				border-radius: 100rpx;
+				margin-left: 20rpx;
+				text{
+					font-size: 28rpx;
+					color: #C30D24;
+				}
+			}
+			.action{
+				border: 2rpx solid #C30D24;
+				text{
+					color: #C30D24;
+				}
+			}
+		}
+	}
+}
+.empty{
+	padding-top: 200rpx;
+	button{
+		width: 258rpx;
+		border: none;
+		margin: 100rpx auto;
+		padding: 0 30rpx;
+		color: #C30D24;
+		border: 1rpx solid #C30D24;
+		background: none;
+		border-radius: 100rpx;
+		&::after{
+			display: none;
+		}
+	}
+}

@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AppGoodsCouponMapper">
+    
+    <resultMap type="AppGoodsCoupon" id="AppGoodsCouponResult">
+        <result property="couponId"    column="coupon_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="categoryId"    column="category_id"    />
+        <result property="goodsId"    column="goods_id"    />
+        <result property="couponName"    column="coupon_name"    />
+        <result property="couponContent"    column="coupon_content"    />
+        <result property="couponType"    column="coupon_type"    />
+        <result property="minPrice"    column="min_price"    />
+        <result property="discountType"    column="discount_type"    />
+        <result property="discountPrice"    column="discount_price"    />
+        <result property="countPerOrder"    column="count_per_order"    />
+        <result property="couponTotal"    column="coupon_total"    />
+        <result property="countPerUser"    column="count_per_user"    />
+        <result property="couponGotCount"    column="coupon_got_count"    />
+        <result property="couponUsedCount"    column="coupon_used_count"    />
+        <result property="enableStartTime"    column="enable_start_time"    />
+        <result property="enableEndTime"    column="enable_end_time"    />
+        <result property="getMethod"    column="get_method"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectAppGoodsCouponVo">
+        select coupon_id, user_id, category_id, goods_id, coupon_name, coupon_content, coupon_type, min_price, discount_type, discount_price, count_per_order, coupon_total, count_per_user, coupon_got_count, coupon_used_count, enable_start_time, enable_end_time, get_method, create_time, update_time, status from app_goods_coupon
+    </sql>
+
+    <select id="selectAppGoodsCouponList" parameterType="AppGoodsCoupon" resultMap="AppGoodsCouponResult">
+        <include refid="selectAppGoodsCouponVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="categoryId != null "> and category_id = #{categoryId}</if>
+            <if test="goodsId != null "> and goods_id = #{goodsId}</if>
+            <if test="couponName != null  and couponName != ''"> and coupon_name like concat('%', #{couponName}, '%')</if>
+            <if test="couponContent != null  and couponContent != ''"> and coupon_content = #{couponContent}</if>
+            <if test="couponType != null  and couponType != ''"> and coupon_type = #{couponType}</if>
+            <if test="minPrice != null "> and min_price = #{minPrice}</if>
+            <if test="discountType != null  and discountType != ''"> and discount_type = #{discountType}</if>
+            <if test="discountPrice != null "> and discount_price = #{discountPrice}</if>
+            <if test="countPerOrder != null "> and count_per_order = #{countPerOrder}</if>
+            <if test="couponTotal != null "> and coupon_total = #{couponTotal}</if>
+            <if test="countPerUser != null "> and count_per_user = #{countPerUser}</if>
+            <if test="couponGotCount != null "> and coupon_got_count = #{couponGotCount}</if>
+            <if test="couponUsedCount != null "> and coupon_used_count = #{couponUsedCount}</if>
+            <if test="enableStartTime != null "> and enable_start_time = #{enableStartTime}</if>
+            <if test="enableEndTime != null "> and enable_end_time = #{enableEndTime}</if>
+            <if test="getMethod != null  and getMethod != ''"> and get_method = #{getMethod}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectAppGoodsCouponByCouponId" parameterType="Long" resultMap="AppGoodsCouponResult">
+        <include refid="selectAppGoodsCouponVo"/>
+        where coupon_id = #{couponId}
+    </select>
+
+    <insert id="insertAppGoodsCoupon" parameterType="AppGoodsCoupon" useGeneratedKeys="true" keyProperty="couponId">
+        insert into app_goods_coupon
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="categoryId != null">category_id,</if>
+            <if test="goodsId != null">goods_id,</if>
+            <if test="couponName != null">coupon_name,</if>
+            <if test="couponContent != null">coupon_content,</if>
+            <if test="couponType != null and couponType != ''">coupon_type,</if>
+            <if test="minPrice != null">min_price,</if>
+            <if test="discountType != null">discount_type,</if>
+            <if test="discountPrice != null">discount_price,</if>
+            <if test="countPerOrder != null">count_per_order,</if>
+            <if test="couponTotal != null">coupon_total,</if>
+            <if test="countPerUser != null">count_per_user,</if>
+            <if test="couponGotCount != null">coupon_got_count,</if>
+            <if test="couponUsedCount != null">coupon_used_count,</if>
+            <if test="enableStartTime != null">enable_start_time,</if>
+            <if test="enableEndTime != null">enable_end_time,</if>
+            <if test="getMethod != null and getMethod != ''">get_method,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="status != null">status,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="categoryId != null">#{categoryId},</if>
+            <if test="goodsId != null">#{goodsId},</if>
+            <if test="couponName != null">#{couponName},</if>
+            <if test="couponContent != null">#{couponContent},</if>
+            <if test="couponType != null and couponType != ''">#{couponType},</if>
+            <if test="minPrice != null">#{minPrice},</if>
+            <if test="discountType != null">#{discountType},</if>
+            <if test="discountPrice != null">#{discountPrice},</if>
+            <if test="countPerOrder != null">#{countPerOrder},</if>
+            <if test="couponTotal != null">#{couponTotal},</if>
+            <if test="countPerUser != null">#{countPerUser},</if>
+            <if test="couponGotCount != null">#{couponGotCount},</if>
+            <if test="couponUsedCount != null">#{couponUsedCount},</if>
+            <if test="enableStartTime != null">#{enableStartTime},</if>
+            <if test="enableEndTime != null">#{enableEndTime},</if>
+            <if test="getMethod != null and getMethod != ''">#{getMethod},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="status != null">#{status},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAppGoodsCoupon" parameterType="AppGoodsCoupon">
+        update app_goods_coupon
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="goodsId != null">goods_id = #{goodsId},</if>
+            <if test="couponName != null">coupon_name = #{couponName},</if>
+            <if test="couponContent != null">coupon_content = #{couponContent},</if>
+            <if test="couponType != null and couponType != ''">coupon_type = #{couponType},</if>
+            <if test="minPrice != null">min_price = #{minPrice},</if>
+            <if test="discountType != null">discount_type = #{discountType},</if>
+            <if test="discountPrice != null">discount_price = #{discountPrice},</if>
+            <if test="countPerOrder != null">count_per_order = #{countPerOrder},</if>
+            <if test="couponTotal != null">coupon_total = #{couponTotal},</if>
+            <if test="countPerUser != null">count_per_user = #{countPerUser},</if>
+            <if test="couponGotCount != null">coupon_got_count = #{couponGotCount},</if>
+            <if test="couponUsedCount != null">coupon_used_count = #{couponUsedCount},</if>
+            <if test="enableStartTime != null">enable_start_time = #{enableStartTime},</if>
+            <if test="enableEndTime != null">enable_end_time = #{enableEndTime},</if>
+            <if test="getMethod != null and getMethod != ''">get_method = #{getMethod},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where coupon_id = #{couponId}
+    </update>
+
+    <delete id="deleteAppGoodsCouponByCouponId" parameterType="Long">
+        delete from app_goods_coupon where coupon_id = #{couponId}
+    </delete>
+
+    <delete id="deleteAppGoodsCouponByCouponIds" parameterType="String">
+        delete from app_goods_coupon where coupon_id in 
+        <foreach item="couponId" collection="array" open="(" separator="," close=")">
+            #{couponId}
+        </foreach>
+    </delete>
+</mapper>

@@ -1,0 +1,58 @@
+<template>
+	<view class="page">
+		<!-- 发票列表 -->
+		<view class="site-list" v-if="list.length > 0">
+			<view class="list" v-for="(item, index) in list" :key="index" @click="onSiteChange(item)">
+				<view class="content">
+					<view class="title">
+						<text>{{item.deptName }}</text>
+					</view>
+					<view class="identify-num" v-if="item.parentName">
+						<text>{{item.parentName}}</text>
+						<!-- <text>联系电话：{{item.phone}}</text> -->
+					</view>
+				</view>
+				<view class="edit">
+					<text class="cuIcon-location" :class="[item.deptId == siteId?'active':'']"></text>
+				</view>
+			</view>
+		</view>
+		
+		<view class="empty" v-else>
+			<u-empty text="暂无分站" mode="list"></u-empty>
+		</view>
+	</view>
+</template>
+
+<script>
+	import { getSiteList } from '@/api/index'
+	export default {
+		data() {
+			return {
+				siteId: null,
+				list: []
+			};
+		},
+		onLoad(option) {
+			this.siteId = option.id
+			this.getSites()
+		},
+		methods:{
+			async getSites() {
+				let res = await getSiteList()
+				this.list = res.rows
+			},
+			/**
+			 * 分站切换
+			 */
+			onSiteChange(item){
+				uni.setStorageSync('site', item)
+				uni.navigateBack()
+			}
+		}
+	}
+</script>
+
+<style scoped lang="scss">
+	@import 'index.scss';
+</style>

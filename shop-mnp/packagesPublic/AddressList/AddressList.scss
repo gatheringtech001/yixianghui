@@ -1,0 +1,136 @@
+$accent: #701018;
+$muted: #777777;
+$line: #e8e1d8;
+$paper: #ffffff;
+$soft: #f7f7f5;
+$ink: #111111;
+
+.page{
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background-color: $soft;
+}
+
+/* 地址列表 */
+.address-list{
+	width: 100%;
+	background-color: transparent;
+	padding: 24rpx 28rpx 140rpx;
+	box-sizing: border-box;
+	.list{
+		padding: 28rpx 28rpx;
+		min-height: 160rpx;
+		margin: 0 0 20rpx;
+		background: $paper;
+		border: 1rpx solid $line;
+		border-radius: 20rpx;
+		box-sizing: border-box;
+		.name-phone{
+			display: flex;
+			align-items: center;
+			flex-wrap: wrap;
+			width: 100%;
+			min-height: 56rpx;
+			.name{
+				display: flex;
+				align-items: center;
+				width: auto;
+				height: 100%;
+				margin-right: 24rpx;
+				text{
+					width: 100%;
+					font-size: 30rpx;
+					font-weight: 700;
+					color: $ink;
+				}
+			}
+			.phone{
+				display: flex;
+				align-items: center;
+				flex: 1;
+				min-width: 0;
+				height: 100%;
+				text{
+					font-size: 28rpx;
+					font-weight: 700;
+					color: $ink;
+				}
+				.tag{
+					padding: 4rpx 12rpx;
+					font-size: 22rpx;
+					font-weight: 600;
+					color: #FFFFFF;
+					background-color: $accent;
+					border-radius: 8rpx;
+					margin-left: 16rpx;
+				}
+				.blue{
+					background-color: #0099FF;
+				}
+			}
+		}
+		.address-edit{
+			display: flex;
+			align-items: flex-start;
+			justify-content: space-between;
+			width: 100%;
+			margin-top: 12rpx;
+			.address{
+				display: flex;
+				align-items: flex-start;
+				width: 90%;
+				text{
+					font-size: 26rpx;
+					line-height: 1.5;
+					color: $muted;
+				}
+			}
+			.edit{
+				display: flex;
+				align-items: center;
+				justify-content: flex-end;
+				width: 10%;
+				padding-top: 4rpx;
+				text{
+					font-size: 36rpx;
+					color: $muted;
+				}
+			}
+		}
+	}
+	&.empty{
+		padding-top: 120rpx;
+	}
+}
+
+/* 添加地址 */
+.add-address{
+	position: fixed;
+	left: 0;
+	bottom: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 120rpx;
+	padding: 0 28rpx calc(20rpx + env(safe-area-inset-bottom));
+	background: $paper;
+	box-sizing: border-box;
+	.btn{
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 80rpx;
+		background: $accent;
+		border-radius: 80rpx;
+		text{
+			font-size: 30rpx;
+			font-weight: 600;
+			color: #FFFFFF;
+		}
+	}
+}
