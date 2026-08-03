@@ -7,6 +7,12 @@ const evidenceRoot = process.env.E2E_EVIDENCE_ROOT || path.resolve(
   '../../../outputs/ui-admin-e2e'
 )
 
+async function seedH5Site(page, site = { deptId: 108, deptName: '昆明' }) {
+  await page.addInitScript(value => {
+    localStorage.setItem('site', JSON.stringify({ type: 'object', data: value }))
+  }, site)
+}
+
 test('H5-HOME-001 H5 首页可渲染并连接本地后端', async ({ page }, testInfo) => {
   const pageErrors = []
   const serverErrors = []
@@ -26,6 +32,7 @@ test('H5-HOME-001 H5 首页可渲染并连接本地后端', async ({ page }, tes
     }
   })
 
+  await seedH5Site(page)
   await page.goto('/')
   await expect(page).toHaveTitle('逸享荟')
   await expect(page.locator('uni-page-body')).toBeVisible()
@@ -51,21 +58,35 @@ test('H5-HOME-001 H5 首页可渲染并连接本地后端', async ({ page }, tes
   expect(serverErrors).toEqual([])
 })
 
-test('H5-HOME-002 H5 首页展示后端上架商品', async ({ page }) => {
+test('H5-HOME-002 H5 热门城市按站点展示后端上架商品', async ({ page }) => {
+  await seedH5Site(page)
   await page.goto('/')
   await expect(page.locator('uni-page-body')).toBeVisible()
+  const responsePromise = page.waitForResponse(response => {
+    if (!response.url().includes('/queryGoodsList')) return false
+    const body = response.request().postDataJSON()
+    return body && (body.deptId === 210 || body.categoryId === 210)
+  })
+  await page.getByText('广州', { exact: true }).click()
+  const response = await responsePromise
+  const requestBody = response.request().postDataJSON()
+  const responseBody = await response.json()
+  expect(requestBody.deptId).toBe(210)
+  expect(responseBody.code).toBe(200)
+  expect(responseBody.data.length).toBeGreaterThan(0)
   await expect(page.locator('.product-card').first(),
-    '首页城市卡片关联的分类应至少返回一个上架商品').toBeVisible()
+    '广州站点应至少展示一个上架商品').toBeVisible()
 })
 
-test('H5-LOCATION-001 H5 首次访问无平台 API 兼容错误', async ({ page }) => {
+test('H5-SITE-001 H5 使用固定测试站点且不触发微信定位授权', async ({ page }) => {
   const consoleErrors = []
   page.on('console', message => {
     if (message.type() === 'error') consoleErrors.push(message.text())
   })
 
+  await seedH5Site(page)
   await page.goto('/')
   await expect(page.locator('uni-page-body')).toBeVisible()
   expect(consoleErrors,
-    'H5 首次访问不应调用仅微信小程序支持的定位 API').toEqual([])
+    'H5 辅助测试使用固定站点时不应触发微信定位 API').toEqual([])
 })
