@@ -27,7 +27,7 @@ import com.ruoyi.system.service.IAppGoldService;
 import com.ruoyi.system.service.IAppPayLogService;
 import com.ruoyi.system.service.IAppUserCardService;
 import com.ruoyi.system.service.IAppUserInfoService;
-import com.wechat.pay.java.core.RSAAutoCertificateConfig;
+import com.wechat.pay.java.core.Config;
 import com.wechat.pay.java.core.exception.HttpException;
 import com.wechat.pay.java.core.exception.MalformedMessageException;
 import com.wechat.pay.java.service.payments.jsapi.JsapiServiceExtension;
@@ -57,7 +57,7 @@ public class AppUserCardServiceImpl implements IAppUserCardService
     @Autowired
     private IAppUserInfoService userInfoService;
     @Autowired
-    private RSAAutoCertificateConfig rsaAutoCertificateConfig;
+    private Config wxPayConfigRuntime;
 
     @Autowired
     private IAppPayLogService payLogService;
@@ -195,7 +195,7 @@ public class AppUserCardServiceImpl implements IAppUserCardService
             AppUserInfo userInfo = userInfoService.selectAppUserInfoByUserId(userCard.getUserId());
             JsapiServiceExtension service =
                     new JsapiServiceExtension.Builder()
-                            .config(rsaAutoCertificateConfig)
+                            .config(wxPayConfigRuntime)
                             // 不填默认为RSA
                             .signType("RSA")
                             .build();
@@ -377,7 +377,7 @@ public class AppUserCardServiceImpl implements IAppUserCardService
         }
         String outTradeNo = "10" + DateUtils.parseDateToStr(DateUtils.YYYYMMDDHHMMSS, card.getCreateTime());
         try {
-            RefundService service = new RefundService.Builder().config(rsaAutoCertificateConfig).build();
+            RefundService service = new RefundService.Builder().config(wxPayConfigRuntime).build();
             String outRefundNo = "RF10" + DateUtils.dateTimeNow() + recordId;
             CreateRequest refundRequest = new CreateRequest();
             refundRequest.setOutTradeNo(outTradeNo);

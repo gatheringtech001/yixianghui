@@ -1,4 +1,8 @@
 .DS_Store
+**/target/
+.e2e-runtime/
+shop-mnp/unpackage/
+e2e/miniprogram/node_modules/
 
 # Local runtime credentials
 /lankong-admin/src/main/resources/application.yml

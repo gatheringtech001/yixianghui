@@ -557,7 +557,7 @@
           if (res.data.optionList) {
             console.log('options', res.data.optionList);
             const filteredSkuGroupList = res.data.optionList
-              ?.filter(option => option.skuType === '200' && this.isSkuEnabled(option));
+              .filter(option => option.skuType === '200' && this.isSkuEnabled(option));
 
             if (filteredSkuGroupList && filteredSkuGroupList.length > 0) {
               this.skuGroupList = filteredSkuGroupList.map((group, groupIndex) => {

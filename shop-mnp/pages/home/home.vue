@@ -559,7 +559,7 @@
 			getTravelNavbarId() {
 				const navList = (uni.getStorageSync('cls') || []).filter(v => v.parentId == 0)
 				const travelNav = navList.find(v => v.categoryName === '全国旅居')
-				return travelNav ? travelNav.categoryId : navList[0]?.categoryId
+				return travelNav ? travelNav.categoryId : (navList[0] && navList[0].categoryId)
 			},
 			navigateToServicePage(subCategoryId, navbarId) {
 				const targetNavbarId = navbarId || this.getTravelNavbarId()

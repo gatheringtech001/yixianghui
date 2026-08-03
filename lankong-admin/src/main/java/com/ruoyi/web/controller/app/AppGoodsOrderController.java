@@ -10,7 +10,7 @@ import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.system.domain.*;
 import com.ruoyi.system.service.*;
 import com.ruoyi.web.core.config.WxPayConfig;
-import com.wechat.pay.java.core.RSAAutoCertificateConfig;
+import com.wechat.pay.java.core.Config;
 import com.wechat.pay.java.core.exception.HttpException;
 import com.wechat.pay.java.core.exception.MalformedMessageException;
 import com.wechat.pay.java.service.payments.jsapi.JsapiServiceExtension;
@@ -63,7 +63,7 @@ public class AppGoodsOrderController extends BaseController
     private WxPayConfig wxPayConfig;
 
     @Autowired
-    private RSAAutoCertificateConfig rsaAutoCertificateConfig;
+    private Config wxPayConfigRuntime;
 
     /**
      * 查询商品订单列表
@@ -155,7 +155,7 @@ public class AppGoodsOrderController extends BaseController
         AjaxResult ajaxResult = AjaxResult.success();
         JsapiServiceExtension service =
                 new JsapiServiceExtension.Builder()
-                        .config(rsaAutoCertificateConfig)
+                        .config(wxPayConfigRuntime)
                         // 不填默认为RSA
                         .signType("RSA")
                         .build();

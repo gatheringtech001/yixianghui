@@ -94,7 +94,7 @@
 			this.getGoods()
 		},
 		onShow() {
-			const prevDeptId = this.siteInfo?.deptId
+			const prevDeptId = this.siteInfo && this.siteInfo.deptId
 			let site = uni.getStorageSync('site')
 			if (!site || site == undefined) {
 				this.getCurrentLocation()

@@ -150,17 +150,17 @@
 					const user = res.data || {}
 					syncConsultantStorage(res.consultant)
 					const consultant = res.consultant
-					this.userName = consultant?.consultantName || user.nickName || '用户名称'
-					this.consultantNo = consultant?.consultantNo || ''
-					this.mobile = consultant?.mobile || user.phonenumber || ''
+					this.userName = (consultant && consultant.consultantName) || user.nickName || '用户名称'
+					this.consultantNo = (consultant && consultant.consultantNo) || ''
+					this.mobile = (consultant && consultant.mobile) || user.phonenumber || ''
 					this.avatar = normalizeImageUrl(this.host, user.avatar) || '/static/img/user_pic.jpg'
 				} catch (e) {
 					const userInfo = uni.getStorageSync('userInfo')
 					const consultant = uni.getStorageSync('consultant')
 					if (userInfo) {
-						this.userName = consultant?.consultantName || userInfo.nickName || '用户名称'
-						this.consultantNo = consultant?.consultantNo || ''
-						this.mobile = consultant?.mobile || userInfo.phonenumber || ''
+						this.userName = (consultant && consultant.consultantName) || userInfo.nickName || '用户名称'
+						this.consultantNo = (consultant && consultant.consultantNo) || ''
+						this.mobile = (consultant && consultant.mobile) || userInfo.phonenumber || ''
 						this.avatar = normalizeImageUrl(this.host, userInfo.avatar) || '/static/img/user_pic.jpg'
 					}
 				}

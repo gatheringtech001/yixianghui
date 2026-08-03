@@ -27,7 +27,7 @@ import com.ruoyi.system.service.IAppActivityOrderService;
 import com.ruoyi.system.service.IAppGoldService;
 import com.ruoyi.system.service.IAppPayLogService;
 import com.ruoyi.system.service.IAppUserInfoService;
-import com.wechat.pay.java.core.RSAAutoCertificateConfig;
+import com.wechat.pay.java.core.Config;
 import com.wechat.pay.java.core.exception.HttpException;
 import com.wechat.pay.java.core.exception.MalformedMessageException;
 import com.wechat.pay.java.service.payments.jsapi.JsapiService;
@@ -80,7 +80,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
     private AppPayRefundLogMapper appPayRefundLogMapper;
 
     @Autowired
-    private RSAAutoCertificateConfig rsaAutoCertificateConfig;
+    private Config wxPayConfigRuntime;
 
     @Autowired
     private IAppGoldService goldService;
@@ -475,7 +475,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
             throw new ServiceException("支付单号缺失，无法退款");
         }
         try {
-            RefundService service = new RefundService.Builder().config(rsaAutoCertificateConfig).build();
+            RefundService service = new RefundService.Builder().config(wxPayConfigRuntime).build();
             String outRefundNo = "RF30" + DateUtils.dateTimeNow() + order.getOrderId();
             CreateRequest refundRequest = new CreateRequest();
             refundRequest.setOutTradeNo(order.getOrderNo());
@@ -556,7 +556,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
             }
 
             JsapiServiceExtension service = new JsapiServiceExtension.Builder()
-                    .config(rsaAutoCertificateConfig)
+                    .config(wxPayConfigRuntime)
                     .signType("RSA")
                     .build();
 
@@ -737,7 +737,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
             return AjaxResult.error("未找到支付记录");
         }
         try {
-            JsapiService service = new JsapiService.Builder().config(rsaAutoCertificateConfig).build();
+            JsapiService service = new JsapiService.Builder().config(wxPayConfigRuntime).build();
             QueryOrderByOutTradeNoRequest queryRequest = new QueryOrderByOutTradeNoRequest();
             queryRequest.setMchid(merchantId);
             queryRequest.setOutTradeNo(payLog.getPayNo());
@@ -819,7 +819,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
             return AjaxResult.error("退款单号缺失");
         }
         try {
-            RefundService service = new RefundService.Builder().config(rsaAutoCertificateConfig).build();
+            RefundService service = new RefundService.Builder().config(wxPayConfigRuntime).build();
             QueryByOutRefundNoRequest queryRequest = new QueryByOutRefundNoRequest();
             queryRequest.setOutRefundNo(refundLog.getAgentRefundNo());
             Refund refund = service.queryByOutRefundNo(queryRequest);

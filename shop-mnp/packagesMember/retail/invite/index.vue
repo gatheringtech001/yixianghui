@@ -79,14 +79,14 @@
 					const user = res.data || {}
 					const consultant = res.consultant || uni.getStorageSync('consultant')
 					this.inviteUserId = user.userId || null
-					this.userName = consultant?.consultantName || user.nickName || '用户名称'
+					this.userName = (consultant && consultant.consultantName) || user.nickName || '用户名称'
 					this.avatar = normalizeImageUrl(this.host, user.avatar) || '/static/img/user_pic.jpg'
 				} catch (e) {
 					const userInfo = uni.getStorageSync('userInfo')
 					const consultant = uni.getStorageSync('consultant')
 					if (userInfo) {
 						this.inviteUserId = userInfo.userId || null
-						this.userName = consultant?.consultantName || userInfo.nickName || '用户名称'
+						this.userName = (consultant && consultant.consultantName) || userInfo.nickName || '用户名称'
 						this.avatar = normalizeImageUrl(this.host, userInfo.avatar) || '/static/img/user_pic.jpg'
 					}
 				}

@@ -343,7 +343,7 @@
 			if (!this.goodsCatrgoryList.length) {
 				if (this.isActivityTab) {
 					const item = this.navbarList.find(v => v.categoryId == this.navbarSelect)
-					this.getActivityCategoryFn(item?.linkId || 0)
+					this.getActivityCategoryFn((item && item.linkId) || 0)
 				} else {
 					this.getGoodsCatrgoryFn(this.navbarSelect)
 				}
@@ -491,7 +491,7 @@
 			},
 			switchSiteFn() {
 				const site = this.siteData || uni.getStorageSync('site')
-				if (!site?.deptId) {
+				if (!site || !site.deptId) {
 					uni.showToast({
 						title: '正在获取定位，请稍后再试',
 						icon: 'none'

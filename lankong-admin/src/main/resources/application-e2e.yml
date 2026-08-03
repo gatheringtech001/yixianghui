@@ -1,0 +1,70 @@
+ruoyi:
+  profile: ${E2E_UPLOAD_DIR:/tmp/yixianghui-e2e/uploads}
+
+server:
+  port: ${E2E_BACKEND_PORT:18080}
+
+spring:
+  devtools:
+    restart:
+      enabled: false
+  quartz:
+    auto-startup: false
+  redis:
+    host: 127.0.0.1
+    port: ${E2E_REDIS_PORT:16379}
+    database: 15
+    password:
+    timeout: 3s
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driverClassName: com.mysql.cj.jdbc.Driver
+    druid:
+      master:
+        url: jdbc:mysql://127.0.0.1:${E2E_DB_PORT:3306}/${E2E_DB_NAME:yixianghui_e2e}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8
+        username: ${E2E_DB_USERNAME:yixianghui_e2e}
+        password: ${E2E_DB_PASSWORD:}
+      slave:
+        enabled: false
+        url:
+        username:
+        password:
+      initialSize: 1
+      minIdle: 1
+      maxActive: 4
+      maxWait: 10000
+      connectTimeout: 5000
+      socketTimeout: 10000
+      timeBetweenEvictionRunsMillis: 60000
+      minEvictableIdleTimeMillis: 300000
+      maxEvictableIdleTimeMillis: 900000
+      validationQuery: SELECT 1
+      testWhileIdle: true
+      testOnBorrow: false
+      testOnReturn: false
+      webStatFilter:
+        enabled: false
+      statViewServlet:
+        enabled: false
+
+swagger:
+  enabled: false
+  pathMapping: /
+
+wx:
+  mnp:
+    appId: ${E2E_WX_APP_ID:}
+    appSecret: ${E2E_WX_APP_SECRET:}
+  pay:
+    enabled: false
+    appId: disabled
+    merchantId: disabled
+    privateKey: disabled
+    merchantSerialNumber: disabled
+    apiV3Key: disabled
+    payNotifyUrl: http://127.0.0.1/disabled
+    refundNotifyUrl: http://127.0.0.1/disabled
+
+tencent:
+  map:
+    key:

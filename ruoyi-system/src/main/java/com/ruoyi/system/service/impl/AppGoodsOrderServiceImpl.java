@@ -24,7 +24,6 @@ import com.ruoyi.system.domain.*;
 import com.ruoyi.system.mapper.*;
 import com.ruoyi.system.service.*;
 import com.wechat.pay.java.core.Config;
-import com.wechat.pay.java.core.RSAAutoCertificateConfig;
 import com.wechat.pay.java.core.RSAConfig;
 import com.wechat.pay.java.core.RSAPublicKeyConfig;
 import com.wechat.pay.java.core.auth.Credential;
@@ -83,7 +82,9 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     @Autowired
     private IAppUserInfoService userInfoService;
     @Autowired
-    private RSAAutoCertificateConfig rsaAutoCertificateConfig;
+    private Config wxPayConfigRuntime;
+    @Autowired
+    private NotificationConfig wxPayNotificationConfig;
     @Autowired
     private IAppPayLogService payLogService;
     @Autowired
@@ -120,16 +121,6 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     /** 商户号 */
     @Value("${wx.pay.merchantId}")
     private String merchantId;
-    /** 商户API私钥路径 */
-    @Value("${wx.pay.privateKey}")
-    public String privateKey;
-//    public static String privateKeyPath = "D:\\home\\shzxj\\cert\\wxpay\\apiclient_key.pem";
-    /** 商户证书序列号 */
-    @Value("${wx.pay.merchantSerialNumber}")
-    public String merchantSerialNumber;
-    /** 商户APIV3密钥 */
-    @Value("${wx.pay.apiV3Key}")
-    public String apiV3Key;
     /** 支付（回调）通知地址 */
     @Value("${wx.pay.payNotifyUrl}")
     public String payNotifyUrl;
@@ -458,21 +449,12 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             payLog = payLogService.selectAppPayLogByPayNo(goodsOrder.getOrderNo());
 
             AppUserInfo userInfo = userInfoService.selectAppUserInfoByUserId(goodsOrder.getUserId());
-            // 初始化商户配置
-            Config config =
-                    new RSAAutoCertificateConfig.Builder()
-                            .merchantId(merchantId)
-                            .privateKeyFromPath(privateKey)
-                            .merchantSerialNumber(merchantSerialNumber)
-                            .apiV3Key(apiV3Key)
-                            .build();
-
             //System.setProperty("wechat.pay.java.debug", "true");
 
             // 构建service
             JsapiServiceExtension service =
                     new JsapiServiceExtension.Builder()
-                            .config(rsaAutoCertificateConfig)
+                            .config(wxPayConfigRuntime)
                             // 不填默认为RSA
                             .signType("RSA")
                             .build();
@@ -604,7 +586,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                     return AjaxResult.error("退款金额不能大于实付金额");
                 }
 
-                RefundService service = new RefundService.Builder().config(rsaAutoCertificateConfig).build();
+                RefundService service = new RefundService.Builder().config(wxPayConfigRuntime).build();
                 String outRefundNo = "RF" + DateUtils.dateTimeNow() + appGoodsOrderAfter.getAfterId();
                 CreateRequest refundRequest = new CreateRequest();
                 refundRequest.setOutTradeNo(appGoodsOrderAfter.getOutOrderNo());
@@ -797,17 +779,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                 .body(ServletUtils.getBody(request))
                 .build();
 
-        // 初始化 NotificationParser
-        // 初始化商户配置
-        RSAAutoCertificateConfig config =
-                new RSAAutoCertificateConfig.Builder()
-                        .merchantId(merchantId)
-                        // 使用 com.wechat.pay.java.core.util 中的函数从本地文件中加载商户私钥，商户私钥会用来生成请求的签名
-                        .privateKeyFromPath(privateKey)
-                        .merchantSerialNumber(merchantSerialNumber)
-                        .apiV3Key(apiV3Key)
-                        .build();
-        NotificationParser parser = new NotificationParser(config);
+        NotificationParser parser = new NotificationParser(wxPayNotificationConfig);
         // 以支付通知回调为例，验签、解密并转换成 Transaction
         log.info("验签参数：{}", requestParam);
         Transaction transaction = parser.parse(requestParam, Transaction.class);
@@ -1011,7 +983,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         }
 
         try {
-            JsapiService service = new JsapiService.Builder().config(rsaAutoCertificateConfig).build();
+            JsapiService service = new JsapiService.Builder().config(wxPayConfigRuntime).build();
             QueryOrderByOutTradeNoRequest queryRequest = new QueryOrderByOutTradeNoRequest();
             queryRequest.setMchid(merchantId);
             queryRequest.setOutTradeNo(payLog.getPayNo());
@@ -1336,14 +1308,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                     .body(ServletUtils.getBody(request))
                     .build();
 
-            RSAAutoCertificateConfig config =
-                    new RSAAutoCertificateConfig.Builder()
-                            .merchantId(merchantId)
-                            .privateKeyFromPath(privateKey)
-                            .merchantSerialNumber(merchantSerialNumber)
-                            .apiV3Key(apiV3Key)
-                            .build();
-            NotificationParser parser = new NotificationParser(config);
+            NotificationParser parser = new NotificationParser(wxPayNotificationConfig);
             log.info("退款验签参数：{}", requestParam);
             RefundNotification refundNotification = parser.parse(requestParam, RefundNotification.class);
             log.info("退款回调结果：{}", refundNotification);
@@ -1469,7 +1434,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             return AjaxResult.error("退款单号缺失");
         }
         try {
-            RefundService service = new RefundService.Builder().config(rsaAutoCertificateConfig).build();
+            RefundService service = new RefundService.Builder().config(wxPayConfigRuntime).build();
             QueryByOutRefundNoRequest queryRequest = new QueryByOutRefundNoRequest();
             queryRequest.setOutRefundNo(refundLog.getAgentRefundNo());
             Refund refund = service.queryByOutRefundNo(queryRequest);

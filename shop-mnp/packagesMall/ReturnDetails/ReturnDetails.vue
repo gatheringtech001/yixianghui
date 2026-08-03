@@ -197,7 +197,7 @@ import { getOrderDetail,refundOrder } from '@/api/member/index'
 								for (let index in lists) {
 									const item = lists[index];
 									const fileSize = item.size;
-									const fileName = item.name ?? '';										
+									const fileName = item.name || '';
 									if(!this.isAssetTypeAnImage(item.name)) {
 										this.$.msg('不允许该文件类型上传');						
 										return false
