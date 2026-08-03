@@ -3,6 +3,9 @@
 .e2e-runtime/
 shop-mnp/unpackage/
 e2e/miniprogram/node_modules/
+e2e/admin/node_modules/
+e2e/admin/.auth/
+outputs/
 
 # Local runtime credentials
 /lankong-admin/src/main/resources/application.yml

@@ -1,0 +1,13 @@
+{
+  "name": "yixianghui-admin-e2e",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test tests/public.spec.cjs tests/core.spec.cjs",
+    "test:h5": "playwright test --project=h5 tests/h5.spec.cjs",
+    "report": "node scripts/generate-report.cjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1"
+  }
+}
