@@ -76,7 +76,7 @@ async function captureScreenshot(miniProgram, fileName) {
   return outputPath
 }
 
-test('home loads backend data and search behavior works', { timeout: 120000 }, async testContext => {
+test('home loads backend site goods and search behavior works', { timeout: 120000 }, async testContext => {
   await fs.mkdir(resultsDir, { recursive: true })
   const projectConfig = JSON.parse(await fs.readFile(
     path.join(projectPath, 'project.config.json'),
@@ -107,8 +107,8 @@ test('home loads backend data and search behavior works', { timeout: 120000 }, a
     await runStep(testContext, {
       label: 'seed local site selection',
       action: () => miniProgram.callWxMethod('setStorageSync', 'site', {
-        deptId: 100,
-        deptName: 'E2E Test Site'
+        deptId: 108,
+        deptName: '昆明'
       })
     })
     const home = await runStep(testContext, {
@@ -125,6 +125,18 @@ test('home loads backend data and search behavior works', { timeout: 120000 }, a
       action: () => waitUntil(async () => {
         const state = await getCurrentPageState(miniProgram, ['navList'])
         return Array.isArray(state.navList) && state.navList.length > 0
+      })
+    })
+    await runStep(testContext, {
+      label: 'wait for backend site goods',
+      action: () => waitUntil(async () => {
+        const state = await getCurrentPageState(miniProgram, [
+          'currentCityDeptId',
+          'currentGoodsList'
+        ])
+        return state.currentCityDeptId === 108 &&
+          Array.isArray(state.currentGoodsList) &&
+          state.currentGoodsList.length > 0
       })
     })
     await runStep(testContext, {

@@ -78,6 +78,34 @@ test('H5-HOME-002 H5 热门城市按站点展示后端上架商品', async ({ pa
     '广州站点应至少展示一个上架商品').toBeVisible()
 })
 
+test('H5-ASSET-001 H5 热门城市图片可由本地后端访问', async ({ page, request }) => {
+  const cardsResponse = await request.get(
+    'http://127.0.0.1:18080/api/mnp/index/get_ad_content_list?positionId=6'
+  )
+  const cardsBody = await cardsResponse.json()
+  const cityImagePaths = new Set((cardsBody.data || []).map(item => item.adImage))
+  const imageResponses = await Promise.all([...cityImagePaths].map(async pathname => {
+    const response = await request.get(`http://127.0.0.1:18080/api${pathname}`)
+    return {
+      pathname,
+      status: response.status(),
+      contentType: response.headers()['content-type'] || ''
+    }
+  }))
+  expect(imageResponses).toEqual([...cityImagePaths].map(pathname => ({
+    pathname,
+    status: 200,
+    contentType: expect.stringMatching(/^image\//)
+  })))
+
+  await seedH5Site(page)
+  await page.goto('/')
+  await expect(page.locator('.city-image')).toHaveCount(cityImagePaths.size)
+  await expect.poll(() => page.locator('.city-image > div').evaluateAll(nodes => (
+    nodes.every(node => getComputedStyle(node).backgroundImage !== 'none')
+  ))).toBe(true)
+})
+
 test('H5-SITE-001 H5 使用固定测试站点且不触发微信定位授权', async ({ page }) => {
   const consoleErrors = []
   page.on('console', message => {

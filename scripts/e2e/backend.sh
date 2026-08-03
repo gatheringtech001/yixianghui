@@ -15,6 +15,8 @@ MAVEN_BIN="${MAVEN_BIN:-/opt/homebrew/bin/mvn}"
 JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@11/libexec/openjdk.jdk/Contents/Home}"
 JAVA_BIN="${JAVA_HOME}/bin/java"
 APP_JAR="${REPO_ROOT}/lankong-admin/target/lankong-admin.jar"
+CURL_BIN="${CURL_BIN:-/usr/bin/curl}"
+E2E_ASSET_BASE_URL="${E2E_ASSET_BASE_URL:-https://shzxj.lk01.cn/api}"
 
 export JAVA_HOME
 export PATH="${JAVA_HOME}/bin:/opt/homebrew/bin:/usr/bin:/bin"
@@ -99,17 +101,45 @@ disable_unavailable_services() {
   "
 }
 
+sync_city_assets() {
+  local upload_dir="${E2E_UPLOAD_DIR:-/tmp/yixianghui-e2e/uploads}"
+  local asset_path
+  local target
+  local assets=(
+    '/profile/upload/2025/09/14/贵州_20250914153850A009.jpg'
+    '/profile/upload/2025/09/14/云南_20250914160307A010.png'
+    '/profile/upload/2025/09/14/广州_20250914160323A011.png'
+    '/profile/upload/2025/09/14/广西_20250914160651A012.png'
+    '/profile/upload/2025/09/14/全国_20250914161325A013.png'
+  )
+
+  for asset_path in "${assets[@]}"; do
+    target="${upload_dir}${asset_path#/profile}"
+    if [[ -s "${target}" ]]; then
+      continue
+    fi
+    mkdir -p "$(dirname "${target}")"
+    "${CURL_BIN}" --fail --silent --show-error --location \
+      --connect-timeout 10 --max-time 60 \
+      --output "${target}.tmp" "${E2E_ASSET_BASE_URL}${asset_path}"
+    mv "${target}.tmp" "${target}"
+  done
+  echo "City image assets are ready."
+}
+
 setup() {
   require_executable "${MYSQL_BIN}"
   require_executable "${REDIS_SERVER_BIN}"
   require_executable "${REDIS_CLI_BIN}"
   require_executable "${MAVEN_BIN}"
   require_executable "${JAVA_BIN}"
+  require_executable "${CURL_BIN}"
   mkdir -p "${RUNTIME_DIR}/logs"
   start_mysql
   start_redis
   setup_database
   disable_unavailable_services
+  sync_city_assets
   echo "Backend dependencies are ready."
 }
 

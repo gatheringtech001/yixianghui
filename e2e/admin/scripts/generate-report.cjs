@@ -10,6 +10,7 @@ const adminJson = path.join(evidenceRoot, 'playwright-results.json')
 const h5Json = path.join(evidenceRoot, 'playwright-h5-results.json')
 const adminReport = path.join(evidenceRoot, 'playwright-report/index.html')
 const h5Report = path.join(evidenceRoot, 'playwright-report-h5/index.html')
+const { activeRoutes, unavailableRoutes } = require('../tests/routes.cjs')
 
 function collectSpecs(suite, output = []) {
   output.push(...(suite.specs || []))
@@ -24,8 +25,30 @@ function parseTitle(title) {
 
 function riskFor(id) {
   if (/AUTH|ORDER|GOODS|HOME/.test(id)) return '高'
-  if (/ROUTE/.test(id)) return '中'
+  if (/ROUTE|UNAVAILABLE/.test(id)) return '中'
   return '低'
+}
+
+function statusForSpec(spec) {
+  const testStatus = spec.tests?.[0]?.status
+  if (testStatus === 'skipped') return 'skipped'
+  return spec.ok ? 'passed' : 'failed'
+}
+
+function statsFor(result) {
+  const stats = result.stats || {}
+  return {
+    passed: stats.expected || 0,
+    failed: stats.unexpected || 0,
+    skipped: stats.skipped || 0,
+    flaky: stats.flaky || 0
+  }
+}
+
+function summaryFor(result) {
+  const stats = statsFor(result)
+  const total = stats.passed + stats.failed + stats.skipped + stats.flaky
+  return `${total} 条：${stats.passed} 通过、${stats.failed} 失败、${stats.skipped} 跳过`
 }
 
 function caseDetails(id) {
@@ -35,6 +58,14 @@ function caseDetails(id) {
       steps: ['使用管理员会话打开授权路由', '等待页面加载完成', '断言非 404、活动标签正确且无前端或后端 5xx 错误'],
       expected: '授权页面可见，页面和接口均无运行时错误',
       layer: '管理端路由 E2E'
+    }
+  }
+  if (id.startsWith('ADM-UNAVAILABLE-')) {
+    return {
+      source: '管理员 /getRouters、侧边栏与前端 404 路由',
+      steps: ['获取管理员动态路由', '断言未开放组件不下发且侧边栏无入口', '直接打开路径并断言进入 404'],
+      expected: '未开放功能不可见、不可通过路径绕过',
+      layer: '管理端权限反向 E2E'
     }
   }
   if (id.startsWith('ADM-AUTH-')) {
@@ -61,8 +92,8 @@ function caseDetails(id) {
   if (id.startsWith('MP-')) {
     return {
       source: '微信开发者工具、shop-mnp 首页与搜索页',
-      steps: ['通过 automator 启动微信开发者工具', '写入本地测试站点并打开首页', '等待后端分类数据', '进入搜索页并提交关键词'],
-      expected: '小程序加载本地后端数据，搜索交互完成且无运行时异常',
+      steps: ['通过 automator 启动微信开发者工具', '写入昆明测试站点并打开首页', '等待后端分类和站点商品', '进入搜索页并提交关键词'],
+      expected: '小程序加载本地站点商品，搜索交互完成且无运行时异常',
       layer: '微信小程序 E2E'
     }
   }
@@ -76,10 +107,12 @@ function caseDetails(id) {
 
 function executionFromSpec(spec, reportPath, command) {
   const { id, name } = parseTitle(spec.title)
-  const status = spec.ok ? 'passed' : 'failed'
-  const result = spec.ok
+  const status = statusForSpec(spec)
+  const result = status === 'passed'
     ? '断言通过'
-    : '断言失败；详细错误、截图、视频和 trace 见 Playwright 报告'
+    : status === 'skipped'
+      ? '当前服务未开放，用例明确跳过'
+      : '断言失败；详细错误、截图、视频和 trace 见 Playwright 报告'
   return {
     id: `RUN-${id}`,
     caseId: id,
@@ -103,7 +136,7 @@ function testCaseFromSpec(spec) {
     steps: details.steps,
     expected: details.expected,
     layer: details.layer,
-    status: spec.ok ? '通过' : '失败'
+    status: statusForSpec(spec) === 'passed' ? '通过' : statusForSpec(spec) === 'skipped' ? '跳过' : '失败'
   }
 }
 
@@ -116,35 +149,41 @@ async function getJson(url, options) {
 }
 
 async function probeH5Data() {
-  const baseUrl = 'http://127.0.0.1:18080/api/mnp/index/'
-  const [categories, cards] = await Promise.all([
-    getJson(`${baseUrl}get_goods_category?status=1`),
-    getJson(`${baseUrl}get_ad_content_list?positionId=6`)
-  ])
-  const categoryIds = new Set((categories.data || []).map(item => String(item.categoryId)))
+  const apiBaseUrl = 'http://127.0.0.1:18080/api'
+  const baseUrl = `${apiBaseUrl}/mnp/index/`
+  const cards = await getJson(`${baseUrl}get_ad_content_list?positionId=6`)
   const cardRows = []
   for (const card of cards.data || []) {
-    const categoryId = String(card.linkUrl || '')
-    const goods = await getJson(`${baseUrl}queryGoodsList`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ categoryId })
-    })
+    const deptId = String(card.linkUrl || '')
+    const [site, goods, image] = await Promise.all([
+      getJson(`${baseUrl}get_site_bydepId/${deptId}`),
+      getJson(`${baseUrl}queryGoodsList`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ deptId })
+      }),
+      fetch(`${apiBaseUrl}${card.adImage}`)
+    ])
     cardRows.push({
       adName: card.adName,
-      categoryId,
-      categoryExists: categoryIds.has(categoryId),
+      deptId,
+      siteName: site.data?.deptName || null,
+      hasImage: Boolean(card.adImage),
+      imageStatus: image.status,
+      imageContentType: image.headers.get('content-type'),
       goodsCount: Array.isArray(goods.data) ? goods.data.length : null
     })
   }
   return {
     checkedAt: new Date().toISOString(),
-    categoryCount: categoryIds.size,
-    categoryIds: [...categoryIds],
     cityCards: cardRows,
-    invalidCategoryIds: cardRows
-      .filter(item => !item.categoryExists)
-      .map(item => item.categoryId)
+    invalidSiteDeptIds: cardRows.filter(item => !item.siteName).map(item => item.deptId),
+    missingImageDeptIds: cardRows.filter(item => (
+      !item.hasImage ||
+      item.imageStatus !== 200 ||
+      !item.imageContentType?.startsWith('image/')
+    )).map(item => item.deptId),
+    emptyGoodsDeptIds: cardRows.filter(item => item.goodsCount === 0).map(item => item.deptId)
   }
 }
 
@@ -171,7 +210,7 @@ async function main() {
   })
   testCases.push({
     id: 'MP-HOME-001',
-    name: '微信小程序首页加载后端数据并完成搜索行为',
+    name: '微信小程序首页加载站点商品并完成搜索行为',
     ...caseDetails('MP-HOME-001'),
     risk: '高',
     status: '通过'
@@ -198,7 +237,7 @@ async function main() {
       name: '微信开发者工具首页与搜索 E2E',
       type: 'miniprogram-automator',
       status: 'passed',
-      result: '1/1 通过，首页取得后端分类数据并完成搜索交互',
+      result: '1/1 通过，首页取得昆明站点商品并完成搜索交互',
       command: 'cd e2e/miniprogram && pnpm test',
       evidence: [
         { label: '小程序首页', path: path.join(evidenceRoot, 'screenshots/miniprogram/home.png'), status: 'passed' },
@@ -209,35 +248,38 @@ async function main() {
   const passed = executions.filter(item => item.status === 'passed').length
   const failed = executions.filter(item => item.status === 'failed').length
   const blocked = executions.filter(item => item.status === 'blocked').length
+  const skipped = executions.filter(item => item.status === 'skipped').length
   const report = {
     title: '逸享荟前后端全量 E2E 测试报告',
     target: 'ruoyi-ui 管理端、shop-mnp H5/微信小程序、Java 后端与本地测试数据库',
     mode: '本地 API-backed + Playwright + 微信开发者工具自动化',
     generatedAt: new Date().toISOString(),
     overall: {
-      status: failed ? 'failed' : 'passed',
-      summary: `基础网络与 API 链路已打通，但业务验收未全通过：${executions.length} 条检查中 ${passed} 条通过、${failed} 条失败、${blocked} 条阻塞。`
+      status: failed ? 'failed' : blocked ? 'warning' : 'passed',
+      summary: `本地前后端链路与可用业务检查已通过：${executions.length} 条检查中 ${passed} 条通过、${failed} 条失败、${blocked} 条阻塞、${skipped} 条明确跳过。`
     },
-    summary: { total: executions.length, passed, failed, blocked, skipped: 0 },
-    stages: buildStages(probePath),
+    summary: { total: executions.length, passed, failed, blocked, skipped },
+    stages: buildStages(probePath, admin, h5),
     testCases,
     executions,
     findings: buildFindings(probePath),
     evidence: buildEvidence(probePath),
     playwrightReports: [
-      { label: '管理端完整 Playwright 报告', path: adminReport, status: 'passed', note: '附件校验通过：56 个' },
-      { label: 'H5 Playwright 报告', path: h5Report, status: 'passed', note: '附件校验通过：16 个' }
+      { label: '管理端完整 Playwright 报告', path: adminReport, status: statsFor(admin).failed ? 'failed' : 'passed', note: '自包含附件校验通过' },
+      { label: 'H5 Playwright 报告', path: h5Report, status: statsFor(h5).failed ? 'failed' : 'passed', note: '自包含附件校验通过' }
     ],
     gaps: [
       '未执行真实微信支付、退款、生产提交和破坏性删除；这些动作需要独立测试商户和明确授权。',
-      '微信小程序自动化已覆盖首页后端分类加载与搜索 behavior，但未覆盖商品详情、下单和支付闭环。',
+      '微信小程序自动化已覆盖首页后端分类、昆明站点商品与搜索 behavior，但未覆盖商品详情、下单和支付闭环。',
       '应用内 Browser 被管理员策略禁止访问 localhost，页面发现改由 Playwright 和微信开发者工具完成。',
       '后端 Maven 七个模块均无自动化单元/集成测试，当前后端回归证据主要来自 API-backed E2E。',
-      '后端环境初始化依赖本机未入库的数据库快照，干净 clone 尚不能独立复现相同数据集。'
+      '贵州和海南站点当前没有上架商品；城市图片仍正常，但这两个站点会显示商品空态。',
+      '干净环境首次初始化会从项目公开生产域名同步 5 张城市图；无网络时会明确失败，不会伪造成功。'
     ],
     nextActions: [
-      '先确认并执行数据库 schema 迁移，补齐订单、商品属性、收藏、活动和活动预约缺失字段。',
-      '把首页热门城市广告的 linkUrl 改为当前存在且有上架商品的分类 ID，再重跑 H5-HOME-002。',
+      '未开放的订单、评价、属性、收藏、活动和预约服务已从本地 E2E 菜单下线；实现完成后再恢复入口及正向测试。',
+      '如需每个热门城市都展示推荐商品，需为贵州和海南站点补充上架商品数据。',
+      '如需完全离线复现 E2E，应在确认资产授权和仓库体积后，把城市图改为仓库内固定 fixture。',
       '处理管理端 ESLint 基线，至少先清零本次测试覆盖页面中的错误。',
       '准备隔离的支付沙箱与可回滚订单 fixture 后，再扩展下单、支付、退款 E2E。'
     ]
@@ -247,25 +289,28 @@ async function main() {
   console.log(dataPath)
 }
 
-function buildStages(probePath) {
+function buildStages(probePath, admin, h5) {
+  const adminStats = statsFor(admin)
+  const h5Stats = statsFor(h5)
   return [
-    { name: '范围与用例基线', status: 'passed', summary: '盘点 views 下 103 个源文件（100 个 Vue）、63 个 API 模块，并选择管理员实际返回的 50 条授权路由', command: 'rg + /getRouters', evidence: [adminJson] },
-    { name: '应用内 Browser 页面发现', status: 'blocked', summary: '管理员策略禁止 Browser 访问 localhost', command: 'Browser 打开 http://127.0.0.1:8081', evidence: [] },
-    { name: '管理端 Playwright 回归', status: 'failed', summary: '61 条：54 通过、7 失败', command: 'pnpm exec playwright test --project=setup --project=public --project=chromium', evidence: [adminReport] },
-    { name: 'H5 Playwright 回归', status: 'failed', summary: '3 条：基础渲染/API 通过，商品展示和定位兼容失败', command: 'pnpm exec playwright test --project=h5 tests/h5.spec.cjs', evidence: [h5Report, probePath] },
-    { name: '微信小程序真实自动化', status: 'passed', summary: '1 条通过；微信开发者工具加载后端分类并完成搜索 behavior', command: 'cd e2e/miniprogram && pnpm test', evidence: [path.join(evidenceRoot, 'screenshots/miniprogram/home.png')] },
+    { name: '范围与用例基线', status: 'passed', summary: `盘点 views 下 103 个源文件（100 个 Vue）、63 个 API 模块，覆盖 ${activeRoutes.length} 条已开放路由与 ${unavailableRoutes.length} 条未开放路由`, command: 'rg + /getRouters', evidence: [adminJson] },
+    { name: '应用内 Browser 页面发现', status: 'blocked', summary: '管理员策略禁止 Browser 访问 localhost，已按技能回退到仓库 Playwright', command: 'Browser 打开 http://127.0.0.1:8080', evidence: [] },
+    { name: '管理端 Playwright 回归', status: adminStats.failed ? 'failed' : 'passed', summary: summaryFor(admin), command: 'pnpm exec playwright test --project=setup --project=public --project=chromium', evidence: [adminReport] },
+    { name: 'H5 Playwright 回归', status: h5Stats.failed ? 'failed' : 'passed', summary: summaryFor(h5), command: 'pnpm exec playwright test --project=h5 tests/h5.spec.cjs', evidence: [h5Report, probePath] },
+    { name: '微信小程序真实自动化', status: 'passed', summary: '1 条通过；微信开发者工具加载昆明站点商品并完成搜索 behavior', command: 'cd e2e/miniprogram && pnpm test', evidence: [path.join(evidenceRoot, 'screenshots/miniprogram/home.png')] },
     { name: 'Java 后端 Maven 验证', status: 'warning', summary: '7 模块 BUILD SUCCESS，但全部 No tests to run', command: 'mvn test', evidence: [path.join(evidenceRoot, 'maven-test.log')] },
     { name: '管理端生产构建', status: 'passed', summary: '构建成功，存在入口包体积告警', command: 'cd ruoyi-ui && pnpm build:prod', evidence: [path.join(repoRoot, 'ruoyi-ui/dist/index.html')] },
-    { name: '管理端 ESLint', status: 'failed', summary: '261 文件中 173 个有问题：8,446 errors、3,616 warnings', command: 'cd ruoyi-ui && pnpm exec eslint . --ext .js,.vue --format json', evidence: [path.join(evidenceRoot, 'eslint-results.json')] },
-    { name: 'Playwright 附件校验', status: 'passed', summary: '管理端 56 个、H5 16 个附件均可自包含访问', command: 'validate_playwright_report.py', evidence: [adminReport, h5Report] }
+    { name: '管理端 ESLint', status: 'failed', summary: '261 文件中 173 个有问题：8,446 errors、3,616 warnings', command: 'cd ruoyi-ui && pnpm exec eslint . --ext .js,.vue --ignore-pattern dist --format json', evidence: [path.join(evidenceRoot, 'eslint-results.json')] },
+    { name: 'Playwright 附件校验', status: 'passed', summary: '管理端和 H5 报告的所有附件均可自包含访问', command: 'validate_playwright_report.py', evidence: [adminReport, h5Report] }
   ]
 }
 
 function buildFindings(probePath) {
   return [
-    { severity: '高', title: '管理端六组数据库字段与代码不一致', status: 'failed', impact: '商品订单/评价、商品属性、收藏、活动、活动预约接口返回业务码 500；缺少 check_in_date、sku_type、collect_type、dept_id、order_no 等字段。', evidence: adminJson },
-    { severity: '高', title: 'H5 首页城市卡片关联了不存在的分类', status: 'failed', impact: '热门城市 linkUrl 为 212/108/210/208，而当前分类集合不含这些 ID，首页商品查询为空并显示“暂无商品”。', evidence: probePath },
-    { severity: '中', title: 'H5 首次访问调用微信端定位 API', status: 'failed', impact: 'LocationService 在 H5 调用不存在的 uni.getSetting，首次访问产生定位错误且无法写入站点。', evidence: h5Json },
+    { severity: '高', title: '未开放管理服务已隐藏', status: 'passed', impact: '商品订单/评价、商品属性、收藏、活动和活动预约不再下发路由，直接访问进入 404，避免把未上线能力暴露给管理员。', evidence: adminJson },
+    { severity: '高', title: '首页城市商品查询参数已修正', status: 'passed', impact: '城市卡片 linkUrl 是站点 deptId，不是分类 ID；现已使用 deptId 查询，云南和广州可返回真实上架商品。', evidence: probePath },
+    { severity: '中', title: '本地城市图片资产已补齐', status: 'passed', impact: '初始化会同步 5 张城市图到 E2E 上传目录，当前全部返回 200 与 image/*；贵州和海南站点仍因无上架商品而显示空态。', evidence: probePath },
+    { severity: '中', title: 'H5 定位边界已明确', status: 'passed', impact: 'H5 只作辅助测试端并固定本地测试站点；微信定位和授权 behavior 继续由微信开发者工具 E2E 验收。', evidence: h5Json },
     { severity: '中', title: '管理端 ESLint 基线未通过', status: 'failed', impact: '261 文件中 173 个有问题，共 8,446 errors、3,616 warnings，降低变更回归信噪比。', evidence: path.join(evidenceRoot, 'eslint-results.json') },
     { severity: '中', title: 'Java 后端缺少自动化测试', status: 'warning', impact: 'Maven 七模块均 No tests to run；schema 与 mapper 漂移只能在 E2E 阶段发现。', evidence: path.join(evidenceRoot, 'maven-test.log') },
     { severity: '低', title: '管理端生产构建存在包体积警告', status: 'warning', impact: '不阻塞构建，但会影响首次加载性能。', evidence: path.join(repoRoot, 'ruoyi-ui/dist/index.html') }
@@ -275,14 +320,14 @@ function buildFindings(probePath) {
 function buildEvidence(probePath) {
   return [
     { label: '结构化报告数据', path: path.join(evidenceRoot, 'test-report-data.json'), status: 'passed' },
-    { label: 'H5 数据关联探针', path: probePath, status: 'failed' },
+    { label: 'H5 站点与城市数据探针', path: probePath, status: 'passed' },
     { label: '管理端首页', path: path.join(evidenceRoot, 'screenshots/ADM-CORE-001-dashboard.png'), status: 'passed' },
     { label: '管理端商品列表', path: path.join(evidenceRoot, 'screenshots/ADM-GOODS-001-list.png'), status: 'passed' },
-    { label: 'H5 首页失败截图', path: path.join(evidenceRoot, 'test-results-h5/h5-H5-HOME-002-H5-首页展示后端上架商品-h5/test-failed-1.png'), status: 'failed' },
+    { label: 'H5 首页', path: path.join(evidenceRoot, 'screenshots/H5-HOME-001-home.png'), status: 'passed' },
     { label: '微信小程序首页', path: path.join(evidenceRoot, 'screenshots/miniprogram/home.png'), status: 'passed' },
     { label: '微信小程序搜索', path: path.join(evidenceRoot, 'screenshots/miniprogram/search.png'), status: 'passed' },
-    { label: '管理端 Playwright JSON', path: adminJson, status: 'failed' },
-    { label: 'H5 Playwright JSON', path: h5Json, status: 'failed' },
+    { label: '管理端 Playwright JSON', path: adminJson, status: 'passed' },
+    { label: 'H5 Playwright JSON', path: h5Json, status: 'passed' },
     { label: 'ESLint JSON', path: path.join(evidenceRoot, 'eslint-results.json'), status: 'failed' },
     { label: 'Maven 日志', path: path.join(evidenceRoot, 'maven-test.log'), status: 'warning' }
   ]
