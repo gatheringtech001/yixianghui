@@ -271,6 +271,7 @@ async function main() {
     gaps: [
       '未执行真实微信支付、退款、生产提交和破坏性删除；这些动作需要独立测试商户和明确授权。',
       '微信小程序自动化已覆盖首页后端分类、昆明站点商品与搜索 behavior，但未覆盖商品详情、下单和支付闭环。',
+      '本轮微信小程序自动化使用固定昆明站点，未触发真实定位和授权弹窗；该 behavior 需在微信开发者工具中单独验收。',
       '应用内 Browser 被管理员策略禁止访问 localhost，页面发现改由 Playwright 和微信开发者工具完成。',
       '后端 Maven 七个模块均无自动化单元/集成测试，当前后端回归证据主要来自 API-backed E2E。',
       '贵州和海南站点当前没有上架商品；城市图片仍正常，但这两个站点会显示商品空态。',
@@ -310,7 +311,7 @@ function buildFindings(probePath) {
     { severity: '高', title: '未开放管理服务已隐藏', status: 'passed', impact: '商品订单/评价、商品属性、收藏、活动和活动预约不再下发路由，直接访问进入 404，避免把未上线能力暴露给管理员。', evidence: adminJson },
     { severity: '高', title: '首页城市商品查询参数已修正', status: 'passed', impact: '城市卡片 linkUrl 是站点 deptId，不是分类 ID；现已使用 deptId 查询，云南和广州可返回真实上架商品。', evidence: probePath },
     { severity: '中', title: '本地城市图片资产已补齐', status: 'passed', impact: '初始化会同步 5 张城市图到 E2E 上传目录，当前全部返回 200 与 image/*；贵州和海南站点仍因无上架商品而显示空态。', evidence: probePath },
-    { severity: '中', title: 'H5 定位边界已明确', status: 'passed', impact: 'H5 只作辅助测试端并固定本地测试站点；微信定位和授权 behavior 继续由微信开发者工具 E2E 验收。', evidence: h5Json },
+    { severity: '中', title: 'H5 定位边界已明确', status: 'warning', impact: 'H5 只作辅助测试端并固定本地站点；本轮未触发微信定位和授权弹窗，该 behavior 需单独扩展微信开发者工具 E2E。', evidence: h5Json },
     { severity: '中', title: '管理端 ESLint 基线未通过', status: 'failed', impact: '261 文件中 173 个有问题，共 8,446 errors、3,616 warnings，降低变更回归信噪比。', evidence: path.join(evidenceRoot, 'eslint-results.json') },
     { severity: '中', title: 'Java 后端缺少自动化测试', status: 'warning', impact: 'Maven 七模块均 No tests to run；schema 与 mapper 漂移只能在 E2E 阶段发现。', evidence: path.join(evidenceRoot, 'maven-test.log') },
     { severity: '低', title: '管理端生产构建存在包体积警告', status: 'warning', impact: '不阻塞构建，但会影响首次加载性能。', evidence: path.join(repoRoot, 'ruoyi-ui/dist/index.html') }
