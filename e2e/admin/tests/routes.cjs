@@ -1,22 +1,16 @@
-module.exports = [
+const activeRoutes = [
   ['/customer/app_supplier', '供应商'],
   ['/customer/app_customer_income', '收入明细'],
   ['/customer/app_consultant', '康养顾问'],
   ['/customer/app_customer', '客户资料'],
   ['/attachments', '附件'],
-  ['/order/app_goods_order', '商品订单'],
   ['/order/app_goods_order_after', '订单商品售后'],
-  ['/order/app_goods_comment', '订单商品评价'],
   ['/order/app_express', '快递公司'],
   ['/order/app_user_address', '用户地址'],
   ['/goods/app_goods', '商品信息'],
   ['/goods/app_goods_category', '商品分类'],
-  ['/goods/app_goods_sku', '商品属性'],
   ['/goods/app_goods_cart', '用户购物车'],
-  ['/goods/app_goods_collect', '商品收藏'],
-  ['/activity/app_activity', '活动'],
   ['/activity/app_activity_category', '活动分类'],
-  ['/activity/app_activity_order', '活动预约'],
   ['/activity/app_user_gold_log', '金币记录'],
   ['/activity/app_goods_coupon', '商品优惠券'],
   ['/activity/app_goods_coupon_got', '优惠券领取记录'],
@@ -50,3 +44,14 @@ module.exports = [
   ['/monitor/cache', '缓存监控'],
   ['/monitor/cacheList', '缓存列表']
 ]
+
+const unavailableRoutes = [
+  ['/order/app_goods_order', '商品订单', 'system/app_goods_order/index'],
+  ['/order/app_goods_comment', '订单商品评价', 'system/app_goods_comment/index'],
+  ['/goods/app_goods_sku', '商品属性', 'system/app_goods_sku/index'],
+  ['/goods/app_goods_collect', '商品收藏', 'system/app_goods_collect/index'],
+  ['/activity/app_activity', '活动', 'system/app_activity/index'],
+  ['/activity/app_activity_order', '活动预约', 'system/app_activity_order/index']
+]
+
+module.exports = { activeRoutes, unavailableRoutes }

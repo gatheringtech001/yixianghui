@@ -80,6 +80,25 @@ setup_database() {
   fi
 }
 
+disable_unavailable_services() {
+  local database="${E2E_DB_NAME:-yixianghui_e2e}"
+  local username="${E2E_DB_USERNAME:-yixianghui_e2e}"
+  validate_identifier "${database}"
+  validate_identifier "${username}"
+  "${MYSQL_BIN}" -u"${username}" "${database}" -e "
+    UPDATE sys_menu
+    SET status = '1'
+    WHERE perms IN (
+      'system:app_goods_order:list',
+      'system:app_goods_comment:list',
+      'system:app_goods_sku:list',
+      'system:app_goods_collect:list',
+      'system:app_activity:list',
+      'system:app_activity_order:list'
+    );
+  "
+}
+
 setup() {
   require_executable "${MYSQL_BIN}"
   require_executable "${REDIS_SERVER_BIN}"
@@ -90,6 +109,7 @@ setup() {
   start_mysql
   start_redis
   setup_database
+  disable_unavailable_services
   echo "Backend dependencies are ready."
 }
 
