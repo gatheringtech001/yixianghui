@@ -101,6 +101,7 @@
 	import { openActivityLocation } from '@/utils/mapNavigation'
 	import { getActivityPhase, getActivityPhaseText } from '@/utils/activityPhase'
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
+	import { prepareRichTextHtml } from '@/utils/richText'
 	import AuthProfilePopup from '@/components/AuthProfilePopup/AuthProfilePopup.vue'
 	export default {
 		components: {
@@ -194,6 +195,9 @@
 			},
 			async getDetail(id) {
 				let { data } = await getActivityInfo(id)
+				if (data && data.content) {
+					data.content = prepareRichTextHtml(data.content, this.host)
+				}
 				this.detailInfo = data
 				this.loadCollectState()
 				this.$nextTick(() => {

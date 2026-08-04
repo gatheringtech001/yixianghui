@@ -12,6 +12,7 @@ const projectPath = process.env.MINIPROGRAM_PROJECT_PATH || path.resolve(
   '../../shop-mnp/unpackage/dist/dev/mp-weixin'
 )
 const resultsDir = path.join(os.tmpdir(), 'yixianghui-e2e', 'miniprogram')
+const localBackendPrefix = 'http://127.0.0.1:18080/api/profile/'
 
 async function waitUntil(check, timeoutMs = 15000) {
   const deadline = Date.now() + timeoutMs
@@ -86,6 +87,37 @@ function hasImageSignature(bytes) {
   )
 }
 
+async function assertImageSourcesAvailable(sources, message) {
+  const uniqueSources = [...new Set(sources)]
+  assert.ok(uniqueSources.length > 0, `${message}: expected at least one image`)
+  uniqueSources.forEach(source => {
+    assert.equal(typeof source, 'string', `${message}: image source should be a string`)
+    assert.ok(
+      source.startsWith(localBackendPrefix),
+      `${message}: image should come from the local backend: ${source}`
+    )
+  })
+
+  const results = await Promise.all(uniqueSources.map(async source => {
+    const response = await fetch(source)
+    const bytes = Buffer.from(await response.arrayBuffer())
+    return {
+      source,
+      status: response.status,
+      ok: response.ok && hasImageSignature(bytes)
+    }
+  }))
+  const failures = results
+    .filter(result => !result.ok)
+    .map(result => `${result.status} ${result.source}`)
+  assert.deepEqual(failures, [], `${message}: every source should return an image`)
+}
+
+function extractRichTextImageSources(html) {
+  return [...String(html || '').matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["']/gi)]
+    .map(match => match[1])
+}
+
 async function assertBackendImagesAvailable(miniProgram) {
   const sources = await miniProgram.evaluate(() => {
     const pages = getCurrentPages()
@@ -103,25 +135,11 @@ async function assertBackendImagesAvailable(miniProgram) {
         : source
     ))
   })
-  const backendSources = [...new Set(sources.filter(source => (
+  const backendSources = sources.filter(source => (
     typeof source === 'string' &&
-    source.startsWith('http://127.0.0.1:18080/api/profile/')
-  )))]
-  assert.ok(backendSources.length > 0, 'home should render backend images')
-
-  const results = await Promise.all(backendSources.map(async source => {
-    const response = await fetch(source)
-    const bytes = Buffer.from(await response.arrayBuffer())
-    return {
-      source,
-      status: response.status,
-      ok: response.ok && hasImageSignature(bytes)
-    }
-  }))
-  const failures = results
-    .filter(result => !result.ok)
-    .map(result => `${result.status} ${result.source}`)
-  assert.deepEqual(failures, [], 'all rendered backend images should be available')
+    source.startsWith(localBackendPrefix)
+  ))
+  await assertImageSourcesAvailable(backendSources, 'home rendered backend images')
 }
 
 test('home loads backend site goods and search behavior works', { timeout: 120000 }, async testContext => {
@@ -187,6 +205,14 @@ test('home loads backend site goods and search behavior works', { timeout: 12000
           state.currentGoodsList.length > 0
       })
     })
+    const homeAssetState = await getCurrentPageState(miniProgram, [
+      'brandLogoUrl',
+      'housekeeperAvatarUrl'
+    ])
+    await assertImageSourcesAvailable([
+      homeAssetState.brandLogoUrl,
+      homeAssetState.housekeeperAvatarUrl
+    ], 'home configured assets')
     await runStep(testContext, {
       label: 'verify rendered backend images',
       action: () => assertBackendImagesAvailable(miniProgram)
@@ -243,6 +269,100 @@ test('home loads backend site goods and search behavior works', { timeout: 12000
       label: 'capture search screenshot',
       action: () => captureScreenshot(miniProgram, 'search.png')
     })
+
+    await runStep(testContext, {
+      label: 'return to home before tab checks',
+      action: () => miniProgram.reLaunch('/pages/home/home')
+    })
+    await waitUntil(async () => {
+      const page = await miniProgram.currentPage()
+      return page && page.path === 'pages/home/home'
+    })
+
+    await runStep(testContext, {
+      label: 'open customer service page',
+      action: () => miniProgram.callWxMethod('switchTab', {
+        url: '/pages/MembersOpened/MembersOpened'
+      })
+    })
+    await runStep(testContext, {
+      label: 'wait for customer service assets',
+      action: () => waitUntil(async () => {
+        const customerState = await getCurrentPageState(miniProgram, ['customerData'])
+        const customerData = customerState.customerData || {}
+        const staffList = customerData.staffList || []
+        return typeof customerData.qrCode === 'string' &&
+          customerData.qrCode.startsWith(localBackendPrefix) &&
+          staffList.length >= 2 &&
+          staffList.every(staff => (
+            typeof staff.qrCode === 'string' && staff.qrCode.startsWith(localBackendPrefix)
+          ))
+      })
+    })
+    const customerState = await getCurrentPageState(miniProgram, ['customerData'])
+    await assertImageSourcesAvailable([
+      customerState.customerData.qrCode,
+      customerState.customerData.headerBg,
+      ...customerState.customerData.staffList.map(staff => staff.qrCode)
+    ], 'customer service configured assets')
+    await captureScreenshot(miniProgram, 'customer-service.png')
+
+    await runStep(testContext, {
+      label: 'open profile page',
+      action: () => miniProgram.callWxMethod('switchTab', {
+        url: '/pages/my/my'
+      })
+    })
+    await runStep(testContext, {
+      label: 'wait for profile steward asset',
+      action: () => waitUntil(async () => {
+        const profileState = await getCurrentPageState(miniProgram, ['stewardImageUrl'])
+        return typeof profileState.stewardImageUrl === 'string' &&
+          profileState.stewardImageUrl.startsWith(localBackendPrefix)
+      })
+    })
+    const profileState = await getCurrentPageState(miniProgram, ['stewardImageUrl'])
+    await assertImageSourcesAvailable(
+      [profileState.stewardImageUrl],
+      'profile steward asset'
+    )
+    await captureScreenshot(miniProgram, 'profile.png')
+
+    await runStep(testContext, {
+      label: 'open activity rich text page',
+      action: () => miniProgram.reLaunch('/packagesMall/Activity/detail/index?id=1')
+    })
+    await runStep(testContext, {
+      label: 'wait for activity rich text',
+      action: () => waitUntil(async () => {
+        const activityState = await getCurrentPageState(miniProgram, ['detailInfo'])
+        return activityState.detailInfo && activityState.detailInfo.content
+      })
+    })
+    const activityState = await getCurrentPageState(miniProgram, ['detailInfo'])
+    await assertImageSourcesAvailable(
+      extractRichTextImageSources(activityState.detailInfo.content),
+      'activity rich text assets'
+    )
+    await captureScreenshot(miniProgram, 'activity-rich-text.png')
+
+    await runStep(testContext, {
+      label: 'open single page rich text',
+      action: () => miniProgram.reLaunch('/packagesPublic/Article/index?id=3')
+    })
+    await runStep(testContext, {
+      label: 'wait for single page rich text',
+      action: () => waitUntil(async () => {
+        const articleState = await getCurrentPageState(miniProgram, ['detailInfo'])
+        return articleState.detailInfo && articleState.detailInfo.content
+      })
+    })
+    const articleState = await getCurrentPageState(miniProgram, ['detailInfo'])
+    await assertImageSourcesAvailable(
+      extractRichTextImageSources(articleState.detailInfo.content),
+      'single page rich text assets'
+    )
+    await captureScreenshot(miniProgram, 'single-page-rich-text.png')
     assert.deepEqual(exceptions, [])
   } finally {
     try {

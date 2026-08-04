@@ -56,9 +56,14 @@ export function normalizeRichTextHtml(html) {
 
 export function addHostPrefixToRichText(content, host) {
 	if (!content || !host) return content || ''
+	const normalizedHost = String(host).replace(/\/$/, '')
 
 	return String(content).replace(/(src|href)=["']([^"']*)["']/g, (match, attr, url) => {
 		if (!url) return match
+		const profilePathIndex = url.indexOf('/profile/')
+		if (profilePathIndex >= 0) {
+			return `${attr}="${normalizedHost}${url.slice(profilePathIndex)}"`
+		}
 		if (url.startsWith('http') || url.startsWith('https') || url.startsWith('//') || url.startsWith('data:')) {
 			return match
 		}
@@ -68,10 +73,10 @@ export function addHostPrefixToRichText(content, host) {
 			if (!normalizedUrl.startsWith('/')) {
 				normalizedUrl = `/${normalizedUrl}`
 			}
-			return `${attr}="${host}${normalizedUrl}"`
+			return `${attr}="${normalizedHost}${normalizedUrl}"`
 		}
 
-		return `${attr}="${host}/${url}"`
+		return `${attr}="${normalizedHost}/${url}"`
 	})
 }
 

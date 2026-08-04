@@ -13,10 +13,11 @@
 	import {
 		getSingleInfo
 	} from '@/api/index'
-	import BaseUrl from '@/api/baseUrl'
+	import { prepareRichTextHtml } from '@/utils/richText'
 	export default {
 		data() {
 			return {
+				host: this.$host,
 				detailInfo: null
 			}
 		},
@@ -29,8 +30,9 @@
 					data
 				} = await getSingleInfo(id)
 				this.detailInfo = data
-				if (this.detailInfo.content) this.detailInfo.content = this.detailInfo.content.replace(/src="\/api\//g,
-					'src="' + BaseUrl.publicUrl)
+				if (this.detailInfo.content) {
+					this.detailInfo.content = prepareRichTextHtml(this.detailInfo.content, this.host)
+				}
 			}
 		}
 	}
