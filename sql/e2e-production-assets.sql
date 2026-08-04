@@ -22,7 +22,7 @@ INSERT INTO app_ad_content (
     (20, 7, '客服1', '18512345678', '/profile/upload/2026/06/16/二维码_20260616134125A004.jpg', '33333', NULL, NULL, '', 1, '1'),
     (21, 7, '客服2', '15812345678', '/profile/upload/2026/06/16/二维码_20260616134504A005.jpg', '123123', NULL, NULL, '', 1, '1'),
     (22, 3, '顶部背景图', '', '/profile/upload/2026/04/29/123123123_20260429145925A104.png', NULL, NULL, NULL, '', 1, '1'),
-    (24, 8, '', '', '/profile/upload/2026/07/10/logo-yxh_20260710110144A001.png', '', NULL, NULL, '', NULL, '1'),
+    (24, 8, '', '', '/profile/e2e/brand-logo-transparent.png', '', NULL, NULL, '', NULL, '1'),
     (25, 9, '', '', '/profile/upload/2026/07/27/图片人像抠图-removebg-prev_20260727115236A014.png', '', NULL, NULL, '', NULL, '1'),
     (26, 10, '', '', '/profile/upload/2026/07/27/图片人像抠图-removebg-prev_20260727115138A013.png', '', NULL, NULL, '', NULL, '1')
 ON DUPLICATE KEY UPDATE

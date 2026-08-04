@@ -218,6 +218,40 @@ apply_e2e_asset_fixtures() {
   fi
 }
 
+apply_e2e_product_fixture() {
+  local database="${E2E_DB_NAME:-yixianghui_e2e}"
+  local username="${E2E_DB_USERNAME:-yixianghui_e2e}"
+  local fixture="${REPO_ROOT}/sql/e2e-production-products.sql"
+  local counts
+  require_file "${fixture}"
+  validate_identifier "${database}"
+  validate_identifier "${username}"
+  "${MYSQL_BIN}" -u"${username}" "${database}" < "${fixture}"
+  counts="$("${MYSQL_BIN}" -u"${username}" -Nse "
+    SELECT CONCAT(
+      (SELECT COUNT(*) FROM ${database}.app_goods), ',',
+      (SELECT COUNT(*) FROM ${database}.app_goods WHERE goods_type = 'education'), ',',
+      (SELECT COUNT(*) FROM ${database}.app_goods_related), ',',
+      (SELECT COUNT(*) FROM ${database}.app_goods_sku), ',',
+      (SELECT COUNT(*) FROM ${database}.app_goods_sku_option), ',',
+      (SELECT COUNT(*) FROM ${database}.app_goods_sku_data)
+    );
+  ")"
+  if [[ "${counts}" != "4,1,15,19,83,0" ]]; then
+    echo "E2E product fixture verification failed: ${counts}." >&2
+    exit 1
+  fi
+}
+
+install_e2e_bundled_assets() {
+  local upload_dir="${E2E_UPLOAD_DIR:-/tmp/yixianghui-e2e/uploads}"
+  local source="${REPO_ROOT}/shop-mnp/static/home-design/brand-logo-transparent.png"
+  local target="${upload_dir}/e2e/brand-logo-transparent.png"
+  require_file "${source}"
+  mkdir -p "$(dirname "${target}")"
+  cp "${source}" "${target}"
+}
+
 load_e2e_asset_values() {
   local database="$1"
   local username="$2"
@@ -230,6 +264,7 @@ load_e2e_asset_values() {
     UNION SELECT CONVERT(goods_cover USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_goods WHERE goods_cover <> ''
     UNION SELECT CONVERT(goods_images USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_goods WHERE goods_images <> ''
     UNION SELECT CONVERT(content USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_goods WHERE content LIKE '%/profile/%'
+    UNION SELECT CONVERT(content USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_goods_related WHERE content LIKE '%/profile/%'
     UNION SELECT CONVERT(coupon_content USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_goods_coupon WHERE coupon_content LIKE '%/profile/%'
     UNION SELECT CONVERT(data_image USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_goods_sku_data WHERE data_image <> ''
     UNION SELECT CONVERT(content USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_single_page WHERE content LIKE '%/profile/%'
@@ -358,7 +393,9 @@ setup() {
   apply_goods_order_schema
   apply_activity_schema
   configure_service_availability
+  apply_e2e_product_fixture
   apply_e2e_asset_fixtures
+  install_e2e_bundled_assets
   sync_e2e_assets
   echo "Backend dependencies are ready."
 }
@@ -418,10 +455,15 @@ test_backend() {
   local captcha_url="http://127.0.0.1:${BACKEND_PORT}/api/captchaImage"
   local site_url="http://127.0.0.1:${BACKEND_PORT}/api/mnp/index/get_site_list"
   local category_url="http://127.0.0.1:${BACKEND_PORT}/api/mnp/index/get_goods_category?status=1"
+  local education_list_url="http://127.0.0.1:${BACKEND_PORT}/api/mnp/index/queryGoodsList?pageNum=1&pageSize=50"
+  local education_detail_url="http://127.0.0.1:${BACKEND_PORT}/api/mnp/index/get_goods_info/38"
   local activity_url="http://127.0.0.1:${BACKEND_PORT}/api/mnp/index/activity_info/1"
   curl --fail --silent --show-error "${captcha_url}" | grep -Eq '"code"[[:space:]]*:[[:space:]]*200'
   curl --fail --silent --show-error "${site_url}" | grep -Eq '"code"[[:space:]]*:[[:space:]]*200'
   curl --fail --silent --show-error "${category_url}" | grep -Eq '"categoryId"[[:space:]]*:'
+  curl --fail --silent --show-error -X POST -H 'Content-Type: application/json' \
+    --data '{"categoryId":58}' "${education_list_url}" | grep -q '水彩绘画'
+  curl --fail --silent --show-error "${education_detail_url}" | grep -Eq '"sectionName"[[:space:]]*:[[:space:]]*"课程内容"'
   curl --fail --silent --show-error "${activity_url}" | grep -Eq '"activityId"[[:space:]]*:[[:space:]]*1'
   verify_e2e_assets
   echo "Backend smoke tests passed."
