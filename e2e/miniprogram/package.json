@@ -2,7 +2,7 @@
   "name": "yixianghui-miniprogram-e2e",
   "private": true,
   "scripts": {
-    "test": "node --test smoke.test.cjs"
+    "test": "node --test --test-concurrency=1 *.test.cjs"
   },
   "dependencies": {
     "miniprogram-automator": "0.12.1"
