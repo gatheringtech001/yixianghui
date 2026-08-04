@@ -17,6 +17,8 @@ JAVA_BIN="${JAVA_HOME}/bin/java"
 APP_JAR="${REPO_ROOT}/lankong-admin/target/lankong-admin.jar"
 CURL_BIN="${CURL_BIN:-/usr/bin/curl}"
 FILE_BIN="${FILE_BIN:-/usr/bin/file}"
+GREP_BIN="${GREP_BIN:-/usr/bin/grep}"
+SORT_BIN="${SORT_BIN:-/usr/bin/sort}"
 E2E_ASSET_BASE_URL="${E2E_ASSET_BASE_URL:-https://shzxj.lk01.cn/api}"
 
 export JAVA_HOME
@@ -111,6 +113,60 @@ apply_goods_order_schema() {
   fi
 }
 
+get_activity_column_count() {
+  local database="$1"
+  local username="$2"
+  local column_names="$3"
+  "${MYSQL_BIN}" -u"${username}" -Nse "
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = '${database}'
+      AND table_name = 'app_activity'
+      AND column_name IN (${column_names});
+  "
+}
+
+apply_activity_schema() {
+  local database="${E2E_DB_NAME:-yixianghui_e2e}"
+  local username="${E2E_DB_USERNAME:-yixianghui_e2e}"
+  local dept_migration="${REPO_ROOT}/sql/step3-activity-dept-id-fix.sql"
+  local end_time_migration="${REPO_ROOT}/sql/app_activity_end_time.sql"
+  local fee_migration="${REPO_ROOT}/sql/step3-activity-pay-phase1.sql"
+  local column_count
+  local fee_column_count
+  require_file "${dept_migration}"
+  require_file "${end_time_migration}"
+  require_file "${fee_migration}"
+  validate_identifier "${database}"
+  validate_identifier "${username}"
+
+  column_count="$(get_activity_column_count "${database}" "${username}" "'dept_id'")"
+  if [[ "${column_count}" == "0" ]]; then
+    "${MYSQL_BIN}" -u"${username}" "${database}" < "${dept_migration}"
+  fi
+
+  column_count="$(get_activity_column_count "${database}" "${username}" "'activity_end_time'")"
+  if [[ "${column_count}" == "0" ]]; then
+    "${MYSQL_BIN}" -u"${username}" "${database}" < "${end_time_migration}"
+  fi
+
+  fee_column_count="$(get_activity_column_count \
+    "${database}" "${username}" "'is_free', 'price', 'vip_price'")"
+  if [[ "${fee_column_count}" == "0" ]]; then
+    "${MYSQL_BIN}" -u"${username}" "${database}" < "${fee_migration}"
+  elif [[ "${fee_column_count}" != "3" ]]; then
+    echo "Activity fee schema is partially applied (${fee_column_count}/3 columns)." >&2
+    exit 1
+  fi
+
+  column_count="$(get_activity_column_count \
+    "${database}" "${username}" \
+    "'dept_id', 'activity_end_time', 'is_free', 'price', 'vip_price'")"
+  if [[ "${column_count}" != "5" ]]; then
+    echo "Activity schema verification failed: expected 5 E2E columns, found ${column_count}." >&2
+    exit 1
+  fi
+}
+
 configure_service_availability() {
   local database="${E2E_DB_NAME:-yixianghui_e2e}"
   local username="${E2E_DB_USERNAME:-yixianghui_e2e}"
@@ -132,22 +188,58 @@ configure_service_availability() {
   "
 }
 
+apply_e2e_asset_fixtures() {
+  local database="${E2E_DB_NAME:-yixianghui_e2e}"
+  local username="${E2E_DB_USERNAME:-yixianghui_e2e}"
+  local fixture="${REPO_ROOT}/sql/e2e-production-assets.sql"
+  local position_count
+  local content_count
+  require_file "${fixture}"
+  validate_identifier "${database}"
+  validate_identifier "${username}"
+  "${MYSQL_BIN}" -u"${username}" "${database}" < "${fixture}"
+  position_count="$("${MYSQL_BIN}" -u"${username}" -Nse "
+    SELECT COUNT(*)
+    FROM ${database}.app_ad_position
+    WHERE position_code IN (
+      'mnp_brand_logo',
+      'mnp_home_housekeeper',
+      'mnp_profile_steward'
+    ) OR position_id = 7;
+  ")"
+  content_count="$("${MYSQL_BIN}" -u"${username}" -Nse "
+    SELECT COUNT(*)
+    FROM ${database}.app_ad_content
+    WHERE content_id IN (19, 20, 21, 22, 24, 25, 26);
+  ")"
+  if [[ "${position_count}" != "4" || "${content_count}" != "7" ]]; then
+    echo "E2E asset fixture verification failed." >&2
+    exit 1
+  fi
+}
+
 load_e2e_asset_values() {
   local database="$1"
   local username="$2"
   "${MYSQL_BIN}" -u"${username}" -Nse "
     SELECT CONVERT(ad_image USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_ad_content WHERE ad_image <> ''
+    UNION SELECT CONVERT(ad_content USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_ad_content WHERE ad_content LIKE '%/profile/%'
     UNION SELECT CONVERT(activity_cover USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_activity WHERE activity_cover <> ''
-    UNION SELECT CONVERT(article_cover USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_article WHERE article_cover <> ''
-    UNION SELECT CONVERT(card_image USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_card WHERE card_image <> ''
-    UNION SELECT CONVERT(express_image USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_express WHERE express_image <> ''
+    UNION SELECT CONVERT(content USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_activity WHERE content LIKE '%/profile/%'
+    UNION SELECT CONVERT(content USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_article WHERE content LIKE '%/profile/%'
     UNION SELECT CONVERT(goods_cover USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_goods WHERE goods_cover <> ''
     UNION SELECT CONVERT(goods_images USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_goods WHERE goods_images <> ''
+    UNION SELECT CONVERT(content USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_goods WHERE content LIKE '%/profile/%'
+    UNION SELECT CONVERT(coupon_content USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_goods_coupon WHERE coupon_content LIKE '%/profile/%'
     UNION SELECT CONVERT(data_image USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_goods_sku_data WHERE data_image <> ''
-    UNION SELECT CONVERT(page_cover USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_single_page WHERE page_cover <> ''
-    UNION SELECT CONVERT(avatar USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.sys_auth_user WHERE avatar <> ''
-    UNION SELECT CONVERT(avatar USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.sys_user WHERE avatar <> '';
+    UNION SELECT CONVERT(content USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_single_page WHERE content LIKE '%/profile/%'
+    UNION SELECT CONVERT(qrcode_url USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.app_user_info WHERE qrcode_url <> ''
+    UNION SELECT CONVERT(notice_content USING utf8mb4) COLLATE utf8mb4_general_ci FROM ${database}.sys_notice WHERE notice_content LIKE '%/profile/%';
   "
+}
+
+extract_e2e_asset_paths() {
+  LC_ALL=C "${GREP_BIN}" -aoE "/profile/[^\"'<>()[:space:],;?#]+" | "${SORT_BIN}" -u
 }
 
 is_image_file() {
@@ -185,32 +277,70 @@ sync_e2e_assets() {
   local username="${E2E_DB_USERNAME:-yixianghui_e2e}"
   local upload_dir="${E2E_UPLOAD_DIR:-/tmp/yixianghui-e2e/uploads}"
   local asset_values
-  local asset_value
   local asset_path
   local asset_status
   local downloaded_assets=0
   local unavailable_assets=0
-  local -a asset_paths
   validate_identifier "${database}"
   validate_identifier "${username}"
   asset_values="$(load_e2e_asset_values "${database}" "${username}")"
 
-  while IFS= read -r asset_value; do
-    IFS=',' read -ra asset_paths <<< "${asset_value}"
-    for asset_path in "${asset_paths[@]}"; do
-      asset_path="${asset_path#"${asset_path%%[![:space:]]*}"}"
-      asset_path="${asset_path%"${asset_path##*[![:space:]]}"}"
-      [[ "${asset_path}" == /profile/* ]] || continue
-      asset_status=0
-      sync_e2e_asset "${asset_path}" "${upload_dir}" || asset_status=$?
-      if [[ "${asset_status}" == "1" ]]; then
-        downloaded_assets=$((downloaded_assets + 1))
-      elif [[ "${asset_status}" == "2" ]]; then
-        unavailable_assets=$((unavailable_assets + 1))
-      fi
-    done
-  done <<< "${asset_values}"
+  while IFS= read -r asset_path; do
+    [[ -n "${asset_path}" ]] || continue
+    asset_status=0
+    sync_e2e_asset "${asset_path}" "${upload_dir}" || asset_status=$?
+    if [[ "${asset_status}" == "1" ]]; then
+      downloaded_assets=$((downloaded_assets + 1))
+    elif [[ "${asset_status}" == "2" ]]; then
+      unavailable_assets=$((unavailable_assets + 1))
+    fi
+  done < <(printf '%s\n' "${asset_values}" | extract_e2e_asset_paths)
   echo "E2E image assets synced (${downloaded_assets} downloaded, ${unavailable_assets} unavailable)."
+  if (( unavailable_assets > 0 )); then
+    echo "E2E image asset sync failed because referenced files are unavailable." >&2
+    return 1
+  fi
+}
+
+verify_e2e_assets() {
+  local database="${E2E_DB_NAME:-yixianghui_e2e}"
+  local username="${E2E_DB_USERNAME:-yixianghui_e2e}"
+  local upload_dir="${E2E_UPLOAD_DIR:-/tmp/yixianghui-e2e/uploads}"
+  local asset_values
+  local asset_path
+  local target
+  local response_file
+  local verified_assets=0
+  validate_identifier "${database}"
+  validate_identifier "${username}"
+  asset_values="$(load_e2e_asset_values "${database}" "${username}")"
+  response_file="$(mktemp "${RUNTIME_DIR}/asset-response.XXXXXX")"
+
+  while IFS= read -r asset_path; do
+    [[ -n "${asset_path}" ]] || continue
+    target="${upload_dir}${asset_path#/profile}"
+    if ! is_image_file "${target}"; then
+      rm -f "${response_file}"
+      echo "Synced E2E asset is missing or invalid: ${asset_path}" >&2
+      return 1
+    fi
+    if ! "${CURL_BIN}" --fail --silent --show-error --location \
+      --output "${response_file}" \
+      "http://127.0.0.1:${BACKEND_PORT}/api${asset_path}"; then
+      rm -f "${response_file}"
+      echo "Local backend did not serve E2E asset: ${asset_path}" >&2
+      return 1
+    fi
+    if ! is_image_file "${response_file}"; then
+      rm -f "${response_file}"
+      echo "Local backend returned a non-image E2E asset: ${asset_path}" >&2
+      return 1
+    fi
+    verified_assets=$((verified_assets + 1))
+  done < <(printf '%s\n' "${asset_values}" | extract_e2e_asset_paths)
+
+  rm -f "${response_file}"
+  echo "E2E image assets verified (${verified_assets} local backend images)."
 }
 
 setup() {
@@ -226,7 +356,9 @@ setup() {
   start_redis
   setup_database
   apply_goods_order_schema
+  apply_activity_schema
   configure_service_availability
+  apply_e2e_asset_fixtures
   sync_e2e_assets
   echo "Backend dependencies are ready."
 }
@@ -286,9 +418,12 @@ test_backend() {
   local captcha_url="http://127.0.0.1:${BACKEND_PORT}/api/captchaImage"
   local site_url="http://127.0.0.1:${BACKEND_PORT}/api/mnp/index/get_site_list"
   local category_url="http://127.0.0.1:${BACKEND_PORT}/api/mnp/index/get_goods_category?status=1"
+  local activity_url="http://127.0.0.1:${BACKEND_PORT}/api/mnp/index/activity_info/1"
   curl --fail --silent --show-error "${captcha_url}" | grep -Eq '"code"[[:space:]]*:[[:space:]]*200'
   curl --fail --silent --show-error "${site_url}" | grep -Eq '"code"[[:space:]]*:[[:space:]]*200'
   curl --fail --silent --show-error "${category_url}" | grep -Eq '"categoryId"[[:space:]]*:'
+  curl --fail --silent --show-error "${activity_url}" | grep -Eq '"activityId"[[:space:]]*:[[:space:]]*1'
+  verify_e2e_assets
   echo "Backend smoke tests passed."
 }
 
