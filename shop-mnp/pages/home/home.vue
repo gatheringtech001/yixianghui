@@ -72,7 +72,7 @@
 						</view>
 					</view>
 					<view class="entry-card" @click="goClassify('老年教育')">
-						<image class="entry-bg" src="/static/home-design/entry-stay.jpg" mode="aspectFill" />
+						<image class="entry-bg" src="/static/home-design/entry-education.jpg" mode="aspectFill" />
 						<view class="entry-icon">
 							<u-icon name="file-text" color="#111111" size="36" />
 						</view>

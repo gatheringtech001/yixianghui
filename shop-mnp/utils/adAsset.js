@@ -7,7 +7,7 @@ export const AD_POSITION = {
 }
 
 export const AD_FALLBACK = {
-	BRAND_LOGO: '/static/home-design/brand-mark.png',
+	BRAND_LOGO: '/static/home-design/brand-logo-transparent.png',
 	HOME_HOUSEKEEPER: '/static/home-design/support-avatar-1.png',
 	PROFILE_STEWARD: ''
 }

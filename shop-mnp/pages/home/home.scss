@@ -70,7 +70,7 @@ $cream: #fbf6ef;
 
 .home-hero {
 	display: grid;
-	grid-template-columns: 1fr 348rpx;
+	grid-template-columns: minmax(0, 1fr) 300rpx;
 	gap: 20rpx;
 	align-items: start;
 	min-height: 252rpx;
@@ -106,9 +106,10 @@ $cream: #fbf6ef;
 
 	.hero-desc {
 		margin-top: 10rpx;
-		font-size: 24rpx;
+		font-size: 21rpx;
 		color: #666666;
 		line-height: 1.5;
+		white-space: nowrap;
 	}
 
 	.hero-btn {
@@ -126,7 +127,7 @@ $cream: #fbf6ef;
 	}
 
 	.hero-image {
-		width: 348rpx;
+		width: 300rpx;
 		height: 196rpx;
 		margin-top: 16rpx;
 		border-radius: 16rpx;
