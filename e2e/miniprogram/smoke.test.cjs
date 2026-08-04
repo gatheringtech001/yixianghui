@@ -76,6 +76,54 @@ async function captureScreenshot(miniProgram, fileName) {
   return outputPath
 }
 
+function hasImageSignature(bytes) {
+  const ascii = bytes.toString('ascii', 0, 12)
+  return (
+    bytes.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47])) ||
+    bytes.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff])) ||
+    ascii.startsWith('GIF8') ||
+    (ascii.startsWith('RIFF') && ascii.slice(8, 12) === 'WEBP')
+  )
+}
+
+async function assertBackendImagesAvailable(miniProgram) {
+  const sources = await miniProgram.evaluate(() => {
+    const pages = getCurrentPages()
+    const vm = pages[pages.length - 1].$vm
+    return [
+      vm.brandLogoDisplay,
+      vm.housekeeperAvatarDisplay,
+      vm.heroImage,
+      ...(vm.hotCardList || []).map(item => item.adImage),
+      ...(vm.currentGoodsList || []).map(item => item.goodsCover),
+      ...(vm.contact || []).map(item => item.adImage)
+    ].map(source => (
+      typeof source === 'string' && source.startsWith('/profile/')
+        ? vm.host + source
+        : source
+    ))
+  })
+  const backendSources = [...new Set(sources.filter(source => (
+    typeof source === 'string' &&
+    source.startsWith('http://127.0.0.1:18080/api/profile/')
+  )))]
+  assert.ok(backendSources.length > 0, 'home should render backend images')
+
+  const results = await Promise.all(backendSources.map(async source => {
+    const response = await fetch(source)
+    const bytes = Buffer.from(await response.arrayBuffer())
+    return {
+      source,
+      status: response.status,
+      ok: response.ok && hasImageSignature(bytes)
+    }
+  }))
+  const failures = results
+    .filter(result => !result.ok)
+    .map(result => `${result.status} ${result.source}`)
+  assert.deepEqual(failures, [], 'all rendered backend images should be available')
+}
+
 test('home loads backend site goods and search behavior works', { timeout: 120000 }, async testContext => {
   await fs.mkdir(resultsDir, { recursive: true })
   const projectConfig = JSON.parse(await fs.readFile(
@@ -138,6 +186,10 @@ test('home loads backend site goods and search behavior works', { timeout: 12000
           Array.isArray(state.currentGoodsList) &&
           state.currentGoodsList.length > 0
       })
+    })
+    await runStep(testContext, {
+      label: 'verify rendered backend images',
+      action: () => assertBackendImagesAvailable(miniProgram)
     })
     await runStep(testContext, {
       label: 'capture home screenshot',
