@@ -84,12 +84,12 @@ test('home, education and product details use the local production snapshot', { 
     ])
     assert.equal(
       homeAssetState.brandLogoUrl,
-      `${localBackendPrefix}e2e/brand-logo-transparent.png`
+      '/static/home-design/brand-logo-transparent.png'
     )
-    await assertImageSourcesAvailable([
-      homeAssetState.brandLogoUrl,
-      homeAssetState.housekeeperAvatarUrl
-    ], 'home configured assets')
+    await assertImageSourcesAvailable(
+      [homeAssetState.housekeeperAvatarUrl],
+      'home configured backend assets'
+    )
     await runStep(testContext, {
       label: 'verify rendered backend images',
       action: () => assertBackendImagesAvailable(miniProgram)

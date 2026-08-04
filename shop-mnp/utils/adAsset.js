@@ -25,6 +25,9 @@ function normalizeList(data) {
 }
 
 export async function loadAdImageUrl(positionCode, host) {
+	if (positionCode === AD_POSITION.BRAND_LOGO) {
+		return AD_FALLBACK.BRAND_LOGO
+	}
 	try {
 		const { data: positions } = await getBannerPosList({
 			positionCode,
