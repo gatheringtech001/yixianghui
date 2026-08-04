@@ -4,6 +4,7 @@ const activeRoutes = [
   ['/customer/app_consultant', '康养顾问'],
   ['/customer/app_customer', '客户资料'],
   ['/attachments', '附件'],
+  ['/order/app_goods_order', '商品订单'],
   ['/order/app_goods_order_after', '订单商品售后'],
   ['/order/app_express', '快递公司'],
   ['/order/app_user_address', '用户地址'],
@@ -46,7 +47,6 @@ const activeRoutes = [
 ]
 
 const unavailableRoutes = [
-  ['/order/app_goods_order', '商品订单', 'system/app_goods_order/index'],
   ['/order/app_goods_comment', '订单商品评价', 'system/app_goods_comment/index'],
   ['/goods/app_goods_sku', '商品属性', 'system/app_goods_sku/index'],
   ['/goods/app_goods_collect', '商品收藏', 'system/app_goods_collect/index'],

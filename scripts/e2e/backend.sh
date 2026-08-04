@@ -82,7 +82,35 @@ setup_database() {
   fi
 }
 
-disable_unavailable_services() {
+apply_goods_order_schema() {
+  local database="${E2E_DB_NAME:-yixianghui_e2e}"
+  local username="${E2E_DB_USERNAME:-yixianghui_e2e}"
+  local migration="${REPO_ROOT}/sql/app_goods_order_booking_fields.sql"
+  local expected_column_count=4
+  local actual_column_count
+  require_file "${migration}"
+  validate_identifier "${database}"
+  validate_identifier "${username}"
+  "${MYSQL_BIN}" -u"${username}" "${database}" < "${migration}"
+  actual_column_count="$("${MYSQL_BIN}" -u"${username}" -Nse "
+    SELECT COUNT(*)
+    FROM information_schema.columns
+    WHERE table_schema = '${database}'
+      AND table_name = 'app_goods_order'
+      AND column_name IN (
+        'check_in_date',
+        'check_out_date',
+        'contact_name',
+        'contact_phone'
+      );
+  ")"
+  if [[ "${actual_column_count}" != "${expected_column_count}" ]]; then
+    echo "Goods order schema verification failed: expected ${expected_column_count} booking columns, found ${actual_column_count}." >&2
+    exit 1
+  fi
+}
+
+configure_service_availability() {
   local database="${E2E_DB_NAME:-yixianghui_e2e}"
   local username="${E2E_DB_USERNAME:-yixianghui_e2e}"
   validate_identifier "${database}"
@@ -91,13 +119,15 @@ disable_unavailable_services() {
     UPDATE sys_menu
     SET status = '1'
     WHERE perms IN (
-      'system:app_goods_order:list',
       'system:app_goods_comment:list',
       'system:app_goods_sku:list',
       'system:app_goods_collect:list',
       'system:app_activity:list',
       'system:app_activity_order:list'
     );
+    UPDATE sys_menu
+    SET status = '0'
+    WHERE perms = 'system:app_goods_order:list';
   "
 }
 
@@ -138,7 +168,8 @@ setup() {
   start_mysql
   start_redis
   setup_database
-  disable_unavailable_services
+  apply_goods_order_schema
+  configure_service_availability
   sync_city_assets
   echo "Backend dependencies are ready."
 }

@@ -1,6 +1,57 @@
--- ÉÌÆ·¶©µ¥±í²¹³äÂÃ¾Ó/Ô¤¶¨Ïà¹Ø×Ö¶Î£¨Óë AppGoodsOrderMapper ±£³ÖÒ»ÖÂ£©
-ALTER TABLE `app_goods_order`
-    ADD COLUMN `check_in_date` date DEFAULT NULL COMMENT 'Ô¤¶¨¿ªÊ¼ÈÕÆÚ' AFTER `status`,
-    ADD COLUMN `check_out_date` date DEFAULT NULL COMMENT 'Ô¤¶¨½áÊøÈÕÆÚ' AFTER `check_in_date`,
-    ADD COLUMN `contact_name` varchar(50) DEFAULT NULL COMMENT 'ÁªÏµÈËĞÕÃû' AFTER `check_out_date`,
-    ADD COLUMN `contact_phone` varchar(20) DEFAULT NULL COMMENT 'ÁªÏµÈËµç»°' AFTER `contact_name`;
+-- å•†å“è®¢å•ä½å®¿/é¢„çº¦å­—æ®µï¼Œä¸ AppGoodsOrderMapper ä¿æŒä¸€è‡´ã€‚
+-- æ¯åˆ—ç‹¬ç«‹åˆ¤æ–­ï¼Œå…¼å®¹å…¨æ–°ã€éƒ¨åˆ†è¿ç§»å’Œå·²å®Œæˆè¿ç§»çš„æ•°æ®åº“ã€‚
+SET @migration_sql = IF(
+    EXISTS(
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'app_goods_order'
+          AND column_name = 'check_in_date'
+    ),
+    'DO 0',
+    'ALTER TABLE `app_goods_order` ADD COLUMN `check_in_date` date DEFAULT NULL COMMENT ''é¢„è®¢å¼€å§‹æ—¥æœŸ'' AFTER `status`'
+);
+PREPARE migration_statement FROM @migration_sql;
+EXECUTE migration_statement;
+DEALLOCATE PREPARE migration_statement;
+
+SET @migration_sql = IF(
+    EXISTS(
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'app_goods_order'
+          AND column_name = 'check_out_date'
+    ),
+    'DO 0',
+    'ALTER TABLE `app_goods_order` ADD COLUMN `check_out_date` date DEFAULT NULL COMMENT ''é¢„è®¢ç»“æŸæ—¥æœŸ'' AFTER `check_in_date`'
+);
+PREPARE migration_statement FROM @migration_sql;
+EXECUTE migration_statement;
+DEALLOCATE PREPARE migration_statement;
+
+SET @migration_sql = IF(
+    EXISTS(
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'app_goods_order'
+          AND column_name = 'contact_name'
+    ),
+    'DO 0',
+    'ALTER TABLE `app_goods_order` ADD COLUMN `contact_name` varchar(50) DEFAULT NULL COMMENT ''è”ç³»äººå§“å'' AFTER `check_out_date`'
+);
+PREPARE migration_statement FROM @migration_sql;
+EXECUTE migration_statement;
+DEALLOCATE PREPARE migration_statement;
+
+SET @migration_sql = IF(
+    EXISTS(
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'app_goods_order'
+          AND column_name = 'contact_phone'
+    ),
+    'DO 0',
+    'ALTER TABLE `app_goods_order` ADD COLUMN `contact_phone` varchar(20) DEFAULT NULL COMMENT ''è”ç³»äººç”µè¯'' AFTER `contact_name`'
+);
+PREPARE migration_statement FROM @migration_sql;
+EXECUTE migration_statement;
+DEALLOCATE PREPARE migration_statement;
