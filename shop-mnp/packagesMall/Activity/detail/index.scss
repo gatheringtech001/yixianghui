@@ -81,27 +81,14 @@ $page-paper: #ffffff;
 		white-space: normal;
 	}
 
-	.btn-collect {
+	.collect-star {
 		flex-shrink: 0;
-		display: inline-flex;
+		width: 72rpx;
+		height: 72rpx;
+		margin: -8rpx -8rpx 0 0;
+		display: flex;
 		align-items: center;
 		justify-content: center;
-		min-width: 112rpx;
-		min-height: 56rpx;
-		padding: 0 20rpx;
-		border-radius: 999rpx;
-		border: 2rpx solid rgba(112, 16, 24, 0.45);
-		background: #fff;
-		color: $page-accent;
-		font-size: 24rpx;
-		font-weight: 700;
-		line-height: 1;
-		box-sizing: border-box;
-	}
-
-	.btn-collect.collected {
-		border-color: rgba(112, 16, 24, 0.2);
-		background: #FFF3EE;
 	}
 }
 
