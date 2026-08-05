@@ -19,23 +19,23 @@
 		>
 			<view class="head" v-if="detailInfo">
 				<image :src="host + detailInfo.activityCover" mode="aspectFill"></image>
+				<view
+					class="collect-star"
+					:class="{ collected: !!collectId }"
+					:aria-label="collectId ? '取消收藏' : '收藏活动'"
+					@click.stop="toggleCollect"
+				>
+					<u-icon
+						:name="collectId ? 'star-fill' : 'star'"
+						color="#701018"
+						size="44"
+					></u-icon>
+				</view>
 			</view>
 			<view class="activity-sheet" v-if="detailInfo">
 				<view class="activity-title-row">
 					<view class="status-pill" :class="statusClass">{{ statusText }}</view>
 					<view class="activity-name">{{ detailInfo.activityName }}</view>
-					<view
-						class="collect-star"
-						:class="{ collected: !!collectId }"
-						:aria-label="collectId ? '取消收藏' : '收藏活动'"
-						@click.stop="toggleCollect"
-					>
-						<u-icon
-							:name="collectId ? 'star-fill' : 'star'"
-							color="#701018"
-							size="44"
-						></u-icon>
-					</view>
 				</view>
 				<view class="activity-progress-block">
 					<view class="activity-progress-head">
