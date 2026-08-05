@@ -6,6 +6,8 @@ e2e/miniprogram/node_modules/
 e2e/admin/node_modules/
 e2e/admin/.auth/
 outputs/
+**/__pycache__/
+*.pyc
 
 # Local runtime credentials
 /lankong-admin/src/main/resources/application.yml

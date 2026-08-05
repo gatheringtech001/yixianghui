@@ -1,0 +1,4 @@
+interface:
+  display_name: "逸享荟数据库备份"
+  short_description: "备份并校验逸享荟数据库，生成受控恢复计划和审计记录"
+  default_prompt: "Use $backup-yixianghui-db to create and verify a Yixianghui database backup."

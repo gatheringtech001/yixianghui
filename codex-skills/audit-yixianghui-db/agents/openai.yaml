@@ -1,0 +1,4 @@
+interface:
+  display_name: "逸享荟数据库审计"
+  short_description: "审计逸享荟数据一致性、孤儿记录、素材路径和订单支付状态"
+  default_prompt: "Use $audit-yixianghui-db to audit Yixianghui data integrity and report evidence."

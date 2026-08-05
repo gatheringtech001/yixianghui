@@ -1,0 +1,4 @@
+interface:
+  display_name: "逸享荟内容管理"
+  short_description: "预览、备份并受控修改逸享荟内容数据，同时拒绝高风险表"
+  default_prompt: "Use $edit-yixianghui-content to plan and safely apply this content change."

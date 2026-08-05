@@ -1,0 +1,4 @@
+interface:
+  display_name: "逸享荟数据库查询"
+  short_description: "安全查询逸享荟本地或生产数据库并生成准确可核验结果"
+  default_prompt: "Use $query-yixianghui-db to answer this Yixianghui data question safely."
