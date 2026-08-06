@@ -67,13 +67,13 @@ test('home, education and product details use the local production snapshot', { 
       })
     })
     await runStep(testContext, {
-      label: 'wait for backend site goods',
+      label: 'wait for backend category goods',
       action: () => waitUntil(async () => {
         const state = await getCurrentPageState(miniProgram, [
-          'currentCityDeptId',
+          'currentCategoryId',
           'currentGoodsList'
         ])
-        return state.currentCityDeptId === 108 &&
+        return state.currentCategoryId === 38 &&
           Array.isArray(state.currentGoodsList) &&
           state.currentGoodsList.length > 0
       })

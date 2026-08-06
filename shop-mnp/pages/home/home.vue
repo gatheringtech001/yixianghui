@@ -103,7 +103,7 @@
 				<view class="cls-goods" v-if="citySelectionReady">
 					<view class="section-head recommend-head">
 						<text class="section-title">精选推荐</text>
-						<text class="section-more" v-if="currentCityDeptId" @click="goMall">查看更多 &gt;</text>
+						<text class="section-more" v-if="currentCategoryId" @click="goMall">查看更多 &gt;</text>
 					</view>
 					<view class="product-list" v-if="currentGoodsList.length > 0">
 						<view
@@ -195,7 +195,6 @@
 	import { parseInvitePageOptions } from '@/utils/invite'
 	import {
 		getSite,
-		getSiteBydepId,
 		getBannerPosList,
 		getBannerList
 	} from '@/api/index'
@@ -226,7 +225,8 @@
 				showContact: false,
 				contact: [],
 				selectedCityIndex: -1,
-				currentCityDeptId: null,
+				currentCategoryId: null,
+				currentCategoryInfo: null,
 				currentGoodsList: [],
 				citySelectionReady: false,
 				citySwitching: false,
@@ -331,7 +331,7 @@
 			},
 			async refreshHomeData() {
 				const prevIndex = this.selectedCityIndex
-				const prevDeptId = this.currentCityDeptId
+				const prevCategoryId = this.currentCategoryId
 				try {
 					await Promise.all([
 						this.getAdPosList(),
@@ -345,8 +345,9 @@
 					}
 					if (prevIndex >= 0 && prevIndex < this.hotCardList.length) {
 						this.selectedCityIndex = prevIndex
-						const parsed = this.parseCitySiteLink(this.hotCardList[prevIndex])
-						this.currentCityDeptId = (parsed && parsed.deptId) || prevDeptId
+						const parsed = this.parseCityCategoryLink(this.hotCardList[prevIndex])
+						this.currentCategoryId = (parsed && parsed.categoryId) || prevCategoryId
+						this.updateCurrentCategoryInfo()
 						this.citySelectionReady = true
 						await this.loadCurrentGoodsList()
 					} else {
@@ -383,50 +384,81 @@
 					console.error('定位错误:', error)
 				}
 			},
-			// 热门城市广告的 linkUrl 保存站点 deptId。
-			parseCitySiteLink(item) {
+			findCategoryIdByName(cardName) {
+				const name = String(cardName || '').trim()
+				if (!name) return null
+				const allCategories = uni.getStorageSync('cls') || this.hotCategoryList || []
+				const aliases = name === '全国' ? ['全国旅居', '全国'] : [name]
+				const matched = allCategories.find(category => (
+					aliases.includes(String(category.categoryName || '').trim())
+				))
+				return matched ? Number(matched.categoryId) : null
+			},
+			// 生产广告 linkUrl 保存商品分类 ID；空链接按城市名匹配分类。
+			parseCityCategoryLink(item) {
 				if (!item) return null
 				const link = String(item.linkUrl || '').trim()
+				const categories = uni.getStorageSync('cls') || this.hotCategoryList || []
 				if (link && /^\d+$/.test(link)) {
-					return { deptId: Number(link) }
+					const category = categories.find(entry => (
+						String(entry.categoryId) === link
+					))
+					if (category) return { categoryId: Number(link) }
 				}
-				return null
+				const categoryId = this.findCategoryIdByName(item.adName)
+				return categoryId ? { categoryId } : null
+			},
+			updateCurrentCategoryInfo() {
+				const categories = uni.getStorageSync('cls') || this.hotCategoryList || []
+				this.currentCategoryInfo = categories.find(category => (
+					String(category.categoryId) === String(this.currentCategoryId)
+				)) || null
 			},
 			initCitySelection() {
-				if (!this.hotCardList.length) return
+				const categories = uni.getStorageSync('cls') || []
+				if (!this.hotCardList.length || !categories.length) return
 				if (this.citySelectionReady && this.selectedCityIndex >= 0) {
 					this.loadCurrentGoodsList()
 					return
 				}
-				const currentSiteId = this.siteInfo && this.siteInfo.deptId
+				const currentSiteName = String((this.siteInfo && this.siteInfo.deptName) || '').trim()
 				let index = this.hotCardList.findIndex(item => {
-					const parsed = this.parseCitySiteLink(item)
-					return parsed && String(parsed.deptId) === String(currentSiteId)
+					const parsed = this.parseCityCategoryLink(item)
+					return parsed && String(item.adName || '').trim() === currentSiteName
 				})
 				if (index < 0) index = this.hotCardList.findIndex(item => {
 					if (this.isNationalCityCard(item)) return false
-					const parsed = this.parseCitySiteLink(item)
-					return parsed && parsed.deptId
+					const parsed = this.parseCityCategoryLink(item)
+					if (!parsed) return false
+					const category = categories.find(entry => (
+						String(entry.categoryId) === String(parsed.categoryId)
+					))
+					return category && String(category.isHot) === '1'
+				})
+				if (index < 0) index = this.hotCardList.findIndex(item => {
+					if (this.isNationalCityCard(item)) return false
+					return Boolean(this.parseCityCategoryLink(item))
 				})
 				if (index >= 0) {
-					const parsed = this.parseCitySiteLink(this.hotCardList[index])
+					const parsed = this.parseCityCategoryLink(this.hotCardList[index])
 					this.selectedCityIndex = index
-					this.currentCityDeptId = parsed.deptId
+					this.currentCategoryId = parsed.categoryId
 				} else {
 					this.selectedCityIndex = -1
-					this.currentCityDeptId = null
+					this.currentCategoryId = null
 				}
+				this.updateCurrentCategoryInfo()
 				this.citySelectionReady = true
 				this.loadCurrentGoodsList()
 			},
 			async loadCurrentGoodsList() {
-				if (!this.currentCityDeptId) {
+				if (!this.currentCategoryId) {
 					this.currentGoodsList = []
 					return
 				}
 				try {
 					const res = await getGoodsList({
-						deptId: this.currentCityDeptId,
+						categoryId: this.currentCategoryId,
 						ignoreSite: true
 					})
 					const list = res.data || []
@@ -542,17 +574,17 @@
 			goToServiceTab() {
 				this.navigateToServicePage(0)
 			},
-			// 切换热门城市：linkUrl 为站点 deptId，按站点加载推荐商品。
+			// 切换热门城市：按广告关联的商品分类加载推荐商品。
 			async changeSiteHandle(cardItem, index) {
 				if (this.isNationalCityCard(cardItem)) {
 					this.goToServiceTab()
 					return
 				}
 				if (this.citySwitching) return
-				const parsed = this.parseCitySiteLink(cardItem)
-				if (!parsed || !parsed.deptId) {
+				const parsed = this.parseCityCategoryLink(cardItem)
+				if (!parsed || !parsed.categoryId) {
 					uni.showToast({
-						title: '未配置站点，请在广告链接填写站点ID',
+						title: '未配置商品分类，请检查热门城市配置',
 						icon: 'none'
 					})
 					return
@@ -560,7 +592,8 @@
 				this.citySwitching = true
 				try {
 					this.selectedCityIndex = index
-					this.currentCityDeptId = parsed.deptId
+					this.currentCategoryId = parsed.categoryId
+					this.updateCurrentCategoryInfo()
 					this.citySelectionReady = true
 					await this.loadCurrentGoodsList()
 				} catch (error) {
@@ -634,21 +667,16 @@
 						break;
 				}
 			},
-			async goMall() {
-				if (!this.currentCityDeptId) return
-				try {
-					const { data } = await getSiteBydepId(this.currentCityDeptId)
-					if (!data || !data.deptId) throw new Error('站点不存在或已停用')
-					uni.setStorageSync('site', data)
-					uni.navigateTo({
-						url: '/packagesMall/SearchGoodsList/SearchGoodsList'
-					})
-				} catch (error) {
-					uni.showToast({
-						title: (error && error.message) || '站点加载失败',
-						icon: 'none'
-					})
-				}
+			goMall() {
+				if (!this.currentCategoryId) return
+				const categories = uni.getStorageSync('cls') || []
+				const category = categories.find(item => (
+					String(item.categoryId) === String(this.currentCategoryId)
+				))
+				const navbarId = category && category.parentId != 0
+					? category.parentId
+					: this.getTravelNavbarId()
+				this.navigateToServicePage(this.currentCategoryId, navbarId)
 			},
 			// 商品详情（小程序用 dataset 传参，避免 v-for 闭包丢失）
 			goProdDetail(e) {

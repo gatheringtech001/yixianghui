@@ -152,22 +152,30 @@ async function probeH5Data() {
   const apiBaseUrl = 'http://127.0.0.1:18080/api'
   const baseUrl = `${apiBaseUrl}/mnp/index/`
   const cards = await getJson(`${baseUrl}get_ad_content_list?positionId=6`)
+  const categories = await getJson(`${baseUrl}get_goods_category?status=1`)
+  const categoryList = categories.data || []
   const cardRows = []
   for (const card of cards.data || []) {
-    const deptId = String(card.linkUrl || '')
-    const [site, goods, image] = await Promise.all([
-      getJson(`${baseUrl}get_site_bydepId/${deptId}`),
+    const linkCategory = categoryList.find(item => (
+      String(item.categoryId) === String(card.linkUrl || '').trim()
+    ))
+    const category = linkCategory || categoryList.find(item => (
+      String(item.categoryName || '').trim() === String(card.adName || '').trim() ||
+      (card.adName === '全国' && item.categoryName === '全国旅居')
+    ))
+    const categoryId = category ? Number(category.categoryId) : null
+    const [goods, image] = await Promise.all([
       getJson(`${baseUrl}queryGoodsList`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ deptId })
+        body: JSON.stringify({ categoryId })
       }),
       fetch(`${apiBaseUrl}${card.adImage}`)
     ])
     cardRows.push({
       adName: card.adName,
-      deptId,
-      siteName: site.data?.deptName || null,
+      categoryId,
+      categoryName: category?.categoryName || null,
       hasImage: Boolean(card.adImage),
       imageStatus: image.status,
       imageContentType: image.headers.get('content-type'),
@@ -177,13 +185,13 @@ async function probeH5Data() {
   return {
     checkedAt: new Date().toISOString(),
     cityCards: cardRows,
-    invalidSiteDeptIds: cardRows.filter(item => !item.siteName).map(item => item.deptId),
-    missingImageDeptIds: cardRows.filter(item => (
+    invalidCategoryCards: cardRows.filter(item => !item.categoryId).map(item => item.adName),
+    missingImageCategoryIds: cardRows.filter(item => (
       !item.hasImage ||
       item.imageStatus !== 200 ||
       !item.imageContentType?.startsWith('image/')
-    )).map(item => item.deptId),
-    emptyGoodsDeptIds: cardRows.filter(item => item.goodsCount === 0).map(item => item.deptId)
+    )).map(item => item.categoryId),
+    emptyGoodsCategoryIds: cardRows.filter(item => item.goodsCount === 0).map(item => item.categoryId)
   }
 }
 
@@ -274,12 +282,12 @@ async function main() {
       '本轮微信小程序自动化使用固定昆明站点，未触发真实定位和授权弹窗；该 behavior 需在微信开发者工具中单独验收。',
       '应用内 Browser 被管理员策略禁止访问 localhost，页面发现改由 Playwright 和微信开发者工具完成。',
       '后端 Maven 七个模块均无自动化单元/集成测试，当前后端回归证据主要来自 API-backed E2E。',
-      '贵州和海南站点当前没有上架商品；城市图片仍正常，但这两个站点会显示商品空态。',
+      '腾冲和曲靖分类当前没有上架商品；城市图片仍正常，但这两个分类会显示商品空态。',
       '干净环境首次初始化会从项目公开生产域名同步 5 张城市图；无网络时会明确失败，不会伪造成功。'
     ],
     nextActions: [
       '未开放的订单、评价、属性、收藏、活动和预约服务已从本地 E2E 菜单下线；实现完成后再恢复入口及正向测试。',
-      '如需每个热门城市都展示推荐商品，需为贵州和海南站点补充上架商品数据。',
+      '如需每个热门城市都展示推荐商品，需为腾冲和曲靖分类补充上架商品数据。',
       '如需完全离线复现 E2E，应在确认资产授权和仓库体积后，把城市图改为仓库内固定 fixture。',
       '处理管理端 ESLint 基线，至少先清零本次测试覆盖页面中的错误。',
       '准备隔离的支付沙箱与可回滚订单 fixture 后，再扩展下单、支付、退款 E2E。'
@@ -309,8 +317,8 @@ function buildStages(probePath, admin, h5) {
 function buildFindings(probePath) {
   return [
     { severity: '高', title: '未开放管理服务已隐藏', status: 'passed', impact: '商品订单/评价、商品属性、收藏、活动和活动预约不再下发路由，直接访问进入 404，避免把未上线能力暴露给管理员。', evidence: adminJson },
-    { severity: '高', title: '首页城市商品查询参数已修正', status: 'passed', impact: '城市卡片 linkUrl 是站点 deptId，不是分类 ID；现已使用 deptId 查询，云南和广州可返回真实上架商品。', evidence: probePath },
-    { severity: '中', title: '本地城市图片资产已补齐', status: 'passed', impact: '初始化会同步 5 张城市图到 E2E 上传目录，当前全部返回 200 与 image/*；贵州和海南站点仍因无上架商品而显示空态。', evidence: probePath },
+    { severity: '高', title: '首页城市商品查询参数已修正', status: 'passed', impact: '城市卡片 linkUrl 是商品分类 ID；首页按分类查询，昆明和大理可返回真实上架商品，腾冲空链接按城市名映射到分类。', evidence: probePath },
+    { severity: '中', title: '本地城市图片资产已补齐', status: 'passed', impact: '初始化会同步 5 张城市图到 E2E 上传目录，当前全部返回 200 与 image/*；腾冲和曲靖仍因无上架商品而显示空态。', evidence: probePath },
     { severity: '中', title: 'H5 定位边界已明确', status: 'warning', impact: 'H5 只作辅助测试端并固定本地站点；本轮未触发微信定位和授权弹窗，该 behavior 需单独扩展微信开发者工具 E2E。', evidence: h5Json },
     { severity: '中', title: '管理端 ESLint 基线未通过', status: 'failed', impact: '261 文件中 173 个有问题，共 8,446 errors、3,616 warnings，降低变更回归信噪比。', evidence: path.join(evidenceRoot, 'eslint-results.json') },
     { severity: '中', title: 'Java 后端缺少自动化测试', status: 'warning', impact: 'Maven 七模块均 No tests to run；schema 与 mapper 漂移只能在 E2E 阶段发现。', evidence: path.join(evidenceRoot, 'maven-test.log') },

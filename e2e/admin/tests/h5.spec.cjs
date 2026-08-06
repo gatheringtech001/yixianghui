@@ -58,24 +58,42 @@ test('H5-HOME-001 H5 首页可渲染并连接本地后端', async ({ page }, tes
   expect(serverErrors).toEqual([])
 })
 
-test('H5-HOME-002 H5 热门城市按站点展示后端上架商品', async ({ page }) => {
+test('H5-HOME-002 H5 热门城市按分类展示后端上架商品', async ({ page }) => {
   await seedH5Site(page)
   await page.goto('/')
   await expect(page.locator('uni-page-body')).toBeVisible()
   const responsePromise = page.waitForResponse(response => {
     if (!response.url().includes('/queryGoodsList')) return false
     const body = response.request().postDataJSON()
-    return body && (body.deptId === 210 || body.categoryId === 210)
+    return body && body.categoryId === 38
   })
-  await page.getByText('广州', { exact: true }).click()
+  await page.getByText('昆明', { exact: true }).click()
   const response = await responsePromise
   const requestBody = response.request().postDataJSON()
   const responseBody = await response.json()
-  expect(requestBody.deptId).toBe(210)
+  expect(requestBody.categoryId).toBe(38)
+  expect(requestBody.deptId).toBeUndefined()
   expect(responseBody.code).toBe(200)
   expect(responseBody.data.length).toBeGreaterThan(0)
   await expect(page.locator('.product-card').first(),
-    '广州站点应至少展示一个上架商品').toBeVisible()
+    '昆明分类应至少展示一个上架商品').toBeVisible()
+})
+
+test('H5-HOME-003 腾冲空链接按城市名映射分类且不提示站点错误', async ({ page }) => {
+  await seedH5Site(page)
+  await page.goto('/')
+  await expect(page.locator('uni-page-body')).toBeVisible()
+  const responsePromise = page.waitForResponse(response => {
+    if (!response.url().includes('/queryGoodsList')) return false
+    const body = response.request().postDataJSON()
+    return body && body.categoryId === 28
+  })
+  await page.getByText('腾冲', { exact: true }).click()
+  const response = await responsePromise
+  const requestBody = response.request().postDataJSON()
+  expect(requestBody.categoryId).toBe(28)
+  expect(requestBody.deptId).toBeUndefined()
+  await expect(page.getByText('未配置站点，请在广告链接填写站点ID')).toHaveCount(0)
 })
 
 test('H5-ASSET-001 H5 热门城市图片可由本地后端访问', async ({ page, request }) => {
