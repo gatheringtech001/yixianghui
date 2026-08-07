@@ -198,7 +198,7 @@ $cream: #fbf6ef;
 
 .entry-card {
 	position: relative;
-	height: 196rpx;
+	height: 216rpx;
 	border: 1rpx solid #e8dfd6;
 	border-radius: 16rpx;
 	background: #fff;
@@ -212,7 +212,8 @@ $cream: #fbf6ef;
 		left: 0;
 		z-index: 0;
 		width: 100%;
-		height: 116rpx;
+		height: 140rpx;
+		background: #f3eee9;
 	}
 
 	.entry-copy {

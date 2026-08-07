@@ -113,9 +113,11 @@ test('H5-HOME-004 首页入口使用独立图片区和高对比信息区', async
     const copyRect = copy.getBoundingClientRect()
     const titleStyle = getComputedStyle(title)
     const descriptionStyle = getComputedStyle(description)
+    const renderedImage = background.querySelector('div') || background
     return {
       backgroundWidthDelta: Math.abs(cardRect.width - backgroundRect.width),
       backgroundHeightRatio: backgroundRect.height / cardRect.height,
+      backgroundSizing: getComputedStyle(renderedImage).backgroundSize,
       copyStartsAfterImage: copyRect.top >= backgroundRect.bottom - 1,
       copyWidthDelta: Math.abs(cardRect.width - copyRect.width),
       copyBackground: getComputedStyle(copy).backgroundColor,
@@ -129,8 +131,9 @@ test('H5-HOME-004 首页入口使用独立图片区和高对比信息区', async
 
   for (const card of cards) {
     expect(card.backgroundWidthDelta).toBeLessThanOrEqual(2)
-    expect(card.backgroundHeightRatio).toBeGreaterThan(0.58)
+    expect(card.backgroundHeightRatio).toBeGreaterThan(0.62)
     expect(card.backgroundHeightRatio).toBeLessThan(0.68)
+    expect(card.backgroundSizing).toBe('contain')
     expect(card.copyStartsAfterImage).toBe(true)
     expect(card.copyWidthDelta).toBeLessThanOrEqual(2)
     expect(card.copyBackground).toBe('rgb(255, 255, 255)')
