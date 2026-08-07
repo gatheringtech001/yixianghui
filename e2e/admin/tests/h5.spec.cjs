@@ -96,6 +96,44 @@ test('H5-HOME-003 腾冲空链接按城市名映射分类且不提示站点错�
   await expect(page.getByText('未配置站点，请在广告链接填写站点ID')).toHaveCount(0)
 })
 
+test('H5-HOME-004 首页入口图片铺满且文字标签保持高对比', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await seedH5Site(page)
+  await page.goto('/')
+  await expect(page.locator('.entry-card')).toHaveCount(3)
+
+  const cards = await page.locator('.entry-card').evaluateAll(nodes => nodes.map(card => {
+    const background = card.querySelector('.entry-bg')
+    const copy = card.querySelector('.entry-copy')
+    const title = card.querySelector('.entry-title')
+    const description = card.querySelector('.entry-desc')
+    const cardRect = card.getBoundingClientRect()
+    const backgroundRect = background.getBoundingClientRect()
+    const titleStyle = getComputedStyle(title)
+    const descriptionStyle = getComputedStyle(description)
+    return {
+      backgroundWidthDelta: Math.abs(cardRect.width - backgroundRect.width),
+      backgroundHeightDelta: Math.abs(cardRect.height - backgroundRect.height),
+      copyBackground: getComputedStyle(copy).backgroundColor,
+      titleColor: titleStyle.color,
+      titleLines: title.getBoundingClientRect().height / parseFloat(titleStyle.lineHeight),
+      descriptionColor: descriptionStyle.color,
+      descriptionLines: description.getBoundingClientRect().height /
+        parseFloat(descriptionStyle.lineHeight)
+    }
+  }))
+
+  for (const card of cards) {
+    expect(card.backgroundWidthDelta).toBeLessThanOrEqual(2)
+    expect(card.backgroundHeightDelta).toBeLessThanOrEqual(2)
+    expect(card.copyBackground).toBe('rgba(17, 17, 17, 0.72)')
+    expect(card.titleColor).toBe('rgb(255, 255, 255)')
+    expect(card.descriptionColor).toBe('rgba(255, 255, 255, 0.88)')
+    expect(card.titleLines).toBeLessThanOrEqual(1.1)
+    expect(card.descriptionLines).toBeLessThanOrEqual(1.1)
+  }
+})
+
 test('H5-ASSET-001 H5 热门城市图片可由本地后端访问', async ({ page, request }) => {
   const cardsResponse = await request.get(
     'http://127.0.0.1:18080/api/mnp/index/get_ad_content_list?positionId=6'
