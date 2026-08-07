@@ -96,11 +96,12 @@ test('H5-HOME-003 腾冲空链接按城市名映射分类且不提示站点错�
   await expect(page.getByText('未配置站点，请在广告链接填写站点ID')).toHaveCount(0)
 })
 
-test('H5-HOME-004 首页入口图片铺满且文字标签保持高对比', async ({ page }) => {
+test('H5-HOME-004 首页入口使用独立图片区和高对比信息区', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await seedH5Site(page)
   await page.goto('/')
   await expect(page.locator('.entry-card')).toHaveCount(3)
+  await expect(page.locator('.entry-icon')).toHaveCount(0)
 
   const cards = await page.locator('.entry-card').evaluateAll(nodes => nodes.map(card => {
     const background = card.querySelector('.entry-bg')
@@ -109,11 +110,14 @@ test('H5-HOME-004 首页入口图片铺满且文字标签保持高对比', async
     const description = card.querySelector('.entry-desc')
     const cardRect = card.getBoundingClientRect()
     const backgroundRect = background.getBoundingClientRect()
+    const copyRect = copy.getBoundingClientRect()
     const titleStyle = getComputedStyle(title)
     const descriptionStyle = getComputedStyle(description)
     return {
       backgroundWidthDelta: Math.abs(cardRect.width - backgroundRect.width),
-      backgroundHeightDelta: Math.abs(cardRect.height - backgroundRect.height),
+      backgroundHeightRatio: backgroundRect.height / cardRect.height,
+      copyStartsAfterImage: copyRect.top >= backgroundRect.bottom - 1,
+      copyWidthDelta: Math.abs(cardRect.width - copyRect.width),
       copyBackground: getComputedStyle(copy).backgroundColor,
       titleColor: titleStyle.color,
       titleLines: title.getBoundingClientRect().height / parseFloat(titleStyle.lineHeight),
@@ -125,13 +129,34 @@ test('H5-HOME-004 首页入口图片铺满且文字标签保持高对比', async
 
   for (const card of cards) {
     expect(card.backgroundWidthDelta).toBeLessThanOrEqual(2)
-    expect(card.backgroundHeightDelta).toBeLessThanOrEqual(2)
-    expect(card.copyBackground).toBe('rgba(17, 17, 17, 0.72)')
-    expect(card.titleColor).toBe('rgb(255, 255, 255)')
-    expect(card.descriptionColor).toBe('rgba(255, 255, 255, 0.88)')
+    expect(card.backgroundHeightRatio).toBeGreaterThan(0.58)
+    expect(card.backgroundHeightRatio).toBeLessThan(0.68)
+    expect(card.copyStartsAfterImage).toBe(true)
+    expect(card.copyWidthDelta).toBeLessThanOrEqual(2)
+    expect(card.copyBackground).toBe('rgb(255, 255, 255)')
+    expect(card.titleColor).toBe('rgb(112, 16, 24)')
+    expect(card.descriptionColor).toBe('rgb(102, 102, 102)')
     expect(card.titleLines).toBeLessThanOrEqual(1.1)
     expect(card.descriptionLines).toBeLessThanOrEqual(1.1)
   }
+})
+
+test('H5-HOME-005 热门城市过滤全国并保持五项单行', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await seedH5Site(page)
+  await page.goto('/')
+
+  const cityCards = page.locator('.city-card')
+  await expect(cityCards).toHaveCount(5)
+  await expect(page.getByText('全国', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('查看全部 >', { exact: true })).toBeVisible()
+
+  const cityLayout = await cityCards.evaluateAll(nodes => ({
+    names: nodes.map(node => node.textContent.trim()),
+    rowTops: nodes.map(node => Math.round(node.getBoundingClientRect().top))
+  }))
+  expect(cityLayout.names).toEqual(['昆明', '云南', '腾冲', '曲靖', '大理'])
+  expect(new Set(cityLayout.rowTops).size).toBe(1)
 })
 
 test('H5-ASSET-001 H5 热门城市图片可由本地后端访问', async ({ page, request }) => {
@@ -139,7 +164,10 @@ test('H5-ASSET-001 H5 热门城市图片可由本地后端访问', async ({ page
     'http://127.0.0.1:18080/api/mnp/index/get_ad_content_list?positionId=6'
   )
   const cardsBody = await cardsResponse.json()
-  const cityImagePaths = new Set((cardsBody.data || []).map(item => item.adImage))
+  const displayedCards = (cardsBody.data || []).filter(item => (
+    !['全国', '更多'].includes(String(item.adName || '').trim())
+  ))
+  const cityImagePaths = new Set(displayedCards.map(item => item.adImage))
   const imageResponses = await Promise.all([...cityImagePaths].map(async pathname => {
     const response = await request.get(`http://127.0.0.1:18080/api${pathname}`)
     return {

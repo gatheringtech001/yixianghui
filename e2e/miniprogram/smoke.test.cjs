@@ -62,10 +62,16 @@ test('home, education and product details use the local production snapshot', { 
     await runStep(testContext, {
       label: 'wait for backend categories',
       action: () => waitUntil(async () => {
-        const state = await getCurrentPageState(miniProgram, ['navList'])
-        return Array.isArray(state.navList) && state.navList.length > 0
+        const state = await getCurrentPageState(miniProgram, ['navList', 'hotCardList'])
+        return Array.isArray(state.navList) && state.navList.length > 0 &&
+          Array.isArray(state.hotCardList) && state.hotCardList.length === 5
       })
     })
+    const cityState = await getCurrentPageState(miniProgram, ['hotCardList'])
+    assert.deepEqual(
+      cityState.hotCardList.map(item => item.adName),
+      ['昆明', '云南', '腾冲', '曲靖', '大理']
+    )
     await runStep(testContext, {
       label: 'wait for backend category goods',
       action: () => waitUntil(async () => {
