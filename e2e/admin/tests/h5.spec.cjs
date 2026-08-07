@@ -170,6 +170,16 @@ test('H5-ASSET-001 H5 热门城市图片可由本地后端访问', async ({ page
   const displayedCards = (cardsBody.data || []).filter(item => (
     !['全国', '更多'].includes(String(item.adName || '').trim())
   ))
+  const expectedPersistentImages = {
+    '昆明': '/profile/e2e/city-kunming-landmark.jpg',
+    '腾冲': '/profile/e2e/city-tengchong-landmark.jpg',
+    '曲靖': '/profile/e2e/city-qujing-landmark.jpg',
+    '大理': '/profile/e2e/city-dali-landmark.jpg'
+  }
+  for (const [cityName, expectedPath] of Object.entries(expectedPersistentImages)) {
+    const city = displayedCards.find(item => item.adName === cityName)
+    expect(city && city.adImage, `${cityName} 应使用可重复安装的新城市素材`).toBe(expectedPath)
+  }
   const cityImagePaths = new Set(displayedCards.map(item => item.adImage))
   const imageResponses = await Promise.all([...cityImagePaths].map(async pathname => {
     const response = await request.get(`http://127.0.0.1:18080/api${pathname}`)

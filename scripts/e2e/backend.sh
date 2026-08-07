@@ -247,9 +247,20 @@ install_e2e_bundled_assets() {
   local upload_dir="${E2E_UPLOAD_DIR:-/tmp/yixianghui-e2e/uploads}"
   local source="${REPO_ROOT}/shop-mnp/static/home-design/brand-logo-transparent.png"
   local target="${upload_dir}/e2e/brand-logo-transparent.png"
+  local asset
   require_file "${source}"
   mkdir -p "$(dirname "${target}")"
   cp "${source}" "${target}"
+  for asset in \
+    city-kunming-landmark.jpg \
+    city-tengchong-landmark.jpg \
+    city-qujing-landmark.jpg \
+    city-dali-landmark.jpg; do
+    source="${REPO_ROOT}/e2e/fixtures/assets/${asset}"
+    target="${upload_dir}/e2e/${asset}"
+    require_file "${source}"
+    cp "${source}" "${target}"
+  done
 }
 
 load_e2e_asset_values() {
