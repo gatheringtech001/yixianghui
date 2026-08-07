@@ -70,7 +70,7 @@ test('home, education and product details use the local production snapshot', { 
     const cityState = await getCurrentPageState(miniProgram, ['hotCardList'])
     assert.deepEqual(
       cityState.hotCardList.map(item => item.adName),
-      ['昆明', '云南', '腾冲', '曲靖', '大理']
+      ['昆明', '建水', '腾冲', '曲靖', '大理']
     )
     await runStep(testContext, {
       label: 'wait for backend category goods',

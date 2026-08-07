@@ -20,6 +20,7 @@ INSERT INTO app_ad_content (
     start_time, end_time, link_url, order_num, status
 ) VALUES
     (14, 6, '昆明', '关联商品分类', '/profile/e2e/city-kunming-landmark.jpg', NULL, NULL, NULL, '38', 5, '1'),
+    (15, 6, '建水', '关联商品分类；图片：建水朝阳楼，作者“瑞丽江的河水”，Wikimedia Commons，CC BY-SA 4.0，已裁剪。来源：https://commons.wikimedia.org/wiki/File:建水朝阳楼_-_2025-05-04.jpg', '/profile/e2e/city-jianshui-landmark.jpg', NULL, NULL, NULL, '56', 1, '1'),
     (16, 6, '腾冲', '关联商品分类\n', '/profile/e2e/city-tengchong-landmark.jpg', NULL, NULL, NULL, '', 3, '1'),
     (17, 6, '曲靖', '关联商品分类\n', '/profile/e2e/city-qujing-landmark.jpg', NULL, NULL, NULL, '27', 4, '1'),
     (18, 6, '全国', '关联商品分类', '/profile/upload/2025/09/14/全国_20250914161325A013.png', NULL, NULL, NULL, '25', 2, '1'),

@@ -175,7 +175,7 @@ test('H5-HOME-005 热门城市过滤全国并保持五项单行', async ({ page 
     names: nodes.map(node => node.textContent.trim()),
     rowTops: nodes.map(node => Math.round(node.getBoundingClientRect().top))
   }))
-  expect(cityLayout.names).toEqual(['昆明', '云南', '腾冲', '曲靖', '大理'])
+  expect(cityLayout.names).toEqual(['昆明', '建水', '腾冲', '曲靖', '大理'])
   expect(new Set(cityLayout.rowTops).size).toBe(1)
 })
 
@@ -189,6 +189,7 @@ test('H5-ASSET-001 H5 热门城市图片可由本地后端访问', async ({ page
   ))
   const expectedPersistentImages = {
     '昆明': '/profile/e2e/city-kunming-landmark.jpg',
+    '建水': '/profile/e2e/city-jianshui-landmark.jpg',
     '腾冲': '/profile/e2e/city-tengchong-landmark.jpg',
     '曲靖': '/profile/e2e/city-qujing-landmark.jpg',
     '大理': '/profile/e2e/city-dali-landmark.jpg'

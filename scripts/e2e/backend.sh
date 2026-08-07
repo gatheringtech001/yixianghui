@@ -253,6 +253,7 @@ install_e2e_bundled_assets() {
   cp "${source}" "${target}"
   for asset in \
     city-kunming-landmark.jpg \
+    city-jianshui-landmark.jpg \
     city-tengchong-landmark.jpg \
     city-qujing-landmark.jpg \
     city-dali-landmark.jpg; do
