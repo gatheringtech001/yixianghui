@@ -206,6 +206,12 @@ def _same_value(expected: Any, actual: Any) -> bool:
     return str(expected) == str(actual)
 
 
+def _asset_state_is_resumable(planned: dict[str, str], current: dict[str, str],
+                              assets: list[dict[str, Any]]) -> bool:
+    expected = {row["file"]: row["sha256"] for row in assets}
+    return current == planned or current == expected
+
+
 def re_full_decimal(value: str) -> bool:
     return bool(value) and all(char in "-0123456789." for char in value) and value.count(".") <= 1
 
@@ -233,7 +239,9 @@ def apply_import_plan(path: Path, confirmation: str | None) -> dict[str, Any]:
         raise PolicyError("Catalog changed after preview")
     catalog = load_catalog(catalog_path)
     assets = cover_assets(catalog, catalog_path.parent / "covers")
-    if assets != payload["assets"] or _asset_state(target, catalog, assets) != payload["asset_state"]:
+    current_assets = _asset_state(target, catalog, assets)
+    if assets != payload["assets"] or not _asset_state_is_resumable(
+            payload["asset_state"], current_assets, assets):
         raise PolicyError("Assets or target asset state changed after preview")
     snapshot = capture_snapshot(target, catalog)
     if snapshot != payload["snapshot"]:

@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import base64
 import hashlib
 import os
 import shlex
@@ -75,7 +74,8 @@ test -n "$db_user" && test -n "$db_password" && test -n "$db_name" && test -n "$
 """.strip()
 
 
-def _ssh_script(script: str, *, stdout=None) -> subprocess.CompletedProcess[bytes]:
+def _ssh_script(script: str, *, stdout=None,
+                input_bytes: bytes = b"") -> subprocess.CompletedProcess[bytes]:
     remote = [
         "ssh",
         "-o", "ConnectTimeout=10",
@@ -85,7 +85,7 @@ def _ssh_script(script: str, *, stdout=None) -> subprocess.CompletedProcess[byte
         SSH_HOST,
         "bash", "-lc", shlex.quote(script),
     ]
-    return _run(remote, env=_ssh_env(), stdout=stdout, input_bytes=b"")
+    return _run(remote, env=_ssh_env(), stdout=stdout, input_bytes=input_bytes)
 
 
 def _mysql_args(headers: bool) -> list[str]:
@@ -102,19 +102,16 @@ def run_mysql(target: str, sql: str, *, headers: bool = True,
         args.extend(_mysql_args(headers))
         result = _run(args, input_bytes=sql.encode("utf-8"))
     elif target == "production":
-        encoded = base64.b64encode(sql.encode("utf-8")).decode("ascii")
         mode = "" if write else "SET SESSION MAX_EXECUTION_TIME=15000; SET TRANSACTION READ ONLY; START TRANSACTION; "
         tail = "" if write else " ROLLBACK;"
         header_flag = "" if headers else "--skip-column-names"
         script = _remote_prelude() + f"""
-sql=$(printf '%s' {shlex.quote(encoded)} | base64 -d)
 MYSQL_PWD="$db_password" mysql --host=127.0.0.1 --port="$db_port" \\
   --user="$db_user" --database="$db_name" --batch --raw {header_flag} \\
-  --default-character-set=utf8mb4 -e {shlex.quote(mode + "${sql}" + tail)}
+  --default-character-set=utf8mb4
 """
-        # Expand the decoded SQL remotely without exposing credentials locally.
-        script = script.replace(shlex.quote(mode + "${sql}" + tail), '"' + mode + '${sql}' + tail + '"')
-        result = _ssh_script(script)
+        payload = (mode + sql + tail).encode("utf-8")
+        result = _ssh_script(script, input_bytes=payload)
     else:
         raise RuntimeFailure(f"Unknown target: {target}")
     return result.stdout.decode("utf-8", errors="replace")

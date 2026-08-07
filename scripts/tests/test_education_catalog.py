@@ -8,6 +8,7 @@ sys.path.insert(0, str(SCRIPTS))
 from education_catalog import (  # noqa: E402
     _row_predicate, build_transaction_sql, desired_rows, load_catalog, summarize,
 )
+from import_education_catalog import _asset_state_is_resumable  # noqa: E402
 
 
 class EducationCatalogTest(unittest.TestCase):
@@ -64,6 +65,15 @@ class EducationCatalogTest(unittest.TestCase):
         self.assertIn("goods_name", predicate)
         self.assertNotIn("create_time", predicate)
         self.assertNotIn("update_time", predicate)
+
+    def test_asset_state_allows_exact_uploaded_files_when_resuming(self):
+        assets = [{"file": "course.jpg", "sha256": "expected"}]
+        self.assertTrue(_asset_state_is_resumable(
+            {"course.jpg": "MISSING"}, {"course.jpg": "expected"}, assets
+        ))
+        self.assertFalse(_asset_state_is_resumable(
+            {"course.jpg": "MISSING"}, {"course.jpg": "unexpected"}, assets
+        ))
 
 
 if __name__ == "__main__":
