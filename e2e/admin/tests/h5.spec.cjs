@@ -96,7 +96,7 @@ test('H5-HOME-003 腾冲空链接按城市名映射分类且不提示站点错�
   await expect(page.getByText('未配置站点，请在广告链接填写站点ID')).toHaveCount(0)
 })
 
-test('H5-HOME-004 首页入口使用独立图片区和高对比信息区', async ({ page }) => {
+test('H5-HOME-004 首页入口横图完整铺满图片区且信息区保持高对比', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await seedH5Site(page)
   await page.goto('/')
@@ -128,12 +128,25 @@ test('H5-HOME-004 首页入口使用独立图片区和高对比信息区', async
         parseFloat(descriptionStyle.lineHeight)
     }
   }))
+  const sourceAspectRatios = await page.locator('.entry-bg').evaluateAll(nodes => (
+    Promise.all(nodes.map(node => {
+      const renderedImage = node.querySelector('div') || node
+      const backgroundImage = getComputedStyle(renderedImage).backgroundImage
+      const sourceUrl = backgroundImage.match(/^url\(["']?(.*?)["']?\)$/)[1]
+      return new Promise((resolve, reject) => {
+        const image = new Image()
+        image.onload = () => resolve(image.naturalWidth / image.naturalHeight)
+        image.onerror = () => reject(new Error(`入口素材加载失败: ${sourceUrl}`))
+        image.src = sourceUrl
+      })
+    }))
+  ))
 
   for (const card of cards) {
     expect(card.backgroundWidthDelta).toBeLessThanOrEqual(2)
     expect(card.backgroundHeightRatio).toBeGreaterThan(0.62)
     expect(card.backgroundHeightRatio).toBeLessThan(0.68)
-    expect(card.backgroundSizing).toBe('contain')
+    expect(card.backgroundSizing).toBe('cover')
     expect(card.copyStartsAfterImage).toBe(true)
     expect(card.copyWidthDelta).toBeLessThanOrEqual(2)
     expect(card.copyBackground).toBe('rgb(255, 255, 255)')
@@ -141,6 +154,10 @@ test('H5-HOME-004 首页入口使用独立图片区和高对比信息区', async
     expect(card.descriptionColor).toBe('rgb(102, 102, 102)')
     expect(card.titleLines).toBeLessThanOrEqual(1.1)
     expect(card.descriptionLines).toBeLessThanOrEqual(1.1)
+  }
+  for (const ratio of sourceAspectRatios) {
+    expect(ratio).toBeGreaterThanOrEqual(1.55)
+    expect(ratio).toBeLessThanOrEqual(1.65)
   }
 })
 

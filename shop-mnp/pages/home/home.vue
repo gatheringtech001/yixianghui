@@ -52,21 +52,21 @@
 
 				<view class="entry-grid">
 					<view class="entry-card" @click="goClassify('全国旅居')">
-						<image class="entry-bg" src="/static/home-design/entry-stay.jpg" mode="aspectFit" />
+						<image class="entry-bg" src="/static/home-design/entry-stay.jpg" mode="aspectFill" />
 						<view class="entry-copy">
 							<text class="entry-title">全国旅居</text>
 							<text class="entry-desc">旅居好去处</text>
 						</view>
 					</view>
 					<view class="entry-card" @click="goClassify('聚会活动')">
-						<image class="entry-bg" src="/static/home-design/entry-activity.jpg" mode="aspectFit" />
+						<image class="entry-bg" src="/static/home-design/entry-activity.jpg" mode="aspectFill" />
 						<view class="entry-copy">
 							<text class="entry-title">聚会活动</text>
 							<text class="entry-desc">精彩活动汇聚</text>
 						</view>
 					</view>
 					<view class="entry-card" @click="goClassify('老年教育')">
-						<image class="entry-bg" src="/static/home-design/entry-education.jpg" mode="aspectFit" />
+						<image class="entry-bg" src="/static/home-design/entry-education.jpg" mode="aspectFill" />
 						<view class="entry-copy">
 							<text class="entry-title">老年教育</text>
 							<text class="entry-desc">线下课程报名</text>
