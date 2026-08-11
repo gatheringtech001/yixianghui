@@ -2,7 +2,7 @@
 	<view class="page">
 		<!-- 地址列表 -->
 		<view class="address-list" v-if="addressList.length > 0">
-			<view class="list" v-for="(item, index) in addressList" :key="index" @click="chooseAddress(item)">
+			<view class="list" v-for="(item, index) in addressList" :key="index" @click="chooseAddress(item)" @longpress="onAddressLongPress(item)">
 				<view class="name-phone">
 					<view class="name">
 						<text class="one-omit">{{item.linkPerson}}</text>
@@ -37,7 +37,7 @@
 </template>
 
 <script>
-	import { getAddressList } from '@/api/member/index'
+	import { getAddressList, deleteAddress } from '@/api/member/index'
 	export default {
 		data() {
 			return {
@@ -86,6 +86,42 @@
 						url: path,
 					})
 				}, 500)
+			},
+			onAddressLongPress(item) {
+				uni.showActionSheet({
+					itemList: ['复制地址', '删除'],
+					success: ({ tapIndex }) => {
+						if (tapIndex === 0) {
+							this.copyAddress(item)
+						} else if (tapIndex === 1) {
+							this.confirmDeleteAddress(item)
+						}
+					}
+				})
+			},
+			getAddressText(item) {
+				const region = `${item.provinceName || ''}${item.cityName || ''}${item.countyName || ''}${item.streetName || ''}${item.addressDetail || ''}`
+				return `${item.linkPerson || ''} ${item.linkMobile || ''}\n${region}`
+			},
+			copyAddress(item) {
+				uni.setClipboardData({
+					data: this.getAddressText(item),
+					success: () => {
+						uni.showToast({ title: '地址已复制', icon: 'none' })
+					}
+				})
+			},
+			confirmDeleteAddress(item) {
+				uni.showModal({
+					title: '提示',
+					content: '确定删除该收货地址吗？',
+					success: async ({ confirm }) => {
+						if (!confirm) return
+						await deleteAddress(item.addressId)
+						uni.showToast({ title: '删除成功', icon: 'none' })
+						this.getAddress()
+					}
+				})
 			}
 		}
 	}

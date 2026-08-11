@@ -515,52 +515,18 @@ public class AppUserController extends BaseController
                 detailWhere = new AppGoodsOrderDetail();
                 detailWhere.setOrderId(list.get(i).getOrderId());
                 tmpdetails = orderDetailService.selectAppGoodsOrderDetailList(detailWhere);
-                oneorder.setGoodsCount(tmpdetails.get(0).getGoodsCount());
-                oneorder.setSkuId(tmpdetails.get(0).getSkuId());
-                oneorder.setSkuSeqNo(tmpdetails.get(0).getSkuSeqNo());
-                oneorder.setSelfGoodsCount(tmpdetails.get(0).getSelfGoodsCount());
-                oneorder.setSelfSkuId(tmpdetails.get(0).getSelfSkuId());
-                // 列表单价以订单明细金额为准，避免展示当前套餐改价后的价格导致与总金额不一致
-                if (tmpdetails.get(0).getGoodsMoney() != null) {
-                    goods.setPrice(tmpdetails.get(0).getGoodsMoney());
-                } else if (oneorder.getPayMoney() != null && oneorder.getPayMoney().compareTo(BigDecimal.ZERO) > 0) {
-                    goods.setPrice(oneorder.getPayMoney());
-                } else if (oneorder.getMoneyPayable() != null) {
-                    goods.setPrice(oneorder.getMoneyPayable());
-                }
-                /*skuData = skuDataService.selectAppGoodsSkuDataByDataId(tmpdetails.get(0).getSkuDataId());
-                if(null!=skuData) {
-                    goods.setGoodsName(skuData.getDataValues());
-                    goods.setGoodsCover(skuData.getDataImage());
-                    goods.setPrice(skuData.getDataPrice());
-                }*/
-                comboxindex = -1;
-                if(null!=goods.getOptionList() && goods.getOptionList().size()>0){
-                    for (int j=0;j<goods.getOptionList().size();j++){
-                        AppGoodsSku option = goods.getOptionList().get(j);
-                        if(null!=tmpdetails.get(0).getSelfSkuId()){
-                            if(null==option.getOptions() || option.getOptions().size()==0){
-                                comboxindex = comboxindex + 1;
-                            }
-                            if(tmpdetails.get(0).getSelfSkuId().longValue()==option.getSkuId()){
-                                mycomboxindex = comboxindex;
-                            }
-                        }
-                        if(null!=tmpdetails.get(0).getSkuId() && tmpdetails.get(0).getSkuId().longValue()==option.getSkuId().longValue()){
-                            skuOptions = option.getOptions();
-                            if(null!=skuOptions && skuOptions.size()>0){
-                                for (int k=0;k<skuOptions.size();k++){
-                                    AppGoodsSkuOption skuoption = skuOptions.get(k);
-                                    if(skuoption.getOptionType().equals("305") && skuoption.getSkuSeqNo().intValue()!=0){
-                                        goods.setGoodsCover(skuoption.getOptionValue());
-                                    }
-                                    if(skuoption.getOptionType().equals("304") && skuoption.getSkuSeqNo().intValue()!=0){
-                                        goods.setGoodsName(skuoption.getOptionValue());
-                                    }
-                                    // 302 为当前套餐价，不覆盖订单历史金额（避免列表单价与实付不一致）
-                                }
-                            }
-                        }
+                if (tmpdetails != null && !tmpdetails.isEmpty()) {
+                    AppGoodsOrderDetail listDetail = tmpdetails.get(0);
+                    mergeHotelOrderDetail(oneorder, listDetail);
+                    applyHotelGoodsPresentation(goods, listDetail);
+                    mycomboxindex = resolveSelComboIndex(goods, listDetail);
+                    // 列表单价以订单明细金额为准，避免展示当前套餐改价后的价格导致与总金额不一致
+                    if (listDetail.getGoodsMoney() != null) {
+                        goods.setPrice(listDetail.getGoodsMoney());
+                    } else if (oneorder.getPayMoney() != null && oneorder.getPayMoney().compareTo(BigDecimal.ZERO) > 0) {
+                        goods.setPrice(oneorder.getPayMoney());
+                    } else if (oneorder.getMoneyPayable() != null) {
+                        goods.setPrice(oneorder.getMoneyPayable());
                     }
                 }
             }
@@ -634,55 +600,11 @@ public class AppUserController extends BaseController
             int comboxindex = 0;
             int mycomboxindex = 0;
             List<AppGoodsSkuOption> skuOptions;
-            if (goods.getIsSku() == 1) {
-                detailWhere = new AppGoodsOrderDetail();
-                detailWhere.setOrderId(goodsOrder.getOrderId());
-                tmpdetails = orderDetailService.selectAppGoodsOrderDetailList(detailWhere);
-                goodsOrder.setGoodsCount(tmpdetails.get(0).getGoodsCount());
-                goodsOrder.setSkuId(tmpdetails.get(0).getSkuId());
-                goodsOrder.setSkuSeqNo(tmpdetails.get(0).getSkuSeqNo());
-                goodsOrder.setSelfGoodsCount(tmpdetails.get(0).getSelfGoodsCount());
-                goodsOrder.setSelfSkuId(tmpdetails.get(0).getSelfSkuId());
-                /*skuData = skuDataService.selectAppGoodsSkuDataByDataId(tmpdetails.get(0).getSkuDataId());
-                if(null!=skuData) {
-                    goods.setGoodsName(skuData.getDataValues());
-                    goods.setGoodsCover(skuData.getDataImage());
-                    goods.setPrice(skuData.getDataPrice());
-                }*/
-                comboxindex = -1;
-                if(null!=goods.getOptionList() && goods.getOptionList().size()>0){
-                    for (int j=0;j<goods.getOptionList().size();j++){
-                        AppGoodsSku option = goods.getOptionList().get(j);
-                        if(null!=tmpdetails.get(0).getSelfSkuId()){
-                            if(null==option.getOptions() || option.getOptions().size()==0){
-                                comboxindex = comboxindex + 1;
-                            }
-                            if(tmpdetails.get(0).getSelfSkuId().longValue()==option.getSkuId()){
-                                mycomboxindex = comboxindex;
-                            }
-                        }
-                        if(null!=tmpdetails.get(0).getSkuId() && tmpdetails.get(0).getSkuId().longValue()==option.getSkuId().longValue()){
-                            skuOptions = option.getOptions();
-                            if(null!=skuOptions && skuOptions.size()>0){
-                                for (int k=0;k<skuOptions.size();k++){
-                                    AppGoodsSkuOption skuoption = skuOptions.get(k);
-                                    if(skuoption.getOptionType().equals("305") && skuoption.getSkuSeqNo().intValue()!=0){
-                                        goods.setGoodsCover(skuoption.getOptionValue());
-                                    }
-                                    if(skuoption.getOptionType().equals("304") && skuoption.getSkuSeqNo().intValue()!=0){
-                                        goods.setGoodsName(skuoption.getOptionValue());
-                                    }
-                                    if(skuoption.getOptionType().equals("302")){
-                                        goods.setPrice(new BigDecimal(skuoption.getOptionValue()));
-                                    }
-                                    /*if(skuoption.getOptionType().equals("303") && skuoption.getSkuSeqNo().intValue()!=0){
-                                        goods.setSaleCount(new BigDecimal(skuoption.getOptionValue()).longValue());
-                                    }*/
-                                }
-                            }
-                        }
-                    }
-                }
+            if (goods.getIsSku() == 1 && tmpdetails != null && !tmpdetails.isEmpty()) {
+                AppGoodsOrderDetail detail = tmpdetails.get(0);
+                mergeHotelOrderDetail(goodsOrder, detail);
+                applyHotelGoodsPresentation(goods, detail);
+                mycomboxindex = resolveSelComboIndex(goods, detail);
             }
             goodsOrder.setSelComboIndex(mycomboxindex);
             goodsList.add(goods);
@@ -1503,6 +1425,97 @@ public class AppUserController extends BaseController
         }catch (Exception ex){
             logger.error("申请退款失败 orderId={}", refund != null ? refund.getOrderId() : null, ex);
             return error("系统错误");
+        }
+    }
+
+    /** 旅居订单：明细表字段回填到订单主对象（晚数、入住日期等） */
+    private void mergeHotelOrderDetail(AppGoodsOrder order, AppGoodsOrderDetail detail) {
+        if (order == null || detail == null) {
+            return;
+        }
+        order.setGoodsCount(detail.getGoodsCount());
+        order.setSkuId(detail.getSkuId());
+        order.setSkuSeqNo(detail.getSkuSeqNo());
+        order.setSelfGoodsCount(detail.getSelfGoodsCount());
+        order.setSelfSkuId(detail.getSelfSkuId());
+        if (detail.getInterCount() != null) {
+            order.setInterCount(detail.getInterCount());
+        }
+        if (order.getCheckInDate() == null && detail.getOrderStartDate() != null) {
+            order.setCheckInDate(detail.getOrderStartDate());
+        }
+        if (order.getCheckOutDate() == null && detail.getOrderEndDate() != null) {
+            order.setCheckOutDate(detail.getOrderEndDate());
+        }
+    }
+
+    /** 自选晚数：无有效 skuSeqNo */
+    private boolean isCustomNightHotelOrder(AppGoodsOrderDetail detail) {
+        return detail != null && (detail.getSkuSeqNo() == null || detail.getSkuSeqNo() <= 0);
+    }
+
+    /** 供餐套餐在 optionList 中的下标 */
+    private int resolveSelComboIndex(AppGoods goods, AppGoodsOrderDetail detail) {
+        if (goods == null || detail == null || detail.getSelfSkuId() == null
+                || goods.getOptionList() == null || goods.getOptionList().isEmpty()) {
+            return 0;
+        }
+        int comboIndex = -1;
+        int selectedIndex = 0;
+        for (AppGoodsSku option : goods.getOptionList()) {
+            if (option.getOptions() == null || option.getOptions().isEmpty()) {
+                comboIndex = comboIndex + 1;
+            }
+            if (detail.getSelfSkuId().longValue() == option.getSkuId()) {
+                selectedIndex = comboIndex;
+            }
+        }
+        return selectedIndex;
+    }
+
+    /**
+     * 旅居商品展示：自选晚数用标准房型名称；固定套餐按下单时的组合序号展示。
+     */
+    private void applyHotelGoodsPresentation(AppGoods goods, AppGoodsOrderDetail detail) {
+        if (goods == null || detail == null || goods.getOptionList() == null) {
+            return;
+        }
+        boolean customNight = isCustomNightHotelOrder(detail);
+        Integer orderSeqNo = detail.getSkuSeqNo();
+        String specName = null;
+        for (AppGoodsSku option : goods.getOptionList()) {
+            if (detail.getSkuId() == null || !detail.getSkuId().equals(option.getSkuId())) {
+                continue;
+            }
+            if (customNight && StringUtils.isNotBlank(option.getSkuName())) {
+                specName = option.getSkuName();
+            }
+            List<AppGoodsSkuOption> skuOptions = option.getOptions();
+            if (skuOptions == null || skuOptions.isEmpty()) {
+                continue;
+            }
+            for (AppGoodsSkuOption skuoption : skuOptions) {
+                int seqNo = skuoption.getSkuSeqNo() != null ? skuoption.getSkuSeqNo().intValue() : 0;
+                if ("305".equals(skuoption.getOptionType())) {
+                    if (customNight && seqNo == 0 && StringUtils.isNotBlank(skuoption.getOptionValue())) {
+                        goods.setGoodsCover(skuoption.getOptionValue());
+                    } else if (!customNight && seqNo != 0 && orderSeqNo != null
+                            && seqNo == orderSeqNo.intValue()) {
+                        goods.setGoodsCover(skuoption.getOptionValue());
+                    }
+                }
+                if ("304".equals(skuoption.getOptionType()) && !customNight && seqNo != 0
+                        && orderSeqNo != null && seqNo == orderSeqNo.intValue()) {
+                    specName = skuoption.getOptionValue();
+                }
+                if ("302".equals(skuoption.getOptionType()) && !customNight && seqNo != 0
+                        && orderSeqNo != null && seqNo == orderSeqNo.intValue()) {
+                    goods.setPrice(new BigDecimal(skuoption.getOptionValue()));
+                }
+            }
+        }
+        if (StringUtils.isNotBlank(specName)) {
+            goods.setSpecifications(specName);
         }
     }
 }

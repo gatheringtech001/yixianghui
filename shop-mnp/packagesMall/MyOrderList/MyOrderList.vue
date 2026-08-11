@@ -53,7 +53,11 @@
 						<view class="item" :class="{ 'education-item': goods.goodsType === 'education' }">
 							<view class="item-top">
 								<view class="goods-name">
-									<text class="two-omit">{{goods.goodsName}}</text>
+									<text class="product-title two-omit">{{ getProductName(item, goods) }}</text>
+									<text class="product-spec two-omit" v-if="getProductSpec(item, goods)">{{ getProductSpec(item, goods) }}</text>
+									<view class="hotel-stay-meta" v-if="goods.goodsType === 'hotel' && getHotelStayMeta(item)">
+										<text>{{ getHotelStayMeta(item) }}</text>
+									</view>
 								</view>
 								<view class="content">
 									<view class="goods-price">
@@ -109,12 +113,19 @@
 
 <script>
 	import { getOrderList, cancelOrder as cancelOrderApi, syncGoodsOrderPay, syncGoodsOrderRefund } from '@/api/member/index'
+	import { getGoodsInfo } from '@/api/shop/index'
+	import {
+		getOrderProductName,
+		getOrderProductSpec,
+		collectGoodsIds
+	} from '@/utils/orderGoodsDisplay.js'
 	export default {
 		data() {
 			return {
 				host: this.$host,
 				OrderType: 0,
 				orderList: [],
+				productNameMap: {},
 				labels: {
 					courseTime: '\u4e0a\u8bfe\u65f6\u95f4\uff1a',
 					coursePlace: '\u6388\u8bfe\u5730\u70b9\uff1a',
@@ -128,6 +139,45 @@
 			this.getOrders()
 		},
 		methods:{
+			getProductName(order, goods) {
+				return getOrderProductName(order, goods, this.productNameMap)
+			},
+			getProductSpec(order, goods) {
+				return getOrderProductSpec(order, goods, this.productNameMap)
+			},
+			formatDate(value) {
+				if (value == null || value === '' || value === 'null') return ''
+				const text = String(value).trim()
+				if (!text) return ''
+				const date = new Date(text.replace(/-/g, '/'))
+				if (Number.isNaN(date.getTime())) return text
+				return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+			},
+			getHotelStayMeta(order) {
+				if (!order) return ''
+				const parts = []
+				if (order.checkInDate && order.checkOutDate) {
+					parts.push(`${this.formatDate(order.checkInDate)} 至 ${this.formatDate(order.checkOutDate)}`)
+				}
+				if (order.goodsCount) parts.push(`${order.goodsCount} 间`)
+				return parts.join(' · ')
+			},
+			async enrichProductNames(orders) {
+				const ids = collectGoodsIds(orders).filter(id => !this.productNameMap[id])
+				if (!ids.length) return
+				const cache = { ...this.productNameMap }
+				await Promise.all(ids.map(async (id) => {
+					try {
+						const res = await getGoodsInfo(id)
+						if (res && res.data && res.data.goodsName) {
+							cache[id] = res.data.goodsName
+						}
+					} catch (e) {
+						console.warn('[order-list] failed to load product name', id, e)
+					}
+				}))
+				this.productNameMap = cache
+			},
 			formatMoney(value) {
 				const num = Number(value)
 				return Number.isFinite(num) ? num.toFixed(2) : '0.00'
@@ -201,6 +251,7 @@
 							this.OrderType == 5 ? '4' : ''
 				}
 				let {rows, total} = await getOrderList(params)
+				await this.enrichProductNames(rows)
 				this.orderList = rows
 				let needRefresh = false
 				// 待付款列表：尝试同步可能已支付成功但回调未落库的订单
@@ -233,6 +284,7 @@
 				}
 				if (needRefresh) {
 					let refreshed = await getOrderList(params)
+					await this.enrichProductNames(refreshed.rows)
 					this.orderList = refreshed.rows
 				}
 			},

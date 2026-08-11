@@ -142,7 +142,7 @@
 					min-height: 160rpx;
 					.item-top{
 						display: flex;
-						align-items: center;
+						align-items: flex-start;
 						width: 100%;
 					}
 					&.education-item{
@@ -150,9 +150,28 @@
 					}
 					.goods-name{
 						flex: 1;
-						text{
-							font-size: 26rpx;
-							color: #555555;
+						min-width: 0;
+						.product-title{
+							display: block;
+							font-size: 28rpx;
+							font-weight: 700;
+							color: #222222;
+							line-height: 1.4;
+							margin-bottom: 6rpx;
+						}
+						.product-spec{
+							display: block;
+							font-size: 24rpx;
+							color: #777777;
+							line-height: 1.4;
+						}
+						.hotel-stay-meta{
+							margin-top: 8rpx;
+							text{
+								font-size: 22rpx;
+								color: #999999;
+								line-height: 1.4;
+							}
 						}
 					}
 					.course-meta{

@@ -20,6 +20,11 @@ $shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 	width: 100%;
 	min-height: 128rpx;
 	background: linear-gradient(90deg, #701018, #9e3d25);
+	&.is-pending{
+		min-height: auto;
+		padding: 32rpx 32rpx 28rpx;
+		box-sizing: border-box;
+	}
 	.status{
 		display: flex;
 		align-items: center;
@@ -33,6 +38,62 @@ $shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 		}
 		.iconfont{
 			margin-right: 20rpx;
+		}
+	}
+	.pending-header{
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		.status-line{
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin-bottom: 12rpx;
+			.iconfont{
+				font-size: 36rpx;
+				line-height: 1;
+				color: #FFFFFF;
+				margin-right: 12rpx;
+			}
+			.status-text{
+				font-size: 36rpx;
+				font-weight: 700;
+				line-height: 1.2;
+				color: #FFFFFF;
+			}
+		}
+		.countdown-row{
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			flex-wrap: nowrap;
+			white-space: nowrap;
+			width: 100%;
+			text{
+				font-size: 24rpx;
+				line-height: 1.5;
+				color: rgba(255, 255, 255, 0.88);
+				white-space: nowrap;
+				flex-shrink: 0;
+			}
+			.time{
+				display: inline-block;
+				min-width: 72rpx;
+				margin: 0 8rpx;
+				padding: 2rpx 10rpx;
+				background: rgba(0, 0, 0, 0.18);
+				border-radius: 8rpx;
+				font-size: 24rpx;
+				font-weight: 700;
+				color: #FFFFFF;
+				text-align: center;
+				flex-shrink: 0;
+			}
+			&.expired text{
+				color: rgba(255, 255, 255, 0.95);
+			}
 		}
 	}
 	.reason{
@@ -82,6 +143,90 @@ $shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 			&.danger{
 				color: $accent;
 				font-weight: 700;
+			}
+		}
+	}
+}
+
+/* 旅居预订信息 */
+.booking-info-card{
+	width: 92%;
+	background-color: $paper;
+	border: 1rpx solid $line;
+	border-radius: 20rpx;
+	box-shadow: $shadow;
+	margin: 20rpx auto 0;
+	padding: 24rpx 4%;
+	box-sizing: border-box;
+	.card-title{
+		font-size: 30rpx;
+		font-weight: 700;
+		color: $ink;
+		margin-bottom: 20rpx;
+	}
+	.date-row{
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 20rpx 0 24rpx;
+		border-bottom: 1rpx solid $line;
+		margin-bottom: 8rpx;
+		.date-item{
+			display: flex;
+			flex-direction: column;
+			gap: 8rpx;
+			&.align-right{
+				align-items: flex-end;
+			}
+			.date-label{
+				font-size: 22rpx;
+				color: $muted;
+			}
+			.date-value{
+				font-size: 30rpx;
+				font-weight: 700;
+				color: $ink;
+			}
+		}
+		.date-divider{
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			padding: 0 16rpx;
+			.nights{
+				font-size: 22rpx;
+				color: $accent;
+				background: rgba(112, 16, 24, 0.08);
+				padding: 6rpx 16rpx;
+				border-radius: 20rpx;
+				white-space: nowrap;
+			}
+		}
+	}
+	.info-rows{
+		.info-row{
+			display: flex;
+			align-items: flex-start;
+			justify-content: space-between;
+			gap: 24rpx;
+			padding: 16rpx 0;
+			border-bottom: 1rpx solid $line;
+			&:last-child{
+				border-bottom: none;
+			}
+			.label{
+				flex-shrink: 0;
+				font-size: 26rpx;
+				color: $muted;
+			}
+			.value{
+				flex: 1;
+				text-align: right;
+				font-size: 26rpx;
+				color: $ink;
+				font-weight: 600;
+				line-height: 1.5;
+				word-break: break-all;
 			}
 		}
 	}
@@ -202,30 +347,78 @@ $shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 	border-radius: 20rpx;
 	box-shadow: $shadow;
 	overflow: hidden;
+	&.order-goods-top{
+		margin-top: 16rpx;
+	}
 	.goods-list{
 		padding: 0 4%;
 		.list{
 			display: flex;
-			align-items: center;
+			align-items: flex-start;
 			width: 100%;
 			min-height: 200rpx;
+			padding: 24rpx 0;
 			.thumb{
-				display: flex;
-				width: 30%;
+				flex-shrink: 0;
+				width: 160rpx;
+				margin-right: 20rpx;
 				image{
 					width: 160rpx;
 					height: 160rpx;
 					border-radius: 10rpx;
+					background-color: $soft;
 				}
 			}
 			.item{
-				width: 70%;
-				height: 100%;
+				flex: 1;
+				min-width: 0;
+				.product-name{
+					margin-bottom: 8rpx;
+					text{
+						font-size: 30rpx;
+						font-weight: 700;
+						color: $ink;
+						line-height: 1.4;
+					}
+				}
+				.product-spec{
+					display: flex;
+					align-items: flex-start;
+					gap: 8rpx;
+					margin-bottom: 10rpx;
+					.hotel-tag{
+						flex-shrink: 0;
+						margin-top: 4rpx;
+						padding: 2rpx 10rpx;
+						font-size: 20rpx;
+						font-weight: 700;
+						color: $accent;
+						background: rgba(112, 16, 24, 0.08);
+						border-radius: 6rpx;
+						line-height: 1.4;
+					}
+					text{
+						font-size: 24rpx;
+						color: $muted;
+						line-height: 1.5;
+					}
+				}
 				.title{
 					display: flex;
 					align-items: center;
 					width: 100%;
-					height: 60rpx;
+					min-height: 60rpx;
+					.hotel-tag{
+						flex-shrink: 0;
+						margin-right: 10rpx;
+						padding: 2rpx 10rpx;
+						font-size: 20rpx;
+						font-weight: 700;
+						color: $accent;
+						background: rgba(112, 16, 24, 0.08);
+						border-radius: 6rpx;
+						line-height: 1.4;
+					}
 					text{
 						font-size: 26rpx;
 						color: $ink;
@@ -233,16 +426,13 @@ $shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 				}
 				.num-size{
 					display: flex;
-					align-items: center;
+					align-items: flex-start;
 					width: 100%;
-					height: 60rpx;
+					margin-bottom: 8rpx;
 					text{
-						font-size: 26rpx;
+						font-size: 24rpx;
 						color: $muted;
-						margin-right: 20rpx;
-					}
-					text:last-child{
-						margin-right: 0;
+						line-height: 1.5;
 					}
 				}
 				.price{
@@ -251,9 +441,23 @@ $shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 					width: 100%;
 					height: 60rpx;
 					text{
-						font-size: 28rpx;
+						font-size: 32rpx;
 						font-weight: bold;
-						color: $ink;
+						color: $accent;
+					}
+				}
+				.goods-spec{
+					display: flex;
+					align-items: center;
+					flex-wrap: wrap;
+					gap: 12rpx;
+					margin-top: 8rpx;
+					text{
+						font-size: 24rpx;
+						color: $muted;
+						background: $soft;
+						padding: 4rpx 12rpx;
+						border-radius: 8rpx;
 					}
 				}
 				.order-btn{
@@ -362,6 +566,12 @@ $shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 	margin: 20rpx auto;
 	padding-bottom: 200rpx;
 	overflow: hidden;
+	.details-title{
+		padding: 24rpx 4% 8rpx;
+		font-size: 30rpx;
+		font-weight: 700;
+		color: $ink;
+	}
 	.details-list{
 		padding: 0 4%;
 		.list{
@@ -369,7 +579,8 @@ $shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 			align-items: center;
 			justify-content: space-between;
 			width: 100%;
-			height: 100rpx;
+			min-height: 80rpx;
+			padding: 12rpx 0;
 			border-bottom: 1rpx solid $line;
 			&:last-child{
 				border-bottom: 0;
@@ -382,14 +593,24 @@ $shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 				font-size: 26rpx;
 				font-weight: bold;
 				color: $ink;
+				&.discount{
+					color: #2e7d32;
+				}
 			}
 		}
 		.action{
 			display: flex;
 			align-items: center;
-			justify-content: flex-end;
+			justify-content: space-between;
+			padding-top: 16rpx;
+			padding-bottom: 16rpx;
+			.title text{
+				font-size: 28rpx;
+				font-weight: 700;
+				color: $ink;
+			}
 			.price{
-				font-size: 32rpx;
+				font-size: 36rpx;
 				font-weight: 900;
 				color: $accent;
 			}
@@ -415,11 +636,37 @@ $shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 	.del{
 		display: flex;
 		align-items: center;
+		flex: 1;
+		min-width: 0;
 		text{
 			padding: 10rpx 30rpx;
 			font-size: 30rpx;
 			font-weight: bold;
 			color: $ink;
+		}
+		.footer-total{
+			display: flex;
+			align-items: baseline;
+			margin-left: 8rpx;
+			.total-label{
+				font-size: 26rpx;
+				color: $muted;
+				font-weight: 500;
+				padding: 0;
+			}
+			.total-symbol{
+				font-size: 24rpx;
+				color: $accent;
+				font-weight: 700;
+				margin-left: 8rpx;
+				padding: 0;
+			}
+			.total-value{
+				font-size: 36rpx;
+				color: $accent;
+				font-weight: 900;
+				padding: 0;
+			}
 		}
 	}
 	.btn{
@@ -444,6 +691,11 @@ $shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 			background-color: $accent;
 			color: #FFFFFF;
 			border: 1rpx solid $accent;
+			&.disabled{
+				background-color: #c8c8c8;
+				border-color: #c8c8c8;
+				color: #ffffff;
+			}
 		}
 	}
 }

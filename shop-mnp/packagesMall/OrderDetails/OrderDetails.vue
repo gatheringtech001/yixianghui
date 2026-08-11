@@ -1,13 +1,64 @@
 <template>
 	<view class="page">
 		<!-- 订单状态 -->
-		<view class="order-status" v-if="orderDetail">
-			<view class="status">
+		<view class="order-status" :class="{ 'is-pending': isPendingPayment }" v-if="orderDetail">
+			<view class="status" v-if="!isPendingPayment">
 				<text class="iconfont icon-zhuyi"></text>
 				<text>{{ orderStatusText }}</text>
 			</view>
+			<view class="pending-header" v-if="isPendingPayment">
+				<view class="status-line">
+					<text class="iconfont icon-zhuyi"></text>
+					<text class="status-text">{{ orderStatusText }}</text>
+				</view>
+				<view class="countdown-row" v-if="!isExpired">
+					<text>请在</text>
+					<text class="time">{{ countdownText }}</text>
+					<text>内完成支付，超时订单将自动取消</text>
+				</view>
+				<view class="countdown-row expired" v-else>
+					<text>支付已超时，请重新下单</text>
+				</view>
+			</view>
 			<view class="reason" v-if="isAfterRejected && rejectReason">
 				<text>{{ rejectReason }}</text>
+			</view>
+		</view>
+		<!-- 订单商品（紧挨待付款状态，便于核对） -->
+		<view class="order-goods order-goods-top" v-if="orderDetail && orderDetail.goodsList && orderDetail.goodsList.length>0">
+			<view class="goods-list">
+				<view class="list" v-for="(item, index) in orderDetail.goodsList" :key="index">
+					<view class="thumb">
+						<image :src="host + item.goodsCover" mode="aspectFill"></image>
+					</view>
+					<view class="item">
+						<view class="product-name">
+							<text class="two-omit">{{ getHotelProductName(item) }}</text>
+						</view>
+						<view class="product-spec" v-if="getHotelSpecName(item)">
+							<text class="hotel-tag" v-if="isHotelOrder && isCustomNightOrder">自选</text>
+							<text class="two-omit">{{ getHotelSpecName(item) }}</text>
+						</view>
+						<view class="title" v-if="!isHotelOrder">
+							<text class="one-omit">{{ item.goodsName }}</text>
+						</view>
+						<view class="num-size">
+							<text v-if="isHotelOrder">{{ getHotelGoodsMeta() }}</text>
+							<text v-else>数量：{{ orderDetail.goodsCount }}</text>
+							<text v-if="isEducationOrder && item.unit"> | {{ item.unit }}</text>
+						</view>
+						<view class="price">
+							<text>￥{{ formatMoney(item.price) }}</text>
+						</view>
+            <view class="selected-dates-info" v-if="!isHotelOrder && orderDetail && orderDetail.checkInDate && orderDetail.checkOutDate">
+              <text>入住: {{ formatDate(orderDetail.checkInDate) }} | 离店: {{ formatDate(orderDetail.checkOutDate) }} | 共 {{ getStayDays() }} 晚</text>
+            </view>
+            <view class="goods-spec" v-if="!isHotelOrder && (item.specifications || item.unit)">
+              <text v-if="item.specifications">{{ item.specifications }}</text>
+              <text v-if="item.unit">{{ item.unit }}</text>
+            </view>
+					</view>
+				</view>
 			</view>
 		</view>
 		<!-- 售后反馈 -->
@@ -24,6 +75,53 @@
 			<view class="box-row" v-if="latestAfter.updateTime || latestAfter.createTime">
 				<text class="label">更新时间</text>
 				<text class="value">{{ latestAfter.updateTime || latestAfter.createTime }}</text>
+			</view>
+		</view>
+		<!-- 旅居预订信息 -->
+		<view class="booking-info-card" v-if="isHotelOrder && orderDetail">
+			<view class="card-title">预订信息</view>
+			<view class="date-row" v-if="hasHotelStayDates">
+				<view class="date-item">
+					<text class="date-label">入住</text>
+					<text class="date-value">{{ formatDate(orderDetail.checkInDate) }}</text>
+				</view>
+				<view class="date-divider">
+					<text class="nights">{{ getStayNights() }}晚</text>
+				</view>
+				<view class="date-item align-right">
+					<text class="date-label">离店</text>
+					<text class="date-value">{{ formatDate(orderDetail.checkOutDate) }}</text>
+				</view>
+			</view>
+			<view class="info-rows">
+				<view class="info-row" v-if="hotelBaseName">
+					<text class="label">所在基地</text>
+					<text class="value">{{ hotelBaseName }}</text>
+				</view>
+				<view class="info-row">
+					<text class="label">预订房间</text>
+					<text class="value">{{ orderDetail.goodsCount || 1 }} 间</text>
+				</view>
+				<view class="info-row" v-if="orderDetail.selfGoodsCount">
+					<text class="label">用餐人数</text>
+					<text class="value">{{ orderDetail.selfGoodsCount }} 人</text>
+				</view>
+				<view class="info-row" v-if="comboInfo">
+					<text class="label">供餐套餐</text>
+					<text class="value">{{ comboInfo.name }}（¥{{ comboInfo.price }}/人/天）</text>
+				</view>
+				<view class="info-row" v-if="orderDetail.contactName">
+					<text class="label">联系姓名</text>
+					<text class="value">{{ orderDetail.contactName }}</text>
+				</view>
+				<view class="info-row" v-if="orderDetail.contactPhone">
+					<text class="label">联系电话</text>
+					<text class="value">{{ orderDetail.contactPhone }}</text>
+				</view>
+				<view class="info-row" v-if="orderDetail.remark">
+					<text class="label">备注</text>
+					<text class="value">{{ orderDetail.remark }}</text>
+				</view>
 			</view>
 		</view>
 		<!-- 收货地址 -->
@@ -80,35 +178,6 @@
 				</view>
 			</view>
 		</view>
-		<!-- 订单商品 -->
-		<view class="order-goods" v-if="orderDetail && orderDetail.goodsList && orderDetail.goodsList.length>0">
-			<view class="goods-list">
-				<view class="list" v-for="(item, index) in orderDetail.goodsList" :key="index">
-					<view class="thumb">
-						<image :src="host + item.goodsCover" mode=""></image>
-					</view>
-					<view class="item">
-						<view class="title">
-							<text class="one-omit">{{item.goodsName}}</text>
-						</view>
-						<view class="num-size">
-							<text>数量：{{orderDetail.goodsCount}}</text>
-							<text v-if="isEducationOrder && item.unit"> | {{ item.unit }}</text>
-						</view>
-						<view class="price">
-							<text>￥{{item.price}}</text>
-						</view>
-            <view class="selected-dates-info" v-if="orderDetail && orderDetail.checkInDate && orderDetail.checkOutDate">
-              <text>入住: {{ formatDate(orderDetail.checkInDate) }} | 离店: {{ formatDate(orderDetail.checkOutDate) }} | 共 {{ getStayDays() }} 晚</text>
-            </view>
-					</view>
-				</view>
-			</view>
-			<!-- <view class="contact">
-				<text class="iconfont icon-kefu"></text>
-				<text>联系客服</text>
-			</view> -->
-		</view>
 		<!-- 订单信息 -->
 		<view class="order-info" v-if="orderDetail">
 			<view class="info-list">
@@ -116,13 +185,19 @@
 					<view class="title">订单编号:</view>
 					<view class="content">
 						<text>{{orderDetail.orderNo}}</text>
-						<text class="btn">复制</text>
+						<text class="btn" @click="copyOrderNo">复制</text>
 					</view>
 				</view>
 				<view class="list">
 					<view class="title">下单时间:</view>
 					<view class="content">
 						<text>{{orderDetail.createTime}}</text>
+					</view>
+				</view>
+				<view class="list" v-if="isPendingPayment">
+					<view class="title">支付方式:</view>
+					<view class="content">
+						<text>微信支付</text>
 					</view>
 				</view>
 				<view class="list" v-if="orderDetail.status == 1">
@@ -147,21 +222,54 @@
 		</view>
 		<!-- 订单明细 -->
 		<view class="order-details" v-if="orderDetail">
+			<view class="details-title">费用明细</view>
 			<view class="details-list">
-				<view class="list">
+				<view class="list" v-if="showMoneyTotal">
 					<view class="title">
 						<text>商品总额</text>
 					</view>
 					<view class="price">
-						<text>￥{{orderDetail.moneyPayable}}</text>
+						<text>￥{{ formatMoney(orderDetail.moneyTotal) }}</text>
+					</view>
+				</view>
+				<view class="list" v-if="hasDiscount">
+					<view class="title">
+						<text>优惠减免</text>
+					</view>
+					<view class="price discount">
+						<text>-￥{{ formatMoney(orderDetail.moneyDiscount) }}</text>
+					</view>
+				</view>
+				<view class="list" v-if="hasExpressFee">
+					<view class="title">
+						<text>运费</text>
+					</view>
+					<view class="price">
+						<text>￥{{ formatMoney(orderDetail.moneyExpress) }}</text>
+					</view>
+				</view>
+				<view class="list" v-if="!showMoneyTotal">
+					<view class="title">
+						<text>商品总额</text>
+					</view>
+					<view class="price">
+						<text>￥{{ payAmountText }}</text>
+					</view>
+				</view>
+				<view class="list action" v-if="isPendingPayment">
+					<view class="title">
+						<text>应付金额</text>
+					</view>
+					<view class="price">
+						<text>￥{{ payAmountText }}</text>
 					</view>
 				</view>
 				<view class="list action" v-if="orderDetail.status == 1">
 					<view class="title">
-						<text>实付款：</text>
+						<text>实付款</text>
 					</view>
 					<view class="price">
-						<text>￥{{orderDetail.payMoney}}</text>
+						<text>￥{{ formatMoney(orderDetail.payMoney) }}</text>
 					</view>
 				</view>
 			</view>
@@ -170,10 +278,15 @@
 		<view class="footer-btn">
 			<view class="del">
 				<text class="action" @click="cancelOrder" v-if="showCancel">取消订单</text>
+				<view class="footer-total" v-if="isPendingPayment">
+					<text class="total-label">合计</text>
+					<text class="total-symbol">¥</text>
+					<text class="total-value">{{ payAmountText }}</text>
+				</view>
 			</view>
 			<view class="btn">
 				<text class="after" @click="onApplyAftersales" v-if="showSaleAfter">{{ isAfterRejected ? '重新申请售后' : '申请售后' }}</text>
-				<text class="action" @click="orderByPay" v-if="showCancel">确认付款</text>
+				<text class="action" :class="{ disabled: isExpired }" @click="orderByPay" v-if="showCancel">{{ isExpired ? '已超时' : '确认付款' }}</text>
 			</view>
 		</view>
 	</view>
@@ -181,7 +294,10 @@
 
 <script>
 	import { getOrderDetail, cancelOrder, syncGoodsOrderPay, syncGoodsOrderRefund } from '@/api/member/index'
-	import { getGoodsInfo,getGoodsSkuInfo } from '@/api/shop/index'
+	import { getGoodsInfo } from '@/api/shop/index'
+
+	const PAY_TIMEOUT_SEC = 30 * 60
+
 	export default {
 		data() {
 			return {
@@ -192,7 +308,25 @@
 				showSaleAfter: false,
 				pramOrderId: 0,
 				goodsDetail: null,
+				hotelProductTitle: '',
 				skuDataList: [],
+				payDeadline: 0,
+				countdownTimer: null,
+				countdownSec: 0,
+				isExpired: false,
+				comboList: [{
+						name: '含早餐',
+						price: 0,
+					},
+					{
+						name: '一早一正【晚餐】',
+						price: 25,
+					},
+					{
+						name: '一日三餐',
+						price: 50,
+					}
+				],
 				labels: {
 					courseInfo: '\u8bfe\u7a0b\u4fe1\u606f',
 					courseTime: '\u4e0a\u8bfe\u65f6\u95f4',
@@ -209,6 +343,62 @@
 			};
 		},
 		computed: {
+			isPendingPayment() {
+				return !!(this.orderDetail && String(this.orderDetail.status) === '0')
+			},
+			isHotelOrder() {
+				return !!(this.goodsDetail && this.goodsDetail.goodsType === 'hotel')
+			},
+			isCustomNightOrder() {
+				if (!this.isHotelOrder || !this.orderDetail) return false
+				const seq = Number(this.orderDetail.skuSeqNo)
+				return !Number.isFinite(seq) || seq <= 0
+			},
+			comboInfo() {
+				if (!this.isHotelOrder || !this.orderDetail) return null
+				const index = Number(this.orderDetail.selComboIndex)
+				if (!Number.isFinite(index) || index < 0 || index >= this.comboList.length) {
+					return this.comboList[0]
+				}
+				return this.comboList[index]
+			},
+			hotelBaseName() {
+				if (!this.isHotelOrder) return ''
+				if (this.orderDetail && this.orderDetail.deptName) return this.orderDetail.deptName
+				if (this.goodsDetail && this.goodsDetail.description) return this.goodsDetail.description
+				return ''
+			},
+			hasHotelStayDates() {
+				if (!this.isHotelOrder || !this.orderDetail) return false
+				return !!(this.orderDetail.checkInDate && this.orderDetail.checkOutDate)
+			},
+			payAmountText() {
+				if (!this.orderDetail) return '0.00'
+				const amount = this.orderDetail.moneyPayable != null ? this.orderDetail.moneyPayable : this.orderDetail.payMoney
+				return this.formatMoney(amount)
+			},
+			showMoneyTotal() {
+				if (!this.orderDetail || this.orderDetail.moneyTotal == null) return false
+				const total = Number(this.orderDetail.moneyTotal)
+				const payable = Number(this.orderDetail.moneyPayable)
+				return Number.isFinite(total) && total > 0 && (!Number.isFinite(payable) || Math.abs(total - payable) > 0.001 || this.hasDiscount || this.hasExpressFee)
+			},
+			hasDiscount() {
+				if (!this.orderDetail || this.orderDetail.moneyDiscount == null) return false
+				return Number(this.orderDetail.moneyDiscount) > 0
+			},
+			hasExpressFee() {
+				if (!this.orderDetail || this.orderDetail.moneyExpress == null) return false
+				return Number(this.orderDetail.moneyExpress) > 0
+			},
+			countdownText() {
+				const remain = Math.max(0, this.countdownSec)
+				const min = Math.floor(remain / 60)
+				const sec = remain % 60
+				const minText = min < 10 ? `0${min}` : `${min}`
+				const secText = sec < 10 ? `0${sec}` : `${sec}`
+				return `${minText}:${secText}`
+			},
 			isEducationOrder() {
 				return !!(this.goodsDetail && this.goodsDetail.goodsType === 'education')
 			},
@@ -265,7 +455,68 @@
 			this.pramOrderId = option.orderId
 			this.getOrderInfo(option.orderId)
 		},
+		onUnload() {
+			this.clearCountdown()
+		},
 		methods:{
+			formatMoney(value) {
+				const num = Number(value)
+				return Number.isFinite(num) ? num.toFixed(2) : '0.00'
+			},
+			parseCreateTime(createTime) {
+				if (!createTime) return NaN
+				return new Date(String(createTime).replace(/-/g, '/')).getTime()
+			},
+			deadlineStorageKey() {
+				return `goods_pay_deadline_${this.pramOrderId || (this.orderDetail && this.orderDetail.orderId)}`
+			},
+			initPayDeadline(createTime) {
+				const orderId = this.pramOrderId || (this.orderDetail && this.orderDetail.orderId)
+				const storageKey = orderId ? this.deadlineStorageKey() : ''
+				const createTs = this.parseCreateTime(createTime)
+				if (Number.isFinite(createTs)) {
+					this.payDeadline = createTs + PAY_TIMEOUT_SEC * 1000
+					if (storageKey) {
+						uni.setStorageSync(storageKey, this.payDeadline)
+					}
+					return
+				}
+				let deadline = storageKey ? Number(uni.getStorageSync(storageKey)) : NaN
+				if (!deadline || Number.isNaN(deadline)) {
+					deadline = Date.now() + PAY_TIMEOUT_SEC * 1000
+					if (storageKey) {
+						uni.setStorageSync(storageKey, deadline)
+					}
+				}
+				this.payDeadline = deadline
+			},
+			startCountdown() {
+				this.clearCountdown()
+				const tick = () => {
+					const remain = Math.max(0, Math.floor((this.payDeadline - Date.now()) / 1000))
+					this.countdownSec = remain
+					this.isExpired = remain <= 0
+					if (remain > 0) {
+						this.countdownTimer = setTimeout(tick, 1000)
+					}
+				}
+				tick()
+			},
+			clearCountdown() {
+				if (this.countdownTimer) {
+					clearTimeout(this.countdownTimer)
+					this.countdownTimer = null
+				}
+			},
+			copyOrderNo() {
+				if (!this.orderDetail || !this.orderDetail.orderNo) return
+				uni.setClipboardData({
+					data: String(this.orderDetail.orderNo),
+					success: () => {
+						uni.showToast({ title: '订单号已复制', icon: 'none' })
+					}
+				})
+			},
 			async getGoodsSkuInfoFn(id) {
 							/* await getGoodsSkuInfo(id).then(res => {
 								if (res.code != 200) return
@@ -277,13 +528,13 @@
 			async getOrderInfo(orderId) {
 				let res = await getOrderDetail({ orderId: orderId })
 				console.log(res)
-				this.orderDetail = res.data
+				this.orderDetail = this.normalizeHotelOrder(res.data)
 				// 待付款时主动向微信查一次，修复“已付款但仍显示待付款”
 				if (this.orderDetail && String(this.orderDetail.status) === '0' && String(this.orderDetail.payStatus || '0') === '0') {
 					try {
 						await syncGoodsOrderPay(orderId)
 						res = await getOrderDetail({ orderId: orderId })
-						this.orderDetail = res.data
+						this.orderDetail = this.normalizeHotelOrder(res.data)
 					} catch (e) {
 						// 未支付成功时忽略
 					}
@@ -293,17 +544,30 @@
 					try {
 						await syncGoodsOrderRefund(orderId)
 						res = await getOrderDetail({ orderId: orderId })
-						this.orderDetail = res.data
+						this.orderDetail = this.normalizeHotelOrder(res.data)
 					} catch (e) {
 						// 退款未完成时忽略
 					}
 				}
-				if(this.orderDetail && this.orderDetail.status=='0') this.showCancel=true
-				else this.showCancel=false
+				if(this.orderDetail && this.orderDetail.status=='0') {
+					this.showCancel=true
+					this.initPayDeadline(this.orderDetail.createTime)
+					this.startCountdown()
+				} else {
+					this.showCancel=false
+					this.clearCountdown()
+				}
 				if(this.orderDetail && this.orderDetail.status=='1') this.showSaleAfter=true
 				else this.showSaleAfter=false
+				if (this.orderDetail && this.orderDetail.addressInfo) {
+					this.address = this.orderDetail.addressInfo
+				}
 				if(this.orderDetail && this.orderDetail.goodsList && this.orderDetail.goodsList.length>0) {
 					this.goodsDetail = this.orderDetail.goodsList[0]
+					if (this.goodsDetail && this.goodsDetail.goodsType === 'hotel') {
+						const goodsId = this.orderDetail.goodsId || this.goodsDetail.goodsId
+						if (goodsId) this.loadHotelProductTitle(goodsId)
+					}
 					if(this.goodsDetail.isSku == 1){
 						//this.getGoodsSkuInfoFn(this.goodsDetail.goodsId)
 					}
@@ -336,9 +600,34 @@
 				})
 			},
       formatDate(pardate){
-        const checkIn = new Date(pardate);
-        return checkIn.getFullYear() + '-' + (checkIn.getMonth() + 1) + '-' + checkIn.getDate();
+        if (pardate == null || pardate === '' || pardate === 'null') return ''
+        const text = String(pardate).trim()
+        if (!text) return ''
+        const date = new Date(text.replace(/-/g, '/'))
+        if (Number.isNaN(date.getTime())) return text
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        return date.getFullYear() + '-' + month + '-' + day;
       },
+    normalizeHotelOrder(order) {
+      if (!order) return order
+      const detail = order.orderDetailList && order.orderDetailList[0]
+      if (detail) {
+        if ((order.interCount == null || order.interCount === '') && detail.interCount != null) {
+          order.interCount = detail.interCount
+        }
+        if (!order.checkInDate && detail.orderStartDate) {
+          order.checkInDate = detail.orderStartDate
+        }
+        if (!order.checkOutDate && detail.orderEndDate) {
+          order.checkOutDate = detail.orderEndDate
+        }
+        if ((order.skuSeqNo == null || order.skuSeqNo === '') && detail.skuSeqNo != null) {
+          order.skuSeqNo = detail.skuSeqNo
+        }
+      }
+      return order
+    },
     getStayDays() {
       if (!this.orderDetail || !this.orderDetail.checkInDate || !this.orderDetail.checkOutDate) return 0;
 
@@ -347,7 +636,64 @@
       const timeDiff = checkOut.getTime() - checkIn.getTime();
       return Math.ceil(timeDiff / (1000 * 3600 * 24));
     },
+    getStayNights() {
+      const interCount = Number(this.orderDetail && this.orderDetail.interCount)
+      if (Number.isFinite(interCount) && interCount > 0) return interCount
+      return this.getStayDays()
+    },
+    getStayDurationText() {
+      const nights = this.getStayNights()
+      if (!nights) return ''
+      return `${nights + 1}天${nights}晚`
+    },
+    getGoodsDisplayName(item) {
+      if (!this.isHotelOrder) return item.goodsName
+      return this.getHotelProductName(item)
+    },
+    getHotelProductName(item) {
+      if (!item) return ''
+      if (this.hotelProductTitle) return this.hotelProductTitle
+      return item.goodsName || ''
+    },
+    getHotelSpecName(item) {
+      if (!this.isHotelOrder || !item) return ''
+      let spec = item.specifications || item.skuDataValues || ''
+      if (!spec && item.goodsName && item.goodsName !== this.getHotelProductName(item)) {
+        spec = item.goodsName
+      }
+      if (this.isCustomNightOrder) {
+        const duration = this.getStayDurationText()
+        if (duration) {
+          return spec ? `${spec} · 自选${duration}` : `自选${duration}`
+        }
+        return spec || '自选入住'
+      }
+      return spec
+    },
+    getHotelGoodsMeta() {
+      if (!this.orderDetail) return ''
+      const parts = []
+      if (this.orderDetail.checkInDate && this.orderDetail.checkOutDate) {
+        parts.push(`${this.formatDate(this.orderDetail.checkInDate)} 至 ${this.formatDate(this.orderDetail.checkOutDate)}`)
+      }
+      parts.push(`${this.orderDetail.goodsCount || 1} 间`)
+      return parts.join(' · ')
+    },
+    async loadHotelProductTitle(goodsId) {
+      try {
+        const res = await getGoodsInfo(goodsId)
+        if (res && res.data && res.data.goodsName) {
+          this.hotelProductTitle = res.data.goodsName
+        }
+      } catch (e) {
+        console.warn('[order-detail] failed to load product name', goodsId, e)
+      }
+    },
 			orderByPay() {
+				if (this.isExpired) {
+					uni.showToast({ icon: 'none', title: '支付已超时，请重新下单' })
+					return
+				}
 				if(this.goodsDetail && this.goodsDetail.goodsType == 'hotel'){
 				uni.redirectTo({
 					url: `/packagesMall/CashierDesk/SojournCashierDesk?id=${this.goodsDetail.goodsId}&price=${this.orderDetail.moneyPayable}&orderId=${this.orderDetail.orderId}&orderNo=${this.orderDetail.orderNo}&roomNumber=${this.orderDetail.goodsCount}&peopleNumber=${this.orderDetail.selfGoodsCount}&comboIndex=${this.orderDetail.selComboIndex}&checkInDate=${this.orderDetail.checkInDate}&checkOutDate=${this.orderDetail.checkOutDate}`

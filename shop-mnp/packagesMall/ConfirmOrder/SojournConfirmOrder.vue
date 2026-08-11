@@ -523,6 +523,26 @@
 				const day = String(date.getDate()).padStart(2, '0');
 				return `${year}-${month}-${day}`;
 			},
+			normalizeDateStr(value) {
+				if (value == null || value === '') return ''
+				const text = String(value).trim()
+				if (!text || text === 'null') return ''
+				const parts = text.split('-')
+				if (parts.length !== 3) return text
+				return `${parts[0]}-${String(parts[1]).padStart(2, '0')}-${String(parts[2]).padStart(2, '0')}`
+			},
+			ensureStayDates() {
+				this.reserveData.checkInDate = this.normalizeDateStr(this.reserveData.checkInDate)
+				this.reserveData.checkOutDate = this.normalizeDateStr(this.reserveData.checkOutDate)
+				const nights = Number(this.reserveData.day) || 0
+				if (!this.reserveData.checkInDate || nights <= 0) return false
+				if (!this.reserveData.checkOutDate) {
+					const end = new Date(this.reserveData.checkInDate.replace(/-/g, '/'))
+					end.setDate(end.getDate() + nights)
+					this.reserveData.checkOutDate = this.formatDate(end)
+				}
+				return !!(this.reserveData.checkInDate && this.reserveData.checkOutDate)
+			},
 			// 选择日期方法
 			selectDateFn() {
 				this.popupDate.show = true
@@ -611,6 +631,13 @@
 					uni.showToast({
 						icon: 'none',
 						title: '自选晚数不能少于7晚'
+					})
+					return
+				}
+				if (!this.ensureStayDates()) {
+					uni.showToast({
+						icon: 'none',
+						title: '请选择入住和退房日期'
 					})
 					return
 				}
