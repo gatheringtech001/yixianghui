@@ -184,6 +184,7 @@
 	import TabBar from '@/components/TabBar/TabBar.vue'
 	import LocationService from '@/utils/location'
 	import { parseInvitePageOptions } from '@/utils/invite'
+	import sharePageMixin from '@/utils/sharePageMixin'
 	import {
 		getSite,
 		getBannerPosList,
@@ -199,6 +200,7 @@
 		getGoodsList
 	} from '@/api/shop/index'
 	export default {
+		mixins: [sharePageMixin],
 		components: {
 			TabBar
 		},
@@ -265,6 +267,13 @@
 			}
 		},
 		methods: {
+			getShareConfig() {
+				return {
+					title: '逸享荟康养，旅居、活动、老年教育一站式服务',
+					path: '/pages/home/home',
+					imageUrl: this.heroImage
+				}
+			},
 			async loadMnpAdAssets() {
 				const [brandLogoUrl, housekeeperAvatarUrl] = await Promise.all([
 					loadAdImageUrl(AD_POSITION.BRAND_LOGO, this.host),

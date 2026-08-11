@@ -174,6 +174,7 @@
 	import AuthProfilePopup from '@/components/AuthProfilePopup/AuthProfilePopup.vue'
 	import LocationService from '@/utils/location'
 	import { parseInvitePageOptions } from '@/utils/invite'
+	import sharePageMixin from '@/utils/sharePageMixin'
 	import { bindPageAuthPopup } from '@/utils/login'
 	import { getSite } from '@/api/index'
 	import {
@@ -191,6 +192,7 @@
 	} from '@/api/activity/index'
 	import { parseCourseMeta } from '@/utils/courseMeta'
 	export default {
+		mixins: [sharePageMixin],
 		components: {
 			TabBar,
 			AuthProfilePopup,
@@ -257,6 +259,9 @@
 		},
 		onLoad(options) {
 			parseInvitePageOptions(options)
+			if (options && options.cls) {
+				uni.setStorageSync('currentCls', options.cls)
+			}
 			if (uni.getStorageSync('cls')) {
 				this.navbarList = uni.getStorageSync('cls').filter(e => e.parentId == 0)
 				if (this.navbarList.length > 0) {
@@ -352,6 +357,14 @@
 			}
 		},
 		methods: {
+			getShareConfig() {
+				const item = this.currentNavbarItem
+				return {
+					title: item ? `逸享荟${item.categoryName}` : '逸享荟康养服务',
+					path: '/pages/classify/classify',
+					query: { cls: this.navbarSelect }
+				}
+			},
 			async loadBrandLogo() {
 				this.brandLogoUrl = await loadAdImageUrl(AD_POSITION.BRAND_LOGO, this.host)
 			},

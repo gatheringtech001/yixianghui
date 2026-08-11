@@ -172,7 +172,8 @@
 
 <script>
 	import TabBar from '@/components/TabBar/TabBar.vue'
-	import { buildShareAppMessage, parseInvitePageOptions } from '@/utils/invite'
+	import { parseInvitePageOptions } from '@/utils/invite'
+	import sharePageMixin from '@/utils/sharePageMixin'
 	import {
 		getBannerList
 	} from '@/api/index'
@@ -183,6 +184,7 @@
 		cancelUserCard
 	} from '@/api/member/index'
 	export default {
+		mixins: [sharePageMixin],
 		components: {
 			TabBar
 		},
@@ -228,10 +230,6 @@
 
 		onLoad(options) {
 			parseInvitePageOptions(options)
-			uni.showShareMenu({
-				withShareTicket: true,
-				menus: ["shareAppMessage", "shareTimeline"]
-			})
 			if (this.showLegacyLayout) {
 				this.getAdList()
 			} else {
@@ -267,13 +265,13 @@
 				}
 			}
 		},
-		onShareAppMessage() {
-			return buildShareAppMessage({
-				title: '逸享荟康养，邀请您一起体验',
-				path: '/pages/home/home'
-			})
-		},
 		methods: {
+			getShareConfig() {
+				return {
+					title: '逸享荟康养，邀请您一起体验',
+					path: '/pages/home/home'
+				}
+			},
 			getStaffAvatar(index, staff) {
 				if (staff && staff.avatar && staff.avatar !== '/static/img/customer-avatar.png') {
 					return staff.avatar

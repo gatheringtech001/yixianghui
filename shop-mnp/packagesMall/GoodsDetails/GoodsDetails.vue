@@ -198,7 +198,8 @@
 </template>
 
 <script>
-	import { buildShareAppMessage, parseInvitePageOptions } from '@/utils/invite'
+	import { parseInvitePageOptions } from '@/utils/invite'
+	import sharePageMixin from '@/utils/sharePageMixin'
 	import {
 		getBannerList
 	} from '@/api/index'
@@ -234,6 +235,7 @@
 		return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 	}
 	export default {
+		mixins: [sharePageMixin],
 		data() {
 			return {
 				host: this.$host,
@@ -270,16 +272,16 @@
 		onPageScroll(e) {
 			this.PageScrollTop = e.scrollTop
 		},
-		onShareAppMessage() {
-			return buildShareAppMessage({
-				title: (this.goodsDetail && this.goodsDetail.goodsName) || '逸享荟精选商品',
-				path: '/packagesMall/GoodsDetails/GoodsDetails',
-				query: {
-					id: this.goodsId
-				}
-			})
-		},
 		methods: {
+			getShareConfig() {
+				const cover = this.goodsDetail && this.goodsDetail.goodsCover
+				return {
+					title: (this.goodsDetail && this.goodsDetail.goodsName) || '逸享荟精选商品',
+					path: '/packagesMall/GoodsDetails/GoodsDetails',
+					query: { id: this.goodsId },
+					imageUrl: cover ? (cover.startsWith('http') ? cover : this.host + cover) : ''
+				}
+			},
 			async getAddress() {
 				let {
 					rows

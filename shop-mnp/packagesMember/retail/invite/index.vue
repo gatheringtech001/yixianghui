@@ -37,10 +37,11 @@
 	import './index.scss'
 	import { getInfo } from '@/api/public'
 	import { getConsultantInviteQrcode } from '@/api/member/index'
-	import { buildShareAppMessage } from '@/utils/invite'
+	import sharePageMixin from '@/utils/sharePageMixin'
 	import { normalizeImageUrl } from '@/utils/consultant'
 
 	export default {
+		mixins: [sharePageMixin],
 		data() {
 			return {
 				host: this.$host,
@@ -63,13 +64,14 @@
 		onLoad() {
 			this.loadPageData()
 		},
-		onShareAppMessage() {
-			return buildShareAppMessage({
-				title: `${this.userName}邀请你加入逸享荟`,
-				path: '/pages/home/home'
-			})
-		},
 		methods: {
+			getShareConfig() {
+				return {
+					title: `${this.userName}邀请你加入逸享荟`,
+					path: '/pages/home/home',
+					imageUrl: this.qrcodeUrl
+				}
+			},
 			async loadPageData() {
 				await Promise.all([this.loadUserInfo(), this.loadQrcode()])
 			},

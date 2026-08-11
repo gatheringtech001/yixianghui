@@ -97,11 +97,14 @@
 	} from '@/utils/courseSignup'
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
 	import AuthProfilePopup from '@/components/AuthProfilePopup/AuthProfilePopup.vue'
+	import { parseInvitePageOptions } from '@/utils/invite'
+	import sharePageMixin from '@/utils/sharePageMixin'
 
 	const DEFAULT_COVER = '/static/home-design/entry-stay.jpg'
 	const SECTION_CONTENT = '\u8bfe\u7a0b\u5185\u5bb9'
 
 	export default {
+		mixins: [sharePageMixin],
 		components: {
 			AuthProfilePopup
 		},
@@ -150,6 +153,7 @@
 			}
 		},
 		onLoad(options) {
+			parseInvitePageOptions(options)
 			if (options.id) {
 				this.getCourseDetail(options.id)
 			}
@@ -165,6 +169,15 @@
 			this.setPageScrollHeight()
 		},
 		methods: {
+			getShareConfig() {
+				const course = this.courseData || {}
+				return {
+					title: course.name || '逸享荟老年教育课程',
+					path: '/packagesMall/GoodsDetails/EducationGoodsDetails',
+					query: { id: course.id },
+					imageUrl: course.cover ? this.resolveCoverUrl(course.cover) : ''
+				}
+			},
 			refreshSignupPhase() {
 				if (!this.courseData) {
 					this.signupPhase = 'open'

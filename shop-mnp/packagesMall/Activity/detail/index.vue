@@ -104,13 +104,15 @@
 <script>
 	import { getActivityInfo, addActivityOrder } from '@/api/activity/index'
 	import { goodsCollect, deleteCollect, goodsCollectList } from '@/api/member/index'
-	import { buildShareAppMessage, parseInvitePageOptions } from '@/utils/invite'
+	import { parseInvitePageOptions } from '@/utils/invite'
+	import sharePageMixin from '@/utils/sharePageMixin'
 	import { openActivityLocation } from '@/utils/mapNavigation'
 	import { getActivityPhase, getActivityPhaseText } from '@/utils/activityPhase'
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
 	import { prepareRichTextHtml } from '@/utils/richText'
 	import AuthProfilePopup from '@/components/AuthProfilePopup/AuthProfilePopup.vue'
 	export default {
+		mixins: [sharePageMixin],
 		components: {
 			AuthProfilePopup
 		},
@@ -168,16 +170,16 @@
 				return `立即报名 ￥${this.getActivityPrice(this.detailInfo)}/人`
 			}
 		},
-		onShareAppMessage() {
-			return buildShareAppMessage({
-				title: (this.detailInfo && this.detailInfo.activityName) || '逸享荟精彩活动',
-				path: '/packagesMall/Activity/detail/index',
-				query: {
-					id: this.activityId
-				}
-			})
-		},
 		methods: {
+			getShareConfig() {
+				const cover = this.detailInfo && this.detailInfo.activityCover
+				return {
+					title: (this.detailInfo && this.detailInfo.activityName) || '逸享荟精彩活动',
+					path: '/packagesMall/Activity/detail/index',
+					query: { id: this.activityId },
+					imageUrl: cover ? (cover.startsWith('http') ? cover : this.host + cover) : ''
+				}
+			},
 			isActivityFree(item) {
 				if (!item) return true
 				const isFree = item.isFree

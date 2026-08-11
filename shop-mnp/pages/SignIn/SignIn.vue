@@ -108,12 +108,14 @@
 
 <script>
 	import TabBar from '@/components/TabBar/TabBar.vue'
-	import { buildShareAppMessage, parseInvitePageOptions } from '@/utils/invite'
+	import { parseInvitePageOptions } from '@/utils/invite'
+	import sharePageMixin from '@/utils/sharePageMixin'
 	import AuthProfilePopup from '@/components/AuthProfilePopup/AuthProfilePopup.vue'
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
 	import { signIn, signInList, signInRule } from '@/api/signIn/index'
 	import { getInfo } from '@/api/public'
 	export default {
+		mixins: [sharePageMixin],
 		components: {
 			TabBar,
 			AuthProfilePopup,
@@ -158,13 +160,13 @@
 			this.getGoldRule()
 			this.userData = uni.getStorageSync('userData') || {}
 		},
-		onShareAppMessage() {
-			return buildShareAppMessage({
-				title: '邀请新用户入住，奖励10金币',
-				path: '/pages/home/home'
-			})
-		},
 		methods: {
+			getShareConfig() {
+				return {
+					title: '邀请新用户入住，奖励10金币',
+					path: '/pages/home/home'
+				}
+			},
 			goToArticle() {
 				uni.navigateTo({
 					url: '/packagesPublic/Article/index?id=3'

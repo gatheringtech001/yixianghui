@@ -220,12 +220,15 @@
 	import { goodsCollect, deleteCollect, goodsCollectList } from '@/api/member/index'
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
 	import { prepareRichTextHtml } from '@/utils/richText'
+	import { parseInvitePageOptions } from '@/utils/invite'
+	import sharePageMixin from '@/utils/sharePageMixin'
 
 	const DEFAULT_SKU_COVER = '/static/home-design/entry-stay.jpg'
 	import {
 		getBannerList
 	} from '@/api/index'
 	export default {
+		mixins: [sharePageMixin],
 		components: {
 			Calendar,
 			AuthProfilePopup
@@ -281,6 +284,7 @@
 			};
 		},
 		onLoad(e) {
+			parseInvitePageOptions(e)
 			if (e.id) {
 				this.getGoodsDetailFn(e.id)
 			}
@@ -310,6 +314,15 @@
 			}
 		},
 		methods: {
+			getShareConfig() {
+				const cover = this.bannerImages && this.bannerImages[0]
+				return {
+					title: this.hotelData.name || '逸享荟精选旅居',
+					path: '/packagesMall/GoodsDetails/SojournGoodsDetails',
+					query: { id: this.hotelData.id },
+					imageUrl: cover ? this.resolveCoverUrl(cover) : ''
+				}
+			},
 			clearAnchorTimers() {
 				if (this.anchorClickTimer) {
 					clearTimeout(this.anchorClickTimer)

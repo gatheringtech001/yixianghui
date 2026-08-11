@@ -35,17 +35,21 @@ export function getCurrentShareUserId() {
 	return null
 }
 
-export function buildInviteSharePath(path, extraQuery = {}) {
-	const basePath = path.startsWith('/') ? path : `/${path}`
+export function buildInviteQuery(extraQuery = {}) {
 	const userId = getCurrentShareUserId()
 	const query = { ...extraQuery }
 	if (userId) {
 		query.parentUserId = userId
 	}
-	const queryStr = Object.keys(query)
+	return Object.keys(query)
 		.filter((key) => query[key] !== undefined && query[key] !== null && query[key] !== '')
 		.map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(query[key])}`)
 		.join('&')
+}
+
+export function buildInviteSharePath(path, extraQuery = {}) {
+	const basePath = path.startsWith('/') ? path : `/${path}`
+	const queryStr = buildInviteQuery(extraQuery)
 	return queryStr ? `${basePath}?${queryStr}` : basePath
 }
 
@@ -59,6 +63,56 @@ export function buildShareAppMessage({ title, path = '/pages/home/home', query =
 		config.imageUrl = imageUrl
 	}
 	return config
+}
+
+export function buildShareTimeline({ title, query = {}, imageUrl = '' } = {}) {
+	const config = {
+		title,
+		query: buildInviteQuery(query)
+	}
+	if (imageUrl) {
+		config.imageUrl = imageUrl
+	}
+	return config
+}
+
+export function enableShareMenu() {
+	if (typeof uni === 'undefined' || typeof uni.showShareMenu !== 'function') {
+		return false
+	}
+	uni.showShareMenu({
+		withShareTicket: true,
+		menus: ['shareAppMessage', 'shareTimeline'],
+		fail(error) {
+			console.warn('[share] failed to enable share menu', error)
+		}
+	})
+	return true
+}
+
+export function bindCopyUrl(getShareConfig) {
+	if (typeof wx === 'undefined' || typeof wx.onCopyUrl !== 'function') {
+		return false
+	}
+	wx.onCopyUrl(() => {
+		const config = typeof getShareConfig === 'function'
+			? getShareConfig()
+			: getShareConfig
+		const safeConfig = config || {}
+		return {
+			title: safeConfig.title || '',
+			query: buildInviteQuery(safeConfig.query || {})
+		}
+	})
+	return true
+}
+
+export function unbindCopyUrl() {
+	if (typeof wx === 'undefined' || typeof wx.offCopyUrl !== 'function') {
+		return false
+	}
+	wx.offCopyUrl()
+	return true
 }
 
 export function buildInviteScene() {

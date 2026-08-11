@@ -14,17 +14,30 @@
 		getSingleInfo
 	} from '@/api/index'
 	import { prepareRichTextHtml } from '@/utils/richText'
+	import { parseInvitePageOptions } from '@/utils/invite'
+	import sharePageMixin from '@/utils/sharePageMixin'
 	export default {
+		mixins: [sharePageMixin],
 		data() {
 			return {
 				host: this.$host,
-				detailInfo: null
+				detailInfo: null,
+				articleId: null
 			}
 		},
 		onLoad(option) {
+			parseInvitePageOptions(option)
+			this.articleId = option.id
 			this.getArticleDetail(option.id)
 		},
 		methods: {
+			getShareConfig() {
+				return {
+					title: (this.detailInfo && this.detailInfo.pageName) || '逸享荟康养资讯',
+					path: '/packagesPublic/Article/index',
+					query: { id: this.articleId }
+				}
+			},
 			async getArticleDetail(id) {
 				let {
 					data
