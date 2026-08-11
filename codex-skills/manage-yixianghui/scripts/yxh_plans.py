@@ -61,10 +61,24 @@ def _fetch_row(target: str, table: str, pk: str, record_id: Any,
     return json.loads(raw) if raw else None
 
 
-def _preimage_predicate(before: dict[str, Any]) -> str:
-    return " AND ".join(
-        f"`{column}` <=> {sql_literal(value)}" for column, value in before.items()
-    )
+def _preimage_predicate(before: dict[str, Any], column_types: dict[str, str]) -> str:
+    predicates = []
+    temporal_casts = {
+        "date": "DATE",
+        "datetime": "DATETIME(6)",
+        "time": "TIME(6)",
+        "timestamp": "DATETIME(6)",
+    }
+    for column, value in before.items():
+        literal = sql_literal(value)
+        temporal_cast = temporal_casts.get(column_types.get(column, ""))
+        if isinstance(value, str) and temporal_cast:
+            predicates.append(f"`{column}` <=> CAST({literal} AS {temporal_cast})")
+        elif isinstance(value, str):
+            predicates.append(f"BINARY `{column}` <=> BINARY {literal}")
+        else:
+            predicates.append(f"`{column}` <=> {literal}")
+    return " AND ".join(predicates)
 
 
 def _write_plan(document: dict[str, Any]) -> Path:
@@ -176,6 +190,7 @@ def apply_plan(path: Path, *, production_confirmation: str | None,
     schema = _schema(target, table)
     if _schema_signature(schema) != payload["schema"]:
         raise PolicyError("Schema changed after preview")
+    column_types = {column["name"]: column["type"] for column in schema}
     if action in {"update", "delete"}:
         current = _fetch_row(target, table, pk, payload["record_id"], schema)
         if current != payload["before"]:
@@ -188,7 +203,7 @@ def apply_plan(path: Path, *, production_confirmation: str | None,
         statement = (
             f"UPDATE `{table}` SET {', '.join(assignments)} "
             f"WHERE `{pk}` = {sql_literal(payload['record_id'])} "
-            f"AND {_preimage_predicate(payload['before'])}; SELECT ROW_COUNT();"
+            f"AND {_preimage_predicate(payload['before'], column_types)}; SELECT ROW_COUNT();"
         )
     elif action == "insert":
         values = dict(data)
@@ -202,7 +217,7 @@ def apply_plan(path: Path, *, production_confirmation: str | None,
     else:
         statement = (
             f"DELETE FROM `{table}` WHERE `{pk}` = {sql_literal(payload['record_id'])} "
-            f"AND {_preimage_predicate(payload['before'])}; "
+            f"AND {_preimage_predicate(payload['before'], column_types)}; "
             "SELECT ROW_COUNT();"
         )
 
