@@ -5,10 +5,39 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from travel_asset_policy import COVER_ASSET_INDEX, REJECTED_ASSET_SHA256
-from travel_catalog import _bookable_quotes, _gallery, build_content
+from travel_catalog import _bookable_quotes, _gallery, build_content, build_tabs
 
 
 class TravelCatalogTest(unittest.TestCase):
+    def test_splits_basic_features_and_policy_without_losing_images(self):
+        document = {
+            "slug": "demo", "title": "测试基地",
+            "assets": [
+                {"index": 1, "url": "https://x/room.jpg", "status": "downloaded"},
+                {"index": 2, "url": "https://x/price.jpg", "status": "downloaded"},
+            ],
+        }
+        items = [
+            {"kind": "paragraph", "text": "基地位于古城旁，房间宽敞明亮。"},
+            {"kind": "image", "src": "https://x/room.jpg", "alt": "房间"},
+            {"kind": "heading", "level": 2, "text": "价格与退改政策"},
+            {"kind": "paragraph", "text": "预订支付定金500元，入住前7天可免费取消。"},
+            {"kind": "image", "src": "https://x/price.jpg", "alt": "价格表"},
+            {"kind": "heading", "level": 2, "text": "周边交通"},
+            {"kind": "paragraph", "text": "步行5分钟可到公交站。"},
+        ]
+
+        tabs, used = build_tabs(items, document)
+
+        self.assertEqual(["basic", "policy"], [tab["section_id"] for tab in tabs])
+        self.assertEqual(["基本特色", "政策"], [tab["section_name"] for tab in tabs])
+        self.assertIn("demo-001.jpg", tabs[0]["content"])
+        self.assertIn("周边交通", tabs[0]["content"])
+        self.assertNotIn("demo-002.jpg", tabs[0]["content"])
+        self.assertIn("demo-002.jpg", tabs[1]["content"])
+        self.assertIn("定金500元", tabs[1]["content"])
+        self.assertEqual({1, 2}, used)
+
     def test_redacts_phone_text_and_adjacent_image(self):
         document = {
             "slug": "demo", "title": "测试基地",
@@ -25,6 +54,17 @@ class TravelCatalogTest(unittest.TestCase):
         self.assertNotIn("qr.jpg", content)
         self.assertIn("正常基地介绍", content)
         self.assertEqual(set(), used)
+
+    def test_does_not_treat_ocr_price_digits_as_a_phone_number(self):
+        document = {"slug": "demo", "title": "测试基地", "assets": []}
+        items = [{
+            "kind": "paragraph",
+            "text": "儿童价格30元，OCR价格串189929995399419938991799，节假日加价另议。",
+        }]
+
+        sections, _ = build_content(items, document)
+
+        self.assertIn("儿童价格30元", "".join(sections))
 
     def test_deduplicates_images(self):
         document = {

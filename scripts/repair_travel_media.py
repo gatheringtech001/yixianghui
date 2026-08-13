@@ -41,12 +41,14 @@ def _names_sql(products: list[dict[str, Any]]) -> str:
     return ",".join(sql_literal(row["name"]) for row in products)
 
 
-def _expected_sections(products: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+def _expected_sections(products: list[dict[str, Any]]) \
+        -> dict[tuple[str, str], dict[str, Any]]:
     expected = {}
     for product in products:
-        for index, content in enumerate(product["sections"], start=1):
-            section_id = f"kb_{product['slug'][:12]}_{index}"
-            expected[section_id] = {"product": product, "content": content}
+        for tab in product["tabs"]:
+            expected[(product["name"], tab["section_id"])] = {
+                "product": product, "tab": tab,
+            }
     return expected
 
 
@@ -61,18 +63,19 @@ def capture_snapshot(target: str, catalog: dict[str, Any]) -> dict[str, Any]:
     if len(goods) != len(products) or set(actual_names) != expected_names:
         raise PolicyError("Travel product names are missing, duplicated, or drifted")
     sections = _expected_sections(products)
-    section_sql = ",".join(sql_literal(value) for value in sections)
+    goods_ids = {row["goods_name"]: row["goods_id"] for row in goods}
+    goods_sql = ",".join(str(value) for value in goods_ids.values())
+    section_sql = ",".join(sql_literal(value) for value in ("basic", "policy"))
     related = _fetch_rows(
         target, "app_goods_related", schemas["app_goods_related"],
-        f"section_id IN ({section_sql})",
+        f"goods_id IN ({goods_sql}) AND section_id IN ({section_sql})",
     )
-    if len(related) != len(sections) or {row["section_id"] for row in related} != set(sections):
+    actual_sections = {(row["goods_id"], row["section_id"]) for row in related}
+    expected_sections = {
+        (goods_ids[name], section_id) for name, section_id in sections
+    }
+    if len(related) != len(sections) or actual_sections != expected_sections:
         raise PolicyError("Travel knowledge-detail rows are missing, duplicated, or drifted")
-    goods_ids = {row["goods_name"]: row["goods_id"] for row in goods}
-    for row in related:
-        expected_goods_id = goods_ids[sections[row["section_id"]]["product"]["name"]]
-        if row["goods_id"] != expected_goods_id:
-            raise PolicyError(f"Travel detail ownership drifted: {row['section_id']}")
     return {
         "schemas": {table: _schema_signature(value) for table, value in schemas.items()},
         "goods": goods,
@@ -82,7 +85,7 @@ def capture_snapshot(target: str, catalog: dict[str, Any]) -> dict[str, Any]:
 
 def build_desired(catalog: dict[str, Any], snapshot: dict[str, Any]) -> dict[str, Any]:
     goods_by_name = {row["goods_name"]: row for row in snapshot["goods"]}
-    related_by_section = {row["section_id"]: row for row in snapshot["related"]}
+    related_by_section = {(row["goods_id"], row["section_id"]): row for row in snapshot["related"]}
     goods_updates = []
     related_updates = []
     for product in catalog["products"]:
@@ -93,12 +96,12 @@ def build_desired(catalog: dict[str, Any], snapshot: dict[str, Any]) -> dict[str
             "goods_cover": product["gallery"][0],
             "goods_images": ",".join(product["gallery"]),
         })
-        for index, content in enumerate(product["sections"], start=1):
-            section_id = f"kb_{product['slug'][:12]}_{index}"
-            current_related = related_by_section[section_id]
+        for tab in product["tabs"]:
+            section_id = tab["section_id"]
+            current_related = related_by_section[(current["goods_id"], section_id)]
             related_updates.append({
                 "id": current_related["id"], "goods_id": current["goods_id"],
-                "section_id": section_id, "content": content,
+                "section_id": section_id, "content": tab["content"],
             })
     return {"goods_updates": goods_updates, "related_updates": related_updates}
 

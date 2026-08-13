@@ -269,12 +269,12 @@ def build_desired(catalog: dict[str, Any], snapshot: dict[str, Any]) -> dict[str
                         _option_row(next(option_seq), goods_id, child_id, "总价", "302", quote["price"], "元", 3, 1),
                         _option_row(next(option_seq), goods_id, child_id, "均价", "301", quote["average"], "元", 4, 1),
                     ])
-        for index, content in enumerate(product["sections"], start=1):
+        for tab in product["tabs"]:
             related.append({
                 "id": next(related_seq), "goods_id": goods_id,
-                "section_id": f"kb_{product['slug'][:12]}_{index}",
-                "section_name": "知识库完整资料" if len(product["sections"]) == 1 else f"知识库资料 {index}",
-                "content": content, "sort_order": 90 + index, "min_content_length": 250,
+                "section_id": tab["section_id"], "section_name": tab["section_name"],
+                "content": tab["content"], "sort_order": tab["sort_order"],
+                "min_content_length": tab["min_content_length"],
             })
     return {
         "category_inserts": category_inserts, "goods_inserts": goods_inserts,

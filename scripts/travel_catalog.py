@@ -21,10 +21,17 @@ TARGET_CITIES = ("昆明", "建水", "弥勒", "普洱", "西双版纳", "芒市
 DISPLAY_CITY = {"西双版纳": "西双版纳"}
 EXISTING_ALIASES = {"昆明六号温泉基地": 31, "昆明七号古滇基地": 32}
 CONTACT_RE = re.compile(
-    r"1[3-9]\d{9}|(?:二维码|扫码|联系(?:电话|手机|方式|号码)|手机号码|手机号|"
+    r"(?<!\d)1[3-9]\d{9}(?!\d)|(?:二维码|扫码|联系(?:电话|手机|方式|号码)|手机号码|手机号|"
     r"微信号|加微信|V信|vx\s*[:：])", re.I
 )
 PRICE_RE = re.compile(r"(?:价格|套餐|\d+\s*(?:元|/人|／人|/间|／间))")
+POLICY_RE = re.compile(
+    r"退改|退订|退款|取消|房损|定金|押金|提前退房|入住前|入住后|办理入住|"
+    r"退房时间|不予退|不做任何退费|费用包含|服务包含|价格(?:表|详情)?|收费标准|"
+    r"套餐提示|预订须知|重要须知|注意事项|儿童(?:政策|收费|餐费)|"
+    r"(?:节假日|春节|暑期|国庆|五一).{0,16}(?:加价|涨价|政策)"
+)
+MONEY_RE = re.compile(r"\d+(?:\.\d+)?\s*元(?:\b|/|／|每)")
 REMOTE_ASSET_DIR = "/profile/upload/2026/08/13/travel-catalog-v2"
 MAX_SECTION_BYTES = 54_000
 
@@ -87,9 +94,23 @@ def _table_fragment(rows: list[list[str]]) -> str:
     return "<table style=\"width:100%;border-collapse:collapse;\"><tbody>" + "".join(body) + "</tbody></table>"
 
 
-def build_content(items: list[dict[str, Any]], document: dict[str, Any]) -> tuple[list[str], set[int]]:
+def _item_text(item: dict[str, Any]) -> str:
+    if item.get("kind") == "table":
+        return " ".join(str(cell) for row in item.get("rows") or [] for cell in row)
+    return str(item.get("text") or item.get("alt") or "")
+
+
+def _policy_flag(item: dict[str, Any]) -> bool | None:
+    text = re.sub(r"\s+", " ", _item_text(item)).strip()
+    if item.get("kind") == "image" and not text:
+        return None
+    return bool(POLICY_RE.search(text) or MONEY_RE.search(text))
+
+
+def _content_fragments(items: list[dict[str, Any]], document: dict[str, Any]) \
+        -> tuple[list[dict[str, Any]], set[int]]:
     assets = _asset_map(document)
-    fragments: list[tuple[str, str, int | None]] = []
+    fragments: list[dict[str, Any]] = []
     used_indices: set[int] = set()
     seen_images: set[int] = set()
     suppress_images = 0
@@ -97,8 +118,8 @@ def build_content(items: list[dict[str, Any]], document: dict[str, Any]) -> tupl
         kind = item.get("kind")
         text = str(item.get("text") or "")
         if text and CONTACT_RE.search(text):
-            if fragments and fragments[-1][1] == "image":
-                removed = fragments.pop()[2]
+            if fragments and fragments[-1]["kind"] == "image":
+                removed = fragments.pop()["index"]
                 if removed is not None:
                     used_indices.discard(removed)
             suppress_images = 2
@@ -115,21 +136,45 @@ def build_content(items: list[dict[str, Any]], document: dict[str, Any]) -> tupl
             used_indices.add(index)
             src = _remote_path(document["slug"], asset)
             alt = html_lib.escape(str(item.get("alt") or document["title"]), quote=True)
-            fragments.append((
-                f'<p><img src="{src}" alt="{alt}" style="width:100%;height:auto;display:block;"></p>',
-                "image", index,
-            ))
+            fragments.append({
+                "html": f'<p><img src="{src}" alt="{alt}" '
+                        'style="width:100%;height:auto;display:block;"></p>',
+                "kind": "image", "index": index, "policy": _policy_flag(item),
+            })
         elif kind == "table":
-            fragments.append((_table_fragment(item.get("rows") or []), "table", None))
+            fragments.append({
+                "html": _table_fragment(item.get("rows") or []),
+                "kind": "table", "index": None, "policy": _policy_flag(item),
+            })
         elif kind in {"heading", "paragraph", "bullet"} and text.strip():
-            fragments.append((_text_fragment(item), "text", None))
+            fragments.append({
+                "html": _text_fragment(item), "kind": "text", "index": None,
+                "policy": _policy_flag(item),
+            })
         elif kind == "video" and str(item.get("src") or "").startswith("https://"):
             url = html_lib.escape(item["src"], quote=True)
-            fragments.append((f'<p><a href="{url}">查看知识库视频</a></p>', "video", None))
+            fragments.append({
+                "html": f'<p><a href="{url}">查看知识库视频</a></p>',
+                "kind": "video", "index": None, "policy": False,
+            })
+    for position, fragment in enumerate(fragments):
+        if fragment["kind"] != "image" or fragment["policy"] is not None:
+            continue
+        previous = next((row["policy"] for row in reversed(fragments[:position])
+                         if row["kind"] != "image"), None)
+        following = next((row["policy"] for row in fragments[position + 1:]
+                          if row["kind"] != "image"), False)
+        fragment["policy"] = previous if previous is not None else following
+    return fragments, used_indices
+
+
+def build_content(items: list[dict[str, Any]], document: dict[str, Any]) -> tuple[list[str], set[int]]:
+    fragments, used_indices = _content_fragments(items, document)
     sections: list[str] = []
     current: list[str] = []
     current_bytes = 0
-    for fragment, _, _ in fragments:
+    for row in fragments:
+        fragment = row["html"]
         size = len(fragment.encode("utf-8"))
         if current and current_bytes + size > MAX_SECTION_BYTES:
             sections.append("".join(current))
@@ -139,6 +184,30 @@ def build_content(items: list[dict[str, Any]], document: dict[str, Any]) -> tupl
     if current:
         sections.append("".join(current))
     return sections, used_indices
+
+
+def build_tabs(items: list[dict[str, Any]], document: dict[str, Any]) \
+        -> tuple[list[dict[str, Any]], set[int]]:
+    fragments, used_indices = _content_fragments(items, document)
+    grouped = {
+        "basic": [row["html"] for row in fragments if not row["policy"]],
+        "policy": [row["html"] for row in fragments if row["policy"]],
+    }
+    if not grouped["basic"] or not grouped["policy"]:
+        missing = "基本特色" if not grouped["basic"] else "政策"
+        raise ValueError(f"无法从知识库识别{missing}: {document['title']}")
+    tabs = []
+    for section_id, section_name, sort_order in (
+        ("basic", "基本特色", 1), ("policy", "政策", 2),
+    ):
+        content = "".join(grouped[section_id])
+        if len(content.encode("utf-8")) > MAX_SECTION_BYTES:
+            raise ValueError(f"详情标签内容超过数据库限制: {document['title']} {section_name}")
+        tabs.append({
+            "section_id": section_id, "section_name": section_name,
+            "content": content, "sort_order": sort_order, "min_content_length": 250,
+        })
+    return tabs, used_indices
 
 
 def _description(items: list[dict[str, Any]], title: str) -> str:
@@ -206,7 +275,7 @@ def _bookable_quotes(quotes: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _product(document: dict[str, Any], cache: dict[str, Any], extractor) -> dict[str, Any]:
     items = extractor(cache["body_html"])
-    sections, used_indices = build_content(items, document)
+    tabs, used_indices = build_tabs(items, document)
     all_indices = {int(row["index"]) for row in document["assets"]}
     gallery = _gallery(document, all_indices - used_indices)
     used_indices.update(gallery)
@@ -221,7 +290,7 @@ def _product(document: dict[str, Any], cache: dict[str, Any], extractor) -> dict
         "existing_goods_id": EXISTING_ALIASES.get(document["title"]),
         "source_url": document["source_url"], "source_updated_at": document["source_updated_at"],
         "description": _description(items, document["title"]),
-        "tags": _tags(document["title"], items), "sections": sections,
+        "tags": _tags(document["title"], items), "tabs": tabs,
         "gallery": [_remote_path(document["slug"], assets_by_index[index]) for index in gallery],
         "quotes": quotes, "bookable_quotes": bookable,
         "assets": [
