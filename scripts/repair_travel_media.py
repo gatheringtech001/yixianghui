@@ -18,7 +18,6 @@ from import_travel_catalog import (
     RuntimeFailure,
     _asset_state,
     _fetch_rows,
-    _install_assets,
     _load_plan,
     _schema,
     _schema_signature,
@@ -31,6 +30,7 @@ from import_travel_catalog import (
     verify_gzip,
 )
 from travel_asset_policy import REJECTED_ASSET_SHA256
+from travel_asset_sync import _pending_assets, sync_assets
 from travel_catalog import load_catalog
 
 TABLE_KEYS = {"app_goods": "goods_id", "app_goods_related": "id"}
@@ -185,8 +185,7 @@ def create_plan(target: str, knowledge_root: Path) -> tuple[Path, dict[str, Any]
     desired = build_desired(catalog, snapshot)
     current_assets = _asset_state(target, catalog)
     expected_assets = {row["file"]: row["sha256"] for row in assets}
-    if current_assets and current_assets != expected_assets:
-        raise PolicyError("Target travel-v2 asset directory contains unexpected files")
+    _pending_assets(assets, current_assets)
     payload = {
         "version": PLAN_VERSION, "created_at": datetime.now(timezone.utc).isoformat(),
         "target": target,
@@ -248,7 +247,7 @@ def apply_plan(path: Path, confirmation: str | None) -> dict[str, Any]:
         backup_path = STATE_DIR / "backups" / f"production-full-travel-media-{stamp}.sql.gz"
         backup = create_backup(target, backup_path)
         backup.update(verify_gzip(backup_path))
-    _install_assets(target, payload["catalog_meta"], payload["assets"])
+    sync_assets(target, payload["catalog_meta"], payload["assets"])
     if _asset_state(target, catalog) != expected_assets:
         raise PolicyError("Uploaded travel-v2 asset checksum verification failed")
     run_mysql(target, build_transaction_sql(payload), headers=False, write=True)
