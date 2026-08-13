@@ -60,18 +60,19 @@ test('home, education and product details use the local production snapshot', { 
     assert.equal(homeState.host, 'http://127.0.0.1:18080/api')
 
     await runStep(testContext, {
-      label: 'wait for backend categories',
+      label: 'wait for eligible travel cities',
       action: () => waitUntil(async () => {
         const state = await getCurrentPageState(miniProgram, ['navList', 'hotCardList'])
         return Array.isArray(state.navList) && state.navList.length > 0 &&
-          Array.isArray(state.hotCardList) && state.hotCardList.length === 5
+          Array.isArray(state.hotCardList) && state.hotCardList.length === 2
       })
     })
     const cityState = await getCurrentPageState(miniProgram, ['hotCardList'])
     assert.deepEqual(
-      cityState.hotCardList.map(item => item.adName),
-      ['昆明', '建水', '腾冲', '曲靖', '大理']
+      cityState.hotCardList.map(item => item.adName).sort(),
+      ['大理', '昆明']
     )
+    assert.ok(cityState.hotCardList.every(item => Number(item.goodsCount) > 0))
     await runStep(testContext, {
       label: 'wait for backend category goods',
       action: () => waitUntil(async () => {
@@ -102,7 +103,31 @@ test('home, education and product details use the local production snapshot', { 
     })
     await runStep(testContext, {
       label: 'capture home screenshot',
+      timeoutMs: 40000,
       action: () => captureScreenshot(miniProgram, 'home.png')
+    })
+
+    await runStep(testContext, {
+      label: 'open travel service categories',
+      action: () => invokeCurrentVmMethod(miniProgram, 'goToServiceTab')
+    })
+    await runStep(testContext, {
+      label: 'wait for empty travel cities to be removed',
+      action: () => waitUntil(async () => {
+        const page = await miniProgram.currentPage()
+        if (!page || page.path !== 'pages/classify/classify') return false
+        const state = await getCurrentPageState(miniProgram, ['goodsCatrgoryList'])
+        return Array.isArray(state.goodsCatrgoryList) &&
+          state.goodsCatrgoryList.map(item => item.categoryName).join(',') === '全部,昆明,大理'
+      })
+    })
+    await runStep(testContext, {
+      label: 'return home after travel category check',
+      action: () => miniProgram.callWxMethod('switchTab', { url: '/pages/home/home' })
+    })
+    await waitUntil(async () => {
+      const page = await miniProgram.currentPage()
+      return page && page.path === 'pages/home/home'
     })
 
     await runStep(testContext, {

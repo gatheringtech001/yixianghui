@@ -279,10 +279,14 @@ $cream: #fbf6ef;
 	}
 }
 
-.city-grid {
-	display: grid;
-	grid-template-columns: repeat(5, 1fr);
-	gap: 14rpx;
+.city-swiper {
+	height: 204rpx;
+	margin: 0 -7rpx;
+}
+
+.city-slide {
+	box-sizing: border-box;
+	padding: 4rpx 7rpx;
 }
 
 .city-card {

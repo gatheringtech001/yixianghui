@@ -78,18 +78,31 @@
 					<text class="section-title">热门城市</text>
 					<text class="section-more" @click="goToServiceTab">查看全部 &gt;</text>
 				</view>
-				<view class="city-grid">
-					<view
-						class="city-card"
+				<swiper
+					v-if="hotCardList.length"
+					class="city-swiper"
+					:autoplay="hotCardList.length > 5"
+					:circular="hotCardList.length > 5"
+					:display-multiple-items="Math.min(5, hotCardList.length)"
+					interval="2500"
+					duration="600"
+					@change="onHotCitySwiperChange"
+				>
+					<swiper-item
+						class="city-slide"
 						v-for="(item,index) in hotCardList"
-						:key="index"
-						:class="{ active: selectedCityIndex === index }"
-						@click="changeSiteHandle(item, index)"
+						:key="item.categoryId"
 					>
-						<image class="city-image" :src="host + item.adImage" mode="aspectFill" />
-						<text class="city-name">{{ item.adName }}</text>
-					</view>
-				</view>
+						<view
+							class="city-card"
+							:class="{ active: selectedCityIndex === index }"
+							@click="changeSiteHandle(item, index)"
+						>
+							<image class="city-image" :src="getCityImageUrl(item)" mode="aspectFill" />
+							<text class="city-name">{{ item.adName }}</text>
+						</view>
+					</swiper-item>
+				</swiper>
 
 				<view class="cls-goods" v-if="citySelectionReady">
 					<view class="section-head recommend-head">
@@ -199,6 +212,10 @@
 		getGoodsCatrgorys,
 		getGoodsList
 	} from '@/api/shop/index'
+	import {
+		buildHotCityCards,
+		isVisibleTravelGoods
+	} from '@/utils/travelCatalog'
 	export default {
 		mixins: [sharePageMixin],
 		components: {
@@ -223,6 +240,7 @@
 				currentGoodsList: [],
 				citySelectionReady: false,
 				citySwitching: false,
+				citySwiperIndex: 0,
 				refreshing: false,
 				refreshHintText: '下拉刷新',
 				scrollViewHeight: 0,
@@ -239,7 +257,6 @@
 			this.loadMnpAdAssets()
 			this.getAdPosList()
 			this.gethotCardList()
-			this.getClsList()
 			this.getContactAdList()
 		},
 		async onShow() {
@@ -336,16 +353,19 @@
 					await Promise.all([
 						this.getAdPosList(),
 						this.gethotCardList(true),
-						this.getClsList(true),
 						this.getContactAdList()
 					])
 					const site = uni.getStorageSync('site')
 					if (site) {
 						this.siteInfo = site
 					}
-					if (prevIndex >= 0 && prevIndex < this.hotCardList.length) {
-						this.selectedCityIndex = prevIndex
-						const parsed = this.parseCityCategoryLink(this.hotCardList[prevIndex])
+					const nextIndex = this.hotCardList.findIndex(item => {
+						const parsed = this.parseCityCategoryLink(item)
+						return parsed && String(parsed.categoryId) === String(prevCategoryId)
+					})
+					if (nextIndex >= 0) {
+						this.selectedCityIndex = nextIndex
+						const parsed = this.parseCityCategoryLink(this.hotCardList[nextIndex])
 						this.currentCategoryId = (parsed && parsed.categoryId) || prevCategoryId
 						this.updateCurrentCategoryInfo()
 						this.citySelectionReady = true
@@ -462,7 +482,7 @@
 						ignoreSite: true
 					})
 					const list = res.data || []
-					this.currentGoodsList = list.filter(v => v && v.goodsId)
+					this.currentGoodsList = list.filter(isVisibleTravelGoods)
 					this.hotGoods = this.currentGoodsList.filter(v => v.isHot == 1)
 				} catch (error) {
 					console.error('加载商品失败:', error)
@@ -492,15 +512,35 @@
 				// console.log(data)
 			},
 			async gethotCardList(skipInit = false) {
-				let {
-					data
-				} = await getBannerList({
-					positionId: 6
-				})
-				this.hotCardList = (data || []).filter(item => !this.isNationalCityCard(item))
+				const categories = await this.getClsList(true)
+				const travel = categories.find(item => (
+					String(item.categoryName || '').trim() === '全国旅居'
+				))
+				if (!travel) {
+					this.hotCardList = []
+					return []
+				}
+				const [adResponse, goodsResponse] = await Promise.all([
+					getBannerList({ positionId: 6 }),
+					getGoodsList({ categoryId: travel.categoryId, ignoreSite: true })
+				])
+				this.hotCardList = buildHotCityCards(
+					categories,
+					adResponse.data || [],
+					goodsResponse.data || []
+				)
 				if (!skipInit) {
 					this.initCitySelection()
 				}
+				return this.hotCardList
+			},
+			getCityImageUrl(item) {
+				const image = String((item && item.adImage) || '').trim()
+				if (!image || image.startsWith('/static/') || image.startsWith('http')) return image
+				return this.host + image
+			},
+			onHotCitySwiperChange(event) {
+				this.citySwiperIndex = Number(event && event.detail && event.detail.current) || 0
 			},
 			async getContactAdList() {
 				let params = {
@@ -543,6 +583,7 @@
 				if (!skipInit) {
 					this.initCitySelection()
 				}
+				return data || []
 			},
 			/**
 			 * 搜索点击

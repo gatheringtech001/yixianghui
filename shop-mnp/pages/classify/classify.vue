@@ -191,6 +191,11 @@
 		getActivityCategoryList
 	} from '@/api/activity/index'
 	import { parseCourseMeta } from '@/utils/courseMeta'
+	import {
+		getTravelCategoryRows,
+		isVisibleCatalogGoods,
+		isVisibleTravelGoods
+	} from '@/utils/travelCatalog'
 	export default {
 		mixins: [sharePageMixin],
 		components: {
@@ -250,6 +255,8 @@
 				searchKeyword: '',
 				bodyScrollHeight: 0,
 				brandLogoUrl: '',
+				travelGoodsRows: [],
+				travelGoodsLoaded: false,
 				showEducationHero: false,
 				currencySymbol: '\uFFE5',
 				labels: {
@@ -529,6 +536,8 @@
 				this.navbarSelect = item.categoryId
 				this.goodsCatrgorySelect = 0
 				this.loading = false
+				this.travelGoodsRows = []
+				this.travelGoodsLoaded = false
 				if (!keepSearch) {
 					this.searchKeyword = ''
 				}
@@ -551,16 +560,34 @@
 			navbarFn(data) {
 				this.applyNavbarItem(data)
 			},
-			getGoodsCatrgoryFn(id) {
+			async getGoodsCatrgoryFn(id) {
 				this.goodsCatrgoryList = []
-				getGoodsCatrgorys({
-					parentId: id
-				}).then(res => {
+				try {
+					const categoryRequest = getGoodsCatrgorys({
+						parentId: id,
+						status: 1
+					})
+					const [categoryResponse, goodsResponse] = this.isTravelTab
+						? await Promise.all([
+							categoryRequest,
+							getGoodsList({ categoryId: id, ignoreSite: true })
+						])
+						: [await categoryRequest, null]
+					let categoryRows = categoryResponse.data || []
+					if (this.isTravelTab) {
+						this.travelGoodsRows = (goodsResponse.data || []).filter(isVisibleTravelGoods)
+						this.travelGoodsLoaded = true
+						const allCategories = uni.getStorageSync('cls') || []
+						categoryRows = getTravelCategoryRows(
+							allCategories,
+							this.travelGoodsRows
+						).map(row => row.category)
+					}
 					this.goodsCatrgoryList = [{
 						categoryId: 0,
 						categoryName: '全部'
 					}]
-					;(res.data || []).forEach(item => {
+					categoryRows.forEach(item => {
 						this.goodsCatrgoryList.push({
 							categoryId: item.categoryId,
 							categoryName: item.categoryName
@@ -581,16 +608,16 @@
 						}
 					}
 					this.getGoodsListFn()
-				}).catch(err => {
+				} catch (err) {
 					console.log('getGoodsCatrgorys', err)
 					this.goodsCatrgoryList = [{
 						categoryId: 0,
 						categoryName: '全部'
 					}]
 					this.getGoodsListFn()
-				}).finally(() => {
+				} finally {
 					this.setBodyScrollHeight()
-				})
+				}
 			},
 			getActivityCategoryFn(parentId) {
 				this.goodsCatrgoryList = []
@@ -628,9 +655,20 @@
 				if (keyword) {
 					params.goodsName = keyword
 				}
+				if (this.isTravelTab && this.travelGoodsLoaded && !keyword) {
+					const rows = this.goodsCatrgorySelect == 0
+						? this.travelGoodsRows
+						: this.travelGoodsRows.filter(item => (
+							String(item.categoryId) === String(this.goodsCatrgorySelect)
+						))
+					this.goodsList = rows.map(this.buildGoodsListItem)
+					this.loading = false
+					this.setBodyScrollHeight()
+					return
+				}
 				getGoodsList(params).then(res => {
 					this.goodsList = []
-					;(res.data || []).forEach((item) => {
+					;(res.data || []).filter(isVisibleCatalogGoods).forEach((item) => {
 						this.goodsList.push(this.buildGoodsListItem(item))
 					})
 				}).catch(err => {
