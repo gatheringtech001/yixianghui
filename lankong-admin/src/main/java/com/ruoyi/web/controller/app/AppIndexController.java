@@ -46,6 +46,8 @@ import static com.ruoyi.common.utils.PageUtils.startPage;
 @RequestMapping("/mnp/index")
 public class AppIndexController extends BaseController {
 
+    private static final String PUBLISHED_STATUS = "1";
+
     @Autowired
     private IGenTableService genTableService;
 
@@ -218,6 +220,7 @@ public class AppIndexController extends BaseController {
             appGoods.setCategoryIds(goodsCategoryService.selectAppGoodsCategoryAllIdsById(appGoods.getCategoryId()));
             appGoods.setCategoryId(null);
         }
+        appGoods.setStatus(PUBLISHED_STATUS);
         List<AppGoods> list = goodsService.selectAppGoodsList(appGoods);
         return success(list);
     }
@@ -240,6 +243,7 @@ public class AppIndexController extends BaseController {
             appGoods.setCategoryIds(goodsCategoryService.selectAppGoodsCategoryAllIdsById(appGoods.getCategoryId()));
             appGoods.setCategoryId(null);
         }
+        appGoods.setStatus(PUBLISHED_STATUS);
         List<AppGoods> list = goodsService.selectAppGoodsList(appGoods);
         return success(list);
     }
@@ -427,6 +431,7 @@ public class AppIndexController extends BaseController {
     public TableDataInfo activity_list(AppActivity appActivity)
     {
         startPage();
+        appActivity.setStatus(PUBLISHED_STATUS);
         List<AppActivity> list = activityService.selectAppActivityList(appActivity);
         return getDataTable(list);
     }
