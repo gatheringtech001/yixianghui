@@ -36,3 +36,14 @@ test('travel city cards exclude empty and disabled catalog records', async () =>
   assert.deepEqual(cards.map(item => item.goodsCount), [1, 1])
   assert.equal(cards[1].adImage, '/static/home-design/city-puer.jpg')
 })
+
+test('activity lists request only published records', async () => {
+  const sourcePath = path.resolve(__dirname, '../../shop-mnp/pages/classify/classify.vue')
+  const source = await fs.readFile(sourcePath, 'utf8')
+  const methodStart = source.indexOf('\t\t\tgetActivityListFn()')
+  const methodEnd = source.indexOf('\t\t\tmenuFn(data)', methodStart)
+
+  assert.ok(methodStart > 0, 'activity list method should exist')
+  assert.ok(methodEnd > methodStart, 'activity list method should have a stable boundary')
+  assert.match(source.slice(methodStart, methodEnd), /const params = \{\s*status: 1\s*\}/)
+})

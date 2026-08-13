@@ -681,7 +681,9 @@
 			},
 			getActivityListFn() {
 				this.loading = true
-				const params = {}
+				const params = {
+					status: 1
+				}
 				const isEnded = this.goodsCatrgorySelect === 'ended'
 				if (isEnded) {
 					params.signFilter = 'ended'
