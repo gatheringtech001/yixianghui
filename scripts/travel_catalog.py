@@ -13,6 +13,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+from travel_asset_policy import COVER_ASSET_INDEX, REJECTED_ASSET_SHA256
 from travel_price_parser import extract_quotes
 from travel_quote_overrides import quote_overrides
 
@@ -24,7 +25,7 @@ CONTACT_RE = re.compile(
     r"微信号|加微信|V信|vx\s*[:：])", re.I
 )
 PRICE_RE = re.compile(r"(?:价格|套餐|\d+\s*(?:元|/人|／人|/间|／间))")
-REMOTE_ASSET_DIR = "/profile/upload/2026/08/13/travel-catalog"
+REMOTE_ASSET_DIR = "/profile/upload/2026/08/13/travel-catalog-v2"
 MAX_SECTION_BYTES = 54_000
 
 
@@ -59,7 +60,10 @@ def _remote_path(slug: str, asset: dict[str, Any]) -> str:
 
 
 def _asset_map(document: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    return {row["url"]: row for row in document["assets"] if row.get("status") == "downloaded"}
+    return {
+        row["url"]: row for row in document["assets"]
+        if row.get("status") == "downloaded" and row.get("sha256") not in REJECTED_ASSET_SHA256
+    }
 
 
 def _text_fragment(item: dict[str, Any]) -> str:
@@ -163,13 +167,24 @@ def _tags(title: str, items: list[dict[str, Any]]) -> str:
 
 
 def _gallery(document: dict[str, Any], excluded: set[int]) -> list[int]:
-    assets = [row for row in document["assets"] if int(row["index"]) not in excluded]
+    cover_index = COVER_ASSET_INDEX.get(document["slug"])
+    if cover_index is None:
+        raise ValueError(f"缺少人工封面决策: {document['title']}")
+    available = [
+        row for row in document["assets"]
+        if row.get("status") == "downloaded"
+        and row.get("sha256") not in REJECTED_ASSET_SHA256
+    ]
+    cover = next((row for row in available if int(row["index"]) == cover_index), None)
+    if cover is None:
+        raise ValueError(f"人工封面不可用: {document['title']} #{cover_index}")
+    assets = [row for row in available if int(row["index"]) not in excluded]
     landscapes = [
         row for row in assets[:16]
         if int(row.get("width") or 0) >= int(row.get("height") or 1) * 1.1
         and int(row.get("width") or 0) >= 800
     ]
-    selected = (landscapes + assets)[:6]
+    selected = [cover] + landscapes + assets
     return list(dict.fromkeys(int(row["index"]) for row in selected))[:6]
 
 
@@ -226,6 +241,11 @@ def load_catalog(knowledge_root: Path) -> dict[str, Any]:
         row for row in state["documents"]
         if row.get("category") == "基地资料" and row.get("city") in TARGET_CITIES
     ]
+    document_slugs = {row["slug"] for row in documents}
+    if document_slugs != set(COVER_ASSET_INDEX):
+        missing = sorted(document_slugs - set(COVER_ASSET_INDEX))
+        obsolete = sorted(set(COVER_ASSET_INDEX) - document_slugs)
+        raise ValueError(f"人工封面清单与知识库不一致: missing={missing}, obsolete={obsolete}")
     products = []
     for document in sorted(documents, key=lambda row: (TARGET_CITIES.index(row["city"]), row["title"])):
         if not document.get("image_complete"):
