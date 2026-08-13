@@ -14,7 +14,7 @@
 
 		<scroll-view class="coins-scroll" scroll-y :show-scrollbar="false">
 			<view class="coin-summary">
-				<image class="coin-summary-bg" src="/static/home-design/coin-hero-bg.png" mode="aspectFill" />
+				<image class="coin-summary-bg" src="/static/home-design/coin-hero-bg.jpg" mode="aspectFill" />
 				<view class="coin-summary-body">
 					<text class="coin-label">我的金币</text>
 					<view class="coin-number">
