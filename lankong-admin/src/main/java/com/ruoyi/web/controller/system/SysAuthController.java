@@ -99,10 +99,10 @@ public class SysAuthController extends BaseController
     @Value("${oauth.github.redirect-uri:http://127.0.0.1:80/social-login?source=github}")
     private String githubRedirectUri;
 
-    @Value("${weixin.appid:}")
+    @Value("${wx.mnp.appId:${wx.pay.appId:}}")
     private String wechatMiniProgramAppId;
 
-    @Value("${weixin.appsecret:}")
+    @Value("${wx.mnp.appSecret:}")
     private String wechatMiniProgramAppSecret;
 
     private final Map<String, String> auths = new HashMap<String, String>();
