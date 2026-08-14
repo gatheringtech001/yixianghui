@@ -1,67 +1,88 @@
 <template>
 	<view class="page">
-		<!-- 用户信息 -->
-		<view class="user-info">
-			<view class="user-data" @click="onUserInfo">
-				<view class="portrait-nickname">
-					<view class="portrait">
-						<image :src="userInfo && userInfo.avatar?host+userInfo.avatar : '/static/img/logo.jpg'"></image>
+		<scroll-view class="settings-scroll" scroll-y :show-scrollbar="false">
+			<view class="settings-shell">
+				<view class="settings-hero" @click="onUserInfo">
+					<image class="hero-brand" src="/static/home-design/brand-mark.png" mode="aspectFit" />
+					<view class="hero-topline">
+						<text class="hero-eyebrow">逸享荟账户中心</text>
+						<text class="status-pill">已登录</text>
 					</view>
-					<view class="nickname">
-						<text>{{userInfo.nickName || '用户昵称'}}</text>
+					<view class="hero-profile">
+						<image class="hero-avatar" :src="avatarDisplay" mode="aspectFill" />
+						<view class="hero-copy">
+							<text class="hero-name">{{ userInfo && userInfo.nickName || '逸享荟用户' }}</text>
+							<text class="hero-description">查看并完善个人资料</text>
+						</view>
+						<u-icon name="arrow-right" color="rgba(255,255,255,0.76)" size="30" />
 					</view>
 				</view>
-				<view class="more">
-					<text class="iconfont icon-more"></text>
+
+				<view class="settings-section">
+					<view class="section-heading">
+						<text class="section-title">账户与服务</text>
+						<text class="section-caption">管理您的常用信息与权益</text>
+					</view>
+					<view class="settings-card">
+						<view class="settings-row" @click="onAddress">
+							<view class="settings-icon">
+								<u-icon name="map" color="#701018" size="34" />
+							</view>
+							<view class="row-copy">
+								<text class="row-title">地址管理</text>
+								<text class="row-description">管理联系人与收货地址</text>
+							</view>
+							<u-icon name="arrow-right" color="#a49c93" size="26" />
+						</view>
+						<view class="settings-row" @click="onSetting('account')">
+							<view class="settings-icon">
+								<u-icon name="lock" color="#701018" size="34" />
+							</view>
+							<view class="row-copy">
+								<text class="row-title">账户安全</text>
+								<text class="row-description">更换当前登录账号</text>
+							</view>
+							<u-icon name="arrow-right" color="#a49c93" size="26" />
+						</view>
+						<view class="settings-row" @click="onSetting('vip')">
+							<view class="settings-icon membership-icon">
+								<u-icon name="integral" color="#8a5b18" size="34" />
+							</view>
+							<view class="row-copy">
+								<text class="row-title">逸享荟会员</text>
+								<text class="row-description">查看会员权益与专属服务</text>
+							</view>
+							<u-icon name="arrow-right" color="#a49c93" size="26" />
+						</view>
+					</view>
+				</view>
+
+				<view class="settings-section">
+					<view class="section-heading">
+						<text class="section-title">品牌与支持</text>
+						<text class="section-caption">了解逸享荟康养服务</text>
+					</view>
+					<view class="settings-card">
+						<view class="settings-row" @click="onSetting('about')">
+							<view class="settings-icon">
+								<u-icon name="info-circle" color="#701018" size="34" />
+							</view>
+							<view class="row-copy">
+								<text class="row-title">关于我们</text>
+								<text class="row-description">品牌介绍与服务说明</text>
+							</view>
+							<u-icon name="arrow-right" color="#a49c93" size="26" />
+						</view>
+					</view>
+				</view>
+
+				<view class="logout-button" @click="onQuitLogin">退出登录</view>
+				<view class="brand-footer">
+					<image src="/static/home-design/brand-mark.png" mode="aspectFit" />
+					<text>逸享荟 · 让康养旅居更安心</text>
 				</view>
 			</view>
-			<view class="address" @click="onAddress">
-				<view class="title">
-					<text>地址管理</text>
-				</view>
-				<view class="more">
-					<text class="iconfont icon-more"></text>
-				</view>
-			</view>
-		</view>
-		<!-- 设置列表 -->
-		<view class="setting-list">
-			<view class="list" @click="onSetting('account')">
-				<view class="title">
-					<text>账户安全</text>
-				</view>
-				<view class="more-content">
-					<text class="content">更换账号</text>
-					<text class="iconfont icon-more more"></text>
-				</view>
-			</view>
-			<view class="list" @click="onSetting('vip')">
-				<view class="title">
-					<text>逸享荟会员</text>
-				</view>
-				<view class="more-content">
-					<text class="content">会员专属</text>
-					<text class="iconfont icon-more more"></text>
-				</view>
-			</view>
-		</view>
-		<!-- 设置列表 -->
-		<view class="setting-list">
-			<view class="list" @click="onSetting('about')">
-				<view class="title">
-					<text>关于我们</text>
-				</view>
-				<view class="more-content">
-					<text class="content"></text>
-					<text class="iconfont icon-more more"></text>
-				</view>
-			</view>
-		</view>
-		<!-- 退出 -->
-		<view class="quit-login" @click="onQuitLogin">
-			<text>退出登录</text>
-		</view>
-		<!-- 提示框 -->
+		</scroll-view>
 		<DialogBox ref="DialogBox"></DialogBox>
 		<AuthProfilePopup ref="authProfilePopup" />
 	</view>
@@ -78,18 +99,26 @@
 			return {
 				host: this.$host,
 				userInfo: null
-			};
+			}
 		},
-		
+		computed: {
+			avatarDisplay() {
+				const avatar = this.userInfo && this.userInfo.avatar
+				if (!avatar) return '/static/home-design/profile-avatar.png'
+				if (avatar.startsWith('http') || avatar.startsWith('wxfile://')) return avatar
+				if (avatar.startsWith('/')) return `${this.host}${avatar}`
+				return avatar
+			}
+		},
 		onShow() {
 			bindPageAuthPopup(this)
 			this.userInfo = uni.getStorageSync('userInfo')
 		},
-		methods:{
+		methods: {
 			/**
 			 * 用户信息点击
 			 */
-			onUserInfo(){
+			onUserInfo() {
 				runWithAuth(this, (ok) => {
 					if (!ok) return
 					this.userInfo = uni.getStorageSync('userInfo')
@@ -101,7 +130,7 @@
 			/**
 			 * 地址点击
 			 */
-			onAddress(){
+			onAddress() {
 				uni.navigateTo({
 					url: '/packagesPublic/AddressList/AddressList',
 				})
@@ -110,8 +139,8 @@
 			 * 设置列表点击
 			 * @param {String} type
 			 */
-			onSetting(type){
-				switch(type) {
+			onSetting(type) {
+				switch (type) {
 					case 'account':
 						uni.navigateTo({
 							url: '/packagesPublic/AccountSecurity/AccountSecurity'
@@ -150,16 +179,16 @@
 			/**
 			 * 退出点击
 			 */
-			onQuitLogin(){
+			onQuitLogin() {
 				this.$refs['DialogBox'].confirm({
 					title: '提示',
 					content: '是否要退出登录?',
 					DialogType: 'inquiry',
 					animation: 0
-				}).then(()=>{
+				}).then(() => {
 					uni.removeStorageSync('token')
 					uni.removeStorageSync('userInfo')
-					uni.navigateBack();
+					uni.navigateBack()
 				})
 			}
 		}

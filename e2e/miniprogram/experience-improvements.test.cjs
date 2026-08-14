@@ -74,3 +74,22 @@ test('travel list uses a compact summary and the sign-in reward cards are shorte
   assert.match(classifyStyle, /-webkit-line-clamp:\s*2/)
   assert.match(signInStyle, /\.day\s*\{[\s\S]*?min-height:\s*168rpx/)
 })
+
+test('settings page uses the profile design system and keeps every existing destination', async () => {
+  const source = await read('shop-mnp/packagesPublic/Setting/Setting.vue')
+  const style = await read('shop-mnp/packagesPublic/Setting/Setting.scss')
+
+  assert.match(source, /class="settings-hero"/)
+  assert.match(source, /class="settings-card"/)
+  assert.match(source, /账户与服务/)
+  assert.match(source, /品牌与支持/)
+  assert.match(source, /class="logout-button"/)
+  assert.match(source, /onAddress\(\)/)
+  assert.match(source, /onSetting\('account'\)/)
+  assert.match(source, /onSetting\('vip'\)/)
+  assert.match(source, /onSetting\('about'\)/)
+  assert.match(style, /\$accent:\s*#701018/)
+  assert.match(style, /\$soft:\s*#f7f7f5/)
+  assert.match(style, /\.settings-card\s*\{[\s\S]*?box-shadow:/)
+  assert.doesNotMatch(style, /position:\s*fixed/)
+})
