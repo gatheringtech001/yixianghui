@@ -5,7 +5,7 @@
 				<view class="back-action" :class="{ hidden: step === 1 }" @tap="onBackStep">
 					<u-icon name="arrow-left" color="#222222" size="34" />
 				</view>
-				<view class="step-text">{{ step }}/3</view>
+				<view class="step-text">{{ topbarTitle }}</view>
 				<view class="close-action" @tap="onCancel">关闭</view>
 			</view>
 
@@ -22,9 +22,9 @@
 				<view class="auth-actions">
 					<view
 						class="primary-btn"
-						:class="{ disabled: !agreementChecked }"
+						:class="{ disabled: !agreementChecked || loggingIn }"
 						@tap="goProfileStep"
-					>微信授权登录</view>
+					>微信登录</view>
 					<view class="agreement-row" @tap="toggleAgreement">
 						<view class="agreement-checkbox" :class="{ checked: agreementChecked }">
 							<text v-if="agreementChecked">✓</text>
@@ -41,16 +41,17 @@
 
 			<view v-else-if="step === 2" class="auth-step profile-step">
 				<view class="step-heading">
-					<view class="eyebrow">微信资料授权</view>
-					<view class="title">完善头像和昵称</view>
-					<view class="desc">用于订单联系人展示和会员服务，不会公开您的联系方式。</view>
+					<view class="title">申请获取您的头像、昵称</view>
+					<view class="desc center">微信要求头像和昵称分别确认一次，完成后自动进入下一步。</view>
 				</view>
 				<view class="profile-form">
 					<button class="avatar-btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
 						<image class="avatar-img" :src="avatarPreview" mode="aspectFill" />
-						<view class="avatar-edit">更换</view>
+						<view class="avatar-edit">
+							<u-icon name="camera-fill" color="#ffffff" size="28" />
+						</view>
 					</button>
-					<text class="avatar-tip">点击选择微信头像</text>
+					<text class="avatar-tip">点击头像选择微信头像</text>
 					<view class="nickname-row">
 						<text class="label">昵称</text>
 						<input
@@ -58,6 +59,7 @@
 							type="nickname"
 							v-model="nickName"
 							maxlength="30"
+							confirm-type="done"
 							placeholder="请输入微信昵称"
 							placeholder-class="nickname-placeholder"
 							@blur="onNicknameBlur"
@@ -65,20 +67,15 @@
 					</view>
 				</view>
 				<view class="auth-actions">
-					<view class="primary-btn" @tap="goPhoneStep">继续</view>
+					<view class="primary-btn" :class="{ disabled: !profileReady }" @tap="goPhoneStep">继续</view>
 				</view>
 			</view>
 
 			<view v-else class="auth-step phone-step">
-				<view class="phone-visual">
-					<view class="phone-ring">
-						<u-icon name="phone-fill" color="#701018" size="76" />
-					</view>
-				</view>
-				<view class="step-heading phone-heading">
-					<view class="eyebrow">手机号授权</view>
-					<view class="title">便于管家联系您</view>
-					<view class="desc center">手机号仅用于订单通知和旅居服务。此项可跳过，不影响浏览和其他功能。</view>
+				<view class="phone-brand">
+					<image class="phone-logo" src="/static/home-design/brand-mark.png" mode="aspectFit" />
+					<view class="phone-title">逸享荟</view>
+					<view class="phone-subtitle">康养旅居 · 活动 · 老年教育</view>
 				</view>
 				<view class="auth-actions">
 					<button
@@ -86,7 +83,7 @@
 						open-type="getPhoneNumber"
 						@getphonenumber="onGetPhoneNumber"
 					>授权手机号</button>
-					<view class="skip-btn" @tap="onSkipPhone">暂不绑定，先进入</view>
+					<view class="skip-btn" @tap="onSkipPhone">暂不授权</view>
 				</view>
 			</view>
 		</view>
@@ -104,6 +101,8 @@
 				step: 1,
 				agreementChecked: false,
 				resolveFn: null,
+				loginFn: null,
+				loggingIn: false,
 				avatarUrl: '',
 				avatarLocalPreview: '',
 				avatarUploading: false,
@@ -111,6 +110,13 @@
 			}
 		},
 		computed: {
+			topbarTitle() {
+				return ['登录', '头像与昵称', '授权手机'][this.step - 1] || ''
+			},
+			profileReady() {
+				const nickName = (this.nickName || '').trim()
+				return !this.avatarUploading && !!this.avatarUrl && !!nickName && nickName.length <= 30
+			},
 			avatarPreview() {
 				if (this.avatarLocalPreview) return this.avatarLocalPreview
 				if (this.avatarUrl) {
@@ -126,10 +132,12 @@
 			}
 		},
 		methods: {
-			open(resolve) {
+			open(resolve, loginFn) {
 				this.resolveFn = resolve
+				this.loginFn = loginFn
 				this.step = 1
 				this.agreementChecked = false
+				this.loggingIn = false
 				this.avatarUrl = ''
 				this.avatarLocalPreview = ''
 				this.avatarUploading = false
@@ -139,6 +147,8 @@
 			close(result) {
 				this.visible = false
 				this.step = 1
+				this.loginFn = null
+				this.loggingIn = false
 				if (this.resolveFn) {
 					this.resolveFn(result)
 					this.resolveFn = null
@@ -147,7 +157,7 @@
 			toggleAgreement() {
 				this.agreementChecked = !this.agreementChecked
 			},
-			goProfileStep() {
+			async goProfileStep() {
 				if (!this.agreementChecked) {
 					uni.showToast({
 						title: '请先阅读并同意用户协议和隐私政策',
@@ -155,7 +165,31 @@
 					})
 					return
 				}
-				this.step = 2
+				if (this.loggingIn) return
+				this.loggingIn = true
+				uni.showLoading({ title: '登录中...', mask: true })
+				try {
+					const result = this.loginFn ? await this.loginFn() : null
+					if (result && result.profileComplete) {
+						this.close({ loginOnly: true })
+						return
+					}
+					const userInfo = (result && result.userInfo) || {}
+					if (userInfo.avatar) this.avatarUrl = userInfo.avatar
+					if (userInfo.nickName && userInfo.nickName !== '微信小程序用户') {
+						this.nickName = userInfo.nickName
+					}
+					this.step = 2
+				} catch (error) {
+					uni.showToast({
+						title: (error && error.message) || '微信登录失败，请重试',
+						icon: 'none',
+						duration: 3000
+					})
+				} finally {
+					this.loggingIn = false
+					uni.hideLoading({ noConflict: true })
+				}
 			},
 			openPolicy(type) {
 				const state = this.$store && this.$store.state
@@ -195,6 +229,7 @@
 					})
 				}).finally(() => {
 					this.avatarUploading = false
+					this.maybeAdvanceProfile()
 				})
 			},
 			onNicknameBlur(e) {
@@ -202,8 +237,16 @@
 				if (value) {
 					this.nickName = value.trim()
 				}
+				this.maybeAdvanceProfile()
+			},
+			maybeAdvanceProfile() {
+				if (!this.profileReady) return false
+				this.nickName = this.nickName.trim()
+				this.step = 3
+				return true
 			},
 			goPhoneStep() {
+				if (this.maybeAdvanceProfile()) return
 				if (this.avatarUploading) {
 					uni.showToast({ title: '头像上传中，请稍候', icon: 'none' })
 					return
@@ -222,7 +265,7 @@
 					return
 				}
 				this.nickName = nickName
-				this.step = 3
+				this.maybeAdvanceProfile()
 			},
 			onBackStep() {
 				if (this.step > 1) {
@@ -404,6 +447,7 @@
 		border-radius: 50%;
 		background: #f4efe8;
 		line-height: normal;
+		overflow: visible;
 
 		&::after {
 			border: none;
@@ -420,14 +464,18 @@
 
 	.avatar-edit {
 		position: absolute;
-		right: -8rpx;
-		bottom: 4rpx;
-		min-width: 64rpx;
-		padding: 8rpx 12rpx;
-		border-radius: 999rpx;
+		right: -4rpx;
+		bottom: 2rpx;
+		width: 52rpx;
+		height: 52rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		border: 4rpx solid #fff;
+		border-radius: 50%;
+		box-sizing: border-box;
 		background: $accent;
-		color: #fff;
-		font-size: 20rpx;
 	}
 
 	.avatar-tip {
@@ -467,29 +515,40 @@
 		color: #aaa39b;
 	}
 
-	.phone-visual {
+	.phone-brand {
 		display: flex;
-		justify-content: center;
-		margin-top: 96rpx;
-	}
-
-	.phone-ring {
-		display: flex;
+		flex-direction: column;
 		align-items: center;
-		justify-content: center;
-		width: 184rpx;
-		height: 184rpx;
-		border-radius: 50%;
-		background: #f6ece7;
-		box-shadow: 0 20rpx 50rpx rgba(112, 16, 24, 0.12);
+		margin-top: 76rpx;
 	}
 
-	.phone-heading {
-		margin-top: 54rpx;
+	.phone-logo {
+		width: 168rpx;
+		height: 168rpx;
+		border-radius: 24rpx;
+		box-shadow: 0 18rpx 44rpx rgba(112, 16, 24, 0.14);
+	}
+
+	.phone-title {
+		margin-top: 34rpx;
+		font-size: 42rpx;
+		font-weight: 800;
+		color: $ink;
+	}
+
+	.phone-subtitle {
+		margin-top: 18rpx;
+		font-size: 26rpx;
+		letter-spacing: 2rpx;
+		color: $muted;
 	}
 
 	.auth-actions {
 		margin-top: auto;
+	}
+
+	.phone-step .auth-actions {
+		margin-top: 92rpx;
 	}
 
 	.primary-btn,

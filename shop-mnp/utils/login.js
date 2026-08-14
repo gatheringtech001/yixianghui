@@ -88,7 +88,7 @@ function wxSilentLogin() {
 						return
 					}
 					saveToken(res.token)
-					fetchUserInfo().then(() => resolve(true)).catch(reject)
+					fetchUserInfo().then(resolve).catch(reject)
 				}).catch(reject)
 			},
 			fail: () => reject(new Error('微信登录失败'))
@@ -104,7 +104,13 @@ function openAuthPopup(pageVm) {
 			resolve(null)
 			return
 		}
-		popup.open(resolve)
+		popup.open(resolve, async () => {
+			const userInfo = await wxSilentLogin()
+			return {
+				profileComplete: isProfileComplete(userInfo),
+				userInfo
+			}
+		})
 	})
 }
 
@@ -181,6 +187,7 @@ async function continueAuthorizedLogin(pageVm, options = {}) {
 	const { showLoading = true } = options
 	const profile = await openAuthPopup(pageVm)
 	if (!profile) return false
+	if (profile.loginOnly) return isAuthorizedUser()
 
 	if (showLoading) {
 		uni.showLoading({ title: '登录中...', mask: true })

@@ -32,12 +32,21 @@ test('travel presentation derives honest unit prices and trims list copy', async
 
 test('authorization is a full-page gated flow and phone binding stays optional', async () => {
   const source = await read('shop-mnp/components/AuthProfilePopup/AuthProfilePopup.vue')
+  const login = await read('shop-mnp/utils/login.js')
 
   assert.match(source, /agreementChecked/)
   assert.match(source, /请先阅读并同意用户协议和隐私政策/)
   assert.match(source, /goProfileStep\(\)/)
+  assert.match(source, />微信登录<\/view>/)
+  assert.doesNotMatch(source, /微信授权登录/)
+  assert.match(source, /loginFn/)
+  assert.match(login, /popup\.open\(resolve,\s*async\s*\(\)\s*=>/)
   assert.match(source, /open-type="getPhoneNumber"/)
   assert.match(source, /onSkipPhone\(\)/)
+  assert.match(source, /授权手机/)
+  assert.match(source, /maybeAdvanceProfile\(\)/)
+  assert.doesNotMatch(source, /便于管家联系您|手机号仅用于订单通知/)
+  assert.match(source, /\.avatar-btn\s*\{[\s\S]*?overflow:\s*visible/)
   assert.match(source, /background:\s*#fff/)
   assert.match(source, /height:\s*100%/)
 })
