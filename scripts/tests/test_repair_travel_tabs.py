@@ -5,6 +5,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from repair_travel_tabs import build_desired, build_transaction_sql
+from rename_travel_policy_tabs import (
+    NEW_LABEL,
+    build_transaction_sql as build_label_transaction_sql,
+    build_updates as build_label_updates,
+    sql_literal,
+)
 
 
 def tab(section_id, section_name, content, sort_order):
@@ -19,11 +25,11 @@ class RepairTravelTabsTest(unittest.TestCase):
         catalog = {"products": [
             {
                 "name": "基地甲", "slug": "slug-a",
-                "tabs": [tab("basic", "基本特色", "甲特色", 1), tab("policy", "政策", "甲政策", 2)],
+                "tabs": [tab("basic", "基本特色", "甲特色", 1), tab("policy", "入住须知", "甲政策", 2)],
             },
             {
                 "name": "基地乙", "slug": "slug-b",
-                "tabs": [tab("basic", "基本特色", "乙特色", 1), tab("policy", "政策", "乙政策", 2)],
+                "tabs": [tab("basic", "基本特色", "乙特色", 1), tab("policy", "入住须知", "乙政策", 2)],
             },
         ]}
         snapshot = {
@@ -47,6 +53,8 @@ class RepairTravelTabsTest(unittest.TestCase):
         self.assertEqual([13], [row["id"] for row in desired["deletes"]])
         self.assertEqual("basic", desired["updates"][0]["section_id"])
         self.assertEqual("policy", desired["inserts"][0]["section_id"])
+        self.assertEqual("入住须知", desired["updates"][2]["section_name"])
+        self.assertEqual("入住须知", desired["inserts"][0]["section_name"])
 
     def test_transaction_guards_goods_names_before_deleting_tabs(self):
         snapshot = {
@@ -63,6 +71,30 @@ class RepairTravelTabsTest(unittest.TestCase):
 
         self.assertIn("goods_id=1 AND BINARY `goods_name` <=> BINARY", sql)
         self.assertIn("DELETE FROM app_goods_related WHERE id IN (10)", sql)
+
+    def test_rename_transaction_only_changes_policy_label(self):
+        snapshot = {
+            "rows": [
+                {
+                    "id": 10, "goods_id": 1, "section_id": "policy",
+                    "section_name": "政策", "sort_order": 2,
+                    "goods_name": "基地甲", "goods_type": "hotel",
+                },
+                {
+                    "id": 11, "goods_id": 1, "section_id": "policy",
+                    "section_name": "入住须知", "sort_order": 3,
+                    "goods_name": "基地甲", "goods_type": "hotel",
+                },
+            ],
+        }
+
+        updates = build_label_updates(snapshot)
+        sql = build_label_transaction_sql(snapshot, updates)
+
+        self.assertEqual([10], [row["id"] for row in updates])
+        self.assertIn(f"SET section_name={sql_literal(NEW_LABEL)}", sql)
+        self.assertIn("ROW_COUNT()=1", sql)
+        self.assertNotIn("content=", sql)
 
 
 if __name__ == "__main__":

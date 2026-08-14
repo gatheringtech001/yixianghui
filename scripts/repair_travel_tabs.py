@@ -205,7 +205,7 @@ def create_plan(target: str, knowledge_root: Path) -> tuple[Path, dict[str, Any]
         "plan": str(path), "token": token, "target": target, "products": 56,
         "before_related_rows": len(snapshot["related"]), "after_related_rows": 112,
         "row_impact": {key: len(desired[key]) for key in ("updates", "inserts", "deletes")},
-        "tabs_after": ["基本特色", "政策"], "full_backup_before_production": True,
+        "tabs_after": ["基本特色", "入住须知"], "full_backup_before_production": True,
     }
 
 

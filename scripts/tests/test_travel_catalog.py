@@ -30,7 +30,7 @@ class TravelCatalogTest(unittest.TestCase):
         tabs, used = build_tabs(items, document)
 
         self.assertEqual(["basic", "policy"], [tab["section_id"] for tab in tabs])
-        self.assertEqual(["基本特色", "政策"], [tab["section_name"] for tab in tabs])
+        self.assertEqual(["基本特色", "入住须知"], [tab["section_name"] for tab in tabs])
         self.assertIn("demo-001.jpg", tabs[0]["content"])
         self.assertIn("周边交通", tabs[0]["content"])
         self.assertNotIn("demo-002.jpg", tabs[0]["content"])
