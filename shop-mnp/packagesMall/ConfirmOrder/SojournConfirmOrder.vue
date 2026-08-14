@@ -114,7 +114,7 @@
 				<view class="popup_title_view">选择天数</view>
 				<!-- 小程序 view 的 overflow 滚动不稳定，用 scroll-view 保证可滚 -->
 				<scroll-view scroll-y="true" class="popup_calendar_view" :show-scrollbar="false">
-					<Calendar ref="CalendarRef" :is-show="true" :isFixed="false" price="￥196/人"
+					<Calendar ref="CalendarRef" :is-show="true" :isFixed="false" :price="calendarPriceText"
 						:startDate="reserveData.checkInDate" :endDate="reserveData.checkOutDate" :fixedEnd="true" :mode="2"
 						themeColor="#701018" @callback="calendarCallBackFn" @calendarClick="calendarClickFn" />
 				</scroll-view>
@@ -171,6 +171,7 @@
 	import {
 		getNoticeInfo
 	} from '@/api/system/notice'
+	import { formatCalendarPrice, resolveCalendarUnitPrice } from '@/utils/travelPresentation'
 	export default {
 		components: {
 			Calendar
@@ -264,6 +265,14 @@
 		computed: {
 			currentCombo() {
 				return this.comboList[this.comboIndex] || this.comboList[0] || { price: 0 }
+			},
+			calendarPriceText() {
+				const unitPrice = resolveCalendarUnitPrice({
+					nightPrice: this.nightPrice,
+					total: this.skuPrice,
+					nights: this.reserveData.day
+				})
+				return formatCalendarPrice(unitPrice)
 			},
 			mealUnitPrice() {
 				return Number(this.currentCombo.price) || 0

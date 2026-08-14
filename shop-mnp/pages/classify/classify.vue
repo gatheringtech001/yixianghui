@@ -93,11 +93,11 @@
 					<view class="goods_empty_view" v-if="!loading && isListEmpty">
 						<text class="goods_empty_text">{{ emptyListText }}</text>
 					</view>
-					<view class="stay-card" v-for="(item, index) in goodsList" :key="index" @click="goodsFn(item)">
+					<view class="stay-card travel-card" v-for="(item, index) in goodsList" :key="index" @click="goodsFn(item)">
 						<image :src="host + item.image" mode="aspectFill" />
 						<view class="listing-body">
 							<view class="card-title">{{ item.goodsName }}</view>
-							<view class="meta" v-if="item.description">{{ item.description }}</view>
+							<view class="meta" v-if="item.listingSummary">{{ item.listingSummary }}</view>
 							<view class="tags" v-if="item.tagList && item.tagList.length">
 								<text class="outline-chip" v-for="(tag, tagIndex) in item.tagList.slice(0, 3)" :key="tagIndex">{{ tag }}</text>
 							</view>
@@ -191,6 +191,7 @@
 		getActivityCategoryList
 	} from '@/api/activity/index'
 	import { parseCourseMeta } from '@/utils/courseMeta'
+	import { compactListingText } from '@/utils/travelPresentation'
 	import {
 		getTravelCategoryRows,
 		isVisibleCatalogGoods,
@@ -415,6 +416,7 @@
 					unit: item.unit,
 					goodsType: item.goodsType,
 					description: item.description,
+					listingSummary: compactListingText(item.description),
 					summary: courseMeta.summary,
 					courseTime: ext.courseTime || courseMeta.time,
 					coursePlace: ext.coursePlace || courseMeta.place,

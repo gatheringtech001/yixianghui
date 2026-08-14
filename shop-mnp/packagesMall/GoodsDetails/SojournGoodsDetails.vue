@@ -149,7 +149,7 @@
 			</view>
 			<!-- 小程序 view 的 overflow 滚动不稳定，用 scroll-view 保证可滚 -->
 			<scroll-view scroll-y="true" class="popup_calendar_view" :show-scrollbar="false">
-				<Calendar ref="CalendarRef" :is-show="true" :isFixed="false" price="￥196/人"
+				<Calendar ref="CalendarRef" :is-show="true" :isFixed="false" :price="calendarPriceText"
 					:startDate="popupDate.checkInDate" :endDate="popupDate.checkOutDate"
 					:fixedEnd="true" :mode="2" themeColor="#FF7906" @callback="calendarCallBackFn"
 					@calendarClick="calendarClickFn" />
@@ -220,6 +220,7 @@
 	import { goodsCollect, deleteCollect, goodsCollectList } from '@/api/member/index'
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
 	import { prepareRichTextHtml } from '@/utils/richText'
+	import { formatCalendarPrice, resolveCalendarUnitPrice } from '@/utils/travelPresentation'
 	import { parseInvitePageOptions } from '@/utils/invite'
 	import sharePageMixin from '@/utils/sharePageMixin'
 
@@ -307,6 +308,24 @@
 			stayDurationLabel() {
 				const nights = Number(this.popupDate.day) || 0
 				return `${nights + 1}天${nights}晚`
+			},
+			calendarPriceText() {
+				const group = this.skuGroupList[this.popupDate.groupIndex] || this.skuGroupList[0]
+				if (!group) return ''
+				if (this.popupDate.customNight) {
+					return formatCalendarPrice(resolveCalendarUnitPrice({ nightPrice: group.price }))
+				}
+				const skuData = group.skuDataList && group.skuDataList[this.popupDate.skuSelect]
+				const combinations = (skuData && skuData.combinationList) || []
+				const selected = combinations.find(item => (
+					Number(item.skuSeqNo) === Number(this.popupDate.skuSeqNo)
+				)) || combinations[0]
+				const unitPrice = resolveCalendarUnitPrice({
+					average: selected && selected.average,
+					total: selected && selected.price,
+					nights: this.popupDate.day
+				})
+				return formatCalendarPrice(unitPrice)
 			},
 			popupSkuDataList() {
 				const group = this.skuGroupList[this.popupDate.groupIndex] || this.skuGroupList[0]

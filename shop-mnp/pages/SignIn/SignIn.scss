@@ -117,19 +117,19 @@ $soft: #f7f7f5;
 	.days {
 		display: grid;
 		grid-template-columns: repeat(5, 1fr);
-		column-gap: 16rpx;
-		row-gap: 28rpx;
-		margin: 28rpx 0 24rpx;
-		padding-bottom: 16rpx;
+		column-gap: 12rpx;
+		row-gap: 22rpx;
+		margin: 24rpx 0 20rpx;
+		padding-bottom: 12rpx;
 	}
 
 	.day {
 		position: relative;
-		min-height: 224rpx;
+		min-height: 168rpx;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 0 0 20rpx;
+		padding: 0 0 14rpx;
 		border: 1rpx solid #efe8dc;
 		border-radius: 14rpx;
 		background: #f8f5ec;
@@ -139,15 +139,15 @@ $soft: #f7f7f5;
 		box-sizing: border-box;
 
 		image {
-			width: 80rpx;
-			height: 80rpx;
-			margin: 14rpx 0 10rpx;
+			width: 56rpx;
+			height: 56rpx;
+			margin: 10rpx 0 6rpx;
 		}
 
 		.day-label {
 			width: 100%;
-			padding-top: 12rpx;
-			font-size: 24rpx;
+			padding-top: 10rpx;
+			font-size: 22rpx;
 			font-weight: 760;
 			text-align: center;
 			line-height: 1.2;
@@ -155,7 +155,7 @@ $soft: #f7f7f5;
 
 		.day-reward {
 			margin-top: auto;
-			font-size: 22rpx;
+			font-size: 20rpx;
 			line-height: 1.2;
 		}
 
@@ -165,31 +165,31 @@ $soft: #f7f7f5;
 
 			.day-label {
 				margin: 0;
-				padding: 10rpx 0;
+				padding: 8rpx 0;
 				border-radius: 12rpx 12rpx 0 0;
 				background: $accent;
 				color: #fff;
 			}
 
 			.day-reward {
-				margin-bottom: 8rpx;
+				margin-bottom: 4rpx;
 			}
 
 			&::after {
 				content: '✓';
 				position: absolute;
 				left: 50%;
-				bottom: -20rpx;
+				bottom: -16rpx;
 				z-index: 2;
-				width: 40rpx;
-				height: 40rpx;
+				width: 32rpx;
+				height: 32rpx;
 				display: flex;
 				align-items: center;
 				justify-content: center;
 				border-radius: 50%;
 				background: $accent;
 				color: #fff;
-				font-size: 22rpx;
+				font-size: 18rpx;
 				font-weight: 900;
 				transform: translateX(-50%);
 			}

@@ -249,6 +249,14 @@ $rail-bg: #f6f3ed;
 	height: 300rpx;
 }
 
+.travel-card > image {
+	height: 220rpx;
+}
+
+.travel-card .listing-body {
+	padding: 20rpx 22rpx 22rpx;
+}
+
 .listing-card > image,
 .listing-card .cover-placeholder {
 	height: 376rpx;

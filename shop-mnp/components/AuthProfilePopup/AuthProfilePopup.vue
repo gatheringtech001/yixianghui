@@ -1,15 +1,56 @@
 <template>
 	<view v-if="visible" class="auth-mask" @touchmove.stop.prevent>
 		<view class="auth-profile-popup" @tap.stop>
-			<view class="title">{{ step === 1 ? '完善头像昵称' : '绑定手机号' }}</view>
+			<view class="auth-topbar">
+				<view class="back-action" :class="{ hidden: step === 1 }" @tap="onBackStep">
+					<u-icon name="arrow-left" color="#222222" size="34" />
+				</view>
+				<view class="step-text">{{ step }}/3</view>
+				<view class="close-action" @tap="onCancel">关闭</view>
+			</view>
 
-			<block v-if="step === 1">
-				<view class="desc">请先授权头像和昵称，用于展示个人资料与订单信息。</view>
+			<view v-if="step === 1" class="auth-step login-step">
+				<view class="brand-lockup">
+					<image class="brand-logo" src="/static/home-design/brand-logo-transparent.png" mode="aspectFit" />
+					<text class="brand-subtitle">康养旅居 · 活动 · 老年教育</text>
+				</view>
+				<image class="login-hero" src="/static/home-design/hero-banner.jpg" mode="aspectFill" />
+				<view class="login-copy">
+					<view class="title">欢迎使用逸享荟康养</view>
+					<view class="desc center">授权登录后，可继续预订旅居、参与活动和签到领金币。</view>
+				</view>
+				<view class="auth-actions">
+					<view
+						class="primary-btn"
+						:class="{ disabled: !agreementChecked }"
+						@tap="goProfileStep"
+					>微信授权登录</view>
+					<view class="agreement-row" @tap="toggleAgreement">
+						<view class="agreement-checkbox" :class="{ checked: agreementChecked }">
+							<text v-if="agreementChecked">✓</text>
+						</view>
+						<view class="agreement-copy">
+							我已阅读并同意
+							<text class="policy-link" @tap.stop="openPolicy('agreement')">《用户协议》</text>
+							和
+							<text class="policy-link" @tap.stop="openPolicy('privacy')">《隐私政策》</text>
+						</view>
+					</view>
+				</view>
+			</view>
+
+			<view v-else-if="step === 2" class="auth-step profile-step">
+				<view class="step-heading">
+					<view class="eyebrow">微信资料授权</view>
+					<view class="title">完善头像和昵称</view>
+					<view class="desc">用于订单联系人展示和会员服务，不会公开您的联系方式。</view>
+				</view>
 				<view class="profile-form">
 					<button class="avatar-btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
 						<image class="avatar-img" :src="avatarPreview" mode="aspectFill" />
-						<text class="avatar-tip">点击设置头像</text>
+						<view class="avatar-edit">更换</view>
 					</button>
+					<text class="avatar-tip">点击选择微信头像</text>
 					<view class="nickname-row">
 						<text class="label">昵称</text>
 						<input
@@ -17,28 +58,37 @@
 							type="nickname"
 							v-model="nickName"
 							maxlength="30"
-							placeholder="请输入昵称"
+							placeholder="请输入微信昵称"
 							placeholder-class="nickname-placeholder"
 							@blur="onNicknameBlur"
 						/>
 					</view>
 				</view>
-				<view class="primary-btn" @tap="goPhoneStep">下一步</view>
-				<view class="btn cancel" @tap="onCancel">取消</view>
-			</block>
+				<view class="auth-actions">
+					<view class="primary-btn" @tap="goPhoneStep">继续</view>
+				</view>
+			</view>
 
-			<block v-else>
-				<view class="desc">授权手机号便于为您提供更好的预订与服务体验，您也可以选择跳过，不影响正常使用。</view>
-				<button
-					class="one-tap-btn"
-					open-type="getPhoneNumber"
-					@getphonenumber="onGetPhoneNumber"
-				>
-					授权手机号
-				</button>
-				<view class="btn skip" @tap="onSkipPhone">暂不绑定，先进入</view>
-				<view class="btn cancel" @tap="onBackStep">返回上一步</view>
-			</block>
+			<view v-else class="auth-step phone-step">
+				<view class="phone-visual">
+					<view class="phone-ring">
+						<u-icon name="phone-fill" color="#701018" size="76" />
+					</view>
+				</view>
+				<view class="step-heading phone-heading">
+					<view class="eyebrow">手机号授权</view>
+					<view class="title">便于管家联系您</view>
+					<view class="desc center">手机号仅用于订单通知和旅居服务。此项可跳过，不影响浏览和其他功能。</view>
+				</view>
+				<view class="auth-actions">
+					<button
+						class="one-tap-btn"
+						open-type="getPhoneNumber"
+						@getphonenumber="onGetPhoneNumber"
+					>授权手机号</button>
+					<view class="skip-btn" @tap="onSkipPhone">暂不绑定，先进入</view>
+				</view>
+			</view>
 		</view>
 	</view>
 </template>
@@ -52,6 +102,7 @@
 			return {
 				visible: false,
 				step: 1,
+				agreementChecked: false,
 				resolveFn: null,
 				avatarUrl: '',
 				avatarLocalPreview: '',
@@ -71,13 +122,14 @@
 					}
 					return this.avatarUrl
 				}
-				return '/static/img/logo.jpg'
+				return '/static/home-design/brand-mark.png'
 			}
 		},
 		methods: {
 			open(resolve) {
 				this.resolveFn = resolve
 				this.step = 1
+				this.agreementChecked = false
 				this.avatarUrl = ''
 				this.avatarLocalPreview = ''
 				this.avatarUploading = false
@@ -91,6 +143,33 @@
 					this.resolveFn(result)
 					this.resolveFn = null
 				}
+			},
+			toggleAgreement() {
+				this.agreementChecked = !this.agreementChecked
+			},
+			goProfileStep() {
+				if (!this.agreementChecked) {
+					uni.showToast({
+						title: '请先阅读并同意用户协议和隐私政策',
+						icon: 'none'
+					})
+					return
+				}
+				this.step = 2
+			},
+			openPolicy(type) {
+				const state = this.$store && this.$store.state
+				const config = (state && state.config) || {}
+				const articleId = type === 'privacy'
+					? config.privacy_policy_id
+					: config.user_agreement_id
+				if (!articleId) {
+					uni.showToast({ title: '协议内容加载中，请稍后重试', icon: 'none' })
+					return
+				}
+				uni.navigateTo({
+					url: `/packagesPublic/Article/index?id=${articleId}`
+				})
 			},
 			onChooseAvatar(e) {
 				const detail = e.detail || {}
@@ -143,10 +222,12 @@
 					return
 				}
 				this.nickName = nickName
-				this.step = 2
+				this.step = 3
 			},
 			onBackStep() {
-				this.step = 1
+				if (this.step > 1) {
+					this.step -= 1
+				}
 			},
 			onGetPhoneNumber(e) {
 				const detail = e.detail || {}
@@ -177,6 +258,11 @@
 </script>
 
 <style scoped lang="scss">
+	$accent: #701018;
+	$ink: #17130f;
+	$muted: #77716a;
+	$line: #e9e2d8;
+
 	.auth-mask {
 		position: fixed;
 		left: 0;
@@ -184,51 +270,139 @@
 		right: 0;
 		bottom: 0;
 		z-index: 11000;
-		background: rgba(0, 0, 0, 0.5);
 		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 40rpx;
-		box-sizing: border-box;
+		background: #fff;
 	}
 
 	.auth-profile-popup {
 		width: 100%;
-		max-width: 640rpx;
-		padding: 40rpx 36rpx 32rpx;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		box-sizing: border-box;
 		background: #fff;
-		border-radius: 16rpx;
+	}
+
+	.auth-topbar {
+		display: grid;
+		grid-template-columns: 100rpx 1fr 100rpx;
+		align-items: center;
+		min-height: 96rpx;
+		padding: env(safe-area-inset-top) 32rpx 0;
+		box-sizing: content-box;
+		color: $ink;
+	}
+
+	.back-action,
+	.close-action {
+		display: flex;
+		align-items: center;
+		min-height: 76rpx;
+		font-size: 26rpx;
+	}
+
+	.back-action.hidden {
+		visibility: hidden;
+	}
+
+	.close-action {
+		justify-content: flex-end;
+		color: $muted;
+	}
+
+	.step-text {
+		text-align: center;
+		font-size: 24rpx;
+		color: #9a948c;
+	}
+
+	.auth-step {
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+		padding: 18rpx 48rpx calc(40rpx + env(safe-area-inset-bottom));
+		box-sizing: border-box;
+	}
+
+	.brand-lockup {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		margin-top: 8rpx;
+	}
+
+	.brand-logo {
+		width: 232rpx;
+		height: 152rpx;
+	}
+
+	.brand-subtitle {
+		margin-top: 8rpx;
+		font-size: 24rpx;
+		letter-spacing: 3rpx;
+		color: $muted;
+	}
+
+	.login-hero {
+		width: 100%;
+		height: 300rpx;
+		margin-top: 36rpx;
+		border-radius: 28rpx;
+	}
+
+	.login-copy {
+		margin-top: 42rpx;
 	}
 
 	.title {
-		font-size: 34rpx;
-		font-weight: 600;
-		color: #333;
+		font-size: 42rpx;
+		font-weight: 800;
+		line-height: 1.3;
+		color: $ink;
+		text-align: center;
+	}
+
+	.eyebrow {
+		margin-bottom: 12rpx;
+		font-size: 24rpx;
+		font-weight: 700;
+		letter-spacing: 2rpx;
+		color: $accent;
 		text-align: center;
 	}
 
 	.desc {
-		margin-top: 24rpx;
-		padding: 0 8rpx;
+		margin-top: 22rpx;
 		font-size: 28rpx;
-		color: #666;
-		line-height: 1.6;
-		text-align: left;
+		line-height: 1.65;
+		color: $muted;
+
+		&.center {
+			text-align: center;
+		}
+	}
+
+	.step-heading {
+		margin-top: 48rpx;
+		text-align: center;
 	}
 
 	.profile-form {
-		margin-top: 32rpx;
+		margin-top: 64rpx;
 	}
 
 	.avatar-btn {
+		position: relative;
 		display: flex;
-		flex-direction: column;
 		align-items: center;
 		justify-content: center;
+		width: 176rpx;
+		height: 176rpx;
 		padding: 0;
 		margin: 0 auto;
-		background: transparent;
-		border: none;
+		border-radius: 50%;
+		background: #f4efe8;
 		line-height: normal;
 
 		&::after {
@@ -237,78 +411,162 @@
 	}
 
 	.avatar-img {
-		width: 140rpx;
-		height: 140rpx;
+		width: 176rpx;
+		height: 176rpx;
+		border: 1rpx solid $line;
 		border-radius: 50%;
-		background: #f5f5f5;
+		background: #f4efe8;
+	}
+
+	.avatar-edit {
+		position: absolute;
+		right: -8rpx;
+		bottom: 4rpx;
+		min-width: 64rpx;
+		padding: 8rpx 12rpx;
+		border-radius: 999rpx;
+		background: $accent;
+		color: #fff;
+		font-size: 20rpx;
 	}
 
 	.avatar-tip {
-		margin-top: 12rpx;
+		display: block;
+		margin-top: 18rpx;
 		font-size: 24rpx;
-		color: #999;
+		color: #99928a;
+		text-align: center;
 	}
 
 	.nickname-row {
-		margin-top: 32rpx;
 		display: flex;
 		align-items: center;
-		padding: 0 8rpx;
-		border-bottom: 1rpx solid #eee;
+		margin-top: 48rpx;
+		padding: 0 28rpx;
+		border: 1rpx solid $line;
+		border-radius: 18rpx;
+		background: #fbfaf8;
 	}
 
 	.label {
-		width: 90rpx;
+		width: 88rpx;
 		font-size: 28rpx;
-		color: #333;
+		font-weight: 700;
+		color: $ink;
 		flex-shrink: 0;
 	}
 
 	.nickname-input {
 		flex: 1;
-		height: 88rpx;
+		height: 96rpx;
 		font-size: 28rpx;
-		color: #333;
+		color: $ink;
 	}
 
 	.nickname-placeholder {
-		color: #bbb;
+		color: #aaa39b;
+	}
+
+	.phone-visual {
+		display: flex;
+		justify-content: center;
+		margin-top: 96rpx;
+	}
+
+	.phone-ring {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 184rpx;
+		height: 184rpx;
+		border-radius: 50%;
+		background: #f6ece7;
+		box-shadow: 0 20rpx 50rpx rgba(112, 16, 24, 0.12);
+	}
+
+	.phone-heading {
+		margin-top: 54rpx;
+	}
+
+	.auth-actions {
+		margin-top: auto;
 	}
 
 	.primary-btn,
 	.one-tap-btn {
-		margin-top: 40rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		width: 100%;
-		height: 88rpx;
-		line-height: 88rpx;
-		background: linear-gradient(90deg, #FF7906, #FE6F1B);
+		height: 96rpx;
+		padding: 0;
+		border: none;
+		border-radius: 48rpx;
+		background: $accent;
 		color: #fff;
 		font-size: 30rpx;
-		border-radius: 44rpx;
-		border: none;
+		font-weight: 700;
+		line-height: 96rpx;
 		text-align: center;
+		box-shadow: 0 18rpx 36rpx rgba(112, 16, 24, 0.2);
 
 		&::after {
 			border: none;
 		}
+
+		&.disabled {
+			opacity: 0.48;
+			box-shadow: none;
+		}
 	}
 
-	.btn {
+	.agreement-row {
+		display: flex;
+		align-items: flex-start;
+		justify-content: center;
+		gap: 12rpx;
 		margin-top: 24rpx;
-		height: 80rpx;
-		line-height: 80rpx;
-		text-align: center;
-		border-radius: 40rpx;
-		font-size: 28rpx;
+		padding: 8rpx 0;
 	}
 
-	.skip {
-		background: #fff7ef;
-		color: #ff7906;
+	.agreement-checkbox {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 30rpx;
+		height: 30rpx;
+		margin-top: 2rpx;
+		border: 2rpx solid #aaa39b;
+		border-radius: 50%;
+		box-sizing: border-box;
+		color: #fff;
+		font-size: 20rpx;
+		line-height: 1;
+		flex-shrink: 0;
+
+		&.checked {
+			border-color: $accent;
+			background: $accent;
+		}
 	}
 
-	.cancel {
-		background: #f5f5f5;
-		color: #666;
+	.agreement-copy {
+		font-size: 22rpx;
+		line-height: 1.55;
+		color: #8a837b;
+	}
+
+	.policy-link {
+		color: $accent;
+	}
+
+	.skip-btn {
+		min-height: 80rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-top: 18rpx;
+		font-size: 27rpx;
+		color: $muted;
 	}
 </style>
