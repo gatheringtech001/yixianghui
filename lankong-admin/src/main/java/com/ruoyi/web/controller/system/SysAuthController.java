@@ -242,24 +242,29 @@ public class SysAuthController extends BaseController
                 newUser.setRoleIds(new Long[]{102L});  // todo 小程序用户默认普通角色
                 newUser.setDeptId(100L); // todo 默认归属到默认用户
                 userService.insertUser(newUser);
+                SysUser sessionUser = userService.selectUserByUserName(newUser.getUserName());
+                if (StringUtils.isNull(sessionUser))
+                {
+                    throw new ServiceException("小程序用户创建后读取失败");
+                }
 
                 // 绑定第三方系统账号
                 SysAuthUser newAuthUser = new SysAuthUser();
                 newAuthUser.setAvatar(response.getData().getAvatar());
                 newAuthUser.setUuid(source + response.getData().getUuid());
-                newAuthUser.setUserId(newUser.getUserId());
-                newAuthUser.setUserName(newUser.getUserName());
-                newAuthUser.setNickName(newUser.getNickName());
+                newAuthUser.setUserId(sessionUser.getUserId());
+                newAuthUser.setUserName(sessionUser.getUserName());
+                newAuthUser.setNickName(sessionUser.getNickName());
 //                newAuthUser.setEmail(response.getData().getEmail());
                 newAuthUser.setSource(source);
                 userMapper.insertAuthUser(newAuthUser);
                 Long parentUserId = resolveParentUserId(request);
                 if (parentUserId != null)
                 {
-                    consultantMnpService.bindInviterIfAbsent(newUser.getUserId(), parentUserId);
+                    consultantMnpService.bindInviterIfAbsent(sessionUser.getUserId(), parentUserId);
                 }
 
-                LoginUser loginUser = new LoginUser(newUser.getUserId(), newUser.getDeptId(), newUser, permissionService.getMenuPermission(newUser));
+                LoginUser loginUser = new LoginUser(sessionUser.getUserId(), sessionUser.getDeptId(), sessionUser, permissionService.getMenuPermission(sessionUser));
                 String token = tokenService.createToken(loginUser);
                 return success().put(Constants.TOKEN, token);
                 // return AjaxResult.error(10002, "对不起，您没有绑定注册用户，请先注册后在个人中心绑定第三方授权信息！");

@@ -109,7 +109,6 @@ public class AppUserController extends BaseController
         AjaxResult ajax = AjaxResult.success();
         if (StringUtils.isNotNull(userId))
         {
-            userService.checkUserDataScope(userId);
             SysUser sysUser = userService.selectUserById(userId);
             ajax.put(AjaxResult.DATA_TAG, sysUser);
             AppUserInfo userInfo = userInfoService.selectAppUserInfoByUserId(userId);
