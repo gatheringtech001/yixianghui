@@ -3,7 +3,7 @@
 		<scroll-view class="settings-scroll" scroll-y :show-scrollbar="false">
 			<view class="settings-shell">
 				<view class="settings-hero" @click="onUserInfo">
-					<image class="hero-brand" src="/static/home-design/brand-mark.png" mode="aspectFit" />
+					<image class="hero-brand" src="/static/home-design/brand-logo-transparent.png" mode="aspectFit" />
 					<view class="hero-topline">
 						<text class="hero-eyebrow">逸享荟账户中心</text>
 						<text class="status-pill">已登录</text>
@@ -78,7 +78,7 @@
 
 				<view class="logout-button" @click="onQuitLogin">退出登录</view>
 				<view class="brand-footer">
-					<image src="/static/home-design/brand-mark.png" mode="aspectFit" />
+					<image src="/static/home-design/brand-logo-transparent.png" mode="aspectFit" />
 					<text>逸享荟 · 让康养旅居更安心</text>
 				</view>
 			</view>

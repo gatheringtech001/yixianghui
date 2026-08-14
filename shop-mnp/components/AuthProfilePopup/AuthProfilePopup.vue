@@ -73,7 +73,7 @@
 
 			<view v-else class="auth-step phone-step">
 				<view class="phone-brand">
-					<image class="phone-logo" src="/static/home-design/brand-mark.png" mode="aspectFit" />
+					<image class="phone-logo" src="/static/home-design/brand-logo-transparent.png" mode="aspectFit" />
 					<view class="phone-title">逸享荟</view>
 					<view class="phone-subtitle">康养旅居 · 活动 · 老年教育</view>
 				</view>
@@ -128,7 +128,7 @@
 					}
 					return this.avatarUrl
 				}
-				return '/static/home-design/brand-mark.png'
+				return '/static/home-design/brand-logo-transparent.png'
 			}
 		},
 		methods: {

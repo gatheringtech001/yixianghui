@@ -93,3 +93,13 @@ test('settings page uses the profile design system and keeps every existing dest
   assert.match(style, /\.settings-card\s*\{[\s\S]*?box-shadow:/)
   assert.doesNotMatch(style, /position:\s*fixed/)
 })
+
+test('settings and authorization surfaces use the official Yixianghui logo', async () => {
+  const settings = await read('shop-mnp/packagesPublic/Setting/Setting.vue')
+  const authorization = await read('shop-mnp/components/AuthProfilePopup/AuthProfilePopup.vue')
+
+  for (const source of [settings, authorization]) {
+    assert.match(source, /\/static\/home-design\/brand-logo-transparent\.png/)
+    assert.doesNotMatch(source, /\/static\/home-design\/brand-mark\.png/)
+  }
+})
