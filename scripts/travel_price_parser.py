@@ -18,10 +18,14 @@ class Quote:
     price: Decimal
     unit: str
     source: str
+    room_type: str = ""
+    occupancy: str | None = None
+    source_refs: tuple[int, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         value = asdict(self)
         value["price"] = str(self.price.quantize(Decimal("0.01")))
+        value["source_refs"] = list(self.source_refs)
         value["average"] = str(
             (self.price / max(self.nights, 1)).quantize(Decimal("0.01"), ROUND_HALF_UP)
         )
@@ -34,6 +38,10 @@ _DURATION = r"(?:\d+|[零一二两三四五六七八九十]+)(?:天(?:\d+|[零�
 _ROOM_HINT = re.compile(
     r"(?:普通|舒适|豪华|湖景|山景|江景|园景|阳台|飘窗|标间|双床|大床|套房|"
     r"单间|公寓|LOFT|一人|两人|三人|四人|单人|二居室|三居室|房型)", re.I
+)
+_OCCUPANCY_ONLY = re.compile(
+    r"^(?:(?:一|1|单)人(?:一间|入住|包房)?|(?:二|2|两)人(?:一间|入住|拼房)?|"
+    r"(?:三|3)人(?:一间|入住)?|(?:四|4)人(?:一间|入住)?|拼房)$"
 )
 _AMOUNT_FIRST = re.compile(
     rf"(?<!\d)(?P<amount>[1-9]\d{{2,5}}(?:\.\d{{1,2}})?)\s*元?\s*"
@@ -95,13 +103,35 @@ def _unit(explicit: str | None, room: str) -> str:
 
 
 def _quote(room: str, duration: str, amount: str, unit: str | None,
-           source: str) -> Quote:
+           source: str, *, room_type: str | None = None,
+           occupancy: str | None = None, source_refs: tuple[int, ...] = ()) -> Quote:
     days, nights = duration_values(duration)
     return Quote(_clean_room(room), duration, days, nights, Decimal(amount),
-                 _unit(unit, room), source)
+                 _unit(unit, room), source, _clean_room(room_type or room),
+                 occupancy, source_refs)
 
 
-def parse_table_quotes(rows: list[list[str]]) -> list[Quote]:
+def _occupancy(value: str) -> str | None:
+    compact = re.sub(r"\s+", "", value).strip(" ：:，,；;。-—()（）")
+    if not _OCCUPANCY_ONLY.fullmatch(compact):
+        return None
+    if compact == "拼房":
+        return compact
+    count = "1" if compact[0] in {"一", "1", "单"} else {
+        "二": "2", "2": "2", "两": "2", "三": "3", "3": "3",
+        "四": "4", "4": "4",
+    }[compact[0]]
+    suffix = "包房" if "包房" in compact else "拼房" if "拼房" in compact else "一间"
+    return f"{count}人{suffix}"
+
+
+def _room_label(room_type: str, occupancy: str | None) -> str:
+    if not occupancy or room_type == "标准房型":
+        return occupancy or room_type
+    return f"{room_type}（{occupancy}）"
+
+
+def parse_table_quotes(rows: list[list[str]], source_ref: int | None = None) -> list[Quote]:
     quotes: list[Quote] = []
     for index in range(len(rows) - 1):
         labels = [re.sub(r"\s+", "", str(cell)) for cell in rows[index]]
@@ -117,16 +147,16 @@ def parse_table_quotes(rows: list[list[str]]) -> list[Quote]:
         for duration, match in zip(labels[1:], parsed):
             assert match is not None
             quotes.append(_quote(room, duration, match.group("amount"),
-                                 match.group("unit"), "table"))
+                                 match.group("unit"), "table", room_type=room,
+                                 source_refs=(() if source_ref is None else (source_ref,))))
     return quotes
 
 
-def parse_text_quotes(text: str) -> list[Quote]:
-    if not re.search(r"(?:天|晚|月)", text):
-        return []
+def _parse_text_quotes(text: str, current_room: str, room_source_ref: int | None,
+                       item_ref: int | None) -> tuple[list[Quote], str, int | None]:
     quotes: list[Quote] = []
-    current_room = "标准房型"
-    clauses = re.split(r"[；;\n]+", re.sub(r"\s+", " ", text))
+    normalized = re.sub(r"[\t\r\f\v ]+", " ", text)
+    clauses = re.split(r"[；;\n]+", normalized)
     for clause in clauses:
         loose = list(_DURATION_FIRST_LOOSE.finditer(clause)) if re.search(
             r"(?:价格|套餐|旅居|房型)", clause
@@ -137,30 +167,52 @@ def parse_text_quotes(text: str) -> list[Quote]:
         )
         if not matches:
             if _ROOM_HINT.search(clause) and len(clause) <= 100:
-                current_room = _clean_room(clause, current_room)
+                candidate = _clean_room(clause, current_room)
+                if not _occupancy(candidate):
+                    current_room = candidate
+                    room_source_ref = item_ref
             continue
         prefix = clause[:matches[0].start()]
-        if _ROOM_HINT.search(prefix):
+        occupancy = _occupancy(prefix)
+        if _ROOM_HINT.search(prefix) and not occupancy:
             current_room = _clean_room(prefix, current_room)
+            room_source_ref = item_ref
+        room = _room_label(current_room, occupancy)
+        refs = tuple(dict.fromkeys(
+            ref for ref in (room_source_ref, item_ref) if ref is not None
+        ))
         seen_spans: list[tuple[int, int]] = []
         for match in matches:
             if any(match.start() < end and match.end() > start for start, end in seen_spans):
                 continue
             seen_spans.append(match.span())
-            quotes.append(_quote(current_room, match.group("duration"),
-                                 match.group("amount"), match.group("unit"), "text"))
+            quotes.append(_quote(room, match.group("duration"), match.group("amount"),
+                                 match.group("unit"), "text", room_type=current_room,
+                                 occupancy=occupancy, source_refs=refs))
+    return quotes, current_room, room_source_ref
+
+
+def parse_text_quotes(text: str) -> list[Quote]:
+    if not re.search(r"(?:天|晚|月)", text):
+        return []
+    quotes, _, _ = _parse_text_quotes(text, "标准房型", None, None)
     return quotes
 
 
 def extract_quotes(items: list[dict[str, Any]]) -> list[Quote]:
     quotes: list[Quote] = []
-    for item in items:
+    current_room = "标准房型"
+    room_source_ref: int | None = None
+    for index, item in enumerate(items):
         if item.get("kind") == "table":
-            quotes.extend(parse_table_quotes(item.get("rows") or []))
+            quotes.extend(parse_table_quotes(item.get("rows") or [], index))
             continue
         text = str(item.get("text") or "")
-        if re.search(r"(?:天|晚|月)", text):
-            quotes.extend(parse_text_quotes(text))
+        if re.search(r"(?:天|晚|月)", text) or _ROOM_HINT.search(text):
+            parsed, current_room, room_source_ref = _parse_text_quotes(
+                text, current_room, room_source_ref, index
+            )
+            quotes.extend(parsed)
     unique: dict[tuple[str, str, Decimal, str], Quote] = {}
     for quote in quotes:
         if quote.days > 366 or quote.nights > 365 or quote.price > Decimal("50000"):

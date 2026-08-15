@@ -5,7 +5,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from travel_price_parser import duration_values, parse_table_quotes, parse_text_quotes
+from travel_price_parser import (
+    duration_values,
+    extract_quotes,
+    parse_table_quotes,
+    parse_text_quotes,
+)
 
 
 class TravelPriceParserTest(unittest.TestCase):
@@ -40,6 +45,34 @@ class TravelPriceParserTest(unittest.TestCase):
     def test_chinese_duration(self):
         self.assertEqual((6, 5), duration_values("六天五晚"))
         self.assertEqual((31, 30), duration_values("一个月"))
+
+    def test_keeps_room_context_across_paragraphs(self):
+        items = [
+            {"kind": "paragraph", "text": "舒适标间/大床房："},
+            {"kind": "paragraph", "text": "两人一间：815元/人/7天"},
+            {"kind": "paragraph", "text": "两人一间：1580元/人/15天"},
+            {"kind": "paragraph", "text": "两人一间：2990元/人/30天"},
+            {"kind": "paragraph", "text": "豪华大床房："},
+            {"kind": "paragraph", "text": "单人包房:1790元/人/7天"},
+            {"kind": "paragraph", "text": "两人一间：955元/人/7天"},
+        ]
+
+        quotes = extract_quotes(items)
+
+        self.assertEqual(5, len(quotes))
+        self.assertEqual(
+            [
+                "舒适标间/大床房（2人一间）",
+                "舒适标间/大床房（2人一间）",
+                "舒适标间/大床房（2人一间）",
+                "豪华大床房（1人包房）",
+                "豪华大床房（2人一间）",
+            ],
+            [row.room for row in quotes],
+        )
+        self.assertEqual(("舒适标间/大床房", "2人一间"),
+                         (quotes[0].room_type, quotes[0].occupancy))
+        self.assertEqual((0, 1), quotes[0].source_refs)
 
 
 if __name__ == "__main__":

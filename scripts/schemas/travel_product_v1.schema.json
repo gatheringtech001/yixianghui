@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:yixianghui:schema:travel-product:v1",
+  "title": "Yixianghui Knowledge-backed Travel Product v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "source",
+    "identity",
+    "display",
+    "pricing",
+    "content_sections",
+    "media",
+    "quality"
+  ],
+  "properties": {
+    "schema_version": {"const": "travel_product.v1"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["document_id", "title", "url", "updated_at", "reference_scheme"],
+      "properties": {
+        "document_id": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "url": {"type": "string", "format": "uri"},
+        "updated_at": {"type": "string", "format": "date-time"},
+        "docx_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+        "reference_scheme": {"const": "content_items zero-based index"}
+      }
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product_name", "base_name", "alias", "city", "category"],
+      "properties": {
+        "product_name": {"type": "string", "minLength": 1},
+        "base_name": {"type": "string", "minLength": 1},
+        "alias": {"type": ["string", "null"]},
+        "city": {"type": "string", "minLength": 1},
+        "category": {"const": "旅居基地"}
+      }
+    },
+    "display": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "summary", "summary_source_refs", "tags"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "summary": {"type": "string", "minLength": 1, "maxLength": 300},
+        "summary_source_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 0}
+        },
+        "tags": {
+          "type": "array",
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/tag"}
+        }
+      }
+    },
+    "pricing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "currency",
+        "starting_price",
+        "starting_price_unit",
+        "room_package_count",
+        "offer_count",
+        "room_packages"
+      ],
+      "properties": {
+        "currency": {"const": "CNY"},
+        "starting_price": {"$ref": "#/$defs/money"},
+        "starting_price_unit": {"enum": ["人", "间"]},
+        "room_package_count": {"type": "integer", "minimum": 1},
+        "offer_count": {"type": "integer", "minimum": 1},
+        "room_packages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["room_type", "occupancy", "offers"],
+            "properties": {
+              "room_type": {"type": "string", "minLength": 1},
+              "occupancy": {"type": ["string", "null"]},
+              "offers": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"$ref": "#/$defs/offer"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "content_sections": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["section_id", "section_name", "facts"],
+        "properties": {
+          "section_id": {
+            "enum": ["overview", "dining", "transport", "facilities", "attractions", "stay_notice"]
+          },
+          "section_name": {
+            "enum": ["基地概览", "餐饮", "交通接送", "温泉与设施", "周边景点", "入住须知"]
+          },
+          "facts": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/fact"}
+          }
+        }
+      }
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cover_asset_index", "image_count", "video_count", "images"],
+      "properties": {
+        "cover_asset_index": {"type": ["integer", "null"], "minimum": 1},
+        "image_count": {"type": "integer", "minimum": 0},
+        "video_count": {"type": "integer", "minimum": 0},
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["asset_index", "width", "height", "sha256"],
+            "properties": {
+              "asset_index": {"type": "integer", "minimum": 1},
+              "width": {"type": ["integer", "null"], "minimum": 1},
+              "height": {"type": ["integer", "null"], "minimum": 1},
+              "sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}
+            }
+          }
+        }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "issues", "checks"],
+      "properties": {
+        "status": {"enum": ["ready", "review_required", "blocked"]},
+        "issues": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/issue"}
+        },
+        "checks": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_traceability",
+            "content_sections_complete",
+            "starting_price_matches_offers"
+          ],
+          "properties": {
+            "source_traceability": {"type": "boolean"},
+            "content_sections_complete": {"type": "boolean"},
+            "starting_price_matches_offers": {"type": "boolean"}
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "money": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.[0-9]{2}$"},
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "integer", "minimum": 0}
+    },
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "source_refs"],
+      "properties": {
+        "text": {"type": "string", "minLength": 1, "maxLength": 240},
+        "source_refs": {"$ref": "#/$defs/source_refs"}
+      }
+    },
+    "tag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "source_refs"],
+      "properties": {
+        "label": {"type": "string", "minLength": 1},
+        "source_refs": {"$ref": "#/$defs/source_refs"}
+      }
+    },
+    "offer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["duration_label", "days", "nights", "price", "unit", "source_refs", "source_type"],
+      "properties": {
+        "duration_label": {"type": "string", "minLength": 1},
+        "days": {"type": "integer", "minimum": 1, "maximum": 366},
+        "nights": {"type": ["integer", "null"], "minimum": 1, "maximum": 365},
+        "price": {"$ref": "#/$defs/money"},
+        "unit": {"enum": ["人", "间"]},
+        "source_refs": {"$ref": "#/$defs/source_refs"},
+        "source_type": {"enum": ["text", "table", "verified_image"]}
+      }
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "field", "message", "source_refs", "source_excerpts"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]+$"},
+        "severity": {"enum": ["info", "warning", "error"]},
+        "field": {"type": "string", "minLength": 1},
+        "message": {"type": "string", "minLength": 1},
+        "source_refs": {"$ref": "#/$defs/source_refs"},
+        "source_excerpts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}
