@@ -99,7 +99,7 @@ test('profile identity sits lower and personal information follows the current a
   const information = await read('shop-mnp/packagesPublic/Information/Information.vue')
   const informationStyle = await read('shop-mnp/packagesPublic/Information/Information.scss')
 
-  assert.match(myStyle, /\.profile-info\s*\{[\s\S]*?padding:\s*24rpx\s+0\s+2rpx/)
+  assert.match(myStyle, /\.profile-info\s*\{[\s\S]*?padding:\s*36rpx\s+0\s+2rpx/)
   assert.match(information, /class="profile-summary"/)
   assert.match(information, /class="information-card"/)
   assert.match(information, /基本信息/)
