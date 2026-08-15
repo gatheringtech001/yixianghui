@@ -79,7 +79,7 @@
                 <view class="price_view">
                   <text><text>￥ </text>{{ item.price }}</text> /人/起
                 </view>
-                <view class="price_average_view">
+                <view class="price_average_view" v-if="item.average">
                   均￥{{ item.average }}/人/晚起
                 </view>
               </view>
@@ -245,10 +245,10 @@
 				bannerImages: [],
 				hotelData: {
 					id: undefined,
-					name: '广西北海金皇冠柏曼酒店', // 名称
-					type: '优选高档', // 分类
-					desc: '2024年开业 | 共150间客房房 近火车站/毗邻文体活动广场/麻将/有三人间', // 简介
-					tagList: ['城区地段', '近景区', '棋牌', '乒乓球', '康养社区', '近地铁口'], // 标签数组
+					name: '', // 名称
+					type: '', // 分类
+					desc: '', // 简介
+					tagList: [], // 标签数组
 					related: [], // 相关介绍
 				},
 				relatedSelect: '', // 相关介绍选中下标
@@ -557,6 +557,7 @@
 			getGoodsDetailFn(id) {
 				getGoodsInfo(id).then(res => {
 					this.hotelData.id = res.data.goodsId
+					this.hotelData.type = res.data.goodsType === 'hotel' ? '旅居基地' : ''
 					this.hotelData.name = res.data.goodsName
 					this.hotelData.desc = res.data.description
 					this.loadCollectState()

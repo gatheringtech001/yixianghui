@@ -12,6 +12,7 @@ from typing import Any
 
 from travel_asset_policy import COVER_ASSET_INDEX
 from travel_catalog import _load_extractor
+from travel_product_page import build_page_display, validate_page_display
 from travel_price_parser import Quote, extract_quotes
 
 SCHEMA_VERSION = "travel_product.v1"
@@ -65,19 +66,12 @@ def _clauses(value: str) -> list[str]:
 
 def _issue(code: str, field: str, message: str, refs: list[int],
            excerpts: list[str]) -> dict[str, Any]:
-    return {
-        "code": code,
-        "severity": "warning",
-        "field": field,
-        "message": message,
-        "source_refs": sorted(set(refs)),
-        "source_excerpts": excerpts,
-    }
+    return {"code": code, "severity": "warning", "field": field, "message": message,
+            "source_refs": sorted(set(refs)), "source_excerpts": excerpts}
 
 def _matching(items: list[dict[str, Any]], pattern: re.Pattern[str]) -> list[tuple[int, str]]:
     return [
-        (index, _clean_text(str(item.get("text") or "")))
-        for index, item in enumerate(items)
+        (index, _clean_text(str(item.get("text") or ""))) for index, item in enumerate(items)
         if pattern.search(str(item.get("text") or ""))
     ]
 
@@ -215,6 +209,8 @@ def build_product(document: dict[str, Any], items: list[dict[str, Any]],
     content_complete = all(section["facts"] for section in sections)
     traceable = bool(summary_refs) and all(offer["source_refs"] for package in packages
                                            for offer in package["offers"]) and all(tag["source_refs"] for tag in tags)
+    display = {"title": document["title"], "summary": summary,
+               "summary_source_refs": summary_refs, "tags": tags[:5]}
     product = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at or datetime.now(timezone.utc).isoformat(),
@@ -228,8 +224,7 @@ def build_product(document: dict[str, Any], items: list[dict[str, Any]],
             "product_name": document["title"], "base_name": base_name,
             "alias": alias, "city": document["city"], "category": "旅居基地",
         },
-        "display": {"title": document["title"], "summary": summary,
-                    "summary_source_refs": summary_refs, "tags": tags[:5]},
+        "display": display,
         "pricing": {
             "currency": "CNY", "starting_price": f"{starting_price:.2f}",
             "starting_price_unit": "人", "room_package_count": len(packages),
@@ -253,6 +248,7 @@ def build_product(document: dict[str, Any], items: list[dict[str, Any]],
                        "starting_price_matches_offers": True},
         },
     }
+    product["page_display"] = build_page_display(document, product)
     validate_product(product)
     return product
 
@@ -283,6 +279,7 @@ def validate_product(product: dict[str, Any]) -> None:
     content = json.dumps(product["content_sections"], ensure_ascii=False)
     if CONTACT_RE.search(content) or MEDICAL_RE.search(content):
         raise ValueError("Prohibited contact or medical claims leaked into display content")
+    validate_page_display(product)
     checks = product["quality"]["checks"]
     expected = "review_required" if (product["quality"]["issues"] or not checks["source_traceability"]
                                      or not checks["content_sections_complete"]) else "ready"

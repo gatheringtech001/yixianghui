@@ -12,6 +12,7 @@
     "display",
     "pricing",
     "content_sections",
+    "page_display",
     "media",
     "quality"
   ],
@@ -122,6 +123,47 @@
         }
       }
     },
+    "page_display": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bannerImages", "hotelData", "skuGroupList"],
+      "properties": {
+        "bannerImages": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^/profile/upload/.+\\.jpg$"}
+        },
+        "hotelData": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "name", "desc", "tagList", "related"],
+          "properties": {
+            "type": {"const": "旅居基地"},
+            "name": {"type": "string", "minLength": 1},
+            "desc": {"type": "string", "minLength": 1, "maxLength": 300},
+            "tagList": {
+              "type": "array",
+              "maxItems": 5,
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1}
+            },
+            "related": {
+              "type": "array",
+              "minItems": 6,
+              "maxItems": 6,
+              "items": {"$ref": "#/$defs/page_section"}
+            }
+          }
+        },
+        "skuGroupList": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/page_sku_group"}
+        }
+      }
+    },
     "media": {
       "type": "object",
       "additionalProperties": false,
@@ -211,6 +253,57 @@
         "unit": {"enum": ["人", "间"]},
         "source_refs": {"$ref": "#/$defs/source_refs"},
         "source_type": {"enum": ["text", "table", "verified_image"]}
+      }
+    },
+    "page_section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "content"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^id_[a-z_]+$"},
+        "name": {"type": "string", "minLength": 1},
+        "content": {"type": "string"}
+      }
+    },
+    "page_combination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "price", "average"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "price": {"$ref": "#/$defs/money"},
+        "average": {"anyOf": [{"$ref": "#/$defs/money"}, {"type": "null"}]}
+      }
+    },
+    "page_sku_option": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "day", "combinationList"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "day": {"type": ["integer", "null"], "minimum": 1, "maximum": 365},
+        "combinationList": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/page_combination"}
+        }
+      }
+    },
+    "page_sku_group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "cover", "descOne", "descTwo", "price", "skuDataList"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "cover": {"type": "string"},
+        "descOne": {"type": "string"},
+        "descTwo": {"type": "string"},
+        "price": {"anyOf": [{"$ref": "#/$defs/money"}, {"type": "null"}]},
+        "skuDataList": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/page_sku_option"}
+        }
       }
     },
     "issue": {

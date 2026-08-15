@@ -83,6 +83,17 @@ class TravelProductStandardTest(unittest.TestCase):
             ["基地概览", "餐饮", "交通接送", "温泉与设施", "周边景点", "入住须知"],
             [row["section_name"] for row in product["content_sections"]],
         )
+        page = product["page_display"]
+        self.assertEqual(6, len(page["bannerImages"]))
+        self.assertEqual("旅居基地", page["hotelData"]["type"])
+        self.assertEqual(product["display"]["title"], page["hotelData"]["name"])
+        self.assertEqual(product["display"]["summary"], page["hotelData"]["desc"])
+        self.assertEqual(6, len(page["hotelData"]["related"]))
+        self.assertEqual(6, len(page["skuGroupList"]))
+        first_option = page["skuGroupList"][0]["skuDataList"][0]
+        self.assertEqual("815.00", first_option["combinationList"][0]["price"])
+        self.assertIsNone(first_option["day"])
+        self.assertIsNone(first_option["combinationList"][0]["average"])
         codes = {row["code"] for row in product["quality"]["issues"]}
         self.assertTrue({
             "CONFLICT_HOUSEKEEPING", "CONFLICT_PICKUP_FEE", "CONFLICT_RATING",
@@ -100,6 +111,15 @@ class TravelProductStandardTest(unittest.TestCase):
         product["pricing"]["starting_price"] = "999.00"
 
         with self.assertRaisesRegex(ValueError, "Starting price"):
+            validate_product(product)
+
+    def test_rejects_page_display_drift(self):
+        product = build_product(
+            self.document, self.items, generated_at="2026-08-15T00:00:00+00:00"
+        )
+        product["page_display"]["hotelData"]["name"] = "错误名称"
+
+        with self.assertRaisesRegex(ValueError, "Page product name"):
             validate_product(product)
 
 
