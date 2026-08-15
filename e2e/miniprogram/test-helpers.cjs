@@ -12,11 +12,67 @@ const projectPath = process.env.MINIPROGRAM_PROJECT_PATH || path.resolve(
 )
 const resultsDir = path.join(os.tmpdir(), 'yixianghui-e2e', 'miniprogram')
 const localBackendPrefix = 'http://127.0.0.1:18080/api/profile/'
+const defaultAutomationPort = 9425
+const activeMiniPrograms = new Set()
+
+function resolveAutomationPort() {
+  const rawPort = process.env.MINIPROGRAM_AUTOMATION_PORT
+  const port = rawPort === undefined ? defaultAutomationPort : Number(rawPort)
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`Invalid MINIPROGRAM_AUTOMATION_PORT: ${rawPort}`)
+  }
+  return port
+}
+
+function trackMiniProgram(miniProgram) {
+  activeMiniPrograms.add(miniProgram)
+  return miniProgram
+}
+
+function disconnectMiniProgram(testContext, miniProgram) {
+  activeMiniPrograms.delete(miniProgram)
+  try {
+    miniProgram.disconnect()
+  } catch (error) {
+    testContext?.diagnostic?.(`automation disconnect failed: ${error.message}`)
+  }
+}
+
+function disconnectTrackedMiniPrograms(testContext) {
+  for (const miniProgram of [...activeMiniPrograms]) {
+    disconnectMiniProgram(testContext, miniProgram)
+  }
+}
+
+async function withAutomationTimeout(options) {
+  const { action, testContext, timeoutMessage, timeoutMs } = options
+  let timeout
+  const timeoutError = new Error(timeoutMessage)
+  try {
+    return await Promise.race([
+      Promise.resolve().then(action),
+      new Promise((_, reject) => {
+        timeout = setTimeout(() => {
+          disconnectTrackedMiniPrograms(testContext)
+          reject(timeoutError)
+        }, timeoutMs)
+      })
+    ])
+  } finally {
+    clearTimeout(timeout)
+  }
+}
 
 async function waitUntil(check, timeoutMs = 15000) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
-    if (await check()) return
+    const remainingMs = Math.max(1, deadline - Date.now())
+    const matched = await withAutomationTimeout({
+      action: check,
+      timeoutMs: remainingMs,
+      timeoutMessage: `Condition check timed out after ${timeoutMs} ms`
+    })
+    if (matched) return
     await new Promise(resolve => setTimeout(resolve, 250))
   }
   throw new Error(`Condition was not met within ${timeoutMs} ms`)
@@ -24,17 +80,31 @@ async function waitUntil(check, timeoutMs = 15000) {
 
 async function runStep(testContext, { label, action, timeoutMs = 20000 }) {
   testContext.diagnostic(label)
-  let timeout
+  return withAutomationTimeout({
+    action,
+    testContext,
+    timeoutMessage: `${label} timed out`,
+    timeoutMs
+  })
+}
+
+async function connectOrLaunchAutomation(testContext, automatorClient, launchOptions) {
+  const wsEndpoint = `ws://127.0.0.1:${launchOptions.port}`
   try {
-    return await Promise.race([
-      action(),
-      new Promise((_, reject) => {
-        timeout = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs)
-      })
-    ])
-  } finally {
-    clearTimeout(timeout)
+    return await runStep(testContext, {
+      label: `connect existing WeChat DevTools automation on ${launchOptions.port}`,
+      timeoutMs: 5000,
+      action: () => automatorClient.connect({ wsEndpoint })
+    })
+  } catch (error) {
+    testContext.diagnostic(`existing automation unavailable: ${error.message}`)
   }
+
+  return runStep(testContext, {
+    label: 'enable WeChat DevTools automation without closing the project',
+    timeoutMs: 70000,
+    action: () => automatorClient.launch(launchOptions)
+  })
 }
 
 async function launchMiniProgram(testContext, exceptions) {
@@ -45,71 +115,94 @@ async function launchMiniProgram(testContext, exceptions) {
   ))
   assert.match(projectConfig.appid, /^wx[0-9a-z]+$/)
   assert.notEqual(projectConfig.appid, 'touristappid')
-  const miniProgram = await runStep(testContext, {
-    label: 'launch WeChat DevTools automation',
-    timeoutMs: 70000,
-    action: () => automator.launch({
-      cliPath,
-      projectPath,
-      trustProject: true,
-      timeout: 60000,
-      projectConfig: {
-        appid: projectConfig.appid,
-        libVersion: '3.16.2',
-        setting: { urlCheck: false }
-      }
-    })
+  const miniProgram = await connectOrLaunchAutomation(testContext, automator, {
+    cliPath,
+    projectPath,
+    port: resolveAutomationPort(),
+    trustProject: true,
+    timeout: 60000,
+    projectConfig: {
+      appid: projectConfig.appid,
+      libVersion: '3.16.2',
+      setting: { urlCheck: false }
+    }
   })
+  trackMiniProgram(miniProgram)
   miniProgram.on('exception', error => exceptions.push(error))
   return miniProgram
 }
 
 async function closeMiniProgram(testContext, miniProgram) {
-  try {
-    await runStep(testContext, {
-      label: 'close WeChat DevTools automation',
-      timeoutMs: 5000,
-      action: () => miniProgram.close()
-    })
-  } catch (error) {
-    miniProgram.disconnect()
-    testContext.diagnostic(error.message)
+  testContext.diagnostic('disconnect WeChat DevTools automation; keep project open')
+  disconnectMiniProgram(testContext, miniProgram)
+}
+
+function installSignalCleanup() {
+  for (const signal of ['SIGINT', 'SIGTERM']) {
+    const handler = () => {
+      disconnectTrackedMiniPrograms()
+      process.removeListener(signal, handler)
+      process.kill(process.pid, signal)
+    }
+    process.once(signal, handler)
   }
 }
 
-async function getCurrentPageState(miniProgram, fields) {
-  return miniProgram.evaluate(requestedFields => {
-    const pages = getCurrentPages()
-    const page = pages[pages.length - 1]
-    const state = { route: page.route }
-    for (const field of requestedFields) {
-      state[field] = page.data[field]
-    }
-    return state
-  }, fields)
+installSignalCleanup()
+
+async function getCurrentPageState(miniProgram, fields, timeoutMs = 20000) {
+  trackMiniProgram(miniProgram)
+  return withAutomationTimeout({
+    timeoutMs,
+    timeoutMessage: 'read current page state timed out',
+    action: () => miniProgram.evaluate(requestedFields => {
+      const pages = getCurrentPages()
+      const page = pages[pages.length - 1]
+      const state = { route: page.route }
+      for (const field of requestedFields) {
+        state[field] = page.data[field]
+      }
+      return state
+    }, fields)
+  })
 }
 
-async function setCurrentVmState(miniProgram, data) {
-  return miniProgram.evaluate(nextData => {
-    const pages = getCurrentPages()
-    const vm = pages[pages.length - 1].$vm
-    Object.assign(vm, nextData)
-  }, data)
+async function setCurrentVmState(miniProgram, data, timeoutMs = 20000) {
+  trackMiniProgram(miniProgram)
+  return withAutomationTimeout({
+    timeoutMs,
+    timeoutMessage: 'write current page state timed out',
+    action: () => miniProgram.evaluate(nextData => {
+      const pages = getCurrentPages()
+      const vm = pages[pages.length - 1].$vm
+      Object.assign(vm, nextData)
+    }, data)
+  })
 }
 
 async function invokeCurrentVmMethod(miniProgram, method, ...args) {
-  return miniProgram.evaluate(({ methodName, methodArgs }) => {
-    const pages = getCurrentPages()
-    const vm = pages[pages.length - 1].$vm
-    if (!vm || typeof vm[methodName] !== 'function') {
-      throw new Error(`Missing page method: ${methodName}`)
-    }
-    return vm[methodName](...methodArgs)
-  }, { methodName: method, methodArgs: args })
+  trackMiniProgram(miniProgram)
+  return withAutomationTimeout({
+    timeoutMs: 20000,
+    timeoutMessage: `invoke page method ${method} timed out`,
+    action: () => miniProgram.evaluate(({ methodName, methodArgs }) => {
+      const pages = getCurrentPages()
+      const vm = pages[pages.length - 1].$vm
+      if (!vm || typeof vm[methodName] !== 'function') {
+        throw new Error(`Missing page method: ${methodName}`)
+      }
+      return vm[methodName](...methodArgs)
+    }, { methodName: method, methodArgs: args })
+  })
 }
 
-async function captureScreenshot(miniProgram, fileName) {
-  const data = await miniProgram.screenshot()
+async function captureScreenshot(miniProgram, fileName, timeoutMs = 40000) {
+  trackMiniProgram(miniProgram)
+  const data = await withAutomationTimeout({
+    timeoutMs,
+    timeoutMessage: 'capture screenshot timed out',
+    action: () => miniProgram.screenshot()
+  })
   assert.equal(typeof data, 'string', 'screenshot should return base64 data')
   const outputPath = path.join(resultsDir, fileName)
   await fs.writeFile(outputPath, data, 'base64')
@@ -155,6 +248,7 @@ module.exports = {
   assertImageSourcesAvailable,
   captureScreenshot,
   closeMiniProgram,
+  connectOrLaunchAutomation,
   extractRichTextImageSources,
   getCurrentPageState,
   invokeCurrentVmMethod,
@@ -162,5 +256,6 @@ module.exports = {
   localBackendPrefix,
   runStep,
   setCurrentVmState,
+  trackMiniProgram,
   waitUntil
 }
