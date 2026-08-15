@@ -94,6 +94,25 @@ test('settings page uses the profile design system and keeps every existing dest
   assert.doesNotMatch(style, /position:\s*fixed/)
 })
 
+test('profile identity sits lower and personal information follows the current account design', async () => {
+  const myStyle = await read('shop-mnp/pages/my/my.scss')
+  const information = await read('shop-mnp/packagesPublic/Information/Information.vue')
+  const informationStyle = await read('shop-mnp/packagesPublic/Information/Information.scss')
+
+  assert.match(myStyle, /\.profile-info\s*\{[\s\S]*?padding:\s*24rpx\s+0\s+2rpx/)
+  assert.match(information, /class="profile-summary"/)
+  assert.match(information, /class="information-card"/)
+  assert.match(information, /基本信息/)
+  assert.match(information, /更多信息/)
+  assert.match(information, /avatarDisplay/)
+  assert.match(information, /\/static\/home-design\/brand-logo-transparent\.png/)
+  assert.match(information, /birthday\s*\|\|\s*'未设置'/)
+  assert.doesNotMatch(information, /2020-02-02/)
+  assert.match(informationStyle, /\$accent:\s*#701018/)
+  assert.match(informationStyle, /\.information-card\s*\{[\s\S]*?border-radius:\s*24rpx/)
+  assert.doesNotMatch(informationStyle, /\.page\s*\{[^}]*position:\s*absolute/)
+})
+
 test('settings and authorization surfaces use the official Yixianghui logo', async () => {
   const settings = await read('shop-mnp/packagesPublic/Setting/Setting.vue')
   const authorization = await read('shop-mnp/components/AuthProfilePopup/AuthProfilePopup.vue')
