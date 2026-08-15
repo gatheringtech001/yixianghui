@@ -126,42 +126,36 @@
     "page_display": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["bannerImages", "hotelData", "skuGroupList"],
+      "required": [
+        "introduction", "mainImages", "roomImages", "roomPricePackages",
+        "details", "checkInNotice"
+      ],
       "properties": {
-        "bannerImages": {
+        "introduction": {"type": "string", "minLength": 1, "maxLength": 300},
+        "mainImages": {
           "type": "array",
           "minItems": 1,
           "maxItems": 6,
           "uniqueItems": true,
           "items": {"type": "string", "pattern": "^/profile/upload/.+\\.jpg$"}
         },
-        "hotelData": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["type", "name", "desc", "tagList", "related"],
-          "properties": {
-            "type": {"const": "旅居基地"},
-            "name": {"type": "string", "minLength": 1},
-            "desc": {"type": "string", "minLength": 1, "maxLength": 300},
-            "tagList": {
-              "type": "array",
-              "maxItems": 5,
-              "uniqueItems": true,
-              "items": {"type": "string", "minLength": 1}
-            },
-            "related": {
-              "type": "array",
-              "minItems": 6,
-              "maxItems": 6,
-              "items": {"$ref": "#/$defs/page_section"}
-            }
-          }
-        },
-        "skuGroupList": {
+        "roomImages": {
           "type": "array",
           "minItems": 1,
-          "items": {"$ref": "#/$defs/page_sku_group"}
-        }
+          "items": {"$ref": "#/$defs/room_image"}
+        },
+        "roomPricePackages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/room_price_packages"}
+        },
+        "details": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {"$ref": "#/$defs/page_section"}
+        },
+        "checkInNotice": {"$ref": "#/$defs/page_section"}
       }
     },
     "media": {
@@ -258,51 +252,53 @@
     "page_section": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "content"],
+      "required": ["title", "content"],
       "properties": {
-        "id": {"type": "string", "pattern": "^id_[a-z_]+$"},
-        "name": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
         "content": {"type": "string"}
       }
     },
-    "page_combination": {
+    "room_image": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "price", "average"],
+      "required": ["roomType", "occupancy", "image"],
       "properties": {
-        "name": {"type": "string", "minLength": 1},
-        "price": {"$ref": "#/$defs/money"},
-        "average": {"anyOf": [{"$ref": "#/$defs/money"}, {"type": "null"}]}
-      }
-    },
-    "page_sku_option": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "day", "combinationList"],
-      "properties": {
-        "name": {"type": "string", "minLength": 1},
-        "day": {"type": ["integer", "null"], "minimum": 1, "maximum": 365},
-        "combinationList": {
-          "type": "array",
-          "minItems": 1,
-          "items": {"$ref": "#/$defs/page_combination"}
+        "roomType": {"type": "string", "minLength": 1},
+        "occupancy": {"type": ["string", "null"]},
+        "image": {
+          "type": ["string", "null"],
+          "pattern": "^/profile/upload/.+\\.jpg$"
         }
       }
     },
-    "page_sku_group": {
+    "price_package": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["title", "cover", "descOne", "descTwo", "price", "skuDataList"],
+      "required": [
+        "duration", "days", "nights", "mealPlan", "price", "priceUnit",
+        "averagePerNight"
+      ],
       "properties": {
-        "title": {"type": "string", "minLength": 1},
-        "cover": {"type": "string"},
-        "descOne": {"type": "string"},
-        "descTwo": {"type": "string"},
-        "price": {"anyOf": [{"$ref": "#/$defs/money"}, {"type": "null"}]},
-        "skuDataList": {
+        "duration": {"type": "string", "minLength": 1},
+        "days": {"type": "integer", "minimum": 1, "maximum": 366},
+        "nights": {"type": ["integer", "null"], "minimum": 1, "maximum": 365},
+        "mealPlan": {"type": "string", "minLength": 1},
+        "price": {"$ref": "#/$defs/money"},
+        "priceUnit": {"enum": ["人", "间"]},
+        "averagePerNight": {"anyOf": [{"$ref": "#/$defs/money"}, {"type": "null"}]}
+      }
+    },
+    "room_price_packages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["roomType", "occupancy", "packages"],
+      "properties": {
+        "roomType": {"type": "string", "minLength": 1},
+        "occupancy": {"type": ["string", "null"]},
+        "packages": {
           "type": "array",
           "minItems": 1,
-          "items": {"$ref": "#/$defs/page_sku_option"}
+          "items": {"$ref": "#/$defs/price_package"}
         }
       }
     },

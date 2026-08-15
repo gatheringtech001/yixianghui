@@ -12,7 +12,7 @@ from typing import Any
 
 from travel_asset_policy import COVER_ASSET_INDEX
 from travel_catalog import _load_extractor
-from travel_product_page import build_page_display, validate_page_display
+from travel_product_page import apply_page_quality, build_page_display, validate_page_display
 from travel_price_parser import Quote, extract_quotes
 
 SCHEMA_VERSION = "travel_product.v1"
@@ -248,7 +248,8 @@ def build_product(document: dict[str, Any], items: list[dict[str, Any]],
                        "starting_price_matches_offers": True},
         },
     }
-    product["page_display"] = build_page_display(document, product)
+    product["page_display"] = build_page_display(document, product, items)
+    apply_page_quality(product)
     validate_product(product)
     return product
 

@@ -84,21 +84,28 @@ class TravelProductStandardTest(unittest.TestCase):
             [row["section_name"] for row in product["content_sections"]],
         )
         page = product["page_display"]
-        self.assertEqual(6, len(page["bannerImages"]))
-        self.assertEqual("旅居基地", page["hotelData"]["type"])
-        self.assertEqual(product["display"]["title"], page["hotelData"]["name"])
-        self.assertEqual(product["display"]["summary"], page["hotelData"]["desc"])
-        self.assertEqual(6, len(page["hotelData"]["related"]))
-        self.assertEqual(6, len(page["skuGroupList"]))
-        first_option = page["skuGroupList"][0]["skuDataList"][0]
-        self.assertEqual("815.00", first_option["combinationList"][0]["price"])
-        self.assertIsNone(first_option["day"])
-        self.assertIsNone(first_option["combinationList"][0]["average"])
+        self.assertEqual(
+            ["introduction", "mainImages", "roomImages", "roomPricePackages",
+             "details", "checkInNotice"],
+            list(page),
+        )
+        self.assertEqual(product["display"]["summary"], page["introduction"])
+        self.assertEqual(6, len(page["mainImages"]))
+        self.assertEqual(6, len(page["roomImages"]))
+        self.assertTrue(all(row["image"] is None for row in page["roomImages"]))
+        self.assertEqual(6, len(page["roomPricePackages"]))
+        first_package = page["roomPricePackages"][0]["packages"][0]
+        self.assertEqual("7天", first_package["duration"])
+        self.assertEqual("815.00", first_package["price"])
+        self.assertIsNone(first_package["nights"])
+        self.assertIsNone(first_package["averagePerNight"])
+        self.assertEqual(5, len(page["details"]))
+        self.assertEqual("入住须知", page["checkInNotice"]["title"])
         codes = {row["code"] for row in product["quality"]["issues"]}
         self.assertTrue({
             "CONFLICT_HOUSEKEEPING", "CONFLICT_PICKUP_FEE", "CONFLICT_RATING",
             "CONFLICT_MEAL_REFUND", "AMBIGUOUS_NIGHTS", "SUSPICIOUS_BED_TYPE",
-            "WITHHELD_MEDICAL_CLAIMS",
+            "WITHHELD_MEDICAL_CLAIMS", "MISSING_ROOM_IMAGE",
         }.issubset(codes))
         content = json.dumps(product["content_sections"], ensure_ascii=False)
         self.assertNotIn("显著疗效", content)
@@ -117,10 +124,23 @@ class TravelProductStandardTest(unittest.TestCase):
         product = build_product(
             self.document, self.items, generated_at="2026-08-15T00:00:00+00:00"
         )
-        product["page_display"]["hotelData"]["name"] = "错误名称"
+        product["page_display"]["introduction"] = "错误简介"
 
-        with self.assertRaisesRegex(ValueError, "Page product name"):
+        with self.assertRaisesRegex(ValueError, "Page introduction"):
             validate_product(product)
+
+    def test_uses_only_room_image_adjacent_to_matching_room_text(self):
+        source_url = "https://example.com/room.jpg"
+        self.document["assets"][0]["url"] = source_url
+        items = self.items + [
+            {"kind": "paragraph", "text": "舒适双床房间（2张床）"},
+            {"kind": "image", "src": source_url},
+        ]
+
+        product = build_product(self.document, items)
+
+        self.assertTrue(product["page_display"]["roomImages"][0]["image"].endswith("-001.jpg"))
+        self.assertIsNone(product["page_display"]["roomImages"][1]["image"])
 
 
 if __name__ == "__main__":

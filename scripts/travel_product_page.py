@@ -1,17 +1,27 @@
 #!/usr/bin/env python3
-"""Project canonical travel-product data onto the mini-program view model."""
+"""Project canonical travel data onto the six product-detail content slots."""
 
 from __future__ import annotations
 
 import html
+import re
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 
 from travel_asset_policy import REJECTED_ASSET_SHA256
 from travel_catalog import REMOTE_ASSET_DIR
 
+PAGE_FIELDS = (
+    "introduction", "mainImages", "roomImages", "roomPricePackages",
+    "details", "checkInNotice",
+)
 
-def _banner_images(document: dict[str, Any], cover_index: int | None) -> list[str]:
+
+def _remote_path(document: dict[str, Any], index: int) -> str:
+    return f"{REMOTE_ASSET_DIR}/{document['slug']}-{index:03d}.jpg"
+
+
+def _main_images(document: dict[str, Any], cover_index: int | None) -> list[str]:
     assets = [
         row for row in document.get("assets", [])
         if row.get("status") == "downloaded"
@@ -25,7 +35,31 @@ def _banner_images(document: dict[str, Any], cover_index: int | None) -> list[st
     ]
     ordered = ([cover] if cover else []) + landscapes + assets
     indices = list(dict.fromkeys(int(row["index"]) for row in ordered))[:6]
-    return [f"{REMOTE_ASSET_DIR}/{document['slug']}-{index:03d}.jpg" for index in indices]
+    return [_remote_path(document, index) for index in indices]
+
+
+def _room_terms(room_type: str) -> list[str]:
+    terms = [part.strip() for part in re.split(r"[/／]", room_type) if part.strip()]
+    variants = []
+    for term in terms:
+        variants.extend((term, term.replace("标间", "双床房")))
+    return list(dict.fromkeys(value for value in variants if len(value) >= 3))
+
+
+def _room_image(document: dict[str, Any], items: list[dict[str, Any]],
+                room_type: str) -> str | None:
+    assets = {row.get("url"): row for row in document.get("assets", [])
+              if row.get("status") == "downloaded"}
+    terms = _room_terms(room_type)
+    for index, item in enumerate(items[:-1]):
+        text = str(item.get("text") or "")
+        if item.get("kind") != "paragraph" or not any(term in text for term in terms):
+            continue
+        media = items[index + 1]
+        asset = assets.get(media.get("src")) if media.get("kind") == "image" else None
+        if asset and asset.get("sha256") not in REJECTED_ASSET_SHA256:
+            return _remote_path(document, int(asset["index"]))
+    return None
 
 
 def _average(price: str, nights: int | None) -> str | None:
@@ -35,102 +69,94 @@ def _average(price: str, nights: int | None) -> str | None:
     return f"{value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP):.2f}"
 
 
-def _sku_groups(packages: list[dict[str, Any]], cover: str,
-                meal_name: str) -> list[dict[str, Any]]:
-    groups = []
-    for package in packages:
-        occupancy = package.get("occupancy")
-        title = package["room_type"] + (f"（{occupancy}）" if occupancy else "")
-        options = []
-        for offer in package["offers"]:
-            options.append({
-                "name": offer["duration_label"],
-                "day": offer["nights"],
-                "combinationList": [{
-                    "name": meal_name,
-                    "price": offer["price"],
-                    "average": _average(offer["price"], offer["nights"]),
-                }],
-            })
-        groups.append({
-            "title": title,
-            "cover": cover,
-            "descOne": "",
-            "descTwo": "",
-            "price": None,
-            "skuDataList": options,
-        })
-    return groups
+def _room_rows(document: dict[str, Any], product: dict[str, Any],
+               items: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    image_rows, price_rows = [], []
+    meal_plan = "含三餐" if any(row["label"] == "含三餐"
+                              for row in product["display"]["tags"]) else "住宿套餐"
+    for room in product["pricing"]["room_packages"]:
+        identity = {"roomType": room["room_type"], "occupancy": room.get("occupancy")}
+        image_rows.append({**identity, "image": _room_image(document, items, room["room_type"])})
+        price_rows.append({**identity, "packages": [{
+            "duration": offer["duration_label"], "days": offer["days"],
+            "nights": offer["nights"], "mealPlan": meal_plan,
+            "price": offer["price"], "priceUnit": offer["unit"],
+            "averagePerNight": _average(offer["price"], offer["nights"]),
+        } for offer in room["offers"]]})
+    return image_rows, price_rows
 
 
-def _related_sections(sections: list[dict[str, Any]]) -> list[dict[str, str]]:
-    return [{
-        "id": f"id_{section['section_id']}",
-        "name": section["section_name"],
-        "content": "".join(f"<p>{html.escape(fact['text'])}</p>"
-                           for fact in section["facts"]),
-    } for section in sections]
+def _section(section: dict[str, Any]) -> dict[str, str]:
+    content = "".join(f"<p>{html.escape(fact['text'])}</p>" for fact in section["facts"])
+    return {"title": section["section_name"], "content": content}
 
 
-def build_page_display(document: dict[str, Any], product: dict[str, Any]) -> dict[str, Any]:
-    display = product["display"]
-    banners = _banner_images(document, product["media"]["cover_asset_index"])
-    tag_labels = [row["label"] for row in display["tags"]]
-    meal_name = "含三餐" if "含三餐" in tag_labels else "住宿套餐"
+def build_page_display(document: dict[str, Any], product: dict[str, Any],
+                       items: list[dict[str, Any]]) -> dict[str, Any]:
+    room_images, room_prices = _room_rows(document, product, items)
+    sections = product["content_sections"]
     return {
-        "bannerImages": banners,
-        "hotelData": {
-            "type": "旅居基地",
-            "name": display["title"],
-            "desc": display["summary"],
-            "tagList": tag_labels,
-            "related": _related_sections(product["content_sections"]),
-        },
-        "skuGroupList": _sku_groups(
-            product["pricing"]["room_packages"], banners[0] if banners else "", meal_name
-        ),
+        "introduction": product["display"]["summary"],
+        "mainImages": _main_images(document, product["media"]["cover_asset_index"]),
+        "roomImages": room_images,
+        "roomPricePackages": room_prices,
+        "details": [_section(section) for section in sections if section["section_id"] != "stay_notice"],
+        "checkInNotice": _section(next(section for section in sections
+                                        if section["section_id"] == "stay_notice")),
     }
+
+
+def apply_page_quality(product: dict[str, Any]) -> None:
+    missing = [row for row in product["page_display"]["roomImages"] if row["image"] is None]
+    if not missing:
+        return
+    refs = [ref for room in product["pricing"]["room_packages"]
+            for offer in room["offers"] for ref in offer["source_refs"]]
+    product["quality"]["issues"].append({
+        "code": "MISSING_ROOM_IMAGE", "severity": "warning",
+        "field": "page_display.roomImages",
+        "message": "知识库未找到可与房型可靠关联的静态图片，不得使用主图替代。",
+        "source_refs": sorted(set(refs)),
+        "source_excerpts": [row["roomType"] for row in missing],
+    })
+    product["quality"]["status"] = "review_required"
+
+
+def _validate_room_rows(product: dict[str, Any]) -> None:
+    page = product["page_display"]
+    packages = product["pricing"]["room_packages"]
+    expected_keys = [(row["room_type"], row.get("occupancy")) for row in packages]
+    image_keys = [(row.get("roomType"), row.get("occupancy")) for row in page["roomImages"]]
+    price_keys = [(row.get("roomType"), row.get("occupancy"))
+                  for row in page["roomPricePackages"]]
+    if image_keys != expected_keys or price_keys != expected_keys:
+        raise ValueError("Page room rows do not match canonical room packages")
+    for page_room, room in zip(page["roomPricePackages"], packages):
+        if len(page_room["packages"]) != len(room["offers"]):
+            raise ValueError("Page price packages do not match canonical room offers")
+        for page_offer, offer in zip(page_room["packages"], room["offers"]):
+            expected = (offer["duration_label"], offer["days"], offer["nights"],
+                        offer["price"], offer["unit"], _average(offer["price"], offer["nights"]))
+            actual = (page_offer.get("duration"), page_offer.get("days"), page_offer.get("nights"),
+                      page_offer.get("price"), page_offer.get("priceUnit"),
+                      page_offer.get("averagePerNight"))
+            if actual != expected:
+                raise ValueError("Page price package does not match canonical room offer")
 
 
 def validate_page_display(product: dict[str, Any]) -> None:
     page = product.get("page_display") or {}
-    hotel = page.get("hotelData") or {}
-    if hotel.get("type") != product["identity"]["category"]:
-        raise ValueError("Page product type does not match canonical identity")
-    if hotel.get("name") != product["display"]["title"]:
-        raise ValueError("Page product name does not match canonical display title")
-    if hotel.get("desc") != product["display"]["summary"]:
-        raise ValueError("Page description does not match canonical display summary")
-    expected_tags = [row["label"] for row in product["display"]["tags"]]
-    if hotel.get("tagList") != expected_tags:
-        raise ValueError("Page tags do not match canonical display tags")
-    related = hotel.get("related") or []
-    expected_sections = product["content_sections"]
-    if [row.get("name") for row in related] != [row["section_name"] for row in expected_sections]:
-        raise ValueError("Page detail sections do not match canonical content sections")
-    groups = page.get("skuGroupList") or []
-    packages = product["pricing"]["room_packages"]
-    if len(groups) != len(packages):
-        raise ValueError("Page SKU groups do not match canonical room packages")
-    for group, package in zip(groups, packages):
-        occupancy = package.get("occupancy")
-        expected_title = package["room_type"] + (f"（{occupancy}）" if occupancy else "")
-        if group.get("title") != expected_title:
-            raise ValueError("Page SKU title does not match canonical room package")
-        options = group.get("skuDataList") or []
-        offers = package["offers"]
-        if len(options) != len(offers):
-            raise ValueError("Page duration options do not match canonical room offers")
-        for option, offer in zip(options, offers):
-            if option.get("name") != offer["duration_label"] or option.get("day") != offer["nights"]:
-                raise ValueError("Page duration does not match canonical room offer")
-            combination = (option.get("combinationList") or [{}])[0]
-            if combination.get("average") != _average(offer["price"], offer["nights"]):
-                raise ValueError("Page average does not match canonical room offer")
-    page_prices = [combination["price"] for group in groups
-                   for option in group["skuDataList"]
-                   for combination in option["combinationList"]]
-    canonical_prices = [offer["price"] for package in product["pricing"]["room_packages"]
-                        for offer in package["offers"]]
-    if page_prices != canonical_prices:
-        raise ValueError("Page prices do not match canonical room offers")
+    if list(page) != list(PAGE_FIELDS):
+        raise ValueError("Page display fields do not match the six content slots")
+    if page["introduction"] != product["display"]["summary"]:
+        raise ValueError("Page introduction does not match canonical summary")
+    if not page["mainImages"] or len(page["mainImages"]) > 6:
+        raise ValueError("Page main images are missing or exceed the display limit")
+    _validate_room_rows(product)
+    expected_details = [_section(row) for row in product["content_sections"]
+                        if row["section_id"] != "stay_notice"]
+    if page["details"] != expected_details:
+        raise ValueError("Page details do not match canonical content sections")
+    notice = next(row for row in product["content_sections"] if row["section_id"] == "stay_notice")
+    if page["checkInNotice"] != _section(notice):
+        raise ValueError("Page check-in notice does not match canonical content")
