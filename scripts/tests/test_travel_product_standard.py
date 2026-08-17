@@ -77,10 +77,10 @@ class TravelProductStandardTest(unittest.TestCase):
         self.assertEqual(6, product["pricing"]["room_package_count"])
         self.assertEqual(18, product["pricing"]["offer_count"])
         self.assertTrue(product["quality"]["checks"]["source_traceability"])
-        self.assertFalse(product["quality"]["checks"]["content_sections_complete"])
+        self.assertTrue(product["quality"]["checks"]["content_sections_complete"])
         self.assertEqual("review_required", product["quality"]["status"])
         self.assertEqual(
-            ["基地概览", "餐饮", "交通接送", "温泉与设施", "周边景点", "入住须知"],
+            ["基地特色", "入住须知"],
             [row["section_name"] for row in product["content_sections"]],
         )
         page = product["page_display"]
@@ -92,20 +92,22 @@ class TravelProductStandardTest(unittest.TestCase):
         self.assertEqual(product["display"]["summary"], page["introduction"])
         self.assertEqual(6, len(page["mainImages"]))
         self.assertEqual(6, len(page["roomImages"]))
-        self.assertTrue(all(row["image"] is None for row in page["roomImages"]))
+        self.assertTrue(all(row["image"] for row in page["roomImages"]))
+        self.assertTrue(all(row["sourceType"] == "placeholder" for row in page["roomImages"]))
         self.assertEqual(6, len(page["roomPricePackages"]))
         first_package = page["roomPricePackages"][0]["packages"][0]
         self.assertEqual("7天", first_package["duration"])
         self.assertEqual("815.00", first_package["price"])
         self.assertIsNone(first_package["nights"])
         self.assertIsNone(first_package["averagePerNight"])
-        self.assertEqual(5, len(page["details"]))
+        self.assertEqual(1, len(page["details"]))
+        self.assertEqual("基地特色", page["details"][0]["title"])
         self.assertEqual("入住须知", page["checkInNotice"]["title"])
         codes = {row["code"] for row in product["quality"]["issues"]}
         self.assertTrue({
             "CONFLICT_HOUSEKEEPING", "CONFLICT_PICKUP_FEE", "CONFLICT_RATING",
             "CONFLICT_MEAL_REFUND", "AMBIGUOUS_NIGHTS", "SUSPICIOUS_BED_TYPE",
-            "WITHHELD_MEDICAL_CLAIMS", "MISSING_ROOM_IMAGE",
+            "WITHHELD_MEDICAL_CLAIMS",
         }.issubset(codes))
         content = json.dumps(product["content_sections"], ensure_ascii=False)
         self.assertNotIn("显著疗效", content)
@@ -140,7 +142,20 @@ class TravelProductStandardTest(unittest.TestCase):
         product = build_product(self.document, items)
 
         self.assertTrue(product["page_display"]["roomImages"][0]["image"].endswith("-001.jpg"))
-        self.assertIsNone(product["page_display"]["roomImages"][1]["image"])
+        self.assertEqual("real", product["page_display"]["roomImages"][0]["sourceType"])
+        self.assertEqual("placeholder", product["page_display"]["roomImages"][1]["sourceType"])
+
+    def test_uses_verified_mile_room_override_only_for_matching_room(self):
+        self.document["slug"] = "ptzlh413322upmyo"
+
+        product = build_product(self.document, self.items)
+        images = {(row["roomType"], row["occupancy"]): row
+                  for row in product["page_display"]["roomImages"]}
+
+        deluxe_twin = images[("豪华标间", "2人一间")]
+        self.assertEqual("real", deluxe_twin["sourceType"])
+        self.assertTrue(deluxe_twin["image"].endswith("mile-deluxe-twin-real.jpg"))
+        self.assertEqual("placeholder", images[("豪华大床房", "2人一间")]["sourceType"])
 
 
 if __name__ == "__main__":

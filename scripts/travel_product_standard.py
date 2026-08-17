@@ -17,11 +17,7 @@ from travel_price_parser import Quote, extract_quotes
 
 SCHEMA_VERSION = "travel_product.v1"
 SECTION_NAMES = {
-    "overview": "基地概览",
-    "dining": "餐饮",
-    "transport": "交通接送",
-    "facilities": "温泉与设施",
-    "attractions": "周边景点",
+    "base_features": "基地特色",
     "stay_notice": "入住须知",
 }
 CONTACT_RE = re.compile(
@@ -37,23 +33,19 @@ BED_ANOMALY_RE = re.compile(r"双床房.{0,24}1张2米")
 GARBLED_RE = re.compile(r"可麻烦使用")
 MARKETING_RE = re.compile(
     r"经营理念|宾至如家|低调.*奢华|被誉为|传说|灵气|素有|医学界公认|"
-    r"最适合|天然氧吧|显著|最具|最大的|点赞"
-)
-ATTRACTION_RE = re.compile(
-    r"东风韵|太平湖|葡萄酒|锦屏寺|湖泉生态园|可邑小镇|景区|景点|古城"
+    r"最适合|天然氧吧|显著|最具|最大的|点赞|丰富多样|得道高僧|梵音|最有看头"
 )
 CONFLICT_RE = re.compile(
     r"每日.*(?:打扫|清洁)|每周.*(?:清洗|清洁|清扫)|免费接(?:站|送)|"
     r"接(?:站|送).{0,12}\d+\s*元|不可退餐.{0,8}退差价"
 )
-SECTION_RULES = (
-    ("stay_notice", re.compile(r"儿童|节假日|取消|退款|退订|入住前|入住当天|房损|押金")),
-    ("dining", re.compile(r"一日三餐|三餐|餐食|自助餐|牛奶|餐厅")),
-    ("transport", re.compile(r"公交|车站|机场|高铁|接站|接送")),
-    ("attractions", ATTRACTION_RE),
-    ("facilities", re.compile(r"温泉|健身房|茶室|棋牌室|会议室|泡池")),
-    ("overview", re.compile(r"基地|酒店|位于|坐落|毗邻|客房|房间|大床房|双床房|商业圈")),
+STAY_NOTICE_RE = re.compile(r"儿童|节假日|取消|退款|退订|入住前|入住当天|房损|押金")
+BASE_FEATURE_RE = re.compile(
+    r"基地|酒店|位于|坐落|毗邻|客房|商业圈|一日三餐|三餐|餐食|自助餐|"
+    r"餐厅|公交|车站|机场|高铁|温泉|健身房|茶室|棋牌室|会议室|泡池|"
+    r"东风韵|太平湖|葡萄酒|锦屏寺|湖泉生态园|可邑小镇|景区|景点|古城"
 )
+ROOM_HEADING_RE = re.compile(r"^.{0,16}(?:标间|大床房|双床房|房间)[:：]?$")
 
 def _clean_text(value: str) -> str:
     value = re.sub(r"\s+", " ", value).strip(" ·•\t\r\n")
@@ -131,23 +123,23 @@ def _content_sections(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         text = str(item.get("text") or "")
         if MEDICAL_RE.search(text):
             continue
-        item_match = next((key for key, pattern in SECTION_RULES if pattern.search(text)), None)
+        item_match = "stay_notice" if STAY_NOTICE_RE.search(text) else (
+            "base_features" if BASE_FEATURE_RE.search(text) else None
+        )
         for clause in _clauses(text):
-            if re.fullmatch(r".{0,6}(?:规则|备注)[:：]?", clause):
+            if re.fullmatch(r".{0,6}(?:规则|备注)[:：]?", clause) or ROOM_HEADING_RE.fullmatch(clause):
                 continue
             if (CONTACT_RE.search(clause) or PRICE_RE.search(clause) or MEDICAL_RE.search(clause)
                     or RATING_RE.search(clause) or CONFLICT_RE.search(clause)
                     or BED_ANOMALY_RE.search(clause) or GARBLED_RE.search(clause)
                     or MARKETING_RE.search(clause)):
                 continue
-            match = next((key for key, pattern in SECTION_RULES if pattern.search(clause)), item_match)
-            if item_match == "attractions":
-                if not ATTRACTION_RE.search(clause):
-                    continue
-                match = item_match
-            if not match or clause in seen[match] or (match == "overview" and len(clause) < 12):
+            match = "stay_notice" if STAY_NOTICE_RE.search(clause) else (
+                "base_features" if BASE_FEATURE_RE.search(clause) else item_match
+            )
+            if not match or clause in seen[match] or (match == "base_features" and len(clause) < 8):
                 continue
-            limit = 1 if match == "attractions" else 2
+            limit = 2
             if source_counts.get((match, index), 0) >= limit:
                 continue
             seen[match].add(clause)

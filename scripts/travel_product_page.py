@@ -15,6 +15,16 @@ PAGE_FIELDS = (
     "introduction", "mainImages", "roomImages", "roomPricePackages",
     "details", "checkInNotice",
 )
+ROOM_ASSET_DIR = "/profile/upload/2026/08/17/travel-room-v1"
+ROOM_IMAGE_OVERRIDES = {
+    ("ptzlh413322upmyo", "豪华标间", "2人一间"): (
+        f"{ROOM_ASSET_DIR}/mile-deluxe-twin-real.jpg", "real", None,
+    ),
+}
+ROOM_PLACEHOLDERS = {
+    "king": f"{ROOM_ASSET_DIR}/placeholder-king.jpg",
+    "twin": f"{ROOM_ASSET_DIR}/placeholder-twin.jpg",
+}
 
 
 def _remote_path(document: dict[str, Any], index: int) -> str:
@@ -62,6 +72,27 @@ def _room_image(document: dict[str, Any], items: list[dict[str, Any]],
     return None
 
 
+def _placeholder_type(room_type: str) -> str:
+    if "大床" in room_type and not re.search(r"标间|双床", room_type):
+        return "king"
+    return "twin"
+
+
+def _room_media(document: dict[str, Any], items: list[dict[str, Any]],
+                room_type: str, occupancy: str | None) -> dict[str, str | None]:
+    override = ROOM_IMAGE_OVERRIDES.get((document["slug"], room_type, occupancy))
+    if override:
+        image, source_type, placeholder_type = override
+        return {"image": image, "sourceType": source_type,
+                "placeholderType": placeholder_type}
+    image = _room_image(document, items, room_type)
+    if image:
+        return {"image": image, "sourceType": "real", "placeholderType": None}
+    placeholder_type = _placeholder_type(room_type)
+    return {"image": ROOM_PLACEHOLDERS[placeholder_type], "sourceType": "placeholder",
+            "placeholderType": placeholder_type}
+
+
 def _average(price: str, nights: int | None) -> str | None:
     if nights is None:
         return None
@@ -76,7 +107,9 @@ def _room_rows(document: dict[str, Any], product: dict[str, Any],
                               for row in product["display"]["tags"]) else "住宿套餐"
     for room in product["pricing"]["room_packages"]:
         identity = {"roomType": room["room_type"], "occupancy": room.get("occupancy")}
-        image_rows.append({**identity, "image": _room_image(document, items, room["room_type"])})
+        image_rows.append({**identity, **_room_media(
+            document, items, room["room_type"], room.get("occupancy")
+        )})
         price_rows.append({**identity, "packages": [{
             "duration": offer["duration_label"], "days": offer["days"],
             "nights": offer["nights"], "mealPlan": meal_plan,
@@ -100,26 +133,16 @@ def build_page_display(document: dict[str, Any], product: dict[str, Any],
         "mainImages": _main_images(document, product["media"]["cover_asset_index"]),
         "roomImages": room_images,
         "roomPricePackages": room_prices,
-        "details": [_section(section) for section in sections if section["section_id"] != "stay_notice"],
+        "details": [_section(next(section for section in sections
+                                  if section["section_id"] == "base_features"))],
         "checkInNotice": _section(next(section for section in sections
                                         if section["section_id"] == "stay_notice")),
     }
 
 
 def apply_page_quality(product: dict[str, Any]) -> None:
-    missing = [row for row in product["page_display"]["roomImages"] if row["image"] is None]
-    if not missing:
-        return
-    refs = [ref for room in product["pricing"]["room_packages"]
-            for offer in room["offers"] for ref in offer["source_refs"]]
-    product["quality"]["issues"].append({
-        "code": "MISSING_ROOM_IMAGE", "severity": "warning",
-        "field": "page_display.roomImages",
-        "message": "知识库未找到可与房型可靠关联的静态图片，不得使用主图替代。",
-        "source_refs": sorted(set(refs)),
-        "source_excerpts": [row["roomType"] for row in missing],
-    })
-    product["quality"]["status"] = "review_required"
+    if any(not row.get("image") for row in product["page_display"]["roomImages"]):
+        raise ValueError("Every room type must resolve to a real or placeholder image")
 
 
 def _validate_room_rows(product: dict[str, Any]) -> None:
@@ -131,6 +154,12 @@ def _validate_room_rows(product: dict[str, Any]) -> None:
                   for row in page["roomPricePackages"]]
     if image_keys != expected_keys or price_keys != expected_keys:
         raise ValueError("Page room rows do not match canonical room packages")
+    for row in page["roomImages"]:
+        if row.get("sourceType") not in {"real", "placeholder"}:
+            raise ValueError("Room image source type is invalid")
+        expected_placeholder = None if row["sourceType"] == "real" else _placeholder_type(row["roomType"])
+        if row.get("placeholderType") != expected_placeholder:
+            raise ValueError("Room image placeholder type does not match the room type")
     for page_room, room in zip(page["roomPricePackages"], packages):
         if len(page_room["packages"]) != len(room["offers"]):
             raise ValueError("Page price packages do not match canonical room offers")
@@ -153,8 +182,9 @@ def validate_page_display(product: dict[str, Any]) -> None:
     if not page["mainImages"] or len(page["mainImages"]) > 6:
         raise ValueError("Page main images are missing or exceed the display limit")
     _validate_room_rows(product)
-    expected_details = [_section(row) for row in product["content_sections"]
-                        if row["section_id"] != "stay_notice"]
+    feature = next(row for row in product["content_sections"]
+                   if row["section_id"] == "base_features")
+    expected_details = [_section(feature)]
     if page["details"] != expected_details:
         raise ValueError("Page details do not match canonical content sections")
     notice = next(row for row in product["content_sections"] if row["section_id"] == "stay_notice")

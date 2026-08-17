@@ -25,8 +25,7 @@ PRODUCT_NAME = "弥勒二号温泉基地（绿宝基地）"
 PLAN_TTL = timedelta(minutes=30)
 TABLES = ("app_goods", "app_goods_sku", "app_goods_sku_option", "app_goods_related")
 SECTION_IDS = {
-    "基地概览": "overview", "餐饮": "dining", "交通接送": "transport",
-    "温泉与设施": "facilities", "周边景点": "attractions", "入住须知": "policy",
+    "基地特色": "base_features", "入住须知": "policy",
 }
 
 
@@ -89,8 +88,13 @@ def build_desired(product: dict[str, Any], snapshot: dict[str, Any]) -> dict[str
     packages = page["roomPricePackages"]
     if len(packages) != 6 or sum(len(row["packages"]) for row in packages) != 18:
         raise PolicyError("Reviewed sample must contain exactly 6 room groups and 18 offers")
-    if any(row.get("image") for row in page["roomImages"]):
-        raise PolicyError("This sample must not claim unverified room images")
+    room_images = {(row["roomType"], row.get("occupancy")): row
+                   for row in page["roomImages"]}
+    if set(room_images) != {(row["roomType"], row.get("occupancy")) for row in packages}:
+        raise PolicyError("Every room group must have exactly one image mapping")
+    if any(not row.get("image") or row.get("sourceType") not in {"real", "placeholder"}
+           for row in room_images.values()):
+        raise PolicyError("Every room image must be a verified real image or explicit placeholder")
     tags = "|".join(row["label"] for row in product["display"]["tags"])
     goods = {"description": page["introduction"], "goods_cover": page["mainImages"][0],
              "goods_images": ",".join(page["mainImages"]), "tags": tags,
@@ -106,6 +110,8 @@ def build_desired(product: dict[str, Any], snapshot: dict[str, Any]) -> dict[str
         skus.append(_sku(parent_id, title, "200", 0, sort_order, "0.00"))
         options.append(_option(next_option, parent_id, "入住标准", "304", room["occupancy"], "", 1, 1)); next_option += 1
         options.append(_option(next_option, parent_id, "价格说明", "304", "含三餐，按人计价", "", 2, 1)); next_option += 1
+        image = room_images[(room["roomType"], room.get("occupancy"))]
+        options.append(_option(next_option, parent_id, "房型图片", "305", image["image"], "", 3, 1)); next_option += 1
         for offer in room["packages"]:
             sort_order += 1
             child_id = next_sku; next_sku += 1
@@ -114,18 +120,24 @@ def build_desired(product: dict[str, Any], snapshot: dict[str, Any]) -> dict[str
             options.append(_option(next_option, child_id, "套餐", "304", offer["mealPlan"], "", 2, 1)); next_option += 1
             options.append(_option(next_option, child_id, "总价", "302", offer["price"], "元", 3, 1)); next_option += 1
     current = sorted(snapshot["related"], key=lambda row: row["id"])
-    if len(current) != 2:
-        raise PolicyError("Expected exactly two existing detail rows")
+    if len(current) < 2:
+        raise PolicyError("Expected at least two existing detail rows")
     details = page["details"] + [page["checkInNotice"]]
+    if [row["title"] for row in details] != ["基地特色", "入住须知"]:
+        raise PolicyError("Product details must contain only 基地特色 and 入住须知")
+    feature_row = next((row for row in current if row.get("section_name") == "基地特色"), current[0])
+    notice_row = next((row for row in current if row.get("section_name") == "入住须知"), current[-1])
+    if feature_row["id"] == notice_row["id"]:
+        raise PolicyError("Detail rows cannot be mapped safely")
     related = []
-    next_related = int(snapshot["maxima"]["related_id"] or 0) + 1
     for index, section in enumerate(details, start=1):
-        row_id = current[0]["id"] if index == 1 else current[1]["id"] if index == 6 else next_related
-        if index not in (1, 6): next_related += 1
+        row_id = feature_row["id"] if index == 1 else notice_row["id"]
         related.append({"id": row_id, "goods_id": GOODS_ID,
                         "section_id": SECTION_IDS[section["title"]], "section_name": section["title"],
                         "content": section["content"], "sort_order": index, "min_content_length": 0})
+    retained_ids = {row["id"] for row in related}
     return {"goods": goods, "skus": skus, "options": options, "related": related,
+            "related_delete_ids": [row["id"] for row in current if row["id"] not in retained_ids],
             "old_sku_ids": [row["sku_id"] for row in snapshot["skus"]],
             "old_option_ids": [row["option_id"] for row in snapshot["options"]]}
 
@@ -154,6 +166,15 @@ def build_transaction_sql(desired: dict[str, Any], snapshot: dict[str, Any]) -> 
             statements.append(f"UPDATE app_goods_related SET {change} WHERE id={row['id']} AND goods_id={GOODS_ID};")
         else:
             statements.append(_insert("app_goods_related", row))
+    delete_ids = desired["related_delete_ids"]
+    if delete_ids:
+        joined = ",".join(map(str, delete_ids))
+        statements.extend([
+            f"DELETE FROM app_goods_related WHERE goods_id={GOODS_ID} AND id IN ({joined});",
+            "SET @yxh_related_deleted = ROW_COUNT();",
+            "INSERT INTO yxh_sample_guard (ok) SELECT CASE "
+            f"WHEN @yxh_related_deleted={len(delete_ids)} THEN 1 ELSE NULL END;",
+        ])
     guard = (f"EXISTS(SELECT 1 FROM app_goods WHERE goods_id={GOODS_ID} AND BINARY goods_name=BINARY {sql_literal(PRODUCT_NAME)}) "
              f"AND (SELECT MAX(sku_id) FROM app_goods_sku)={snapshot['maxima']['sku_id']} "
              f"AND (SELECT MAX(option_id) FROM app_goods_sku_option)={snapshot['maxima']['option_id']} "
@@ -184,9 +205,10 @@ def create_plan(target: str, product_path: Path) -> dict[str, Any]:
     return {"plan": str(path), "token": token, "target": target, "goods_id": GOODS_ID,
             "row_impact": {"goods_updates": 1, "sku_disables": len(desired["old_sku_ids"]),
                 "option_disables": len(desired["old_option_ids"]), "sku_inserts": len(desired["skus"]),
-                "option_inserts": len(desired["options"]), "related_updates": 2, "related_inserts": 4},
+                "option_inserts": len(desired["options"]), "related_updates": 2,
+                "related_deletes": len(desired["related_delete_ids"])},
             "display": {"starting_price": desired["goods"]["price"], "room_groups": 6,
-                        "offers": 18, "room_images": 0, "detail_sections": 6}}
+                        "offers": 18, "room_images": 6, "detail_sections": 2}}
 
 
 def _same(expected: Any, actual: Any) -> bool:

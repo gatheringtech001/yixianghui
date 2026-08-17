@@ -103,18 +103,18 @@
     },
     "content_sections": {
       "type": "array",
-      "minItems": 6,
-      "maxItems": 6,
+      "minItems": 2,
+      "maxItems": 2,
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": ["section_id", "section_name", "facts"],
         "properties": {
           "section_id": {
-            "enum": ["overview", "dining", "transport", "facilities", "attractions", "stay_notice"]
+            "enum": ["base_features", "stay_notice"]
           },
           "section_name": {
-            "enum": ["基地概览", "餐饮", "交通接送", "温泉与设施", "周边景点", "入住须知"]
+            "enum": ["基地特色", "入住须知"]
           },
           "facts": {
             "type": "array",
@@ -151,8 +151,8 @@
         },
         "details": {
           "type": "array",
-          "minItems": 5,
-          "maxItems": 5,
+          "minItems": 1,
+          "maxItems": 1,
           "items": {"$ref": "#/$defs/page_section"}
         },
         "checkInNotice": {"$ref": "#/$defs/page_section"}
@@ -261,14 +261,16 @@
     "room_image": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["roomType", "occupancy", "image"],
+      "required": ["roomType", "occupancy", "image", "sourceType", "placeholderType"],
       "properties": {
         "roomType": {"type": "string", "minLength": 1},
         "occupancy": {"type": ["string", "null"]},
         "image": {
-          "type": ["string", "null"],
+          "type": "string",
           "pattern": "^/profile/upload/.+\\.jpg$"
-        }
+        },
+        "sourceType": {"enum": ["real", "placeholder"]},
+        "placeholderType": {"enum": ["king", "twin", null]}
       }
     },
     "price_package": {
