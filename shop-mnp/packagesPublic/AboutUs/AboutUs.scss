@@ -9,10 +9,14 @@ $soft: #f7f5f2;
 $cream: #fbf5ec;
 
 .page {
-	width: 100%; min-height: 100%; background: $soft;
+	width: 100%;
+	min-height: 100%;
+	background: $soft;
 }
 
-.about-scroll { height: 100vh; }
+.about-scroll {
+	height: 100vh;
+}
 
 .about-shell {
 	padding: 24rpx 28rpx calc(56rpx + env(safe-area-inset-bottom));
@@ -20,217 +24,177 @@ $cream: #fbf5ec;
 }
 
 .hero-card {
-	position: relative; overflow: hidden;
-	padding: 48rpx 38rpx 36rpx; border-radius: 30rpx;
+	position: relative;
+	overflow: hidden;
+	padding: 52rpx 38rpx 46rpx;
+	border-radius: 30rpx;
 	background: linear-gradient(145deg, $accent 0%, $accent-dark 100%);
-	box-shadow: 0 24rpx 56rpx rgba(112, 16, 24, 0.24);
+	box-shadow: 0 24rpx 56rpx rgba(112, 16, 24, 0.22);
 }
 
 .hero-mark {
-	position: absolute; right: -38rpx; bottom: -76rpx;
-	width: 300rpx; height: 300rpx; opacity: 0.09;
+	position: absolute;
+	right: -34rpx;
+	bottom: -70rpx;
+	width: 280rpx;
+	height: 280rpx;
+	opacity: 0.09;
 }
 
-.hero-company,
+.hero-brand,
 .hero-title,
-.hero-summary,
-.hero-meta { position: relative; z-index: 1; }
+.hero-summary {
+	position: relative;
+	z-index: 1;
+	display: block;
+}
 
-.hero-company {
-	display: block; font-size: 23rpx; font-weight: 600;
-	letter-spacing: 2rpx; color: rgba(255, 255, 255, 0.72);
+.hero-brand {
+	font-size: 25rpx;
+	font-weight: 700;
+	letter-spacing: 5rpx;
+	color: $gold;
 }
 
 .hero-title {
-	display: block; margin-top: 22rpx; font-size: 48rpx;
-	font-weight: 800; line-height: 1.2; color: #ffffff;
+	max-width: 520rpx;
+	margin-top: 20rpx;
+	font-size: 45rpx;
+	font-weight: 800;
+	line-height: 1.35;
+	color: #ffffff;
 }
 
 .hero-summary {
-	display: block; max-width: 570rpx; margin-top: 22rpx;
-	font-size: 26rpx; line-height: 1.75; color: rgba(255, 255, 255, 0.84);
+	max-width: 560rpx;
+	margin-top: 22rpx;
+	font-size: 26rpx;
+	line-height: 1.75;
+	color: rgba(255, 255, 255, 0.78);
 }
 
-.hero-meta {
-	display: flex; justify-content: space-between; gap: 20rpx;
-	margin-top: 34rpx; padding-top: 24rpx;
-	border-top: 1rpx solid rgba(255, 255, 255, 0.2);
-	font-size: 21rpx; color: rgba(255, 255, 255, 0.64);
-}
-
-.stats-grid {
-	display: grid; grid-template-columns: repeat(3, 1fr);
-	gap: 14rpx; margin-top: 20rpx;
-}
-
-.stat-card {
-	display: flex; min-width: 0; min-height: 144rpx;
-	padding: 24rpx 12rpx; align-items: center; justify-content: center;
-	flex-direction: column; border: 1rpx solid $line; border-radius: 20rpx;
-	background: $paper; box-sizing: border-box;
-}
-
-.stat-value {
-	font-size: 36rpx; font-weight: 800; line-height: 1; color: $accent;
-}
-
-.stat-label {
-	margin-top: 14rpx; font-size: 20rpx; line-height: 1.35;
-	text-align: center; color: $muted;
-}
-
-.content-section { margin-top: 52rpx; }
-
-.section-kicker {
-	display: block; font-size: 19rpx; font-weight: 700;
-	letter-spacing: 4rpx; color: $gold;
+.intro-card {
+	margin-top: 22rpx;
+	padding: 34rpx 32rpx;
+	border: 1rpx solid $line;
+	border-radius: 24rpx;
+	background: $paper;
 }
 
 .section-title {
-	display: block; margin-top: 12rpx; font-size: 36rpx;
-	font-weight: 800; line-height: 1.35; color: $ink;
+	display: block;
+	font-size: 34rpx;
+	font-weight: 800;
+	line-height: 1.35;
+	color: $ink;
 }
 
-.section-body {
-	display: block; margin-top: 22rpx; font-size: 27rpx;
-	line-height: 1.9; color: $muted;
+.intro-text {
+	display: block;
+	margin-top: 18rpx;
+	font-size: 27rpx;
+	line-height: 1.85;
+	color: $muted;
 }
 
-.mission-card {
-	margin-top: 26rpx; padding: 28rpx 30rpx;
-	border-left: 6rpx solid $accent; border-radius: 0 20rpx 20rpx 0;
-	background: $cream;
-}
-
-.mission-label {
-	display: block; font-size: 22rpx; font-weight: 700; color: $accent;
-}
-
-.mission-text {
-	display: block; margin-top: 12rpx; font-size: 26rpx;
-	line-height: 1.75; color: #554d45;
+.service-section {
+	margin-top: 40rpx;
 }
 
 .service-list {
-	margin-top: 24rpx; overflow: hidden; border: 1rpx solid $line;
-	border-radius: 24rpx; background: $paper;
+	margin-top: 20rpx;
+	overflow: hidden;
+	border: 1rpx solid $line;
+	border-radius: 24rpx;
+	background: $paper;
 }
 
 .service-card {
-	display: flex; gap: 22rpx; padding: 28rpx 26rpx;
+	display: flex;
+	align-items: center;
+	gap: 22rpx;
+	padding: 28rpx 26rpx;
 	border-bottom: 1rpx solid $line;
 }
 
-.service-card:last-child { border-bottom: 0; }
-
-.service-index {
-	padding-top: 2rpx; font-size: 22rpx; font-weight: 800; color: $gold;
+.service-card:last-child {
+	border-bottom: 0;
 }
 
-.service-copy { min-width: 0; flex: 1; }
+.service-badge {
+	display: flex;
+	width: 70rpx;
+	height: 70rpx;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: $cream;
+	font-size: 27rpx;
+	font-weight: 800;
+	color: $accent;
+	flex-shrink: 0;
+}
+
+.service-copy {
+	min-width: 0;
+	flex: 1;
+}
 
 .service-title {
-	display: block; font-size: 29rpx; font-weight: 750; color: $ink;
+	display: block;
+	font-size: 29rpx;
+	font-weight: 750;
+	color: $ink;
 }
 
 .service-description {
-	display: block; margin-top: 10rpx; font-size: 24rpx;
-	line-height: 1.7; color: $muted;
+	display: block;
+	margin-top: 8rpx;
+	font-size: 24rpx;
+	line-height: 1.65;
+	color: $muted;
 }
 
-.care-card,
-.value-card {
-	margin-top: 48rpx; padding: 36rpx 34rpx; border-radius: 26rpx;
+.promise-card {
+	margin-top: 24rpx;
+	padding: 34rpx 32rpx;
+	border-radius: 24rpx;
+	background: $cream;
 }
 
-.care-card {
-	background: $ink; box-shadow: 0 18rpx 44rpx rgba(27, 23, 19, 0.16);
+.promise-label,
+.promise-title {
+	display: block;
 }
 
-.care-kicker,
-.care-title,
-.care-description { display: block; }
-
-.care-kicker {
-	font-size: 21rpx; letter-spacing: 2rpx; color: $gold;
+.promise-label {
+	font-size: 21rpx;
+	font-weight: 700;
+	letter-spacing: 2rpx;
+	color: $accent;
 }
 
-.care-title {
-	margin-top: 16rpx; font-size: 34rpx; font-weight: 800;
-	line-height: 1.45; color: #ffffff;
-}
-
-.care-divider {
-	width: 76rpx; height: 4rpx; margin-top: 22rpx;
-	border-radius: 4rpx; background: $gold;
-}
-
-.care-description {
-	margin-top: 20rpx; font-size: 25rpx; line-height: 1.75;
-	color: rgba(255, 255, 255, 0.68);
-}
-
-.timeline { margin-top: 28rpx; }
-
-.timeline-item { display: flex; gap: 22rpx; }
-
-.timeline-axis {
-	display: flex; width: 18rpx; align-items: center;
-	flex-direction: column; flex-shrink: 0;
-}
-
-.timeline-dot {
-	width: 16rpx; height: 16rpx; border: 4rpx solid #ead6d8;
-	border-radius: 50%; background: $accent; box-sizing: content-box;
-}
-
-.timeline-line {
-	width: 2rpx; min-height: 112rpx; flex: 1; background: $line;
-}
-
-.timeline-item:last-child .timeline-line { background: transparent; }
-
-.timeline-copy { padding: 0 0 34rpx; flex: 1; }
-
-.timeline-year {
-	display: block; font-size: 29rpx; font-weight: 800;
-	line-height: 1; color: $accent;
-}
-
-.timeline-text {
-	display: block; margin-top: 12rpx; font-size: 25rpx;
-	line-height: 1.7; color: $muted;
-}
-
-.value-card { background: $cream; text-align: center; }
-
-.value-label,
-.value-title,
-.value-description { display: block; }
-
-.value-label {
-	font-size: 21rpx; font-weight: 700; color: $accent;
-}
-
-.value-title {
-	margin-top: 16rpx; font-size: 34rpx; font-weight: 800;
-	line-height: 1.5; color: $ink;
-}
-
-.value-description {
-	margin-top: 14rpx; font-size: 24rpx; line-height: 1.6; color: $muted;
+.promise-title {
+	margin-top: 14rpx;
+	font-size: 30rpx;
+	font-weight: 750;
+	line-height: 1.6;
+	color: $ink;
 }
 
 .about-footer {
-	display: flex; margin-top: 48rpx; align-items: center;
-	flex-direction: column; font-size: 22rpx; color: $muted;
+	display: flex;
+	margin-top: 38rpx;
+	align-items: center;
+	flex-direction: column;
+	font-size: 21rpx;
+	color: $muted;
 }
 
 .about-footer image {
-	width: 112rpx; height: 112rpx; margin-bottom: 16rpx;
-	border-radius: 50%; background: $accent;
-}
-
-.footer-date {
-	margin-top: 8rpx; font-size: 20rpx; color: #a0978e;
+	width: 96rpx;
+	height: 96rpx;
+	margin-bottom: 14rpx;
+	border-radius: 50%;
+	background: $accent;
 }
