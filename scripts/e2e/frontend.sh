@@ -13,6 +13,7 @@ HBUILDER_NODE="${HBUILDER_PLUGINS}/node/node"
 UNIAPP_CLI="${HBUILDER_PLUGINS}/uniapp-cli/bin/uniapp-cli.js"
 UNIAPP_KILL_SCRIPT="${HBUILDER_PLUGINS}/uniapp-extension/static/kill.js"
 H5_OUTPUT="${APP_DIR}/unpackage/dist/dev/h5"
+MINIPROGRAM_REQUIRED_DOMAIN="${MINIPROGRAM_REQUIRED_DOMAIN:-https://shzxj.lk01.cn}"
 
 require_executable() {
   if [[ ! -x "$1" ]]; then
@@ -59,6 +60,27 @@ compile_miniprogram() {
   compile_target "mp-weixin" "${MINIPROGRAM_OUTPUT}/app.js"
 }
 
+preview_miniprogram() {
+  local qr_output="${1:-}"
+  local appid
+  if [[ -z "${qr_output}" ]]; then
+    echo "Usage: $0 preview-mp <qr-output>" >&2
+    exit 2
+  fi
+  compile_miniprogram
+  require_executable "${WECHAT_DEVTOOLS_CLI}"
+  appid="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["appid"])' \
+    "${MINIPROGRAM_OUTPUT}/project.config.json")"
+  python3 "${REPO_ROOT}/scripts/check_miniprogram_domains.py" \
+    --appid "${appid}" \
+    --required-domain "${MINIPROGRAM_REQUIRED_DOMAIN}"
+  "${WECHAT_DEVTOOLS_CLI}" preview \
+    --project "${MINIPROGRAM_OUTPUT}" \
+    --qr-format image \
+    --qr-output "${qr_output}" \
+    --lang zh
+}
+
 run_h5() {
   require_executable "${HBUILDER_NODE}"
   require_file "${UNIAPP_CLI}"
@@ -96,8 +118,9 @@ test_miniprogram() {
 
 case "${1:-}" in
   build-mp) compile_miniprogram ;;
+  preview-mp) preview_miniprogram "${2:-}" ;;
   run-h5) run_h5 ;;
   install) install_automation ;;
   test-mp) test_miniprogram ;;
-  *) echo "Usage: $0 {build-mp|run-h5|install|test-mp}" >&2; exit 2 ;;
+  *) echo "Usage: $0 {build-mp|preview-mp <qr-output>|run-h5|install|test-mp}" >&2; exit 2 ;;
 esac
