@@ -95,6 +95,7 @@ class TravelProductStandardTest(unittest.TestCase):
         self.assertEqual(6, len(page["roomImages"]))
         self.assertTrue(all(row["image"] for row in page["roomImages"]))
         self.assertTrue(all(row["sourceType"] == "placeholder" for row in page["roomImages"]))
+        self.assertTrue(all("-clean-v2.jpg" in row["image"] for row in page["roomImages"]))
         self.assertEqual(6, len(page["roomPricePackages"]))
         first_package = page["roomPricePackages"][0]["packages"][0]
         self.assertEqual("7天", first_package["duration"])

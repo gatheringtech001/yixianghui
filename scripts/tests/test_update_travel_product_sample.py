@@ -28,7 +28,7 @@ class UpdateTravelProductSampleTest(unittest.TestCase):
                 "introduction": "基地位于弥勒湖泉商业圈。",
                 "mainImages": [f"/profile/sample-{index}.jpg" for index in range(6)],
                 "roomImages": [{"roomType": room, "occupancy": occupancy,
-                                "image": "/profile/upload/2026/08/17/travel-room-v1/placeholder-twin.jpg",
+                                "image": "/profile/upload/2026/08/17/travel-room-v1/placeholder-twin-clean-v2.jpg",
                                 "sourceType": "placeholder", "placeholderType": "twin"}
                                for room, occupancy, _ in specs],
                 "roomPricePackages": room_prices,

@@ -22,8 +22,8 @@ ROOM_IMAGE_OVERRIDES = {
     ),
 }
 ROOM_PLACEHOLDERS = {
-    "king": f"{ROOM_ASSET_DIR}/placeholder-king.jpg",
-    "twin": f"{ROOM_ASSET_DIR}/placeholder-twin.jpg",
+    "king": f"{ROOM_ASSET_DIR}/placeholder-king-clean-v2.jpg",
+    "twin": f"{ROOM_ASSET_DIR}/placeholder-twin-clean-v2.jpg",
 }
 
 
