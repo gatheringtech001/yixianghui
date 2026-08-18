@@ -18,7 +18,15 @@
 				<view class="information-card">
 					<view class="information-row avatar-row">
 						<text class="row-title">头像</text>
-						<image class="row-avatar" :src="avatarDisplay" mode="aspectFill" />
+						<button
+							class="avatar-button"
+							open-type="chooseAvatar"
+							:disabled="avatarUploading"
+							@chooseavatar="onChooseAvatar"
+						>
+							<image class="row-avatar" :src="avatarDisplay" mode="aspectFill" />
+							<u-icon name="arrow-right" color="#a49c93" size="26" />
+						</button>
 					</view>
 					<view class="information-row" @click="onNickname">
 						<text class="row-title">昵称</text>
@@ -87,6 +95,7 @@
 <script>
 	import { updateInfo, getInfo } from '@/api/public'
 	import { formatRegionAddress, parseRegionFromAddress } from '@/utils/region'
+	import { uploadUserAvatar } from '@/utils/uploadAvatar'
 
 	export default {
 		data() {
@@ -112,7 +121,8 @@
 				defaultRegion: [],
 				defaultRegionCode: ['', '', ''],
 				host: this.$host,
-				userInfo: null
+				userInfo: null,
+				avatarUploading: false
 			};
 		},
 		
@@ -142,6 +152,40 @@
 			}
 		},
 		methods:{
+			async onChooseAvatar(e) {
+				if (this.avatarUploading) return
+				const detail = (e && e.detail) || {}
+				const tempPath = detail.avatarUrl
+				if (!tempPath) {
+					uni.showToast({ title: '头像获取失败，请重试', icon: 'none' })
+					return
+				}
+				try {
+					this.avatarUploading = true
+					uni.showLoading({ title: '上传中...', mask: true })
+					const avatar = await uploadUserAvatar(tempPath)
+					const updateRes = await updateInfo({ avatar })
+					if (updateRes && updateRes.code && updateRes.code !== 200) {
+						throw new Error(updateRes.msg || '头像保存失败')
+					}
+					const infoRes = await getInfo()
+					const userInfo = infoRes.data || {}
+					if (infoRes.liveAddress != null) {
+						userInfo.liveAddress = infoRes.liveAddress
+					}
+					this.userInfo = userInfo
+					uni.setStorageSync('userInfo', userInfo)
+					uni.showToast({ title: '头像修改成功', icon: 'success' })
+				} catch (error) {
+					uni.showToast({
+						title: (error && error.message) || '头像修改失败',
+						icon: 'none'
+					})
+				} finally {
+					this.avatarUploading = false
+					uni.hideLoading({ noConflict: true })
+				}
+			},
 			/**
 			 * 性别
 			 * @param {Object} e

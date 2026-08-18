@@ -150,6 +150,22 @@ $cream: #fbf6ef;
 	box-sizing: border-box;
 }
 
+.avatar-button {
+	display: flex;
+	align-items: center;
+	gap: 14rpx;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	line-height: 1;
+
+	&::after {
+		border: 0;
+	}
+}
+
 .row-value {
 	min-width: 0;
 	display: flex;
