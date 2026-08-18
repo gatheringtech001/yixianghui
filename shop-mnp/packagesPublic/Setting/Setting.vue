@@ -171,7 +171,7 @@
 						break;
 					case 'about':
 						uni.navigateTo({
-							url: '/packagesPublic/AboutUs/AboutUs?id=10'
+							url: '/packagesPublic/AboutUs/AboutUs'
 						})
 						break;
 				}

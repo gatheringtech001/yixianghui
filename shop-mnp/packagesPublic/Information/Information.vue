@@ -13,7 +13,6 @@
 
 				<view class="section-heading">
 					<text class="section-title">基本信息</text>
-					<text class="section-caption">管理头像与联系方式</text>
 				</view>
 				<view class="information-card">
 					<view class="information-row avatar-row">
@@ -46,7 +45,6 @@
 
 				<view class="section-heading">
 					<text class="section-title">更多信息</text>
-					<text class="section-caption">让服务更贴合您的需要</text>
 				</view>
 				<view class="information-card">
 					<view class="information-row picker-row">

@@ -114,9 +114,32 @@ test('profile identity sits lower and personal information follows the current a
   assert.match(information, /\/static\/home-design\/brand-logo-transparent\.png/)
   assert.match(information, /birthday\s*\|\|\s*'未设置'/)
   assert.doesNotMatch(information, /2020-02-02/)
+  assert.doesNotMatch(information, /管理头像与联系方式/)
+  assert.doesNotMatch(information, /让服务更贴合您的需要/)
   assert.match(informationStyle, /\$accent:\s*#701018/)
   assert.match(informationStyle, /\.information-card\s*\{[\s\S]*?border-radius:\s*24rpx/)
   assert.doesNotMatch(informationStyle, /\.page\s*\{[^}]*position:\s*absolute/)
+})
+
+test('about us presents the source-backed Zhixiangju company introduction', async () => {
+  const settings = await read('shop-mnp/packagesPublic/Setting/Setting.vue')
+  const about = await read('shop-mnp/packagesPublic/AboutUs/AboutUs.vue')
+  const style = await read('shop-mnp/packagesPublic/AboutUs/AboutUs.scss')
+
+  assert.match(settings, /url:\s*'\/packagesPublic\/AboutUs\/AboutUs'/)
+  assert.match(about, /上海智享居健康科技有限公司/)
+  assert.match(about, /始于 2022/)
+  assert.match(about, /全国 50\+ 旅居基地/)
+  assert.match(about, /五大业务板块/)
+  assert.match(about, /社区居家养老/)
+  assert.match(about, /康养旅居/)
+  assert.match(about, /社区嵌入式医养机构/)
+  assert.match(about, /智慧享老/)
+  assert.match(about, /适老化设计改造/)
+  assert.match(about, /资料更新于 2025 年 10 月/)
+  assert.doesNotMatch(about, /getNoticeInfo/)
+  assert.match(style, /\$accent:\s*#701018/)
+  assert.match(style, /\.hero-card\s*\{[\s\S]*?border-radius:/)
 })
 
 test('settings and authorization surfaces use the official Yixianghui logo', async () => {
