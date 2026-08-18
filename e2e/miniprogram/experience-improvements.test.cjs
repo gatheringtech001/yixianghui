@@ -129,6 +129,8 @@ test('about us presents a concise customer-facing company introduction', async (
   assert.match(settings, /url:\s*'\/packagesPublic\/AboutUs\/AboutUs'/)
   assert.match(about, /上海智享居健康科技有限公司/)
   assert.match(about, /让美好退休生活自然发生/)
+  assert.match(about, /class="footer-logo" src="\/static\/home-design\/brand-logo-transparent\.png"/)
+  assert.doesNotMatch(about, /class="hero-mark"/)
   assert.match(about, /康养旅居/)
   assert.match(about, /社区康养/)
   assert.match(about, /专业照护/)
@@ -140,6 +142,8 @@ test('about us presents a concise customer-facing company introduction', async (
   assert.doesNotMatch(about, /getNoticeInfo/)
   assert.match(style, /\$accent:\s*#701018/)
   assert.match(style, /\.hero-card\s*\{[\s\S]*?border-radius:/)
+  assert.doesNotMatch(style, /\.footer-logo\s*\{[^}]*background:/)
+  assert.doesNotMatch(style, /\.footer-logo\s*\{[^}]*border-radius:/)
 })
 
 test('settings and authorization surfaces use the official Yixianghui logo', async () => {

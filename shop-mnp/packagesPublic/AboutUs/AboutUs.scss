@@ -32,15 +32,6 @@ $cream: #fbf5ec;
 	box-shadow: 0 24rpx 56rpx rgba(112, 16, 24, 0.22);
 }
 
-.hero-mark {
-	position: absolute;
-	right: -34rpx;
-	bottom: -70rpx;
-	width: 280rpx;
-	height: 280rpx;
-	opacity: 0.09;
-}
-
 .hero-brand,
 .hero-title,
 .hero-summary {
@@ -191,10 +182,8 @@ $cream: #fbf5ec;
 	color: $muted;
 }
 
-.about-footer image {
-	width: 96rpx;
-	height: 96rpx;
+.footer-logo {
+	width: 112rpx;
+	height: 112rpx;
 	margin-bottom: 14rpx;
-	border-radius: 50%;
-	background: $accent;
 }
