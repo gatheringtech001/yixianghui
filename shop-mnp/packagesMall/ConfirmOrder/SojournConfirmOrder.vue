@@ -85,7 +85,7 @@
 					<u-checkbox v-model="isReadingAgreement"></u-checkbox>
 				</view>
 				<text class="agreement-text">我已阅读</text>
-				<text class="agreement-link" @click.stop="openNotice">《预定及入住须知》</text>
+				<text class="agreement-link" @click.stop="openNotice">《预订及入住须知》</text>
 			</view>
 		</view>
 		<view class="page_foot_view" v-if="!popupDate.show">
@@ -150,7 +150,7 @@
 		</u-popup>
 		<u-popup v-model="popupNotice.show" @touchmove.stop.prevent mode="bottom" border-radius="20" :closeable="true">
 			<view class="popup_notice_view">
-				<view class="notice_title_view">{{ noticeInfo.noticeTitle || '预定及入住须知' }}</view>
+				<view class="notice_title_view">{{ noticeInfo.noticeTitle || '预订及入住须知' }}</view>
 				<scroll-view scroll-y class="notice_content_view">
 					<u-parse :html="noticeInfo.noticeContent" />
 				</scroll-view>
@@ -580,7 +580,7 @@
 					} else {
 						uni.showToast({
 							icon: 'none',
-							title: res.msg || '获取预定及入住须知失败'
+							title: res.msg || '获取预订及入住须知失败'
 						})
 					}
 				} catch (err) {
@@ -608,7 +608,7 @@
 				if(!this.isReadingAgreement) {
 					uni.showToast({
 						icon: 'none',
-						title:'请阅读预定及入住须知'
+						title:'请阅读预订及入住须知'
 					})
 					return
 				}
