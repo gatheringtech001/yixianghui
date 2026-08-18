@@ -4,7 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 APP_DIR="${REPO_ROOT}/shop-mnp"
-MINIPROGRAM_OUTPUT="${APP_DIR}/unpackage/dist/dev/mp-weixin"
+MINIPROGRAM_DEV_OUTPUT="${APP_DIR}/unpackage/dist/dev/mp-weixin"
+MINIPROGRAM_OUTPUT="${APP_DIR}/unpackage/dist/build/mp-weixin"
 HBUILDER_CLI="${HBUILDER_CLI:-/Applications/HBuilderX.app/Contents/MacOS/cli}"
 WECHAT_DEVTOOLS_CLI="${WECHAT_DEVTOOLS_CLI:-/Applications/wechatwebdevtools.app/Contents/MacOS/cli}"
 HBUILDER_CONTENTS="$(cd "$(dirname "${HBUILDER_CLI}")/.." && pwd)"
@@ -13,7 +14,8 @@ HBUILDER_NODE="${HBUILDER_PLUGINS}/node/node"
 UNIAPP_CLI="${HBUILDER_PLUGINS}/uniapp-cli/bin/uniapp-cli.js"
 UNIAPP_KILL_SCRIPT="${HBUILDER_PLUGINS}/uniapp-extension/static/kill.js"
 H5_OUTPUT="${APP_DIR}/unpackage/dist/dev/h5"
-MINIPROGRAM_REQUIRED_DOMAIN="${MINIPROGRAM_REQUIRED_DOMAIN:-https://shzxj.lk01.cn}"
+MINIPROGRAM_REQUIRED_API="${MINIPROGRAM_REQUIRED_API:-https://shzxj.lk01.cn/api}"
+MINIPROGRAM_LOCAL_API="${MINIPROGRAM_LOCAL_API:-http://127.0.0.1:18080/api}"
 
 require_executable() {
   if [[ ! -x "$1" ]]; then
@@ -56,24 +58,41 @@ compile_target() {
   fi
 }
 
-compile_miniprogram() {
-  compile_target "mp-weixin" "${MINIPROGRAM_OUTPUT}/app.js"
+compile_miniprogram_dev() {
+  compile_target "mp-weixin" "${MINIPROGRAM_DEV_OUTPUT}/app.js"
+}
+
+build_miniprogram() {
+  require_executable "${HBUILDER_NODE}"
+  require_file "${UNIAPP_CLI}"
+  require_file "${UNIAPP_KILL_SCRIPT}"
+  NODE_ENV=production \
+    UNI_PLATFORM=mp-weixin \
+    UNI_INPUT_DIR="${APP_DIR}" \
+    UNI_OUTPUT_DIR="${MINIPROGRAM_OUTPUT}" \
+    UNI_HBUILDERX_PLUGINS="${HBUILDER_PLUGINS}" \
+    VUE_CLI_CONTEXT="${HBUILDER_PLUGINS}/uniapp-cli" \
+    "${HBUILDER_NODE}" \
+      --max-old-space-size=5120 \
+      --no-warnings \
+      -r "${UNIAPP_KILL_SCRIPT}" \
+      "${UNIAPP_CLI}" \
+      -p mp-weixin
+  require_file "${MINIPROGRAM_OUTPUT}/app.js"
 }
 
 preview_miniprogram() {
   local qr_output="${1:-}"
-  local appid
   if [[ -z "${qr_output}" ]]; then
     echo "Usage: $0 preview-mp <qr-output>" >&2
     exit 2
   fi
-  compile_miniprogram
+  build_miniprogram
   require_executable "${WECHAT_DEVTOOLS_CLI}"
-  appid="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["appid"])' \
-    "${MINIPROGRAM_OUTPUT}/project.config.json")"
-  python3 "${REPO_ROOT}/scripts/check_miniprogram_domains.py" \
-    --appid "${appid}" \
-    --required-domain "${MINIPROGRAM_REQUIRED_DOMAIN}"
+  python3 "${REPO_ROOT}/scripts/check_miniprogram_bundle.py" \
+    --bundle "${MINIPROGRAM_OUTPUT}" \
+    --required-url "${MINIPROGRAM_REQUIRED_API}" \
+    --forbidden-url "${MINIPROGRAM_LOCAL_API}"
   "${WECHAT_DEVTOOLS_CLI}" preview \
     --project "${MINIPROGRAM_OUTPUT}" \
     --qr-format image \
@@ -109,15 +128,15 @@ install_automation() {
 test_miniprogram() {
   require_executable "${WECHAT_DEVTOOLS_CLI}"
   "${REPO_ROOT}/scripts/e2e/backend.sh" test
-  compile_miniprogram
+  compile_miniprogram_dev
   install_automation
   WECHAT_DEVTOOLS_CLI="${WECHAT_DEVTOOLS_CLI}" \
-    MINIPROGRAM_PROJECT_PATH="${MINIPROGRAM_OUTPUT}" \
+    MINIPROGRAM_PROJECT_PATH="${MINIPROGRAM_DEV_OUTPUT}" \
     pnpm --dir "${REPO_ROOT}/e2e/miniprogram" test
 }
 
 case "${1:-}" in
-  build-mp) compile_miniprogram ;;
+  build-mp) build_miniprogram ;;
   preview-mp) preview_miniprogram "${2:-}" ;;
   run-h5) run_h5 ;;
   install) install_automation ;;
