@@ -194,11 +194,11 @@ def build_tabs(items: list[dict[str, Any]], document: dict[str, Any]) \
         "policy": [row["html"] for row in fragments if row["policy"]],
     }
     if not grouped["basic"] or not grouped["policy"]:
-        missing = "基本特色" if not grouped["basic"] else "入住须知"
+        missing = "基地特色" if not grouped["basic"] else "入住须知"
         raise ValueError(f"无法从知识库识别{missing}: {document['title']}")
     tabs = []
     for section_id, section_name, sort_order in (
-        ("basic", "基本特色", 1), ("policy", "入住须知", 2),
+        ("basic", "基地特色", 1), ("policy", "入住须知", 2),
     ):
         content = "".join(grouped[section_id])
         if len(content.encode("utf-8")) > MAX_SECTION_BYTES:
