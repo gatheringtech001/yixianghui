@@ -83,6 +83,7 @@ class TravelProductStandardTest(unittest.TestCase):
             ["基地特色", "入住须知"],
             [row["section_name"] for row in product["content_sections"]],
         )
+        self.assertTrue(all("media" in row for row in product["content_sections"]))
         page = product["page_display"]
         self.assertEqual(
             ["introduction", "mainImages", "roomImages", "roomPricePackages",
@@ -156,6 +157,23 @@ class TravelProductStandardTest(unittest.TestCase):
         self.assertEqual("real", deluxe_twin["sourceType"])
         self.assertTrue(deluxe_twin["image"].endswith("mile-deluxe-twin-real.jpg"))
         self.assertEqual("placeholder", images[("豪华大床房", "2人一间")]["sourceType"])
+
+    def test_preserves_feature_image_with_source_backed_caption(self):
+        source_url = "https://example.com/restaurant.jpg"
+        self.document["assets"][0]["url"] = source_url
+        items = self.items + [
+            {"kind": "paragraph", "text": "基地餐厅"},
+            {"kind": "image", "src": source_url, "alt": ""},
+        ]
+
+        product = build_product(self.document, items)
+        feature = product["content_sections"][0]
+
+        self.assertEqual(1, len(feature["media"]))
+        self.assertEqual("基地餐厅", feature["media"][0]["caption"])
+        self.assertIn("<img", product["page_display"]["details"][0]["content"])
+        self.assertIn("demo-miler-lvbao-001.jpg",
+                      product["page_display"]["details"][0]["content"])
 
 
 if __name__ == "__main__":

@@ -10,8 +10,8 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from travel_asset_policy import COVER_ASSET_INDEX
-from travel_catalog import _load_extractor
+from travel_asset_policy import COVER_ASSET_INDEX, REJECTED_ASSET_SHA256
+from travel_catalog import REMOTE_ASSET_DIR, _load_extractor
 from travel_product_page import apply_page_quality, build_page_display, validate_page_display
 from travel_price_parser import Quote, extract_quotes
 
@@ -46,6 +46,24 @@ BASE_FEATURE_RE = re.compile(
     r"东风韵|太平湖|葡萄酒|锦屏寺|湖泉生态园|可邑小镇|景区|景点|古城"
 )
 ROOM_HEADING_RE = re.compile(r"^.{0,16}(?:标间|大床房|双床房|房间)[:：]?$")
+FEATURE_MEDIA_CAPTIONS = {
+    "ptzlh413322upmyo": {
+        1: "基地外观",
+        2: "基地公共空间",
+        3: "基地卫浴设施",
+        4: "健身房",
+        5: "基地餐厅",
+        6: "多功能会议室",
+        7: "锦屏山弥勒大佛",
+        8: "东风韵艺术小镇",
+        9: "太平湖森林公园",
+        10: "云南红酒庄",
+        11: "锦屏山风景区",
+        12: "湖泉生态园",
+        13: "当地特色餐饮",
+        14: "周边景点分布",
+    },
+}
 
 def _clean_text(value: str) -> str:
     value = re.sub(r"\s+", " ", value).strip(" ·•\t\r\n")
@@ -113,7 +131,39 @@ def _quality_issues(items: list[dict[str, Any]], quotes: list[Quote]) -> list[di
                              [row[0] for row in garbled], [row[1] for row in garbled]))
     return issues
 
-def _content_sections(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _feature_media(document: dict[str, Any], items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    assets = {row.get("url"): row for row in document.get("assets", [])
+              if row.get("status") == "downloaded"
+              and row.get("sha256") not in REJECTED_ASSET_SHA256}
+    captions = FEATURE_MEDIA_CAPTIONS.get(document["slug"], {})
+    media = []
+    for source_ref, item in enumerate(items):
+        if item.get("kind") != "image" or item.get("src") not in assets:
+            continue
+        asset = assets[item["src"]]
+        asset_index = int(asset["index"])
+        caption = captions.get(asset_index)
+        if not caption:
+            nearby = [str(row.get("text") or "") for row in items[max(0, source_ref - 1):source_ref + 2]]
+            clauses = [clause for text in nearby for clause in _clauses(text)
+                       if BASE_FEATURE_RE.search(clause)
+                       and not any(pattern.search(clause) for pattern in (
+                           CONTACT_RE, PRICE_RE, MEDICAL_RE, STAY_NOTICE_RE,
+                       ))]
+            caption = clauses[0][:60] if clauses else None
+        if not caption:
+            continue
+        media.append({
+            "image": f"{REMOTE_ASSET_DIR}/{document['slug']}-{asset_index:03d}.jpg",
+            "caption": caption,
+            "asset_index": asset_index,
+            "source_refs": [source_ref],
+        })
+    return media
+
+
+def _content_sections(document: dict[str, Any],
+                      items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     grouped: dict[str, list[dict[str, Any]]] = {key: [] for key in SECTION_NAMES}
     seen: dict[str, set[str]] = {key: set() for key in SECTION_NAMES}
     source_counts: dict[tuple[str, int], int] = {}
@@ -145,10 +195,13 @@ def _content_sections(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
             seen[match].add(clause)
             source_counts[(match, index)] = source_counts.get((match, index), 0) + 1
             grouped[match].append({"text": clause[:240], "source_refs": [index]})
-    return [
-        {"section_id": key, "section_name": name, "facts": grouped[key][:8]}
-        for key, name in SECTION_NAMES.items()
-    ]
+    feature_media = _feature_media(document, items)
+    return [{
+        "section_id": key,
+        "section_name": name,
+        "facts": grouped[key][:8],
+        "media": feature_media if key == "base_features" else [],
+    } for key, name in SECTION_NAMES.items()]
 
 def _room_packages(quotes: list[Quote]) -> tuple[list[dict[str, Any]], Decimal]:
     grouped: dict[tuple[str, str | None], list[Quote]] = {}
@@ -188,7 +241,7 @@ def build_product(document: dict[str, Any], items: list[dict[str, Any]],
                   generated_at: str | None = None) -> dict[str, Any]:
     quotes = extract_quotes(items)
     packages, starting_price = _room_packages(quotes)
-    sections = _content_sections(items)
+    sections = _content_sections(document, items)
     issues = _quality_issues(items, quotes)
     base_name, alias = _identity(document["title"])
     all_text = " ".join(str(row.get("text") or "") for row in items)

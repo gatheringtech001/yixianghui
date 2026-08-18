@@ -108,7 +108,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["section_id", "section_name", "facts"],
+        "required": ["section_id", "section_name", "facts", "media"],
         "properties": {
           "section_id": {
             "enum": ["base_features", "stay_notice"]
@@ -119,6 +119,10 @@
           "facts": {
             "type": "array",
             "items": {"$ref": "#/$defs/fact"}
+          },
+          "media": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/detail_media"}
           }
         }
       }
@@ -223,6 +227,17 @@
       "required": ["text", "source_refs"],
       "properties": {
         "text": {"type": "string", "minLength": 1, "maxLength": 240},
+        "source_refs": {"$ref": "#/$defs/source_refs"}
+      }
+    },
+    "detail_media": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["image", "caption", "asset_index", "source_refs"],
+      "properties": {
+        "image": {"type": "string", "pattern": "^/profile/upload/.+\\.jpg$"},
+        "caption": {"type": "string", "minLength": 1, "maxLength": 80},
+        "asset_index": {"type": "integer", "minimum": 1},
         "source_refs": {"$ref": "#/$defs/source_refs"}
       }
     },

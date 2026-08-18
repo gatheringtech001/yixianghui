@@ -121,6 +121,14 @@ def _room_rows(document: dict[str, Any], product: dict[str, Any],
 
 def _section(section: dict[str, Any]) -> dict[str, str]:
     content = "".join(f"<p>{html.escape(fact['text'])}</p>" for fact in section["facts"])
+    for media in section.get("media", []):
+        caption = html.escape(media["caption"])
+        image = html.escape(media["image"], quote=True)
+        content += (
+            f"<p><strong>{caption}</strong></p>"
+            f'<p><img src="{image}" alt="{html.escape(media["caption"], quote=True)}" '
+            'style="width:100%;height:auto;display:block;"></p>'
+        )
     return {"title": section["section_name"], "content": content}
 
 
