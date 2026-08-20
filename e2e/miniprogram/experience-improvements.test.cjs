@@ -2,43 +2,15 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs/promises')
 const path = require('node:path')
 const test = require('node:test')
-const zlib = require('node:zlib')
+const {
+  getPaletteAlphaBounds,
+  getTopLeftPaletteAlpha
+} = require('./png-test-helpers.cjs')
 
 const projectRoot = path.resolve(__dirname, '../..')
 
 async function read(relativePath) {
   return fs.readFile(path.join(projectRoot, relativePath), 'utf8')
-}
-
-function getPngChunks(image) {
-  const chunks = []
-  let offset = 8
-
-  while (offset + 12 <= image.length) {
-    const length = image.readUInt32BE(offset)
-    const type = image.toString('ascii', offset + 4, offset + 8)
-    chunks.push({ type, data: image.subarray(offset + 8, offset + 8 + length) })
-    offset += length + 12
-  }
-
-  return chunks
-}
-
-function getTopLeftPaletteAlpha(image) {
-  const chunks = getPngChunks(image)
-  const header = chunks.find(({ type }) => type === 'IHDR')?.data
-  const transparency = chunks.find(({ type }) => type === 'tRNS')?.data
-  const compressed = chunks
-    .filter(({ type }) => type === 'IDAT')
-    .map(({ data }) => data)
-
-  assert.equal(header?.[8], 8, 'icon should use 8-bit color')
-  assert.equal(header?.[9], 3, 'icon should use indexed color')
-  assert.ok(transparency, 'icon should include palette transparency')
-
-  const scanlines = zlib.inflateSync(Buffer.concat(compressed))
-  const topLeftPaletteIndex = scanlines[1]
-  return transparency[topLeftPaletteIndex] ?? 255
 }
 
 async function loadTravelPresentation() {
@@ -211,6 +183,11 @@ test('navigation and service tabs use refined transparent flat icons without a r
     assert.equal(image.readUInt32BE(16), 96, `${icon} width`)
     assert.equal(image.readUInt32BE(20), 96, `${icon} height`)
     assert.equal(getTopLeftPaletteAlpha(image), 0, `${icon} background should be transparent`)
+    assert.deepEqual(
+      getPaletteAlphaBounds(image),
+      { x: 12, y: 12, width: 72, height: 72 },
+      `${icon} should share one strictly centered 72px visible footprint`
+    )
     assert.ok(image.length < 10000, `${icon} should stay package-friendly`)
     totalBytes += image.length
   }
