@@ -17,7 +17,7 @@
 				<image class="login-hero" src="/static/home-design/hero-banner.jpg" mode="aspectFill" />
 				<view class="login-copy">
 					<view class="title">欢迎使用逸享荟康养</view>
-					<view class="desc center">授权登录后，可继续预订旅居、参与活动和签到领金币。</view>
+					<view class="desc login-desc">登录逸享荟，开启美好退休生活</view>
 				</view>
 				<view class="auth-actions">
 					<view
@@ -424,6 +424,11 @@
 		&.center {
 			text-align: center;
 		}
+	}
+
+	.login-desc {
+		text-align: center;
+		white-space: nowrap;
 	}
 
 	.step-heading {
