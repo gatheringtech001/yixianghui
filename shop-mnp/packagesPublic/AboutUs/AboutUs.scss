@@ -4,7 +4,6 @@ $muted: #746d65;
 $line: #e9e1d8;
 $paper: #ffffff;
 $soft: #f7f5f2;
-$cream: #fbf5ec;
 
 .page {
 	width: 100%;
@@ -182,33 +181,6 @@ $cream: #fbf5ec;
 	font-size: 24rpx;
 	line-height: 1.65;
 	color: $muted;
-}
-
-.promise-card {
-	margin-top: 24rpx;
-	padding: 34rpx 32rpx;
-	border-radius: 24rpx;
-	background: $cream;
-}
-
-.promise-label,
-.promise-title {
-	display: block;
-}
-
-.promise-label {
-	font-size: 21rpx;
-	font-weight: 700;
-	letter-spacing: 2rpx;
-	color: $accent;
-}
-
-.promise-title {
-	margin-top: 14rpx;
-	font-size: 30rpx;
-	font-weight: 750;
-	line-height: 1.6;
-	color: $ink;
 }
 
 .about-footer {

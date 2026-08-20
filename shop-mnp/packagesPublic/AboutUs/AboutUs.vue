@@ -29,11 +29,6 @@
 					</view>
 				</view>
 
-				<view class="promise-card">
-					<text class="promise-label">我们的心愿</text>
-					<text class="promise-title">让每一次出发更安心，让每一天生活更丰富。</text>
-				</view>
-
 				<view class="about-footer">
 					<image class="footer-logo" src="/static/home-design/brand-logo-transparent.png" mode="aspectFit" />
 					<text>上海智享居健康科技有限公司</text>
