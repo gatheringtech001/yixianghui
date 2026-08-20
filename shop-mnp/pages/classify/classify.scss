@@ -76,6 +76,14 @@ $rail-bg: #f6f3ed;
 		font-size: 26rpx;
 		font-weight: 760;
 
+		.switcher-icon {
+			width: 42rpx;
+			height: 42rpx;
+			display: block;
+			flex-shrink: 0;
+			opacity: 0.9;
+		}
+
 		& + .switcher-item {
 			border-left: 1rpx solid $line;
 		}
@@ -83,6 +91,11 @@ $rail-bg: #f6f3ed;
 		&.active {
 			background: $ink;
 			color: #fff;
+
+			.switcher-icon {
+				filter: brightness(0) invert(1);
+				opacity: 1;
+			}
 		}
 	}
 }
