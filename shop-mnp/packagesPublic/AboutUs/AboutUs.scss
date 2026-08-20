@@ -125,17 +125,52 @@ $cream: #fbf5ec;
 }
 
 .service-badge {
+	position: relative;
 	display: flex;
-	width: 70rpx;
-	height: 70rpx;
+	width: 74rpx;
+	height: 74rpx;
 	align-items: center;
 	justify-content: center;
-	border-radius: 50%;
-	background: $cream;
-	font-size: 27rpx;
-	font-weight: 800;
+	border: 1rpx solid rgba(112, 16, 24, 0.16);
+	border-radius: 48% 52% 45% 55% / 52% 44% 56% 48%;
+	background: linear-gradient(145deg, #fffdfa 0%, #f8ece5 100%);
+	box-shadow: 0 8rpx 18rpx rgba(112, 16, 24, 0.08);
+	font-family: "STKaiti", "Kaiti SC", "KaiTi", serif;
+	font-size: 32rpx;
+	font-weight: 700;
 	color: $accent;
 	flex-shrink: 0;
+	transform: rotate(-2deg);
+	isolation: isolate;
+}
+
+.service-badge::before {
+	position: absolute;
+	inset: 6rpx;
+	border: 1rpx solid rgba(112, 16, 24, 0.13);
+	border-radius: 54% 46% 52% 48% / 46% 56% 44% 54%;
+	content: "";
+	z-index: -1;
+}
+
+.service-badge::after {
+	position: absolute;
+	right: 7rpx;
+	bottom: 10rpx;
+	width: 13rpx;
+	height: 4rpx;
+	border-radius: 999rpx;
+	background: rgba(112, 16, 24, 0.22);
+	content: "";
+	transform: rotate(-24deg);
+}
+
+.service-card:nth-child(2) .service-badge {
+	transform: rotate(2deg);
+}
+
+.service-card:nth-child(3) .service-badge {
+	transform: rotate(-1deg);
 }
 
 .service-copy {

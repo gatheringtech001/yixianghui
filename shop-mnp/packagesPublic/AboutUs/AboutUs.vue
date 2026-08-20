@@ -21,7 +21,7 @@
 					<text class="section-title">我们为您提供</text>
 					<view class="service-list">
 						<view v-for="item in services" :key="item.title" class="service-card">
-							<view class="service-badge">{{ item.badge }}</view>
+							<view class="service-badge"><text>{{ item.badge }}</text></view>
 							<view class="service-copy">
 								<text class="service-title">{{ item.title }}</text>
 								<text class="service-description">{{ item.description }}</text>
@@ -50,7 +50,7 @@
 			return {
 				services: [
 					{ badge: '旅', title: '康养旅居', description: '精选适合长者的旅居目的地，住得舒心，玩得轻松。' },
-					{ badge: '康', title: '社区康养', description: '把贴心服务带到家门口，让日常生活更便利。' },
+					{ badge: '居', title: '社区康养', description: '把贴心服务带到家门口，让日常生活更便利。' },
 					{ badge: '护', title: '专业照护', description: '以专业、细致的服务，守护长者和家人的安心。' }
 				]
 			}

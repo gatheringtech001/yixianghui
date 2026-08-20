@@ -261,6 +261,8 @@ test('about us presents a concise customer-facing company introduction', async (
   assert.match(about, /康养旅居/)
   assert.match(about, /社区康养/)
   assert.match(about, /专业照护/)
+  assert.match(about, /badge:\s*'旅'[\s\S]*badge:\s*'居'[\s\S]*badge:\s*'护'/)
+  assert.doesNotMatch(about, /badge:\s*'康'/)
   assert.doesNotMatch(about, /全国 50\+ 旅居基地/)
   assert.doesNotMatch(about, /五大业务板块/)
   assert.doesNotMatch(about, /双翼服务模式/)
@@ -270,6 +272,8 @@ test('about us presents a concise customer-facing company introduction', async (
   assert.match(style, /\$accent:\s*#701018/)
   assert.match(style, /\.hero-card\s*\{[\s\S]*?border-radius:/)
   assert.match(style, /\.hero-background\s*\{[\s\S]*?position:\s*absolute/)
+  assert.match(style, /\.service-badge::before\s*\{/)
+  assert.match(style, /\.service-badge\s*\{[\s\S]*?font-family:[^;]*KaiTi/)
   assert.doesNotMatch(style, /\.footer-logo\s*\{[^}]*background:/)
   assert.doesNotMatch(style, /\.footer-logo\s*\{[^}]*border-radius:/)
 
