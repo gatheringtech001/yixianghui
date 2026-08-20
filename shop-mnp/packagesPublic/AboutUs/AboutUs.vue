@@ -3,8 +3,12 @@
 		<scroll-view class="about-scroll" scroll-y :show-scrollbar="false">
 			<view class="about-shell">
 				<view class="hero-card">
+					<image class="hero-background" src="/static/about/about-hero-background.jpg" mode="aspectFill" />
 					<text class="hero-brand">逸享荟</text>
-					<text class="hero-title">让美好退休生活自然发生</text>
+					<text class="hero-title">
+						<text class="hero-title-line">让美好退休生活</text>
+						<text class="hero-title-line">自然发生</text>
+					</text>
 					<text class="hero-summary">陪您发现好去处、认识新朋友，安心享受每一段康养时光。</text>
 				</view>
 

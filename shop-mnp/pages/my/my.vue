@@ -194,7 +194,7 @@
 				contact: [],
 				stewardImageUrl: '',
 				profileHeadPadding: {
-					paddingTop: '100rpx',
+					paddingTop: '124rpx',
 					paddingRight: '40rpx'
 				}
 			}
@@ -236,14 +236,14 @@
 			},
 			setProfileHeadPadding() {
 				const sys = uni.getSystemInfoSync()
-				const baseTop = uni.upx2px(100)
-				let paddingTop = (sys.statusBarHeight || 20) + uni.upx2px(48)
+				const baseTop = uni.upx2px(124)
+				let paddingTop = (sys.statusBarHeight || 20) + uni.upx2px(72)
 				let paddingRight = uni.upx2px(40)
 
 				try {
 					const menuButton = uni.getMenuButtonBoundingClientRect()
 					if (menuButton && menuButton.bottom > 0) {
-						paddingTop = Math.max(paddingTop, menuButton.bottom + uni.upx2px(24))
+						paddingTop = Math.max(paddingTop, menuButton.bottom + uni.upx2px(48))
 					}
 					if (menuButton && menuButton.left > 0) {
 						paddingRight = Math.max(

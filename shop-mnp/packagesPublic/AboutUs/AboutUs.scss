@@ -1,6 +1,4 @@
 $accent: #701018;
-$accent-dark: #4c0b11;
-$gold: #c7a36a;
 $ink: #1b1713;
 $muted: #746d65;
 $line: #e9e1d8;
@@ -26,10 +24,20 @@ $cream: #fbf5ec;
 .hero-card {
 	position: relative;
 	overflow: hidden;
-	padding: 52rpx 38rpx 46rpx;
+	min-height: 430rpx;
+	padding: 48rpx 34rpx 40rpx;
 	border-radius: 30rpx;
-	background: linear-gradient(145deg, $accent 0%, $accent-dark 100%);
-	box-shadow: 0 24rpx 56rpx rgba(112, 16, 24, 0.22);
+	background: #eef4ef;
+	box-shadow: 0 24rpx 56rpx rgba(64, 92, 78, 0.16);
+	box-sizing: border-box;
+}
+
+.hero-background {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
 }
 
 .hero-brand,
@@ -44,24 +52,28 @@ $cream: #fbf5ec;
 	font-size: 25rpx;
 	font-weight: 700;
 	letter-spacing: 5rpx;
-	color: $gold;
+	color: $accent;
 }
 
 .hero-title {
-	max-width: 520rpx;
-	margin-top: 20rpx;
-	font-size: 45rpx;
+	max-width: 410rpx;
+	margin-top: 18rpx;
+	font-size: 41rpx;
 	font-weight: 800;
 	line-height: 1.35;
-	color: #ffffff;
+	color: #24362d;
+}
+
+.hero-title-line {
+	display: block;
 }
 
 .hero-summary {
-	max-width: 560rpx;
-	margin-top: 22rpx;
+	max-width: 400rpx;
+	margin-top: 18rpx;
 	font-size: 26rpx;
-	line-height: 1.75;
-	color: rgba(255, 255, 255, 0.78);
+	line-height: 1.68;
+	color: #5b6d63;
 }
 
 .intro-card {

@@ -120,11 +120,16 @@ test('settings page uses the profile design system and keeps every existing dest
 })
 
 test('profile identity sits lower and personal information follows the current account design', async () => {
+  const mySource = await read('shop-mnp/pages/my/my.vue')
   const myStyle = await read('shop-mnp/pages/my/my.scss')
   const information = await read('shop-mnp/packagesPublic/Information/Information.vue')
   const informationStyle = await read('shop-mnp/packagesPublic/Information/Information.scss')
 
   assert.match(myStyle, /\.profile-info\s*\{[\s\S]*?padding:\s*36rpx\s+0\s+2rpx/)
+  assert.match(myStyle, /\.profile-head\s*\{[\s\S]*?padding:\s*124rpx\s+40rpx\s+48rpx/)
+  assert.match(mySource, /const baseTop = uni\.upx2px\(124\)/)
+  assert.match(mySource, /statusBarHeight \|\| 20\) \+ uni\.upx2px\(72\)/)
+  assert.match(mySource, /menuButton\.bottom \+ uni\.upx2px\(48\)/)
   assert.match(information, /class="profile-summary"/)
   assert.match(information, /class="summary-background"/)
   assert.match(information, /\/static\/account\/account-center-background\.jpg/)
@@ -247,7 +252,10 @@ test('about us presents a concise customer-facing company introduction', async (
 
   assert.match(settings, /url:\s*'\/packagesPublic\/AboutUs\/AboutUs'/)
   assert.match(about, /上海智享居健康科技有限公司/)
-  assert.match(about, /让美好退休生活自然发生/)
+  assert.match(about, /让美好退休生活[\s\S]*自然发生/)
+  assert.match(about, /class="hero-title-line"/)
+  assert.match(about, /class="hero-background"/)
+  assert.match(about, /\/static\/about\/about-hero-background\.jpg/)
   assert.match(about, /class="footer-logo" src="\/static\/home-design\/brand-logo-transparent\.png"/)
   assert.doesNotMatch(about, /class="hero-mark"/)
   assert.match(about, /康养旅居/)
@@ -261,8 +269,16 @@ test('about us presents a concise customer-facing company introduction', async (
   assert.doesNotMatch(about, /getNoticeInfo/)
   assert.match(style, /\$accent:\s*#701018/)
   assert.match(style, /\.hero-card\s*\{[\s\S]*?border-radius:/)
+  assert.match(style, /\.hero-background\s*\{[\s\S]*?position:\s*absolute/)
   assert.doesNotMatch(style, /\.footer-logo\s*\{[^}]*background:/)
   assert.doesNotMatch(style, /\.footer-logo\s*\{[^}]*border-radius:/)
+
+  const background = await fs.readFile(path.join(
+    projectRoot,
+    'shop-mnp/static/about/about-hero-background.jpg'
+  ))
+  assert.deepEqual([...background.subarray(0, 3)], [0xff, 0xd8, 0xff])
+  assert.ok(background.length < 50000, 'about background should stay package-friendly')
 })
 
 test('settings and authorization surfaces use the official Yixianghui logo', async () => {
