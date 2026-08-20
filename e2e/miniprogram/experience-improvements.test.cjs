@@ -121,6 +121,39 @@ test('profile identity sits lower and personal information follows the current a
   assert.doesNotMatch(informationStyle, /\.page\s*\{[^}]*position:\s*absolute/)
 })
 
+test('profile uses one premium generated icon set at production size', async () => {
+  const source = await read('shop-mnp/pages/my/my.vue')
+  const style = await read('shop-mnp/pages/my/my.scss')
+  const icons = [
+    'settings',
+    'order-payment',
+    'order-shipping',
+    'order-receive',
+    'order-refund',
+    'service-advisor',
+    'service-address',
+    'service-favorite'
+  ]
+  let totalBytes = 0
+
+  for (const icon of icons) {
+    assert.match(source, new RegExp(`/static/profile-icons/${icon}\\.png`))
+    const image = await fs.readFile(path.join(
+      projectRoot,
+      `shop-mnp/static/profile-icons/${icon}.png`
+    ))
+    assert.equal(image.readUInt32BE(16), 128, `${icon} width`)
+    assert.equal(image.readUInt32BE(20), 128, `${icon} height`)
+    assert.ok(image.length < 10000, `${icon} should stay package-friendly`)
+    totalBytes += image.length
+  }
+
+  assert.ok(totalBytes < 70000, 'profile icon set should stay below 70 KB')
+  assert.doesNotMatch(source, /order-(?:unpaid|ship|receive|review)\.svg/)
+  assert.match(style, /\.settings-icon\s*\{/)
+  assert.match(style, /\.service-icon\s*\{/)
+})
+
 test('about us presents a concise customer-facing company introduction', async () => {
   const settings = await read('shop-mnp/packagesPublic/Setting/Setting.vue')
   const about = await read('shop-mnp/packagesPublic/AboutUs/AboutUs.vue')

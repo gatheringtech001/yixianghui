@@ -71,6 +71,13 @@ $cream: #fbf6ef;
 		font-size: 24rpx;
 		flex-shrink: 0;
 		white-space: nowrap;
+
+		.settings-icon {
+			width: 64rpx;
+			height: 64rpx;
+			display: block;
+			flex-shrink: 0;
+		}
 	}
 }
 
@@ -200,8 +207,8 @@ $cream: #fbf6ef;
 	color: #111111;
 
 	.order-icon {
-		width: 56rpx;
-		height: 56rpx;
+		width: 88rpx;
+		height: 88rpx;
 		display: block;
 	}
 
@@ -254,6 +261,13 @@ $cream: #fbf6ef;
 		display: inline-flex;
 		align-items: center;
 		gap: 20rpx;
+
+		.service-icon {
+			width: 72rpx;
+			height: 72rpx;
+			display: block;
+			flex-shrink: 0;
+		}
 	}
 
 	.row-arrow {

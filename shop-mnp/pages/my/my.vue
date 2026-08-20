@@ -15,7 +15,7 @@
 							<text v-else>{{ userInfo.nickName }}</text>
 						</view>
 						<view class="settings" @click="onSetting">
-							<u-icon name="setting" color="#333333" size="28" />
+							<image class="settings-icon" src="/static/profile-icons/settings.png" mode="aspectFit" />
 							<text>设置</text>
 						</view>
 					</view>
@@ -61,20 +61,20 @@
 			<view class="order-panel">
 				<view class="order-grid">
 					<view class="order-item" @click="onSkipOrder(1)">
-						<image class="order-icon" src="/static/home-design/order-unpaid.svg" mode="aspectFit" />
+						<image class="order-icon" src="/static/profile-icons/order-payment.png" mode="aspectFit" />
 						<text class="order-label">待付款</text>
 						<text class="order-badge" v-if="orders && orders > 0">{{ orders }}</text>
 					</view>
 					<view class="order-item" @click="onSkipOrder(2)">
-						<image class="order-icon" src="/static/home-design/order-ship.svg" mode="aspectFit" />
+						<image class="order-icon" src="/static/profile-icons/order-shipping.png" mode="aspectFit" />
 						<text class="order-label">待发货</text>
 					</view>
 					<view class="order-item" @click="onSkipOrder(3)">
-						<image class="order-icon" src="/static/home-design/order-receive.svg" mode="aspectFit" />
+						<image class="order-icon" src="/static/profile-icons/order-receive.png" mode="aspectFit" />
 						<text class="order-label">待收货</text>
 					</view>
 					<view class="order-item" @click="onSkipOrder(4)">
-						<image class="order-icon" src="/static/home-design/order-review.svg" mode="aspectFit" />
+						<image class="order-icon" src="/static/profile-icons/order-refund.png" mode="aspectFit" />
 						<text class="order-label">退款中</text>
 					</view>
 				</view>
@@ -86,21 +86,21 @@
 			<view class="service-list">
 				<view class="service-row" @click="onServer('retail')">
 					<view class="row-left">
-						<u-icon name="server-man" color="#111111" size="36" />
+						<image class="service-icon" src="/static/profile-icons/service-advisor.png" mode="aspectFit" />
 						<text>康养顾问中心</text>
 					</view>
 					<text class="row-arrow">&gt;</text>
 				</view>
 				<view class="service-row" @click="onServer('address')">
 					<view class="row-left">
-						<u-icon name="map" color="#111111" size="36" />
+						<image class="service-icon" src="/static/profile-icons/service-address.png" mode="aspectFit" />
 						<text>收货地址</text>
 					</view>
 					<text class="row-arrow">&gt;</text>
 				</view>
 				<view class="service-row" @click="onServer('collect')">
 					<view class="row-left">
-						<u-icon name="star" color="#111111" size="36" />
+						<image class="service-icon" src="/static/profile-icons/service-favorite.png" mode="aspectFit" />
 						<text>我的收藏</text>
 					</view>
 					<text class="row-arrow">&gt;</text>
