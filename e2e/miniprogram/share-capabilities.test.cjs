@@ -11,6 +11,12 @@ async function loadInviteModule() {
   return import(`data:text/javascript;base64,${encoded}`)
 }
 
+async function loadSafeBackModule() {
+  const source = await fs.readFile(path.join(appRoot, 'utils/safeBack.js'), 'utf8')
+  const encoded = Buffer.from(source).toString('base64')
+  return import(`data:text/javascript;base64,${encoded}`)
+}
+
 test('share helpers enable friend, timeline and copy-url parameters', async () => {
   const calls = {}
   global.uni = {
@@ -77,4 +83,61 @@ test('all public content and invitation pages use the unified share mixin', asyn
     assert.match(source, /mixins:\s*\[sharePageMixin\]/, page)
     assert.match(source, /getShareConfig\s*\(/, page)
   }
+})
+
+test('safe back returns to the previous page when the page stack has history', async t => {
+  const calls = []
+  global.getCurrentPages = () => [{ route: 'pages/home/home' }, { route: 'packagesMall/Activity/detail/index' }]
+  global.uni = {
+    navigateBack() {
+      calls.push({ method: 'navigateBack' })
+    },
+    switchTab(options) {
+      calls.push({ method: 'switchTab', options })
+    }
+  }
+  t.after(() => {
+    delete global.getCurrentPages
+    delete global.uni
+  })
+
+  const { safeBack } = await loadSafeBackModule()
+  safeBack()
+
+  assert.deepEqual(calls, [{ method: 'navigateBack' }])
+})
+
+test('safe back opens the home tab when a shared deep link is the only page', async t => {
+  const calls = []
+  global.getCurrentPages = () => [{ route: 'packagesMall/Activity/detail/index' }]
+  global.uni = {
+    navigateBack() {
+      calls.push({ method: 'navigateBack' })
+    },
+    switchTab(options) {
+      calls.push({ method: 'switchTab', options })
+    }
+  }
+  t.after(() => {
+    delete global.getCurrentPages
+    delete global.uni
+  })
+
+  const { safeBack } = await loadSafeBackModule()
+  safeBack()
+
+  assert.deepEqual(calls, [{
+    method: 'switchTab',
+    options: { url: '/pages/home/home' }
+  }])
+})
+
+test('navbar preserves custom back handling and uses safe back by default', async () => {
+  const source = await fs.readFile(
+    path.join(appRoot, 'uview-ui/components/u-navbar/u-navbar.vue'),
+    'utf8'
+  )
+
+  assert.match(source, /import \{ safeBack \} from ['"]@\/utils\/safeBack['"]/)
+  assert.match(source, /if \(typeof this\.customBack === ['"]function['"]\)[\s\S]*this\.customBack\.bind[\s\S]*else \{\s*safeBack\(\)/)
 })

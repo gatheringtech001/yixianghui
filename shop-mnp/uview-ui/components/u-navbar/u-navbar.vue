@@ -34,6 +34,8 @@
 </template>
 
 <script>
+	import { safeBack } from '@/utils/safeBack'
+
 	// 获取系统状态栏的高度
 	let systemInfo = uni.getSystemInfoSync();
 	let menuButtonInfo = {};
@@ -231,7 +233,7 @@
 					// 通过bind()方法，绑定父组件的this，让this.customBack()的this为父组件的上下文
 					this.customBack.bind(this.$u.$parent.call(this))();
 				} else {
-					uni.navigateBack();
+					safeBack();
 				}
 			}
 		}
