@@ -3,6 +3,7 @@
 		<scroll-view class="information-scroll" scroll-y :show-scrollbar="false">
 			<view class="information-shell">
 				<view class="profile-summary">
+					<image class="summary-background" src="/static/account/account-center-background.jpg" mode="aspectFill" />
 					<image class="summary-brand" src="/static/home-design/brand-logo-transparent.png" mode="aspectFit" />
 					<image class="summary-avatar" :src="avatarDisplay" mode="aspectFill" />
 					<view class="summary-copy">

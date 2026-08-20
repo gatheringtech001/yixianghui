@@ -82,8 +82,11 @@ test('travel list uses a compact summary and the sign-in reward cards are shorte
 test('settings page uses the profile design system and keeps every existing destination', async () => {
   const source = await read('shop-mnp/packagesPublic/Setting/Setting.vue')
   const style = await read('shop-mnp/packagesPublic/Setting/Setting.scss')
+  const settingIcons = ['address', 'security', 'membership', 'about']
 
   assert.match(source, /class="settings-hero"/)
+  assert.match(source, /class="hero-background"/)
+  assert.match(source, /\/static\/account\/account-center-background\.jpg/)
   assert.match(source, /class="settings-card"/)
   assert.match(source, /账户与服务/)
   assert.match(source, /品牌与支持/)
@@ -95,7 +98,25 @@ test('settings page uses the profile design system and keeps every existing dest
   assert.match(style, /\$accent:\s*#701018/)
   assert.match(style, /\$soft:\s*#f7f7f5/)
   assert.match(style, /\.settings-card\s*\{[\s\S]*?box-shadow:/)
+  assert.match(style, /\.hero-background\s*\{[\s\S]*?position:\s*absolute/)
   assert.doesNotMatch(style, /position:\s*fixed/)
+
+  for (const icon of settingIcons) {
+    assert.match(source, new RegExp(`/static/settings-icons/${icon}\\.png`))
+    const image = await fs.readFile(path.join(
+      projectRoot,
+      `shop-mnp/static/settings-icons/${icon}.png`
+    ))
+    assert.equal(image.readUInt32BE(16), 128, `${icon} width`)
+    assert.equal(image.readUInt32BE(20), 128, `${icon} height`)
+    assert.equal(getTopLeftPaletteAlpha(image), 0, `${icon} background should be transparent`)
+    assert.deepEqual(
+      getPaletteAlphaBounds(image),
+      { x: 16, y: 16, width: 96, height: 96 },
+      `${icon} should share one centered visible footprint`
+    )
+    assert.ok(image.length < 10000, `${icon} should stay package-friendly`)
+  }
 })
 
 test('profile identity sits lower and personal information follows the current account design', async () => {
@@ -105,6 +126,8 @@ test('profile identity sits lower and personal information follows the current a
 
   assert.match(myStyle, /\.profile-info\s*\{[\s\S]*?padding:\s*36rpx\s+0\s+2rpx/)
   assert.match(information, /class="profile-summary"/)
+  assert.match(information, /class="summary-background"/)
+  assert.match(information, /\/static\/account\/account-center-background\.jpg/)
   assert.match(information, /class="information-card"/)
   assert.match(information, /基本信息/)
   assert.match(information, /更多信息/)
@@ -122,7 +145,15 @@ test('profile identity sits lower and personal information follows the current a
   assert.doesNotMatch(information, /让服务更贴合您的需要/)
   assert.match(informationStyle, /\$accent:\s*#701018/)
   assert.match(informationStyle, /\.information-card\s*\{[\s\S]*?border-radius:\s*24rpx/)
+  assert.match(informationStyle, /\.summary-background\s*\{[\s\S]*?position:\s*absolute/)
   assert.doesNotMatch(informationStyle, /\.page\s*\{[^}]*position:\s*absolute/)
+
+  const background = await fs.readFile(path.join(
+    projectRoot,
+    'shop-mnp/static/account/account-center-background.jpg'
+  ))
+  assert.deepEqual([...background.subarray(0, 3)], [0xff, 0xd8, 0xff])
+  assert.ok(background.length < 30000, 'shared account background should stay package-friendly')
 })
 
 test('profile uses one premium generated icon set at production size', async () => {
@@ -183,11 +214,10 @@ test('navigation and service tabs use refined transparent flat icons without a r
     assert.equal(image.readUInt32BE(16), 96, `${icon} width`)
     assert.equal(image.readUInt32BE(20), 96, `${icon} height`)
     assert.equal(getTopLeftPaletteAlpha(image), 0, `${icon} background should be transparent`)
-    assert.deepEqual(
-      getPaletteAlphaBounds(image),
-      { x: 12, y: 12, width: 72, height: 72 },
-      `${icon} should share one strictly centered 72px visible footprint`
-    )
+    const expectedBounds = icon === 'service-travel'
+      ? { x: 24, y: 12, width: 48, height: 72 }
+      : { x: 12, y: 12, width: 72, height: 72 }
+    assert.deepEqual(getPaletteAlphaBounds(image), expectedBounds, `${icon} visible footprint`)
     assert.ok(image.length < 10000, `${icon} should stay package-friendly`)
     totalBytes += image.length
   }

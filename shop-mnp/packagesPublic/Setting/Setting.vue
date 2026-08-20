@@ -3,6 +3,7 @@
 		<scroll-view class="settings-scroll" scroll-y :show-scrollbar="false">
 			<view class="settings-shell">
 				<view class="settings-hero" @click="onUserInfo">
+					<image class="hero-background" src="/static/account/account-center-background.jpg" mode="aspectFill" />
 					<image class="hero-brand" src="/static/home-design/brand-logo-transparent.png" mode="aspectFit" />
 					<view class="hero-topline">
 						<text class="hero-eyebrow">逸享荟账户中心</text>
@@ -26,7 +27,7 @@
 					<view class="settings-card">
 						<view class="settings-row" @click="onAddress">
 							<view class="settings-icon">
-								<u-icon name="map" color="#701018" size="34" />
+								<image src="/static/settings-icons/address.png" mode="aspectFit" />
 							</view>
 							<view class="row-copy">
 								<text class="row-title">地址管理</text>
@@ -36,7 +37,7 @@
 						</view>
 						<view class="settings-row" @click="onSetting('account')">
 							<view class="settings-icon">
-								<u-icon name="lock" color="#701018" size="34" />
+								<image src="/static/settings-icons/security.png" mode="aspectFit" />
 							</view>
 							<view class="row-copy">
 								<text class="row-title">账户安全</text>
@@ -45,8 +46,8 @@
 							<u-icon name="arrow-right" color="#a49c93" size="26" />
 						</view>
 						<view class="settings-row" @click="onSetting('vip')">
-							<view class="settings-icon membership-icon">
-								<u-icon name="integral" color="#8a5b18" size="34" />
+							<view class="settings-icon">
+								<image src="/static/settings-icons/membership.png" mode="aspectFit" />
 							</view>
 							<view class="row-copy">
 								<text class="row-title">逸享荟会员</text>
@@ -65,7 +66,7 @@
 					<view class="settings-card">
 						<view class="settings-row" @click="onSetting('about')">
 							<view class="settings-icon">
-								<u-icon name="info-circle" color="#701018" size="34" />
+								<image src="/static/settings-icons/about.png" mode="aspectFit" />
 							</view>
 							<view class="row-copy">
 								<text class="row-title">关于我们</text>
