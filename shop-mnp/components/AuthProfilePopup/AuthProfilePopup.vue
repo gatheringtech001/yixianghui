@@ -93,6 +93,11 @@
 <script>
 	import { uploadUserAvatar } from '@/utils/uploadAvatar'
 
+	const POLICY_PAGE_IDS = {
+		agreement: 1,
+		privacy: 5
+	}
+
 	export default {
 		name: 'AuthProfilePopup',
 		data() {
@@ -192,13 +197,9 @@
 				}
 			},
 			openPolicy(type) {
-				const state = this.$store && this.$store.state
-				const config = (state && state.config) || {}
-				const articleId = type === 'privacy'
-					? config.privacy_policy_id
-					: config.user_agreement_id
+				const articleId = POLICY_PAGE_IDS[type]
 				if (!articleId) {
-					uni.showToast({ title: '协议内容加载中，请稍后重试', icon: 'none' })
+					uni.showToast({ title: '协议类型无效', icon: 'none' })
 					return
 				}
 				uni.navigateTo({

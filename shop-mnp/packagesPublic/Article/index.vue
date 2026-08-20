@@ -6,6 +6,8 @@
 		<view class="detail" v-if="detailInfo">
 			<u-parse :html="detailInfo.content" :autosetTitle="false" />
 		</view>
+		<view class="detail" v-else-if="errorMessage">{{ errorMessage }}</view>
+		<view class="detail" v-else>正在加载...</view>
 	</view>
 </template>
 
@@ -22,7 +24,8 @@
 			return {
 				host: this.$host,
 				detailInfo: null,
-				articleId: null
+				articleId: null,
+				errorMessage: ''
 			}
 		},
 		onLoad(option) {
@@ -39,12 +42,18 @@
 				}
 			},
 			async getArticleDetail(id) {
-				let {
-					data
-				} = await getSingleInfo(id)
-				this.detailInfo = data
-				if (this.detailInfo.content) {
+				this.errorMessage = ''
+				try {
+					const response = await getSingleInfo(id)
+					if (!response.data || !response.data.content) {
+						throw new Error('协议内容尚未配置')
+					}
+					this.detailInfo = response.data
 					this.detailInfo.content = prepareRichTextHtml(this.detailInfo.content, this.host)
+					uni.setNavigationBarTitle({ title: this.detailInfo.pageName || '协议详情' })
+				} catch (error) {
+					this.detailInfo = null
+					this.errorMessage = (error && error.message) || '内容加载失败，请稍后重试'
 				}
 			}
 		}

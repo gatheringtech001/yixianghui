@@ -59,6 +59,18 @@ test('authorization is a full-page gated flow and phone binding stays optional',
   assert.match(source, /height:\s*100%/)
 })
 
+test('authorization policy links use the existing published single-page records', async () => {
+  const authorization = await read('shop-mnp/components/AuthProfilePopup/AuthProfilePopup.vue')
+  const article = await read('shop-mnp/packagesPublic/Article/index.vue')
+
+  assert.doesNotMatch(authorization, /\$store/)
+  assert.match(authorization, /POLICY_PAGE_IDS\s*=\s*\{\s*agreement:\s*1,\s*privacy:\s*5\s*\}/)
+  assert.match(authorization, /const articleId = POLICY_PAGE_IDS\[type\]/)
+  assert.match(authorization, /Article\/index\?id=\$\{articleId\}/)
+  assert.match(article, /errorMessage/)
+  assert.match(article, /内容加载失败，请稍后重试/)
+})
+
 test('travel calendars derive their label from the selected SKU instead of a constant', async () => {
   const detail = await read('shop-mnp/packagesMall/GoodsDetails/SojournGoodsDetails.vue')
   const confirm = await read('shop-mnp/packagesMall/ConfirmOrder/SojournConfirmOrder.vue')
