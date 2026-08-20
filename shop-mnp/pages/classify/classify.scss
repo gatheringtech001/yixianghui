@@ -76,6 +76,14 @@ $rail-bg: #f6f3ed;
 		font-size: 26rpx;
 		font-weight: 760;
 
+		.switcher-icon {
+			width: 42rpx;
+			height: 42rpx;
+			display: block;
+			flex-shrink: 0;
+			opacity: 0.68;
+		}
+
 		& + .switcher-item {
 			border-left: 1rpx solid $line;
 		}
@@ -84,15 +92,8 @@ $rail-bg: #f6f3ed;
 			background: $ink;
 			color: #fff;
 
-			&::after {
-				content: '';
-				position: absolute;
-				left: 20rpx;
-				right: 20rpx;
-				bottom: 0;
-				height: 4rpx;
-				border-radius: 999rpx;
-				background: $accent;
+			.switcher-icon {
+				opacity: 1;
 			}
 		}
 	}

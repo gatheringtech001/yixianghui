@@ -21,7 +21,7 @@
 				:class="{ active: isTravelTab }"
 				@click="switchToTravel"
 			>
-				<u-icon name="map" :color="isTravelTab ? '#ffffff' : '#333333'" size="28" />
+				<image class="switcher-icon" src="/static/navigation-icons/service-travel.png" mode="aspectFit" />
 				<text>全国旅居</text>
 			</view>
 			<view
@@ -29,7 +29,7 @@
 				:class="{ active: isActivityTab }"
 				@click="switchToActivity"
 			>
-				<u-icon name="account-fill" :color="isActivityTab ? '#ffffff' : '#333333'" size="28" />
+				<image class="switcher-icon" src="/static/navigation-icons/service-activity.png" mode="aspectFit" />
 				<text>聚会活动</text>
 			</view>
 			<view
@@ -37,7 +37,7 @@
 				:class="{ active: isEducationTab }"
 				@click="switchToEducation"
 			>
-				<u-icon name="file-text" :color="isEducationTab ? '#ffffff' : '#333333'" size="28" />
+				<image class="switcher-icon" src="/static/navigation-icons/service-education.png" mode="aspectFit" />
 				<text>老年教育</text>
 			</view>
 		</view>

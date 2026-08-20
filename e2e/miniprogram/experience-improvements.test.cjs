@@ -187,6 +187,47 @@ test('profile uses one premium generated icon set at production size', async () 
   assert.match(style, /\.service-icon\s*\{/)
 })
 
+test('navigation and service tabs use premium transparent icons without a red underline', async () => {
+  const tabBar = await read('shop-mnp/components/TabBar/TabBar.vue')
+  const service = await read('shop-mnp/pages/classify/classify.vue')
+  const serviceStyle = await read('shop-mnp/pages/classify/classify.scss')
+  const tabIcons = ['nav-home', 'nav-service', 'nav-coins', 'nav-support', 'nav-profile']
+  const serviceIcons = ['service-travel', 'service-activity', 'service-education']
+  const icons = [...tabIcons, ...serviceIcons]
+  let totalBytes = 0
+
+  for (const icon of tabIcons) {
+    assert.match(tabBar, new RegExp(`/static/navigation-icons/${icon}\\.png`))
+  }
+  for (const icon of serviceIcons) {
+    assert.match(service, new RegExp(`/static/navigation-icons/${icon}\\.png`))
+  }
+  for (const icon of icons) {
+    const image = await fs.readFile(path.join(
+      projectRoot,
+      `shop-mnp/static/navigation-icons/${icon}.png`
+    ))
+    assert.equal(image.readUInt32BE(16), 128, `${icon} width`)
+    assert.equal(image.readUInt32BE(20), 128, `${icon} height`)
+    assert.equal(getTopLeftPaletteAlpha(image), 0, `${icon} background should be transparent`)
+    assert.ok(image.length < 10000, `${icon} should stay package-friendly`)
+    totalBytes += image.length
+  }
+
+  const switcherMarkup = service.slice(
+    service.indexOf('<view class="switcher">'),
+    service.indexOf('<view class="page_body_view">')
+  )
+  const switcherStyle = serviceStyle.slice(
+    serviceStyle.indexOf('.switcher {'),
+    serviceStyle.indexOf('.page_body_view')
+  )
+  assert.ok(totalBytes < 70000, 'navigation icon set should stay below 70 KB')
+  assert.doesNotMatch(tabBar, /\/static\/home-design\/tab-/)
+  assert.doesNotMatch(switcherMarkup, /<u-icon/)
+  assert.doesNotMatch(switcherStyle, /&::after/)
+})
+
 test('about us presents a concise customer-facing company introduction', async () => {
   const settings = await read('shop-mnp/packagesPublic/Setting/Setting.vue')
   const about = await read('shop-mnp/packagesPublic/AboutUs/AboutUs.vue')
