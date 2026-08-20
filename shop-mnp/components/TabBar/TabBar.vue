@@ -23,27 +23,27 @@
 					{
 						index: 0,
 						name: '首页',
-						icon: '/static/navigation-icons/nav-home.png'
+						icon: '/static/home-design/tab-home.png'
 					},
 					{
 						index: 1,
 						name: '服务',
-						icon: '/static/navigation-icons/nav-service.png'
+						icon: '/static/home-design/tab-service.png'
 					},
 					{
 						index: 2,
 						name: '领金币',
-						icon: '/static/navigation-icons/nav-coins.png'
+						icon: '/static/home-design/tab-coins.png'
 					},
 					{
 						index: 3,
 						name: '客服',
-						icon: '/static/navigation-icons/nav-support.png'
+						icon: '/static/home-design/tab-support.png'
 					},
 					{
 						index: 4,
 						name: '我的',
-						icon: '/static/navigation-icons/nav-profile.png'
+						icon: '/static/home-design/tab-profile.png'
 					}
 				]
 			}
