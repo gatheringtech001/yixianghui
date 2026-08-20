@@ -9,7 +9,6 @@
 						<text class="hero-title-line">让美好退休生活</text>
 						<text class="hero-title-line">自然发生</text>
 					</text>
-					<text class="hero-summary">陪您发现好去处、认识新朋友，安心享受每一段康养时光。</text>
 				</view>
 
 				<view class="intro-card">

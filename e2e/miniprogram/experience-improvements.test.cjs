@@ -257,6 +257,8 @@ test('about us presents a concise customer-facing company introduction', async (
   assert.match(about, /class="hero-background"/)
   assert.match(about, /\/static\/about\/about-hero-background\.jpg/)
   assert.match(about, /class="footer-logo" src="\/static\/home-design\/brand-logo-transparent\.png"/)
+  assert.doesNotMatch(about, /hero-summary/)
+  assert.doesNotMatch(about, /陪您发现好去处、认识新朋友/)
   assert.doesNotMatch(about, /class="hero-mark"/)
   assert.match(about, /康养旅居/)
   assert.match(about, /社区康养/)
@@ -270,12 +272,13 @@ test('about us presents a concise customer-facing company introduction', async (
   assert.doesNotMatch(about, /资料更新于/)
   assert.doesNotMatch(about, /getNoticeInfo/)
   assert.match(style, /\$accent:\s*#701018/)
-  assert.match(style, /\.hero-card\s*\{[\s\S]*?border-radius:/)
+  assert.match(style, /\.hero-card\s*\{[^}]*min-height:\s*280rpx;[^}]*border-radius:/)
   assert.match(style, /\.hero-background\s*\{[\s\S]*?position:\s*absolute/)
   assert.match(style, /\.service-badge::before\s*\{/)
   assert.match(style, /\.service-badge\s*\{[\s\S]*?font-family:[^;]*KaiTi/)
   assert.doesNotMatch(style, /\.footer-logo\s*\{[^}]*background:/)
   assert.doesNotMatch(style, /\.footer-logo\s*\{[^}]*border-radius:/)
+  assert.match(style, /\.footer-logo\s*\{[^}]*width:\s*84rpx;[^}]*height:\s*84rpx;/)
 
   const background = await fs.readFile(path.join(
     projectRoot,
