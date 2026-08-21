@@ -95,6 +95,16 @@ test('travel list uses a compact summary and the sign-in reward cards are shorte
   assert.match(signInStyle, /\.day\s*\{[\s\S]*?min-height:\s*168rpx/)
 })
 
+test('home header uses one beige surface across the navbar and search area', async () => {
+  const home = await read('shop-mnp/pages/home/home.vue')
+  const style = await read('shop-mnp/pages/home/home.scss')
+
+  assert.match(home, /class="weapp-nav-box home-nav"[^>]*background:\s*'#EFEBDF'/)
+  assert.doesNotMatch(home, /class="weapp-nav-box home-nav"[^>]*background:\s*'#ffffff'/)
+  assert.match(style, /\$header:\s*#EFEBDF/)
+  assert.match(style, /\.head-info\s*\{[^}]*background-color:\s*\$header/)
+})
+
 test('settings page uses the profile design system and keeps every existing destination', async () => {
   const source = await read('shop-mnp/packagesPublic/Setting/Setting.vue')
   const style = await read('shop-mnp/packagesPublic/Setting/Setting.scss')

@@ -1,6 +1,6 @@
 <template>
 	<view class="page">
-		<u-navbar class="weapp-nav-box home-nav" :is-back="false" :background="{ background: '#ffffff' }" :border-bottom="false">
+		<u-navbar class="weapp-nav-box home-nav" :is-back="false" :background="{ background: '#EFEBDF' }" :border-bottom="false">
 			<view class="slot-wrap home-brand">
 				<image v-if="brandLogoDisplay" class="brand-logo" :src="brandLogoDisplay" mode="aspectFit" />
 				<text class="brand-title">逸享荟康养</text>

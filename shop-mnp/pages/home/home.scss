@@ -6,6 +6,7 @@ $line: #e8e1d8;
 $paper: #ffffff;
 $soft: #f7f7f5;
 $cream: #fbf6ef;
+$header: #EFEBDF;
 
 .page {
 	min-height: 100%;
@@ -39,7 +40,7 @@ $cream: #fbf6ef;
 .head-info {
 	width: 100%;
 	padding: 0 28rpx 16rpx;
-	background-color: $paper;
+	background-color: $header;
 	flex-shrink: 0;
 	box-sizing: border-box;
 
