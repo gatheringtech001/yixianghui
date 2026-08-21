@@ -85,6 +85,38 @@ test('all public content and invitation pages use the unified share mixin', asyn
   }
 })
 
+test('travel and education detail footers expose native share before contact', async () => {
+  const cases = [
+    {
+      page: 'packagesMall/GoodsDetails/SojournGoodsDetails.vue',
+      style: 'packagesMall/GoodsDetails/SojournGoodsDetails.scss',
+      footerClass: 'page_foot_view',
+      contactText: '联系客服',
+      columns: /grid-template-columns:\s*180rpx\s+180rpx\s+1fr/
+    },
+    {
+      page: 'packagesMall/GoodsDetails/EducationGoodsDetails.vue',
+      style: 'packagesMall/GoodsDetails/EducationGoodsDetails.scss',
+      footerClass: 'bottom-action',
+      contactText: 'labels.consultPhone',
+      columns: /grid-template-columns:\s*1fr\s+1fr\s+1\.35fr/
+    }
+  ]
+
+  for (const item of cases) {
+    const source = await fs.readFile(path.join(appRoot, item.page), 'utf8')
+    const style = await fs.readFile(path.join(appRoot, item.style), 'utf8')
+    const footerStart = source.indexOf(`class="${item.footerClass}"`)
+    const footer = source.slice(footerStart, source.indexOf('</view>', footerStart) + 7)
+
+    assert.notEqual(footerStart, -1, item.page)
+    assert.match(footer, /<button[^>]*open-type="share"[^>]*>[\s\S]*?分享[\s\S]*?<\/button>/, item.page)
+    assert.ok(footer.indexOf('open-type="share"') < footer.indexOf(item.contactText), item.page)
+    assert.match(style, item.columns, item.style)
+    assert.match(style, /\.share-button\s*\{[\s\S]*?&::after\s*\{[\s\S]*?border:\s*none/, item.style)
+  }
+})
+
 test('safe back returns to the previous page when the page stack has history', async t => {
   const calls = []
   global.getCurrentPages = () => [{ route: 'pages/home/home' }, { route: 'packagesMall/Activity/detail/index' }]

@@ -113,6 +113,9 @@
 		</view>
 	</scroll-view>
 	<view class="page_foot_view">
+		<button class="foot_secondary_view share-button" open-type="share">
+			<text>分享</text>
+		</button>
 		<view class="foot_secondary_view" @click="customerServiceData.show = true">
 			<text>联系客服</text>
 		</view>

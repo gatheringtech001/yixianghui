@@ -78,6 +78,7 @@
 			</view>
 		</scroll-view>
 		<view class="bottom-action" v-if="courseData">
+			<button class="btn secondary share-button" open-type="share">分享</button>
 			<view class="btn secondary" @click="callPhone">{{ labels.consultPhone }}</view>
 			<view class="btn primary" :class="{ disabled: !canApply }" @click="applyCourse">{{ applyButtonText }}</view>
 		</view>
