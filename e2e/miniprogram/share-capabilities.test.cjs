@@ -86,6 +86,13 @@ test('all public content and invitation pages use the unified share mixin', asyn
 })
 
 test('travel and education detail footers expose native share before contact', async () => {
+  const activity = await fs.readFile(
+    path.join(appRoot, 'packagesMall/Activity/detail/index.vue'),
+    'utf8'
+  )
+  const referenceStart = activity.indexOf('<button class="share-btn"')
+  const referenceEnd = activity.indexOf('</button>', referenceStart) + 9
+  const referenceButton = activity.slice(referenceStart, referenceEnd).replace(/\s+/g, ' ')
   const cases = [
     {
       page: 'packagesMall/GoodsDetails/SojournGoodsDetails.vue',
@@ -108,12 +115,17 @@ test('travel and education detail footers expose native share before contact', a
     const style = await fs.readFile(path.join(appRoot, item.style), 'utf8')
     const footerStart = source.indexOf(`class="${item.footerClass}"`)
     const footer = source.slice(footerStart, source.indexOf('</view>', footerStart) + 7)
+    const buttonStart = footer.indexOf('<button')
+    const buttonEnd = footer.indexOf('</button>', buttonStart) + 9
+    const shareButton = footer.slice(buttonStart, buttonEnd).replace(/\s+/g, ' ')
 
     assert.notEqual(footerStart, -1, item.page)
-    assert.match(footer, /<button[^>]*open-type="share"[^>]*>[\s\S]*?分享[\s\S]*?<\/button>/, item.page)
+    assert.equal(shareButton, referenceButton, item.page)
     assert.ok(footer.indexOf('open-type="share"') < footer.indexOf(item.contactText), item.page)
     assert.match(style, item.columns, item.style)
-    assert.match(style, /\.share-button\s*\{[\s\S]*?&::after\s*\{[\s\S]*?border:\s*none/, item.style)
+    assert.match(style, /\.share-btn\s*\{[\s\S]*?min-height:\s*76rpx;[\s\S]*?border-radius:\s*12rpx;[\s\S]*?flex-direction:\s*column;/, item.style)
+    assert.match(style, /\.btn-label\s*\{[\s\S]*?font-size:\s*24rpx;[\s\S]*?font-weight:\s*700;/, item.style)
+    assert.match(style, /&::after\s*\{[\s\S]*?display:\s*none;/, item.style)
   }
 })
 

@@ -113,8 +113,9 @@
 		</view>
 	</scroll-view>
 	<view class="page_foot_view">
-		<button class="foot_secondary_view share-button" open-type="share">
-			<text>分享</text>
+		<button class="share-btn" open-type="share">
+			<u-icon name="share-fill" color="#701018" size="32"></u-icon>
+			<text class="btn-label">分享</text>
 		</button>
 		<view class="foot_secondary_view" @click="customerServiceData.show = true">
 			<text>联系客服</text>
