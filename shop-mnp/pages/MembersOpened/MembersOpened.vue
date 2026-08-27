@@ -129,15 +129,15 @@
 
 			<scroll-view class="customer-scroll" scroll-y :show-scrollbar="false">
 				<view class="support-info">
-					<view class="support-qr-block" @tap="openGroupQr">
+					<view class="support-qr-block">
 						<image
 							class="support-qr"
-							:src="qrDisplayPath || '/static/home-design/support-qr.png'"
+							:src="customerData.qrCode || '/static/home-design/support-qr.png'"
 							mode="aspectFit"
 							show-menu-by-longpress
-							@tap.stop="openGroupQr"
+							@tap="openGroupQr"
 						/>
-						<text>点击二维码加群</text>
+						<text>点击放大，长按识别加群</text>
 					</view>
 					<view class="support-time-block">
 						<view class="card-title">客服在线时间</view>
@@ -205,7 +205,6 @@
 				canvasW: 0,
 				canvasH: 0,
 				userCard: undefined,
-				qrLocalPath: '',
 				staffAvatar: '/static/img/customer-avatar.png',
 				customerData: {
 					headerBg: '',
@@ -237,11 +236,6 @@
 			uni.hideTabBar()
 		},
 
-		computed: {
-			qrDisplayPath() {
-				return this.qrLocalPath || this.customerData.qrCode
-			}
-		},
 		async onShow() {
 			if (!this.showLegacyLayout) {
 				this.getCustomerRemoteData()
@@ -315,10 +309,6 @@
 				} catch (error) {
 					console.error('加载客服配置失败:', error)
 				}
-				if (this.customerData.qrCode) {
-					await this.prepareQrLocalPath()
-				}
-				await this.prepareStaffLocalPaths()
 			},
 			parseStaffListFromContent(staffData) {
 				// 兼容两种结构：
@@ -369,72 +359,7 @@
 				}
 				return `${this.host}/${path}`
 			},
-			getDownloadUrls(primary) {
-				if (!primary) return []
-				const urls = [primary]
-				if (primary.includes('/api/profile/')) {
-					const assetHost = (this.host || '').replace(/\/api\/?$/, '')
-					const path = primary.replace(/^https?:\/\/[^/]+/, '').replace('/api/profile/', '/profile/')
-					if (assetHost) urls.push(`${assetHost}${path}`)
-				}
-				return [...new Set(urls.filter(Boolean))]
-			},
-			downloadQrFile(url) {
-				return new Promise((resolve) => {
-					uni.downloadFile({
-						url,
-						success: (res) => {
-							if (res.statusCode === 200 && res.tempFilePath) {
-								resolve(res.tempFilePath)
-							} else {
-								resolve('')
-							}
-						},
-						fail: () => resolve('')
-					})
-				})
-			},
-			async resolveImageLocalPath(url) {
-				if (!url) return ''
-				if (url.startsWith('/static/')) {
-					return new Promise((resolve) => {
-						uni.getImageInfo({
-							src: url,
-							success: (res) => resolve(res.path),
-							fail: () => resolve(url)
-						})
-					})
-				}
-				if (url.startsWith('wxfile://') || url.includes('tmp')) {
-					return url
-				}
-				const urls = this.getDownloadUrls(url)
-				for (let i = 0; i < urls.length; i++) {
-					const tempFilePath = await this.downloadQrFile(urls[i])
-					if (tempFilePath) return tempFilePath
-				}
-				return url
-			},
-			prepareQrLocalPath() {
-				const url = this.customerData.qrCode
-				if (!url) return Promise.resolve('')
-				return this.resolveImageLocalPath(url).then((path) => {
-					if (path) this.qrLocalPath = path
-					return path
-				})
-			},
-			async prepareStaffLocalPaths() {
-				const staffList = this.customerData.staffList || []
-				for (let i = 0; i < staffList.length; i++) {
-					const url = staffList[i].qrCode
-					if (!url) continue
-					const path = await this.resolveImageLocalPath(url)
-					if (path) {
-						this.$set(staffList[i], 'displayPath', path)
-					}
-				}
-			},
-			async previewQrImage(url) {
+			previewQrImage(url) {
 				if (!url) {
 					uni.showToast({
 						icon: 'none',
@@ -442,29 +367,16 @@
 					})
 					return
 				}
-				uni.showLoading({
-					title: '加载中...',
-					mask: true
-				})
-				const path = await this.resolveImageLocalPath(url)
-				uni.hideLoading()
-				if (!path) {
-					uni.showToast({
-						icon: 'none',
-						title: '二维码加载失败'
-					})
-					return
-				}
 				uni.previewImage({
-					urls: [path],
-					current: path
+					urls: [url],
+					current: url
 				})
 			},
-			async openGroupQr() {
-				await this.previewQrImage(this.customerData.qrCode)
+			openGroupQr() {
+				this.previewQrImage(this.customerData.qrCode)
 			},
 			previewStaffQr(staff) {
-				this.previewQrImage(staff.displayPath || staff.qrCode)
+				this.previewQrImage(staff.qrCode)
 			},
 			callHotline() {
 				uni.makePhoneCall({

@@ -164,12 +164,12 @@
 					<text>优质路线推荐</text>
 				</view>
 				<view class="item">
-					<u-icon name="bill-fill" size="40" color="#00C800" />
+					<u-icon name="coupon-fill" size="40" color="#00C800" />
 					<text>优惠活动不错过</text>
 				</view>
 			</view>
 			<view class="steps" v-if="selectedContact && selectedContact.adImage">
-				<view class="title"><text></text>{{ selectedContact.adName || '专属管家' }}</view>
+				<view class="title"><text></text>专属管家</view>
 				<view class="content">
 					<image
 						:src="getAdImageUrl(selectedContact.adImage)"

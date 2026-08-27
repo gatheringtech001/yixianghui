@@ -183,7 +183,7 @@
 				<text>优质路线推荐</text>
 			</view>
 			<view class="item">
-				<u-icon name="bill-fill" size="40" color="#00C800" />
+				<u-icon name="coupon-fill" size="40" color="#00C800" />
 				<text>优惠活动不错过</text>
 			</view>
 		</view>
