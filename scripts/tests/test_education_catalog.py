@@ -33,7 +33,9 @@ class EducationCatalogTest(unittest.TestCase):
             counts[row["goods_id"]] = counts.get(row["goods_id"], 0) + 1
         self.assertEqual({goods_id: 3 for goods_id in range(38, 53)}, counts)
         for row in self.rows["app_goods"]:
-            self.assertTrue(row["goods_cover"].startswith("/profile/upload/"))
+            self.assertTrue(row["goods_cover"].startswith(
+                "/profile/upload/2026/08/27/education-photoreal-v1/"
+            ))
             self.assertEqual(row["goods_cover"], row["goods_images"])
 
     def test_transaction_is_zero_delete_and_matches_preview_counts(self):
