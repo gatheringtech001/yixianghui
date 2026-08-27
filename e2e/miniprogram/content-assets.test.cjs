@@ -6,9 +6,11 @@ const {
   closeMiniProgram,
   extractRichTextImageSources,
   getCurrentPageState,
+  invokeCurrentVmMethod,
   launchMiniProgram,
   localBackendPrefix,
   runStep,
+  setCurrentVmState,
   waitUntil
 } = require('./test-helpers.cjs')
 
@@ -22,6 +24,25 @@ test('customer, profile and rich text assets render from the local backend', {
       label: 'open home before tab checks',
       action: () => miniProgram.reLaunch('/pages/home/home')
     })
+    await miniProgram.callWxMethod('setStorageSync', 'housekeeperQrCursor', 0)
+    await runStep(testContext, {
+      label: 'wait for home housekeepers',
+      action: () => waitUntil(async () => {
+        const state = await getCurrentPageState(miniProgram, ['contact'])
+        return Array.isArray(state.contact) && state.contact.length === 2
+      })
+    })
+    await invokeCurrentVmMethod(miniProgram, 'openHousekeeper')
+    let housekeeperState = await getCurrentPageState(miniProgram, [
+      'selectedContact',
+      'showContact'
+    ])
+    assert.equal(housekeeperState.selectedContact.adName, '媛媛')
+    assert.equal(housekeeperState.showContact, true)
+    assert.ok(housekeeperState.selectedContact.adImage.startsWith('/profile/'))
+    await new Promise(resolve => setTimeout(resolve, 700))
+    await captureScreenshot(miniProgram, 'home-housekeeper-yuanyuan.png')
+    await setCurrentVmState(miniProgram, { showContact: false })
 
     await runStep(testContext, {
       label: 'open customer service page',
@@ -70,7 +91,23 @@ test('customer, profile and rich text assets render from the local backend', {
       [profileState.stewardImageUrl],
       'profile steward asset'
     )
-    await captureScreenshot(miniProgram, 'profile.png')
+    await runStep(testContext, {
+      label: 'wait for profile housekeepers',
+      action: () => waitUntil(async () => {
+        const state = await getCurrentPageState(miniProgram, ['contact'])
+        return Array.isArray(state.contact) && state.contact.length === 2
+      })
+    })
+    await invokeCurrentVmMethod(miniProgram, 'openHousekeeper')
+    housekeeperState = await getCurrentPageState(miniProgram, [
+      'selectedContact',
+      'showContact'
+    ])
+    assert.equal(housekeeperState.selectedContact.adName, '曼曼')
+    assert.equal(housekeeperState.showContact, true)
+    assert.ok(housekeeperState.selectedContact.adImage.startsWith('/profile/'))
+    await new Promise(resolve => setTimeout(resolve, 700))
+    await captureScreenshot(miniProgram, 'profile-housekeeper-manman.png')
 
     await runStep(testContext, {
       label: 'open activity rich text page',

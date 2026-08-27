@@ -51,7 +51,7 @@
 					<view class="title">添加逸享荟小管家</view>
 					<view class="slogan">全程管家式服务，为您的生活保驾护航。</view>
 				</view>
-				<view class="housekeeper-btn" @click.stop="showContact = true">添加管家</view>
+				<view class="housekeeper-btn" @click.stop="openHousekeeper">添加管家</view>
 			</view>
 
 			<view class="section-head">
@@ -129,22 +129,16 @@
 					<text>优惠活动不错过</text>
 				</view>
 			</view>
-			<view class="steps" v-if="contact[0] && contact[0].adImage">
-				<view class="title"><text></text>第一步</view>
+			<view class="steps" v-if="selectedContact && selectedContact.adImage">
+				<view class="title"><text></text>{{ selectedContact.adName || '专属管家' }}</view>
 				<view class="content">
 					<image
-						:src="getAdImageUrl(contact[0].adImage)"
+						:src="getAdImageUrl(selectedContact.adImage)"
 						mode="aspectFit"
 						show-menu-by-longpress
-						@tap="previewQrImage(contact[0].adImage)"
+						@tap="previewQrImage(selectedContact.adImage)"
 					/>
 					<view class="tips">长按识别二维码添加</view>
-				</view>
-			</view>
-			<view class="steps" v-if="contact[1] && contact[1].adImage">
-				<view class="title"><text></text>第二步</view>
-				<view class="content else">
-					<image :src="getAdImageUrl(contact[1].adImage)" mode="widthFix" />
 				</view>
 			</view>
 		</u-popup>
@@ -173,6 +167,11 @@
 	import {
 		getInfo
 	} from '@/api/public'
+	import {
+		CUSTOMER_SERVICE_POSITION_ID,
+		HOUSEKEEPER_ROTATION_KEY,
+		selectRotatingHousekeeper
+	} from '@/utils/housekeeperRotation'
 	export default {
 		components: {
 			TabBar,
@@ -192,6 +191,7 @@
 				userCard: undefined,
 				showContact: false,
 				contact: [],
+				selectedContact: null,
 				stewardImageUrl: '',
 				profileHeadPadding: {
 					paddingTop: '124rpx',
@@ -262,9 +262,22 @@
 			},
 			async getContactAdList() {
 				let { data } = await getBannerList({
-					positionId: 2
+					positionId: CUSTOMER_SERVICE_POSITION_ID
 				})
-				this.contact = data
+				this.contact = (Array.isArray(data) ? data : []).filter(item => (
+					item && item.adImage
+				))
+			},
+			openHousekeeper() {
+				const cursor = uni.getStorageSync(HOUSEKEEPER_ROTATION_KEY)
+				const selection = selectRotatingHousekeeper(this.contact, cursor)
+				if (!selection.item) {
+					uni.showToast({ title: '管家二维码加载中，请稍后重试', icon: 'none' })
+					return
+				}
+				this.selectedContact = selection.item
+				uni.setStorageSync(HOUSEKEEPER_ROTATION_KEY, selection.nextCursor)
+				this.showContact = true
 			},
 			getAdImageUrl(adImage) {
 				return resolveAdImageUrl(this.host, adImage)

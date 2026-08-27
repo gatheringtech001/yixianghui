@@ -149,7 +149,7 @@
 					<view class="support-card" v-for="(staff, index) in customerData.staffList" :key="index">
 						<image class="staff-avatar" :src="getStaffAvatar(index, staff)" mode="aspectFill" />
 						<view class="staff-copy">
-							<view class="card-title">客服：{{ staff.name }}</view>
+							<view class="card-title">客服{{ index + 1 }} {{ staff.name }}</view>
 							<view class="meta">手机/微信：{{ staff.wechat }}</view>
 						</view>
 						<view class="support-actions">
@@ -177,6 +177,7 @@
 	import {
 		getBannerList
 	} from '@/api/index'
+	import { CUSTOMER_SERVICE_POSITION_ID } from '@/utils/housekeeperRotation'
 	import {
 		getMemberCardsList,
 		prepayCardOrder,
@@ -212,16 +213,12 @@
 					onlineTime: '08:30~21:00',
 					hotline: '400-800-1234',
 					staffList: [{
-							name: '小刘',
-							wechat: '1362606366'
+							name: '媛媛',
+							wechat: '15887297809'
 						},
 						{
-							name: '小兰',
-							wechat: '19065018556'
-						},
-						{
-							name: '小陈',
-							wechat: '15220745133'
+							name: '曼曼',
+							wechat: '18008890435'
 						}
 					]
 				}
@@ -294,7 +291,7 @@
 							positionId: 3
 						}),
 						getBannerList({
-							positionId: 7
+							positionId: CUSTOMER_SERVICE_POSITION_ID
 						})
 					])
 
