@@ -169,7 +169,6 @@
 				</view>
 			</view>
 			<view class="steps" v-if="selectedContact && selectedContact.adImage">
-				<view class="title"><text></text>专属管家</view>
 				<view class="content">
 					<image
 						:src="getAdImageUrl(selectedContact.adImage)"

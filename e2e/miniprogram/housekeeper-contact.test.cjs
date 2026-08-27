@@ -43,7 +43,7 @@ test('home and profile add-housekeeper actions reuse customer staff records', as
     assert.match(source, /positionId:\s*CUSTOMER_SERVICE_POSITION_ID/, page)
     assert.match(source, /selectRotatingHousekeeper\(/, page)
     assert.match(source, /selectedContact\.adImage/, page)
-    assert.match(source, /<view class="title"><text><\/text>专属管家<\/view>/, page)
+    assert.doesNotMatch(source, /<view class="title"><text><\/text>专属管家<\/view>/, page)
     assert.doesNotMatch(source, /selectedContact\.adName/, page)
     assert.doesNotMatch(source, /contact\[1\]/, page)
   }
