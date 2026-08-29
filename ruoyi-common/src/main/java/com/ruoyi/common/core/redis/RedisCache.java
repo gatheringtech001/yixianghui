@@ -50,6 +50,16 @@ public class RedisCache
     }
 
     /**
+     * 原子写入带过期时间的对象，仅在键不存在时成功。
+     */
+    public <T> boolean setCacheObjectIfAbsent(final String key, final T value, final long timeout,
+            final TimeUnit timeUnit)
+    {
+        Boolean result = redisTemplate.opsForValue().setIfAbsent(key, value, timeout, timeUnit);
+        return Boolean.TRUE.equals(result);
+    }
+
+    /**
      * 设置有效时间
      *
      * @param key Redis键

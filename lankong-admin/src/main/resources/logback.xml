@@ -73,6 +73,8 @@
 	
 	<!-- 系统模块日志级别控制  -->
 	<logger name="com.ruoyi" level="info" />
+	<!-- 该 Mapper 包含微信标识参数，禁止输出 SQL 参数 debug 日志 -->
+	<logger name="com.ruoyi.system.mapper.SysUserMapper" level="info" />
 	<!-- Spring日志级别控制  -->
 	<logger name="org.springframework" level="warn" />
 

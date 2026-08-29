@@ -1,5 +1,6 @@
 package com.ruoyi.system.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ruoyi.common.core.domain.BaseEntity;
 
 /**
@@ -35,6 +36,12 @@ public class SysAuthUser extends BaseEntity
     /** 用户来源 */
     private String source;
 
+    /** 微信开放平台 UnionID，仅用于身份映射 */
+    private String unionId;
+
+    /** 微信应用 AppID */
+    private String appId;
+
     public Long getAuthId()
     {
         return authId;
@@ -45,6 +52,7 @@ public class SysAuthUser extends BaseEntity
         this.authId = authId;
     }
 
+    @JsonIgnore
     public String getUuid()
     {
         return uuid;
@@ -113,5 +121,27 @@ public class SysAuthUser extends BaseEntity
     public void setSource(String source)
     {
         this.source = source;
+    }
+
+    @JsonIgnore
+    public String getUnionId()
+    {
+        return unionId;
+    }
+
+    public void setUnionId(String unionId)
+    {
+        this.unionId = unionId;
+    }
+
+    @JsonIgnore
+    public String getAppId()
+    {
+        return appId;
+    }
+
+    public void setAppId(String appId)
+    {
+        this.appId = appId;
     }
 }

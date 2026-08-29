@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.TalentCenterResourceMapper">
+    <resultMap id="resourceResult" type="com.ruoyi.system.domain.talent.TalentCenterResource">
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="status" column="status" />
+        <result property="updatedAt" column="updated_at" />
+    </resultMap>
+
+    <select id="listGoods" resultMap="resourceResult">select goods_id id, goods_name name, status, update_time updated_at from app_goods order by goods_id desc limit #{offset}, #{limit}</select>
+    <select id="listActivities" resultMap="resourceResult">select activity_id id, activity_name name, status, update_time updated_at from app_activity order by activity_id desc limit #{offset}, #{limit}</select>
+    <select id="listArticles" resultMap="resourceResult">select article_id id, article_name name, status, update_time updated_at from app_article order by article_id desc limit #{offset}, #{limit}</select>
+    <select id="listAds" resultMap="resourceResult">select content_id id, ad_name name, status, null updated_at from app_ad_content order by content_id desc limit #{offset}, #{limit}</select>
+    <select id="getGoods" resultMap="resourceResult">select goods_id id, goods_name name, status, update_time updated_at from app_goods where goods_id = #{id}</select>
+    <select id="getActivity" resultMap="resourceResult">select activity_id id, activity_name name, status, update_time updated_at from app_activity where activity_id = #{id}</select>
+    <select id="getArticle" resultMap="resourceResult">select article_id id, article_name name, status, update_time updated_at from app_article where article_id = #{id}</select>
+    <select id="getAd" resultMap="resourceResult">select content_id id, ad_name name, status, null updated_at from app_ad_content where content_id = #{id}</select>
+
+    <update id="updateGoodsStatus">update app_goods set status = #{status}, update_time = now() where goods_id = #{id} and status = #{expected}</update>
+    <update id="updateActivityStatus">update app_activity set status = #{status}, update_time = now() where activity_id = #{id} and status = #{expected}</update>
+    <update id="updateArticleStatus">update app_article set status = #{status}, update_time = now() where article_id = #{id} and status = #{expected}</update>
+    <update id="updateAdStatus">update app_ad_content set status = #{status} where content_id = #{id} and status = #{expected}</update>
+
+    <insert id="insertAudit" parameterType="com.ruoyi.system.domain.talent.TalentCenterAudit" useGeneratedKeys="true" keyProperty="auditId">
+        insert into talent_center_admin_audit(service_id, actor_user_id, resource_type, resource_id,
+            before_status, after_status, confirmation_id, idempotency_key_hash, request_time, result, ip, create_time)
+        values(#{serviceId}, #{actorUserId}, #{resourceType}, #{resourceId}, #{beforeStatus}, #{afterStatus},
+            #{confirmationId}, #{idempotencyKeyHash}, #{requestTime}, #{result}, #{ip}, now())
+    </insert>
+    <update id="updateAuditActor">update talent_center_admin_audit set actor_user_id = #{actorUserId} where audit_id = #{auditId}</update>
+    <update id="finishAudit">
+        update talent_center_admin_audit set before_status = #{beforeStatus}, after_status = #{afterStatus}, result = #{result}
+        where audit_id = #{auditId}
+    </update>
+</mapper>

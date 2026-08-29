@@ -57,6 +57,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 		<result property="avatar"       column="avatar"         />
 		<result property="email"        column="email"          />
 		<result property="source"       column="source"         />
+		<result property="unionId"      column="union_id"       />
+		<result property="appId"        column="app_id"         />
 		<result property="createTime"   column="create_time"    />
 	</resultMap>
 	
@@ -239,8 +241,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 	</select>
 
 	<select id="selectAuthUserListByUserId" parameterType="Long" resultMap="SysAuthUserResult">
-	    select auth_id, uuid, user_id, user_name, nick_name, avatar, email, source, create_time
+	    select auth_id, uuid, user_id,
+			case when source = 'wechat_mnp' then '微信小程序用户' else user_name end as user_name,
+			nick_name, avatar, email, source, union_id, app_id, create_time
 	    from sys_auth_user where user_id = #{userId} and source = 'wechat_mnp'
+	</select>
+
+	<select id="selectEnabledUserByUnionId" parameterType="String" resultMap="SysUserResult">
+		<include refid="selectUserVo"/>
+		inner join sys_auth_user au on au.user_id = u.user_id
+		where au.union_id = #{unionId} and au.source = 'wechat_mnp'
+			and u.status = '0' and u.del_flag = '0'
 	</select>
 
 	<select id="checkAuthUser" parameterType="SysAuthUser" resultType="int">
@@ -256,6 +267,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 		<if test="avatar != null and avatar != ''">avatar,</if>
 		<if test="email != null and email != ''">email,</if>
 		<if test="source != null and source != ''">source,</if>
+		<if test="unionId != null and unionId != ''">union_id,</if>
+		<if test="appId != null and appId != ''">app_id,</if>
 		create_time
 		)values(
 		<if test="uuid != null and uuid != ''">#{uuid},</if>
@@ -265,12 +278,20 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 		<if test="avatar != null and avatar != ''">#{avatar},</if>
 		<if test="email != null and email != ''">#{email},</if>
 		<if test="source != null and source != ''">#{source},</if>
+		<if test="unionId != null and unionId != ''">#{unionId},</if>
+		<if test="appId != null and appId != ''">#{appId},</if>
 		sysdate()
 		)
 	</insert>
+
+	<update id="updateWechatIdentityByUuid">
+		update sys_auth_user
+		set union_id = #{unionId}, app_id = #{appId}
+		where uuid = #{uuid} and source = 'wechat_mnp'
+	</update>
 
 	<delete id="deleteAuthUser" parameterType="Long">
  		delete from sys_auth_user where auth_id = #{authId}
  	</delete>
 	
-</mapper> 
+</mapper>

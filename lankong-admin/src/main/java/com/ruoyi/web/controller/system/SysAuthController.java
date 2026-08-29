@@ -174,10 +174,16 @@ public class SysAuthController extends BaseController
         AuthResponse<AuthUser> response = authRequest.login(callback);
         if (response.ok())
         {
+            String uuid = source + response.getData().getUuid();
+            String unionId = resolveWechatUnionId(source, response.getData());
+            if (StringUtils.isNotEmpty(unionId))
+            {
+                userMapper.updateWechatIdentityByUuid(uuid, unionId, wechatMiniProgramAppId);
+            }
             LoginUser tokenUser = tokenService.getLoginUser(request);
             if (StringUtils.isNotNull(tokenUser))
             {
-                SysUser user = userMapper.selectAuthUserByUuid(source + response.getData().getUuid());
+                SysUser user = userMapper.selectAuthUserByUuid(uuid);
                 if (StringUtils.isNotNull(user))
                 {
                     String token = tokenService.createToken(SecurityUtils.getLoginUser());
@@ -187,23 +193,24 @@ public class SysAuthController extends BaseController
                 // 已经登录状态，直接绑定系统账号
                 SysAuthUser authUser = new SysAuthUser();
                 authUser.setAvatar(response.getData().getAvatar());
-                authUser.setUuid(source + response.getData().getUuid());
+                authUser.setUuid(uuid);
                 authUser.setUserId(SecurityUtils.getUserId());
                 authUser.setUserName(response.getData().getUsername());
                 authUser.setNickName(response.getData().getNickname());
                 authUser.setEmail(response.getData().getEmail());
                 authUser.setSource(source);
+                applyWechatIdentity(authUser, unionId);
                 userMapper.insertAuthUser(authUser);
                 String token = tokenService.createToken(SecurityUtils.getLoginUser());
                 return success().put(Constants.TOKEN, token);
             }
-            SysUser authUser = userMapper.selectAuthUserByUuid(source + response.getData().getUuid());
+            SysUser authUser = userMapper.selectAuthUserByUuid(uuid);
             if (StringUtils.isNotNull(authUser))
             {
                 SysUser user = userService.selectUserByUserName(authUser.getUserName());
                 if (StringUtils.isNull(user))
                 {
-                    throw new ServiceException("登录用户：" + user.getUserName() + " 不存在");
+                    throw new ServiceException("登录用户不存在");
                 }
                 else if (UserStatus.DELETED.getCode().equals(user.getDelFlag()))
                 {
@@ -230,11 +237,11 @@ public class SysAuthController extends BaseController
                 newUser.setUserName(source + "_" +response.getData().getUuid());
                 if (!userService.checkUserNameUnique(newUser))
                 {
-                    return error("新增用户'" + newUser.getUserName() + "'失败，登录账号已存在");
+                    return error("微信用户创建失败，登录账号已存在");
                 }
                 else if (StringUtils.isNotEmpty(newUser.getPhonenumber()) && !userService.checkPhoneUnique(newUser))
                 {
-                    return error("新增用户'" + newUser.getUserName() + "'失败，手机号码已存在");
+                    return error("微信用户创建失败，手机号码已存在");
                 }
                 newUser.setCreateBy(source);
                 // todo 该默认密码不允许直接登录
@@ -251,12 +258,13 @@ public class SysAuthController extends BaseController
                 // 绑定第三方系统账号
                 SysAuthUser newAuthUser = new SysAuthUser();
                 newAuthUser.setAvatar(response.getData().getAvatar());
-                newAuthUser.setUuid(source + response.getData().getUuid());
+                newAuthUser.setUuid(uuid);
                 newAuthUser.setUserId(sessionUser.getUserId());
                 newAuthUser.setUserName(sessionUser.getUserName());
                 newAuthUser.setNickName(sessionUser.getNickName());
 //                newAuthUser.setEmail(response.getData().getEmail());
                 newAuthUser.setSource(source);
+                applyWechatIdentity(newAuthUser, unionId);
                 userMapper.insertAuthUser(newAuthUser);
                 Long parentUserId = resolveParentUserId(request);
                 if (parentUserId != null)
@@ -384,6 +392,24 @@ public class SysAuthController extends BaseController
         catch (NumberFormatException e)
         {
             return null;
+        }
+    }
+
+    private String resolveWechatUnionId(String source, AuthUser authUser)
+    {
+        if (!"wechat_mnp".equals(source) || authUser == null || authUser.getToken() == null)
+        {
+            return null;
+        }
+        return authUser.getToken().getUnionId();
+    }
+
+    private void applyWechatIdentity(SysAuthUser authUser, String unionId)
+    {
+        if (StringUtils.isNotEmpty(unionId))
+        {
+            authUser.setUnionId(unionId);
+            authUser.setAppId(wechatMiniProgramAppId);
         }
     }
 }

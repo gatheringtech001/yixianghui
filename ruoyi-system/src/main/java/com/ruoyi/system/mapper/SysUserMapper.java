@@ -141,6 +141,9 @@ public interface SysUserMapper
      * @return 结果
      */
     public SysUser selectAuthUserByUuid(@Param("uuid") String uuid);
+
+    /** 通过 UnionID 查询启用的后台用户。 */
+    public SysUser selectEnabledUserByUnionId(@Param("unionId") String unionId);
     
     /**
      * 校验source平台是否绑定
@@ -158,6 +161,10 @@ public interface SysUserMapper
      * @return 结果
      */
     public int insertAuthUser(SysAuthUser authUser);
+
+    /** 更新小程序授权记录的微信开放平台身份。 */
+    public int updateWechatIdentityByUuid(@Param("uuid") String uuid, @Param("unionId") String unionId,
+            @Param("appId") String appId);
 
     /**
      * 根据编号删除第三方授权信息
