@@ -130,31 +130,28 @@
 			<scroll-view class="customer-scroll" scroll-y :show-scrollbar="false">
 				<view class="support-info">
 					<view class="support-qr-block">
-						<image
-							class="support-qr"
-							:src="customerData.qrCode || '/static/home-design/support-qr.png'"
-							mode="aspectFit"
-							show-menu-by-longpress
-							@tap="openGroupQr"
-						/>
-						<text>点击放大长按识别，或点下方直接进入群聊</text>
+						<view class="support-qr-shell">
+							<image
+								class="support-qr"
+								:src="customerData.qrCode || '/static/home-design/support-qr.png'"
+								mode="aspectFit"
+							/>
+							<wecom-group-cell
+								class="group-entry-overlay"
+								:url="groupJoinUrl"
+								contact-text="进入群聊"
+								:contact-text-blod="true"
+								@startmessage="handleGroupJoinStart"
+								@completemessage="handleGroupJoinComplete"
+							/>
+						</view>
+						<text>点击二维码直接进入群聊</text>
 					</view>
 					<view class="support-time-block">
 						<view class="card-title">客服在线时间</view>
 						<view class="support-time">{{ customerData.onlineTime }}</view>
 					</view>
 				</view>
-				<view class="support-group-entry">
-					<wecom-group-cell
-						:url="groupJoinUrl"
-						:icon-url="customerData.qrCode"
-						contact-text="点击进入群聊"
-						:contact-text-blod="true"
-						@startmessage="handleGroupJoinStart"
-						@completemessage="handleGroupJoinComplete"
-					/>
-				</view>
-
 				<view class="support-list">
 					<view class="support-card" v-for="(staff, index) in customerData.staffList" :key="index">
 						<image class="staff-avatar" :src="getStaffAvatar(index, staff)" mode="aspectFill" />
@@ -386,9 +383,6 @@
 					urls: [url],
 					current: url
 				})
-			},
-			openGroupQr() {
-				this.previewQrImage(this.customerData.qrCode)
 			},
 			handleGroupJoinStart() {
 				uni.showLoading({

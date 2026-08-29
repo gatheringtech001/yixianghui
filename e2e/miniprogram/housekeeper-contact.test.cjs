@@ -80,7 +80,7 @@ test('customer service fallback and labels match the two named housekeepers', as
   assert.doesNotMatch(source, /name:\s*'小陈'/)
 })
 
-test('customer group QR supports official one-tap WeCom group entry and long-press fallback', async () => {
+test('customer group QR is the official one-tap WeCom group entry', async () => {
   const source = await fs.readFile(
     path.join(appRoot, 'pages/MembersOpened/MembersOpened.vue'),
     'utf8'
@@ -88,16 +88,16 @@ test('customer group QR supports official one-tap WeCom group entry and long-pre
   const manifest = await fs.readFile(path.join(appRoot, 'manifest.json'), 'utf8')
   const pages = await fs.readFile(path.join(appRoot, 'pages.json'), 'utf8')
 
-  assert.match(source, /class="support-qr-block">/)
-  assert.match(source, /class="support-qr"[\s\S]*?show-menu-by-longpress[\s\S]*?@tap="openGroupQr"/)
-  assert.match(source, /<wecom-group-cell[\s\S]*?:url="groupJoinUrl"[\s\S]*?@completemessage="handleGroupJoinComplete"/)
+  assert.match(source, /class="support-qr-shell"[\s\S]*?class="support-qr"/)
+  assert.match(source, /class="group-entry-overlay"[\s\S]*?:url="groupJoinUrl"[\s\S]*?@completemessage="handleGroupJoinComplete"/)
   assert.match(source, /https:\/\/work\.weixin\.qq\.com\/gm\/879c4ed5b907e11149b28548e7275f4d/)
-  assert.match(source, /点击放大长按识别，或点下方直接进入群聊/)
+  assert.match(source, /点击二维码直接进入群聊/)
   assert.match(source, /uni\.previewImage\(\{[\s\S]*?urls:\s*\[url\][\s\S]*?current:\s*url/)
   assert.match(source, /errcode === 0 \|\| errcode === -3006/)
   assert.match(manifest, /"materialPlugin"[\s\S]*?"version"\s*:\s*"1\.0\.13"[\s\S]*?"provider"\s*:\s*"wx4d2deeab3aed6e5a"/)
   assert.match(pages, /"wecom-group-cell"\s*:\s*"plugin:\/\/materialPlugin\/cell"/)
-  assert.doesNotMatch(source, /class="support-qr-block" @tap=/)
+  assert.doesNotMatch(source, /class="support-group-entry"/)
+  assert.doesNotMatch(source, /@tap="openGroupQr"/)
   assert.doesNotMatch(source, /qrLocalPath/)
 })
 
