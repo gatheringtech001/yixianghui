@@ -137,12 +137,22 @@
 							show-menu-by-longpress
 							@tap="openGroupQr"
 						/>
-						<text>点击放大，长按识别加群</text>
+						<text>点击放大长按识别，或点下方直接进入群聊</text>
 					</view>
 					<view class="support-time-block">
 						<view class="card-title">客服在线时间</view>
 						<view class="support-time">{{ customerData.onlineTime }}</view>
 					</view>
+				</view>
+				<view class="support-group-entry">
+					<wecom-group-cell
+						:url="groupJoinUrl"
+						:icon-url="customerData.qrCode"
+						contact-text="点击进入群聊"
+						:contact-text-blod="true"
+						@startmessage="handleGroupJoinStart"
+						@completemessage="handleGroupJoinComplete"
+					/>
 				</view>
 
 				<view class="support-list">
@@ -184,6 +194,9 @@
 		payCardOrder,
 		cancelUserCard
 	} from '@/api/member/index'
+
+	const DEFAULT_GROUP_JOIN_URL = 'https://work.weixin.qq.com/gm/879c4ed5b907e11149b28548e7275f4d'
+
 	export default {
 		mixins: [sharePageMixin],
 		components: {
@@ -206,6 +219,7 @@
 				canvasH: 0,
 				userCard: undefined,
 				staffAvatar: '/static/img/customer-avatar.png',
+				groupJoinUrl: DEFAULT_GROUP_JOIN_URL,
 				customerData: {
 					headerBg: '',
 					qrCode: '/static/code.png',
@@ -294,6 +308,7 @@
 					if (qrItem && qrItem.adImage) {
 						this.customerData.qrCode = this.normalizeImage(qrItem.adImage)
 					}
+					this.groupJoinUrl = (qrItem && qrItem.linkUrl) || DEFAULT_GROUP_JOIN_URL
 					if (qrItem && qrItem.description) {
 						this.customerData.hotline = String(qrItem.description)
 					}
@@ -374,6 +389,32 @@
 			},
 			openGroupQr() {
 				this.previewQrImage(this.customerData.qrCode)
+			},
+			handleGroupJoinStart() {
+				uni.showLoading({
+					title: '正在打开群聊',
+					mask: true
+				})
+			},
+			handleGroupJoinComplete(event) {
+				uni.hideLoading()
+				const detail = event && event.detail ? event.detail : event || {}
+				const errcode = Number(detail.errcode)
+
+				if (errcode === 0 || errcode === -3006) {
+					uni.showToast({
+						icon: 'success',
+						title: errcode === 0 ? '群聊已打开' : '你已在群聊中'
+					})
+					return
+				}
+
+				uni.showModal({
+					title: '暂时无法直接进入',
+					content: '请长按上方二维码识别加群',
+					showCancel: false,
+					success: () => this.previewQrImage(this.customerData.qrCode)
+				})
 			},
 			previewStaffQr(staff) {
 				this.previewQrImage(staff.qrCode)

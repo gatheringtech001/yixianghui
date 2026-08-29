@@ -30,7 +30,10 @@
 		"path": "pages/MembersOpened/MembersOpened",
 		"style": {
 			"navigationBarTitleText": "客服",
-			"navigationStyle": "custom"
+			"navigationStyle": "custom",
+			"usingComponents": {
+				"wecom-group-cell": "plugin://materialPlugin/cell"
+			}
 		}
 	}, {
 		"path": "pages/my/my",

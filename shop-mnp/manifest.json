@@ -103,6 +103,12 @@
         "optimization" : {
             "subPackages" : true
         },
+        "plugins" : {
+            "materialPlugin" : {
+                "version" : "1.0.13",
+                "provider" : "wx4d2deeab3aed6e5a"
+            }
+        },
         "requiredPrivateInfos" : [ "getLocation", "chooseLocation" ],
         "navigateToMiniProgramAppIdList" : [ "wx7643d5f831302ab0" ],
         "permission" : {
