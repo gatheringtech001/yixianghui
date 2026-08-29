@@ -43,6 +43,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="contactPhone"    column="contact_phone"    />
     </resultMap>
 
+    <resultMap type="TravelOrderSyncRecord" id="TravelOrderSyncRecordResult">
+        <id property="orderId" column="order_id" />
+        <result property="orderNo" column="order_no" />
+        <result property="contactName" column="contact_name" />
+        <result property="contactPhone" column="contact_phone" />
+        <result property="skuName" column="sku_name" />
+        <result property="checkInDate" column="check_in_date" />
+        <result property="checkOutDate" column="check_out_date" />
+        <result property="roomCount" column="room_count" />
+        <result property="peopleCount" column="people_count" />
+        <result property="payMoney" column="pay_money" />
+        <result property="status" column="status" />
+        <result property="remark" column="remark" />
+    </resultMap>
+
     <sql id="selectAppGoodsOrderVo">
         select order_id, user_id, goods_id, dept_id, address_id, order_no, money_total, money_discount, money_payable, money_express, pay_status, pay_money, pay_type, pay_time, goods_count, coupon_got_ids, remark, send_time, send_express_name, send_express_simple, send_express_no, check_num, is_checked, receive_time, is_award, is_comment, is_apply_cancel, is_cash, create_time, update_time, status,
                check_in_date, check_out_date, contact_name, contact_phone from app_goods_order
@@ -242,5 +257,22 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </delete>
     <select id="selAppGoodsOrderStatData" resultType="Map">
         select sum(1) totalCou,sum(case when STATUS=1 then pay_money else 0 end) payAmount from app_goods_order
+    </select>
+
+    <select id="selectTravelOrdersCreatedSince" resultMap="TravelOrderSyncRecordResult">
+        select o.order_id, o.order_no, o.contact_name, o.contact_phone,
+               s.sku_name, o.check_in_date, o.check_out_date,
+               o.goods_count as room_count, d.self_goods_count as people_count,
+               o.pay_money, o.status, o.remark
+        from app_goods_order o
+        inner join app_goods g on g.goods_id = o.goods_id and g.goods_type = 'hotel'
+        left join app_goods_order_detail d on d.detail_id = (
+            select min(od.detail_id)
+            from app_goods_order_detail od
+            where od.order_id = o.order_id
+        )
+        left join app_goods_sku s on s.sku_id = d.sku_id
+        where o.create_time &gt;= #{createdAfter}
+        order by o.order_id
     </select>
 </mapper>

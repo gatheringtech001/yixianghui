@@ -2,8 +2,11 @@ package com.ruoyi.system.mapper;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Date;
 
 import com.ruoyi.system.domain.AppGoodsOrder;
+import com.ruoyi.system.domain.TravelOrderSyncRecord;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * 商品订单Mapper接口
@@ -77,4 +80,9 @@ public interface AppGoodsOrderMapper
      * @return
      */
     Map selAppGoodsOrderStatData();
+
+    /**
+     * 查询指定时间后创建的旅居订单，供飞书增量同步。
+     */
+    List<TravelOrderSyncRecord> selectTravelOrdersCreatedSince(@Param("createdAfter") Date createdAfter);
 }
