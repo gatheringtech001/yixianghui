@@ -89,8 +89,9 @@
 				<u-icon name="share-fill" color="#701018" size="32"></u-icon>
 				<text class="btn-label">分享</text>
 			</button>
+			<view v-if="activeActivityOrder" class="apply-btn" @click="viewMyBooking">查看我的预约</view>
 			<view
-				v-if="activityPhase === 'applying'"
+				v-else-if="activityPhase === 'applying'"
 				class="apply-btn"
 				:class="{ disabled: detailInfo && activitySignCount == detailInfo.maxCount }"
 				@click="apply"
@@ -102,7 +103,7 @@
 </template>
 
 <script>
-	import { getActivityInfo, addActivityOrder } from '@/api/activity/index'
+	import { getActivityInfo, getActivityOrderList, addActivityOrder } from '@/api/activity/index'
 	import { goodsCollect, deleteCollect, goodsCollectList } from '@/api/member/index'
 	import { parseInvitePageOptions } from '@/utils/invite'
 	import sharePageMixin from '@/utils/sharePageMixin'
@@ -110,6 +111,7 @@
 	import { getActivityPhase, getActivityPhaseText } from '@/utils/activityPhase'
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
 	import { prepareRichTextHtml } from '@/utils/richText'
+	import { findActiveActivityOrder } from '@/utils/activityOrderState'
 	import AuthProfilePopup from '@/components/AuthProfilePopup/AuthProfilePopup.vue'
 	export default {
 		mixins: [sharePageMixin],
@@ -122,7 +124,8 @@
 				detailInfo: null,
 				activityId: null,
 				pageScrollHeight: 0,
-				collectId: null
+				collectId: null,
+				activeActivityOrder: null
 			}
 		},
 		onLoad(option) {
@@ -133,6 +136,7 @@
 		onShow() {
 			bindPageAuthPopup(this)
 			this.loadCollectState()
+			this.loadBookingState()
 		},
 		onReady() {
 			this.setPageScrollHeight()
@@ -171,6 +175,30 @@
 			}
 		},
 		methods: {
+			async loadBookingState() {
+				const token = uni.getStorageSync('token')
+				const userInfo = uni.getStorageSync('userInfo')
+				if (!token || !userInfo || !this.activityId) {
+					this.activeActivityOrder = null
+					return
+				}
+				try {
+					const res = await getActivityOrderList({
+						activityId: this.activityId,
+						pageNum: 1,
+						pageSize: 20
+					})
+					this.activeActivityOrder = findActiveActivityOrder(res && res.rows, this.activityId)
+				} catch (e) {
+					console.warn('loadBookingState failed', e)
+				}
+			},
+			viewMyBooking() {
+				if (!this.activeActivityOrder) return
+				uni.navigateTo({
+					url: `/packagesMember/MyActivity/detail/index?orderId=${this.activeActivityOrder.orderId}`
+				})
+			},
 			getShareConfig() {
 				const cover = this.detailInfo && this.detailInfo.activityCover
 				return {
@@ -266,6 +294,10 @@
 			},
 			apply() {
 				if (!this.detailInfo) return
+				if (this.activeActivityOrder) {
+					this.viewMyBooking()
+					return
+				}
 				if (this.activityPhase !== 'applying') return
 				if (this.activitySignCount == this.detailInfo.maxCount) return
 				let userInfo = uni.getStorageSync('userInfo')
@@ -309,12 +341,14 @@
 								activityId: _this.detailInfo.activityId,
 								signCount: signCount
 							}
-							addActivityOrder(params).then(() => {
+							addActivityOrder(params).then(result => {
+								_this.activeActivityOrder = result && result.data
 								uni.showToast({
 									icon: 'none',
 									title: '活动报名成功~'
 								})
 								_this.getDetail(_this.activityId)
+								_this.loadBookingState()
 							}).catch(err => {
 								uni.showToast({
 									icon: 'none',

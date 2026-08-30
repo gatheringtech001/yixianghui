@@ -22,8 +22,8 @@ export function geocodeAddress(address) {
 
 
 // 获取活动预约列表
-export function getActivityOrderList() {
-	return request(`${userUri}acticity_order/list`, 'GET')
+export function getActivityOrderList(params) {
+	return request(`${userUri}acticity_order/list`, 'GET', params)
 }
 // 获取活动预约详细信息
 export function getActivityOrderInfo(orderId) {

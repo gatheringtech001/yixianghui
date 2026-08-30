@@ -33,6 +33,7 @@
 			<view class="list" v-for="(item,index) in orderList" @click="onOrderList(item)" :key="index">
 				<view class="title-status">
 					<view class="title">
+						<text v-if="isActivityOrder(item)" class="order-type-tag">活动预约</text>
 						<text v-if="isEducationOrder(item)" class="order-type-tag">课程报名</text>
 						<text>下单时间：{{item.createTime}}</text>
 					</view>
@@ -79,6 +80,10 @@
 									<text>{{ labels.courseTeacher }}</text>{{ getEducationExt(goods).teacherName }}
 								</view>
 							</view>
+							<view class="course-meta" v-if="goods.goodsType === 'activity'">
+								<view v-if="goods.activityTime"><text>活动时间：</text>{{ goods.activityTime }}</view>
+								<view v-if="goods.address"><text>活动地点：</text>{{ goods.address }}</view>
+							</view>
 							<view class="signup-contact" v-if="goods.goodsType === 'education' && (item.contactName || item.contactPhone)">
 								<text>{{ labels.signupContact }}</text>{{ item.contactName || '' }} {{ item.contactPhone || '' }}
 							</view>
@@ -90,10 +95,10 @@
 					<view class="price">
 						总金额：<text>{{ formatMoney(getOrderAmount(item)) }}</text>元
 					</view>
-					<view class="btn" v-if="item.status == 0" @click="orderByPay(item)">
+					<view class="btn" v-if="item.status == 0" @click.stop="orderByPay(item)">
 						<text>去支付</text>
 					</view>
-					<view class="btn" v-if="item.status == 1" @click.stop="onApplyAftersales(item)">
+					<view class="btn" v-if="item.status == 1 && !isActivityOrder(item)" @click.stop="onApplyAftersales(item)">
 						<text>{{ isAfterRejected(item) ? '重新申请售后' : '申请售后' }}</text>
 					</view>
 					<!-- 评价能力尚未接后端；已取消/退款单不展示入口 -->
@@ -114,6 +119,12 @@
 <script>
 	import { getOrderList, cancelOrder as cancelOrderApi, syncGoodsOrderPay, syncGoodsOrderRefund } from '@/api/member/index'
 	import { getGoodsInfo } from '@/api/shop/index'
+	import { getActivityOrderList, cancelActivityOrder, syncActivityOrderPay, syncActivityOrderRefund } from '@/api/activity/index'
+	import {
+		filterOrdersByTab,
+		mapActivityOrderForOrderList,
+		mergeOrdersByCreateTime
+	} from '@/utils/activityOrderState.js'
 	import {
 		getOrderProductName,
 		getOrderProductSpec,
@@ -135,10 +146,15 @@
 			};
 		},
 		onLoad(params) {
-			this.OrderType = params.type;
+			this.OrderType = Number(params.type) || 0
+		},
+		onShow() {
 			this.getOrders()
 		},
 		methods:{
+			isActivityOrder(item) {
+				return !!(item && item.orderKind === 'activity')
+			},
 			getProductName(order, goods) {
 				return getOrderProductName(order, goods, this.productNameMap)
 			},
@@ -232,6 +248,9 @@
 				if (String(item.status) === '1' && this.isAfterRejected(item)) {
 					return '售后已拒绝'
 				}
+				if (this.isActivityOrder(item) && String(item.status) === '1') {
+					return '已报名'
+				}
 				const map = {
 					'0': '待付款',
 					'1': '已支付',
@@ -250,9 +269,17 @@
 							this.OrderType == 4 ? '3' :
 							this.OrderType == 5 ? '4' : ''
 				}
-				let {rows, total} = await getOrderList(params)
+				const [goodsResult, activityResult] = await Promise.all([
+					getOrderList(params),
+					getActivityOrderList({ pageNum: 1, pageSize: 100 })
+				])
+				const rows = goodsResult.rows || []
+				const activityRows = activityResult.rows || []
 				await this.enrichProductNames(rows)
-				this.orderList = rows
+				this.orderList = mergeOrdersByCreateTime(
+					rows,
+					filterOrdersByTab(activityRows.map(mapActivityOrderForOrderList), this.OrderType)
+				)
 				let needRefresh = false
 				// 待付款列表：尝试同步可能已支付成功但回调未落库的订单
 				if (this.OrderType == 1 || this.OrderType == 0) {
@@ -260,6 +287,15 @@
 					for (const item of pending) {
 						try {
 							await syncGoodsOrderPay(item.orderId)
+							needRefresh = true
+						} catch (e) {}
+					}
+					const pendingActivities = activityRows
+						.filter(item => String(item.payStatus) === '0' && String(item.status) !== '2')
+						.slice(0, 5)
+					for (const item of pendingActivities) {
+						try {
+							await syncActivityOrderPay(item.orderId)
 							needRefresh = true
 						} catch (e) {}
 					}
@@ -281,11 +317,26 @@
 							})
 						} catch (e) {}
 					}
+					const refundingActivities = activityRows
+						.filter(item => String(item.payStatus) === '3')
+						.slice(0, 5)
+					for (const item of refundingActivities) {
+						try {
+							await syncActivityOrderRefund(item.orderId)
+							needRefresh = true
+						} catch (e) {}
+					}
 				}
 				if (needRefresh) {
-					let refreshed = await getOrderList(params)
+					const [refreshed, refreshedActivity] = await Promise.all([
+						getOrderList(params),
+						getActivityOrderList({ pageNum: 1, pageSize: 100 })
+					])
 					await this.enrichProductNames(refreshed.rows)
-					this.orderList = refreshed.rows
+					this.orderList = mergeOrdersByCreateTime(
+						refreshed.rows,
+						filterOrdersByTab((refreshedActivity.rows || []).map(mapActivityOrderForOrderList), this.OrderType)
+					)
 				}
 			},
 			/**
@@ -305,6 +356,12 @@
 			 * 订单列表点击
 			 */
 			onOrderList(item){
+				if (this.isActivityOrder(item)) {
+					uni.navigateTo({
+						url: `/packagesMember/MyActivity/detail/index?orderId=${item.orderId}`
+					})
+					return
+				}
 				uni.navigateTo({
 					url: `/packagesMall/OrderDetails/OrderDetails?orderId=${item.orderId}`,
 				})
@@ -316,7 +373,10 @@
 					content: '确认取消该订单？',
 					success: (res) => {
 						if (!res.confirm) return
-						cancelOrderApi(item.orderId).then(() => {
+						const cancelRequest = this.isActivityOrder(item)
+							? cancelActivityOrder(item.orderId)
+							: cancelOrderApi(item.orderId)
+						cancelRequest.then(() => {
 							uni.showToast({ title: '取消成功', icon: 'none' })
 							this.getOrders()
 						}).catch(err => {
@@ -336,6 +396,12 @@
 					})
 			},
 			orderByPay(item) {
+				if (this.isActivityOrder(item)) {
+					uni.navigateTo({
+						url: `/packagesMall/CashierDesk/ActivityCashierDesk?orderAmount=${item.moneyPayable}&orderId=${item.orderId}&orderNo=${item.orderNo}`
+					})
+					return
+				}
 				const goodsType = this.getOrderGoodsType(item)
 				if(goodsType === 'hotel'){
 					uni.redirectTo({
