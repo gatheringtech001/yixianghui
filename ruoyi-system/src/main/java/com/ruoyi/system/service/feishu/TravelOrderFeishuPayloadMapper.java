@@ -31,7 +31,7 @@ public final class TravelOrderFeishuPayloadMapper
         fields.put("订单状态", orderStatus(order.getStatus()));
         putText(fields, "客户名称", order.getContactName());
         putText(fields, "联系方式", order.getContactPhone());
-        putMultiSelect(fields, "房型", order.getSkuName());
+        putMultiSelect(fields, "房型", roomType(order.getSkuName()));
         putText(fields, "备注", order.getRemark());
         putDate(fields, "入住日期", order.getCheckInDate());
         putDate(fields, "离店日期", order.getCheckOutDate());
@@ -55,6 +55,19 @@ public final class TravelOrderFeishuPayloadMapper
         if ("3".equals(status)) return "退款中";
         if ("4".equals(status)) return "已退款";
         throw new IllegalArgumentException("未知旅居订单状态: " + status);
+    }
+
+    static String roomType(String skuName)
+    {
+        String name = StringUtils.trimToEmpty(skuName);
+        if (name.contains("豪华") && (name.contains("双人") || name.contains("双床") || name.contains("标间")))
+            return "豪华双人间";
+        if (name.contains("大床")) return "标准大床房";
+        if (name.contains("三人")) return "三人间";
+        if (name.contains("家庭")) return "标准家庭房";
+        if (name.contains("套房")) return "标准套房";
+        if (name.contains("双人") || name.contains("双床") || name.contains("标间")) return "标准双人间";
+        return null;
     }
 
     private static void putText(JSONObject fields, String name, String value)

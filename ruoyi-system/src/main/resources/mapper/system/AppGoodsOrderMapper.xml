@@ -261,7 +261,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="selectTravelOrdersCreatedSince" resultMap="TravelOrderSyncRecordResult">
         select o.order_id, o.order_no, o.contact_name, o.contact_phone,
-               s.sku_name, o.check_in_date, o.check_out_date,
+               coalesce(parent_s.sku_name, s.sku_name) as sku_name,
+               o.check_in_date, o.check_out_date,
                o.goods_count as room_count, d.self_goods_count as people_count,
                o.pay_money, o.status, o.remark
         from app_goods_order o
@@ -272,13 +273,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             where od.order_id = o.order_id
         )
         left join app_goods_sku s on s.sku_id = d.sku_id
+        left join app_goods_sku parent_s on parent_s.sku_id = s.par_sku_id
         where o.create_time &gt;= #{createdAfter}
         order by o.order_id
     </select>
 
     <select id="selectTravelOrderByOrderId" resultMap="TravelOrderSyncRecordResult">
         select o.order_id, o.order_no, o.contact_name, o.contact_phone,
-               s.sku_name, o.check_in_date, o.check_out_date,
+               coalesce(parent_s.sku_name, s.sku_name) as sku_name,
+               o.check_in_date, o.check_out_date,
                o.goods_count as room_count, d.self_goods_count as people_count,
                o.pay_money, o.status, o.remark
         from app_goods_order o
@@ -289,6 +292,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             where od.order_id = o.order_id
         )
         left join app_goods_sku s on s.sku_id = d.sku_id
+        left join app_goods_sku parent_s on parent_s.sku_id = s.par_sku_id
         where o.order_id = #{orderId}
     </select>
 </mapper>

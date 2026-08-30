@@ -42,6 +42,28 @@ class TravelOrderFeishuPayloadMapperTest
         assertEquals("已退款", TravelOrderFeishuPayloadMapper.orderStatus("4"));
     }
 
+    @Test
+    void normalizesPackageRoomNameToExistingFeishuOption()
+    {
+        TravelOrderSyncRecord order = sampleOrder("1");
+        order.setSkuName("测试标准双床房");
+
+        JSONObject fields = TravelOrderFeishuPayloadMapper.toFields(order, "ou_owner");
+
+        assertEquals("标准双人间", fields.getJSONArray("房型").getString(0));
+    }
+
+    @Test
+    void omitsUnknownRoomTypeInsteadOfRejectingWholeRecord()
+    {
+        TravelOrderSyncRecord order = sampleOrder("1");
+        order.setSkuName("2天1晚");
+
+        JSONObject fields = TravelOrderFeishuPayloadMapper.toFields(order, "ou_owner");
+
+        assertFalse(fields.containsKey("房型"));
+    }
+
     private TravelOrderSyncRecord sampleOrder(String status)
     {
         TravelOrderSyncRecord order = new TravelOrderSyncRecord();
