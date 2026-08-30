@@ -23,6 +23,7 @@ import com.ruoyi.common.utils.wxpay.jsapi.WxpayJsapiServiceExtensionUtils;
 import com.ruoyi.system.domain.*;
 import com.ruoyi.system.mapper.*;
 import com.ruoyi.system.service.*;
+import com.ruoyi.system.service.feishu.TravelOrderFeishuSyncService;
 import com.wechat.pay.java.core.Config;
 import com.wechat.pay.java.core.RSAConfig;
 import com.wechat.pay.java.core.RSAPublicKeyConfig;
@@ -97,6 +98,8 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     private AppPayRefundLogMapper appPayRefundLogMapper;
     @Autowired
     private AppGoodsOrderAfterMapper appGoodsOrderAfterMapper;
+    @Autowired
+    private TravelOrderFeishuSyncService travelOrderFeishuSyncService;
 
     @Autowired
     private AppGoodsSkuMapper appGoodsSkuMapper;
@@ -344,6 +347,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                 AppUserAddress userAddress = userAddressMapper.selectAppUserAddressByAddressId(order.getAddressId());
                 order.setAddressInfo(userAddress);
             }
+            travelOrderFeishuSyncService.syncOrderAfterCommit(order.getOrderId());
         }
         return order;
     }
@@ -407,7 +411,11 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     public int updateAppGoodsOrder(AppGoodsOrder appGoodsOrder)
     {
         appGoodsOrder.setUpdateTime(DateUtils.getNowDate());
-        return appGoodsOrderMapper.updateAppGoodsOrder(appGoodsOrder);
+        int updated = appGoodsOrderMapper.updateAppGoodsOrder(appGoodsOrder);
+        if (updated > 0) {
+            travelOrderFeishuSyncService.syncOrderAfterCommit(appGoodsOrder.getOrderId());
+        }
+        return updated;
     }
 
     /**
@@ -639,6 +647,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                     upOrder.setStatus("1");
                     upOrder.setUpdateTime(DateUtils.getNowDate());
                     appGoodsOrderMapper.updateAppGoodsOrder(upOrder);
+                    travelOrderFeishuSyncService.syncOrderAfterCommit(appGoodsOrderAfter.getOrderId());
                 }
             }
             rs = AjaxResult.success();
@@ -745,6 +754,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             }
             upOrder.setUpdateTime(now);
             appGoodsOrderMapper.updateAppGoodsOrder(upOrder);
+            travelOrderFeishuSyncService.syncOrderAfterCommit(after.getOrderId());
             if (refundDone) {
                 AppGoodsOrder latest = appGoodsOrderMapper.selectAppGoodsOrderByOrderId(after.getOrderId());
                 releaseEducationStockIfNeeded(latest);
@@ -896,6 +906,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             }
             if(null!=goodsOrder) {
                 appGoodsOrderMapper.updateAppGoodsOrder(goodsOrder);
+                travelOrderFeishuSyncService.syncOrderAfterCommit(goodsOrder.getOrderId());
             }
             return JSONObject.toJSONString(returnMap);
         }
@@ -1055,6 +1066,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         goodsOrder.setPayStatus("1");
         goodsOrder.setStatus("1");
         syncOrderDetailGoodsMoney(goodsOrder.getOrderId(), yuan);
+        travelOrderFeishuSyncService.syncOrderAfterCommit(goodsOrder.getOrderId());
 
         if (!grantGold || payLog == null) {
             return;
@@ -1248,6 +1260,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         up.setUpdateTime(DateUtils.getNowDate());
         appGoodsOrderMapper.updateAppGoodsOrder(up);
         syncOrderDetailGoodsMoney(order.getOrderId(), actual);
+        travelOrderFeishuSyncService.syncOrderAfterCommit(order.getOrderId());
         order.setPayMoney(actual);
         order.setMoneyPayable(actual);
         log.info("已支付订单金额已按微信实付回写 orderId={}, actual={}", order.getOrderId(), actual);
@@ -1502,6 +1515,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             upOrder.setUpdateTime(now);
             appGoodsOrderMapper.updateAppGoodsOrder(upOrder);
             releaseEducationStockIfNeeded(order);
+            travelOrderFeishuSyncService.syncOrderAfterCommit(orderId);
         }
         // 无论订单是否已是退款态，均尝试扣币（幂等）
         String refundNo = refundLog != null ? refundLog.getAgentRefundNo() : null;
@@ -1672,6 +1686,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             up.setUpdateTime(now);
             if (appGoodsOrderMapper.updateAppGoodsOrder(up) > 0) {
                 releaseEducationStockIfNeeded(latest);
+                travelOrderFeishuSyncService.syncOrderAfterCommit(latest.getOrderId());
                 closed++;
             }
         }

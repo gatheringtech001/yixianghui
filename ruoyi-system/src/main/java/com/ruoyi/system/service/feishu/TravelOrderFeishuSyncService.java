@@ -6,9 +6,12 @@ import com.ruoyi.system.domain.TravelOrderSyncRecord;
 import com.ruoyi.system.mapper.AppGoodsOrderMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.annotation.PostConstruct;
 import java.text.ParseException;
@@ -17,9 +20,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 
 /**
- * 定时对账部署后创建的旅居订单，失败会在下一轮自动重试。
+ * 旅居订单提交后立即同步飞书；定时扫描仅负责失败补偿。
  */
 @Service
 public class TravelOrderFeishuSyncService
@@ -29,6 +33,7 @@ public class TravelOrderFeishuSyncService
 
     private final AppGoodsOrderMapper orderMapper;
     private final TravelOrderFeishuClient client;
+    private final Executor executor;
     private final Map<String, String> syncedPayloads = new ConcurrentHashMap<>();
 
     @Value("${feishu.travel-order.enabled:false}")
@@ -42,10 +47,13 @@ public class TravelOrderFeishuSyncService
 
     private Date syncStartDate;
 
-    public TravelOrderFeishuSyncService(AppGoodsOrderMapper orderMapper, TravelOrderFeishuClient client)
+    public TravelOrderFeishuSyncService(AppGoodsOrderMapper orderMapper,
+                                        TravelOrderFeishuClient client,
+                                        @Qualifier("threadPoolTaskExecutor") Executor executor)
     {
         this.orderMapper = orderMapper;
         this.client = client;
+        this.executor = executor;
     }
 
     @PostConstruct
@@ -68,6 +76,52 @@ public class TravelOrderFeishuSyncService
         if (!enabled) return;
         List<TravelOrderSyncRecord> orders = orderMapper.selectTravelOrdersCreatedSince(syncStartDate);
         for (TravelOrderSyncRecord order : orders) syncOrder(order);
+    }
+
+    /**
+     * 在本地订单事务提交后异步同步，避免外部接口失败回滚用户下单。
+     */
+    public void syncOrderAfterCommit(Long orderId)
+    {
+        if (!enabled || orderId == null) return;
+        if (TransactionSynchronizationManager.isSynchronizationActive())
+        {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization()
+            {
+                @Override
+                public void afterCommit()
+                {
+                    dispatch(orderId);
+                }
+            });
+            return;
+        }
+        dispatch(orderId);
+    }
+
+    private void dispatch(Long orderId)
+    {
+        try
+        {
+            executor.execute(() -> syncOrderById(orderId));
+        }
+        catch (RuntimeException e)
+        {
+            log.error("提交旅居订单飞书同步任务失败 orderId={}", orderId, e);
+        }
+    }
+
+    private void syncOrderById(Long orderId)
+    {
+        try
+        {
+            TravelOrderSyncRecord order = orderMapper.selectTravelOrderByOrderId(orderId);
+            if (order != null) syncOrder(order);
+        }
+        catch (RuntimeException e)
+        {
+            log.error("读取待同步旅居订单失败 orderId={}", orderId, e);
+        }
     }
 
     private void syncOrder(TravelOrderSyncRecord order)

@@ -85,4 +85,9 @@ public interface AppGoodsOrderMapper
      * 查询指定时间后创建的旅居订单，供飞书增量同步。
      */
     List<TravelOrderSyncRecord> selectTravelOrdersCreatedSince(@Param("createdAfter") Date createdAfter);
+
+    /**
+     * 按订单主键查询旅居订单；非旅居订单返回 null。
+     */
+    TravelOrderSyncRecord selectTravelOrderByOrderId(@Param("orderId") Long orderId);
 }
