@@ -21,7 +21,6 @@ import com.ruoyi.system.domain.talent.TalentCenterAudit;
 import com.ruoyi.system.domain.talent.TalentCenterResource;
 import com.ruoyi.system.domain.talent.TalentCenterResourceType;
 import com.ruoyi.system.domain.talent.TalentCenterStatusRequest;
-import com.ruoyi.system.mapper.SysUserMapper;
 import com.ruoyi.system.mapper.TalentCenterResourceMapper;
 
 @Service
@@ -30,25 +29,24 @@ public class TalentCenterAdminService
     private static final int MAX_PAGE_SIZE = 100;
     private static final long IDEMPOTENCY_TTL_HOURS = 24;
     private static final Pattern SAFE_ID = Pattern.compile("[A-Za-z0-9._:-]{8,128}");
+    private static final Pattern SAFE_ACTOR_ID = Pattern.compile("[A-Za-z0-9._:-]{1,128}");
     private final TalentCenterResourceMapper mapper;
-    private final SysUserMapper userMapper;
     private final ISysMenuService menuService;
     private final RedisCache redisCache;
 
-    public TalentCenterAdminService(TalentCenterResourceMapper mapper, SysUserMapper userMapper,
-            ISysMenuService menuService, RedisCache redisCache)
+    public TalentCenterAdminService(TalentCenterResourceMapper mapper, ISysMenuService menuService,
+            RedisCache redisCache)
     {
         this.mapper = mapper;
-        this.userMapper = userMapper;
         this.menuService = menuService;
         this.redisCache = redisCache;
     }
 
-    public List<TalentCenterResource> list(String typeValue, String actorUnionid, int pageNum, int pageSize)
+    public List<TalentCenterResource> list(String typeValue, String actorId, int pageNum, int pageSize)
     {
         TalentCenterResourceType type = TalentCenterResourceType.from(typeValue);
         validatePage(pageNum, pageSize);
-        requirePermission(actorUnionid, type.getListPermission());
+        requirePermission(actorId, type.getListPermission());
         int offset = (pageNum - 1) * pageSize;
         switch (type)
         {
@@ -60,11 +58,11 @@ public class TalentCenterAdminService
         }
     }
 
-    public TalentCenterResource get(String typeValue, Long id, String actorUnionid)
+    public TalentCenterResource get(String typeValue, Long id, String actorId)
     {
         TalentCenterResourceType type = TalentCenterResourceType.from(typeValue);
         validateId(id);
-        requirePermission(actorUnionid, type.getQueryPermission());
+        requirePermission(actorId, type.getQueryPermission());
         TalentCenterResource resource = select(type, id);
         if (resource == null)
         {
@@ -74,11 +72,12 @@ public class TalentCenterAdminService
     }
 
     @Transactional(noRollbackFor = TalentCenterApiException.class)
-    public TalentCenterResource updateStatus(String typeValue, Long id, TalentCenterStatusRequest request,
-            String idempotencyKey, String serviceId, String ip)
+    public TalentCenterResource updateStatus(String typeValue, Long id, String actorId,
+            TalentCenterStatusRequest request, String idempotencyKey, String serviceId, String ip)
     {
         TalentCenterResourceType type = TalentCenterResourceType.from(typeValue);
         validateId(id);
+        validateActor(actorId);
         validateRequest(request, idempotencyKey);
         String keyHash = sha256(serviceId + ":" + idempotencyKey);
         reserveIdempotency(keyHash);
@@ -93,7 +92,7 @@ public class TalentCenterAdminService
             throw new TalentCenterApiException(409, "confirmationId 或 Idempotency-Key 已使用");
         }
 
-        SysUser actor = findActor(request.getActorUnionid(), audit);
+        SysUser actor = findActor(actorId, audit);
         requirePermission(actor, type.getEditPermission(), audit);
         TalentCenterResource before = select(type, id);
         if (before == null)
@@ -114,9 +113,9 @@ public class TalentCenterAdminService
         return select(type, id);
     }
 
-    private SysUser findActor(String actorUnionid, TalentCenterAudit audit)
+    private SysUser findActor(String actorId, TalentCenterAudit audit)
     {
-        SysUser actor = userMapper.selectEnabledUserByUnionId(actorUnionid);
+        SysUser actor = mapper.selectEnabledActorByActorId(actorId);
         if (actor == null)
         {
             fail(audit, null, "ACTOR_NOT_FOUND", 403, "操作人不存在或已停用");
@@ -125,10 +124,10 @@ public class TalentCenterAdminService
         return actor;
     }
 
-    private void requirePermission(String actorUnionid, String permission)
+    private void requirePermission(String actorId, String permission)
     {
-        validateActor(actorUnionid);
-        SysUser actor = userMapper.selectEnabledUserByUnionId(actorUnionid);
+        validateActor(actorId);
+        SysUser actor = mapper.selectEnabledActorByActorId(actorId);
         if (actor == null)
         {
             throw new TalentCenterApiException(403, "操作人不存在或已停用");
@@ -205,7 +204,6 @@ public class TalentCenterAdminService
         {
             throw new TalentCenterApiException(400, "请求体不能为空");
         }
-        validateActor(request.getActorUnionid());
         if (!isStatus(request.getExpectedStatus()) || !isStatus(request.getStatus())
                 || request.getExpectedStatus().equals(request.getStatus()))
         {
@@ -238,11 +236,11 @@ public class TalentCenterAdminService
         }
     }
 
-    private void validateActor(String actorUnionid)
+    private void validateActor(String actorId)
     {
-        if (actorUnionid == null || actorUnionid.length() < 8 || actorUnionid.length() > 128)
+        if (actorId == null || !SAFE_ACTOR_ID.matcher(actorId).matches())
         {
-            throw new TalentCenterApiException(400, "actorUnionid 格式不正确");
+            throw new TalentCenterApiException(400, "X-Actor-Id 格式不正确");
         }
     }
 

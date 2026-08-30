@@ -17,7 +17,6 @@ import com.ruoyi.system.domain.talent.TalentCenterAudit;
 import com.ruoyi.system.domain.talent.TalentCenterResource;
 import com.ruoyi.system.domain.talent.TalentCenterStatusRequest;
 import com.ruoyi.system.domain.SysAuthUser;
-import com.ruoyi.system.mapper.SysUserMapper;
 import com.ruoyi.system.mapper.TalentCenterResourceMapper;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -29,12 +28,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 class TalentCenterAdminServiceTest
 {
     private TalentCenterResourceMapper mapper;
-    private SysUserMapper userMapper;
     private ISysMenuService menuService;
     private RedisCache redisCache;
     private TalentCenterAdminService service;
@@ -43,10 +42,9 @@ class TalentCenterAdminServiceTest
     void setUp()
     {
         mapper = mock(TalentCenterResourceMapper.class);
-        userMapper = mock(SysUserMapper.class);
         menuService = mock(ISysMenuService.class);
         redisCache = mock(RedisCache.class);
-        service = new TalentCenterAdminService(mapper, userMapper, menuService, redisCache);
+        service = new TalentCenterAdminService(mapper, menuService, redisCache);
         when(redisCache.setCacheObjectIfAbsent(anyString(), eq("accepted"), eq(24L), any())).thenReturn(true);
         when(mapper.insertAudit(any())).thenAnswer(invocation -> {
             TalentCenterAudit audit = invocation.getArgument(0);
@@ -59,26 +57,37 @@ class TalentCenterAdminServiceTest
     void rejectsOrdinaryUserReadingWithoutListPermission()
     {
         SysUser actor = actor(101L);
-        when(userMapper.selectEnabledUserByUnionId("union-id-ordinary")).thenReturn(actor);
+        when(mapper.selectEnabledActorByActorId("talent-user-ordinary")).thenReturn(actor);
         when(menuService.selectMenuPermsByUserId(101L)).thenReturn(Collections.emptySet());
 
         TalentCenterApiException error = assertThrows(TalentCenterApiException.class,
-                () -> service.list("goods", "union-id-ordinary", 1, 20));
+                () -> service.list("goods", "talent-user-ordinary", 1, 20));
 
         assertEquals(403, error.getHttpStatus());
-        verifyNoInteractions(mapper);
+        verify(mapper).selectEnabledActorByActorId("talent-user-ordinary");
+        verifyNoMoreInteractions(mapper);
+    }
+
+    @Test
+    void rejectsUnmappedActor()
+    {
+        TalentCenterApiException error = assertThrows(TalentCenterApiException.class,
+                () -> service.list("goods", "talent-user-unknown", 1, 20));
+
+        assertEquals(403, error.getHttpStatus());
+        verify(mapper).selectEnabledActorByActorId("talent-user-unknown");
     }
 
     @Test
     void rejectsUserMissingEditPermission()
     {
         SysUser actor = actor(102L);
-        when(userMapper.selectEnabledUserByUnionId("union-id-limited")).thenReturn(actor);
+        when(mapper.selectEnabledActorByActorId("talent-user-limited")).thenReturn(actor);
         when(menuService.selectMenuPermsByUserId(102L))
                 .thenReturn(setOf("system:app_goods:list", "system:app_goods:query"));
 
         TalentCenterApiException error = assertThrows(TalentCenterApiException.class,
-                () -> service.updateStatus("goods", 8L, request("union-id-limited", "0", "1"),
+                () -> service.updateStatus("goods", 8L, "talent-user-limited", request("0", "1"),
                         "idem-key-0001", "talent-service", "127.0.0.1"));
 
         assertEquals(403, error.getHttpStatus());
@@ -88,11 +97,11 @@ class TalentCenterAdminServiceTest
     @Test
     void rejectsStatusConflictAndAuditsCurrentState()
     {
-        allowEditor("union-id-editor", 103L);
+        allowEditor("talent-user-editor", 103L);
         when(mapper.getGoods(8L)).thenReturn(resource(8L, "1"));
 
         TalentCenterApiException error = assertThrows(TalentCenterApiException.class,
-                () -> service.updateStatus("goods", 8L, request("union-id-editor", "0", "1"),
+                () -> service.updateStatus("goods", 8L, "talent-user-editor", request("0", "1"),
                         "idem-key-0002", "talent-service", "127.0.0.1"));
 
         assertEquals(409, error.getHttpStatus());
@@ -106,7 +115,7 @@ class TalentCenterAdminServiceTest
                 .thenReturn(false);
 
         TalentCenterApiException error = assertThrows(TalentCenterApiException.class,
-                () -> service.updateStatus("goods", 8L, request("union-id-editor", "0", "1"),
+                () -> service.updateStatus("goods", 8L, "talent-user-editor", request("0", "1"),
                         "idem-key-0003", "talent-service", "127.0.0.1"));
 
         assertEquals(409, error.getHttpStatus());
@@ -119,7 +128,7 @@ class TalentCenterAdminServiceTest
         doThrow(new DuplicateKeyException("duplicate")).when(mapper).insertAudit(any());
 
         TalentCenterApiException error = assertThrows(TalentCenterApiException.class,
-                () -> service.updateStatus("goods", 8L, request("union-id-editor", "0", "1"),
+                () -> service.updateStatus("goods", 8L, "talent-user-editor", request("0", "1"),
                         "idem-key-0005", "talent-service", "127.0.0.1"));
 
         assertEquals(409, error.getHttpStatus());
@@ -128,16 +137,18 @@ class TalentCenterAdminServiceTest
     @Test
     void modifiesStatusWithCompareAndSetAndReturnsFreshResource()
     {
-        allowEditor("union-id-editor", 104L);
+        allowEditor("talent-user-editor", 104L);
         TalentCenterResource before = resource(8L, "0");
         TalentCenterResource after = resource(8L, "1");
         when(mapper.getGoods(8L)).thenReturn(before, after);
         when(mapper.updateGoodsStatus(8L, "0", "1")).thenReturn(1);
 
         TalentCenterResource result = service.updateStatus("goods", 8L,
-                request("union-id-editor", "0", "1"), "idem-key-0004", "talent-service", "127.0.0.1");
+                "talent-user-editor", request("0", "1"), "idem-key-0004", "talent-service", "127.0.0.1");
 
         assertEquals("1", result.getStatus());
+        verify(mapper).selectEnabledActorByActorId("talent-user-editor");
+        verify(mapper).updateAuditActor(99L, 104L);
         verify(mapper).updateGoodsStatus(8L, "0", "1");
         verify(mapper).finishAudit(99L, "0", "1", "SUCCESS");
         ArgumentCaptor<TalentCenterAudit> captor = ArgumentCaptor.forClass(TalentCenterAudit.class);
@@ -161,16 +172,15 @@ class TalentCenterAdminServiceTest
         assertFalse(json.contains("wx-app-id"));
     }
 
-    private void allowEditor(String unionId, Long userId)
+    private void allowEditor(String actorId, Long userId)
     {
-        when(userMapper.selectEnabledUserByUnionId(unionId)).thenReturn(actor(userId));
+        when(mapper.selectEnabledActorByActorId(actorId)).thenReturn(actor(userId));
         when(menuService.selectMenuPermsByUserId(userId)).thenReturn(setOf("system:app_goods:edit"));
     }
 
-    private TalentCenterStatusRequest request(String unionId, String expected, String status)
+    private TalentCenterStatusRequest request(String expected, String status)
     {
         TalentCenterStatusRequest request = new TalentCenterStatusRequest();
-        request.setActorUnionid(unionId);
         request.setExpectedStatus(expected);
         request.setStatus(status);
         request.setConfirmationId("confirm-00000001");

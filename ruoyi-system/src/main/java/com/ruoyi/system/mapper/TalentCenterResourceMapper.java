@@ -2,11 +2,13 @@ package com.ruoyi.system.mapper;
 
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.system.domain.talent.TalentCenterAudit;
 import com.ruoyi.system.domain.talent.TalentCenterResource;
 
 public interface TalentCenterResourceMapper
 {
+    SysUser selectEnabledActorByActorId(@Param("actorId") String actorId);
     List<TalentCenterResource> listGoods(@Param("offset") int offset, @Param("limit") int limit);
     List<TalentCenterResource> listActivities(@Param("offset") int offset, @Param("limit") int limit);
     List<TalentCenterResource> listArticles(@Param("offset") int offset, @Param("limit") int limit);

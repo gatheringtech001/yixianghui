@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,29 +28,31 @@ public class TalentCenterAdminController
     }
 
     @GetMapping("/{type}")
-    public AjaxResult list(@PathVariable String type,
-            @RequestHeader(value = "X-Actor-Unionid", required = false) String actorUnionid,
+    public AjaxResult list(@PathVariable String type, HttpServletRequest request,
             @RequestParam(defaultValue = "1") int pageNum, @RequestParam(defaultValue = "20") int pageSize)
     {
-        List<TalentCenterResource> resources = service.list(type, actorUnionid, pageNum, pageSize);
+        List<TalentCenterResource> resources = service.list(type, actorId(request), pageNum, pageSize);
         return AjaxResult.success(resources).put("pageNum", pageNum).put("pageSize", pageSize);
     }
 
     @GetMapping("/{type}/{id}")
-    public AjaxResult get(@PathVariable String type, @PathVariable Long id,
-            @RequestHeader(value = "X-Actor-Unionid", required = false) String actorUnionid)
+    public AjaxResult get(@PathVariable String type, @PathVariable Long id, HttpServletRequest request)
     {
-        return AjaxResult.success(service.get(type, id, actorUnionid));
+        return AjaxResult.success(service.get(type, id, actorId(request)));
     }
 
     @PutMapping("/{type}/{id}/status")
     public ResponseEntity<AjaxResult> updateStatus(@PathVariable String type, @PathVariable Long id,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @RequestBody TalentCenterStatusRequest body, HttpServletRequest request)
     {
         String serviceId = (String) request.getAttribute(TalentCenterHmacFilter.SERVICE_ID_ATTRIBUTE);
-        TalentCenterResource resource = service.updateStatus(type, id, body, idempotencyKey, serviceId,
-                IpUtils.getIpAddr(request));
+        TalentCenterResource resource = service.updateStatus(type, id, actorId(request), body,
+                request.getHeader("Idempotency-Key"), serviceId, IpUtils.getIpAddr(request));
         return ResponseEntity.ok(AjaxResult.success(resource));
+    }
+
+    private String actorId(HttpServletRequest request)
+    {
+        return (String) request.getAttribute(TalentCenterHmacFilter.ACTOR_ID_ATTRIBUTE);
     }
 }

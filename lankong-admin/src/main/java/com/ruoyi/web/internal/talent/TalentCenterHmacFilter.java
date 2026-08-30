@@ -26,6 +26,7 @@ import com.ruoyi.system.domain.talent.TalentCenterApiException;
 public class TalentCenterHmacFilter extends OncePerRequestFilter
 {
     public static final String SERVICE_ID_ATTRIBUTE = "talentCenterServiceId";
+    public static final String ACTOR_ID_ATTRIBUTE = "talentCenterActorId";
     private static final String PREFIX = "/internal/talent-center/";
     private static final int MAX_BODY_BYTES = 64 * 1024;
     private final TalentCenterHmacVerifier verifier;
@@ -52,9 +53,11 @@ public class TalentCenterHmacFilter extends OncePerRequestFilter
             CachedRequest wrapped = new CachedRequest(request, body);
             String path = request.getRequestURI().substring(request.getContextPath().length());
             String serviceId = request.getHeader("X-Service-Id");
-            verifier.verify(serviceId, request.getHeader("X-Timestamp"), request.getHeader("X-Nonce"),
+            String actorId = request.getHeader("X-Actor-Id");
+            verifier.verify(serviceId, actorId, request.getHeader("X-Timestamp"), request.getHeader("X-Nonce"),
                     request.getHeader("X-Signature"), request.getMethod(), path, body);
             wrapped.setAttribute(SERVICE_ID_ATTRIBUTE, serviceId);
+            wrapped.setAttribute(ACTOR_ID_ATTRIBUTE, actorId);
             chain.doFilter(wrapped, response);
         }
         catch (TalentCenterApiException e)
