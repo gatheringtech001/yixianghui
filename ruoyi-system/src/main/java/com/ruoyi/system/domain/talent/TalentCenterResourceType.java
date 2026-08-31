@@ -2,10 +2,10 @@ package com.ruoyi.system.domain.talent;
 
 public enum TalentCenterResourceType
 {
-    GOODS("goods", "system:app_goods:list", "system:app_goods:query", "system:app_goods:edit"),
-    ACTIVITY("activity", "system:app_activity:list", "system:app_activity:query", "system:app_activity:edit"),
-    ARTICLE("article", "system:app_article:list", "system:app_article:query", "system:app_article:edit"),
-    AD("ad", "system:app_ad_content:list", "system:app_ad_content:query", "system:app_ad_content:edit");
+    GOODS("goods", "system:app_goods:list", "system:app_goods:query", "service:content:goods:status"),
+    ACTIVITY("activity", "system:app_activity:list", "system:app_activity:query", "service:content:activity:status"),
+    ARTICLE("article", "system:app_article:list", "system:app_article:query", "service:content:article:status"),
+    AD("ad", "system:app_ad_content:list", "system:app_ad_content:query", "service:content:ad-content:status");
 
     private final String value;
     private final String listPermission;

@@ -158,6 +158,23 @@ class TalentCenterAdminServiceTest
     }
 
     @Test
+    void allowsMappedTalentAdminWithDedicatedContentStatusPermission()
+    {
+        SysUser actor = actor(108L);
+        when(mapper.selectEnabledActorByActorId("talent-user-admin")).thenReturn(actor);
+        when(menuService.selectMenuPermsByUserId(108L))
+                .thenReturn(setOf("service:content:goods:status"));
+        when(mapper.getGoods(108L)).thenReturn(resource(108L, "1"), resource(108L, "0"));
+        when(mapper.updateGoodsStatus(108L, "1", "0")).thenReturn(1);
+
+        TalentCenterResource result = service.updateStatus("goods", 108L,
+                "talent-user-admin", request("1", "0"), "idem-key-0108", "talent-service", "127.0.0.1");
+
+        assertEquals("0", result.getStatus());
+        verify(mapper).updateGoodsStatus(108L, "1", "0");
+    }
+
+    @Test
     void doesNotSerializeWechatIdentifiers() throws Exception
     {
         SysAuthUser auth = new SysAuthUser();
@@ -175,7 +192,7 @@ class TalentCenterAdminServiceTest
     private void allowEditor(String actorId, Long userId)
     {
         when(mapper.selectEnabledActorByActorId(actorId)).thenReturn(actor(userId));
-        when(menuService.selectMenuPermsByUserId(userId)).thenReturn(setOf("system:app_goods:edit"));
+        when(menuService.selectMenuPermsByUserId(userId)).thenReturn(setOf("service:content:goods:status"));
     }
 
     private TalentCenterStatusRequest request(String expected, String status)
