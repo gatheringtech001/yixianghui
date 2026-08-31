@@ -24,7 +24,7 @@
 						class="search-input"
 						type="text"
 						v-model="keyword"
-						placeholder="搜索商品"
+						placeholder="搜索旅居、活动和课程"
 						confirm-type="search"
 						@input="onKeywordInput"
 						@confirm="onSearch"
@@ -32,37 +32,42 @@
 					<text class="search-action" @click="onSearch">搜索</text>
 				</view>
 			</view>
-			<view class="search-empty" v-if="showSearchEmpty">
+			<view class="search-empty" v-if="searchError">
+				<text>{{ searchError }}</text>
+			</view>
+			<view class="search-empty" v-else-if="showSearchEmpty">
 				<text>您搜索的<text class="search-keyword">{{ emptySearchKeyword }}</text>找不到</text>
 			</view>
 			<view class="search-result" v-if="showSearchResult">
-				<view
-					class="goods_item_view"
-					v-for="(item, index) in goodsList"
-					:key="item.goodsId || index"
-					:data-goods-id="item.goodsId"
-					:data-goods-type="item.goodsType || ''"
-					@tap.stop="goodsFn"
-				>
-					<image :src="host + item.image" mode="aspectFill" />
-					<view class="item_content_view">
-						<view class="content_title_view">{{ item.goodsName }}</view>
-						<view class="content_desc_view">{{ item.description }}</view>
-						<view class="content_tag_view" v-if="item.tagList && item.tagList.length">
-							<view class="tag_view" v-for="(tag, tagIndex) in item.tagList" :key="tagIndex">
-								{{ tag }}
+				<view class="result-section" v-for="group in resultGroups" :key="group.type">
+					<view class="result-heading">
+						<text>{{ group.label }}</text>
+						<text class="result-count">{{ group.items.length }}项</text>
+					</view>
+					<view
+						class="result-card"
+						v-for="item in group.items"
+						:key="item.id"
+						@tap.stop="openResult(item)"
+					>
+						<image v-if="item.image" :src="imageUrl(item.image)" mode="aspectFill" />
+						<view class="item_content_view">
+							<view class="result-type">{{ group.label }}</view>
+							<view class="content_title_view">{{ item.title }}</view>
+							<view class="content_desc_view" v-if="item.description">{{ item.description }}</view>
+							<view class="content_meta_view" v-if="item.meta">{{ item.meta }}</view>
+							<view class="content_tag_view" v-if="item.tags.length">
+								<view class="tag_view" v-for="tag in item.tags.slice(0, 3)" :key="tag">{{ tag }}</view>
 							</view>
-						</view>
-						<view class="content_price_view">
-							<view class="price_view">
-								<text>￥<text>{{ item.price }}</text></text>
+							<view class="content_price_view">
+								<view class="price_view">{{ item.priceText }}</view>
+								<view class="button_view">查看详情</view>
 							</view>
-							<view class="button_view">查看详情</view>
 						</view>
 					</view>
 				</view>
 			</view>
-			<view class="search-record" v-if="!showSearchEmpty && !showSearchResult">
+			<view class="search-record" v-if="!searching && !searchError && !showSearchEmpty && !showSearchResult">
 				<view class="search-title">
 					<view class="title">搜索历史</view>
 					<view class="iconfont icon-laji" @click="clearSearch"></view>
@@ -84,6 +89,7 @@
 
 <script>
 	import { getGoodsList } from '@/api/shop/index'
+	import { getActivityList } from '@/api/activity/index'
 
 	export default {
 		data() {
@@ -95,7 +101,8 @@
 				showSearchEmpty: false,
 				showSearchResult: false,
 				emptySearchKeyword: '',
-				goodsList: [],
+				searchError: '',
+				resultGroups: [],
 				pageScrollHeight: 0
 			};
 		},
@@ -119,37 +126,69 @@
 					})
 				})
 			},
-			getServiceCategoryId() {
-				const navList = (uni.getStorageSync('cls') || []).filter(v => v.parentId == 0)
-				const travelNav = navList.find(v => v.categoryName === '全国旅居')
-				if (travelNav) {
-					return travelNav.categoryId
-				}
-				return navList.length ? navList[0].categoryId : null
+			parseTags(tags) {
+				return String(tags || '').split(/[,|，]/).map(v => v.trim()).filter(Boolean)
 			},
-			parseGoodsList(data) {
-				const list = []
-				;(data || []).forEach((item) => {
-					let tagList = []
-					let image = ''
-					if (item.tags) {
-						tagList = item.tags.split(/[,|，]/)
-					}
-					if (item.goodsImages) {
-						image = item.goodsImages.split(',')[0]
-					}
-					list.push({
-						goodsId: item.goodsId,
-						goodsName: item.goodsName,
-						tagList,
-						image,
-						price: item.price,
-						unit: item.unit,
-						goodsType: item.goodsType,
-						description: item.description
-					})
-				})
-				return list
+			imageUrl(path) {
+				if (!path || /^https?:\/\//.test(path)) return path
+				return this.host + path
+			},
+			searchScore(item, keyword) {
+				const value = keyword.toLowerCase()
+				const title = String(item.title || '').toLowerCase()
+				if (title === value) return 0
+				if (title.startsWith(value)) return 1
+				if (title.includes(value)) return 2
+				if (item.tags.join(' ').toLowerCase().includes(value)) return 3
+				return 4
+			},
+			sortResults(items, keyword) {
+				return items.sort((left, right) => (
+					this.searchScore(left, keyword) - this.searchScore(right, keyword)
+					|| Number(right.id) - Number(left.id)
+				))
+			},
+			buildGoodsResult(item) {
+				const image = item.goodsCover || String(item.goodsImages || '').split(',')[0]
+				const typeByGoodsType = {
+					hotel: 'travel',
+					education: 'education'
+				}
+				return {
+					id: item.goodsId,
+					type: typeByGoodsType[item.goodsType] || '',
+					title: item.goodsName,
+					description: item.description || '',
+					meta: '',
+					tags: this.parseTags(item.tags),
+					image,
+					priceText: `￥${item.vipPrice || item.price || 0}`
+				}
+			},
+			buildActivityResult(item) {
+				const isFree = item.isFree === 1 || item.isFree === '1' || item.isFree == null
+				return {
+					id: item.activityId,
+					type: 'activity',
+					title: item.activityName,
+					description: item.description || '',
+					meta: [item.activityTime, item.address].filter(Boolean).join(' · '),
+					tags: this.parseTags(item.tags),
+					image: item.activityCover,
+					priceText: isFree ? '免费' : `￥${item.vipPrice || item.price || 0}`
+				}
+			},
+			buildResultGroups(goods, activities, keyword) {
+				const rows = (goods || []).map(item => this.buildGoodsResult(item)).filter(item => item.type)
+				const definitions = [
+					{ type: 'travel', label: '全国旅居', items: rows.filter(v => v.type === 'travel') },
+					{ type: 'activity', label: '聚会活动', items: (activities || []).map(item => this.buildActivityResult(item)) },
+					{ type: 'education', label: '老年教育', items: rows.filter(v => v.type === 'education') }
+				]
+				return definitions.map(group => ({
+					...group,
+					items: this.sortResults(group.items, keyword)
+				})).filter(group => group.items.length)
 			},
 			onSearch() {
 				const keyword = String(this.keyword || '').trim()
@@ -166,41 +205,47 @@
 			saveSearchRecord(keyword) {
 				const arr = this.SearchRecordArr.filter(item => item !== keyword)
 				arr.unshift(keyword)
-				this.SearchRecordArr = arr
-				uni.setStorageSync('SearchRecordArr', JSON.stringify(arr))
+				this.SearchRecordArr = arr.slice(0, 10)
+				uni.setStorageSync('SearchRecordArr', JSON.stringify(this.SearchRecordArr))
 			},
 			async doSearch(keyword) {
 				if (this.searching) return
 				this.showSearchEmpty = false
 				this.showSearchResult = false
-				this.goodsList = []
-				const categoryId = this.getServiceCategoryId()
-				if (!categoryId) {
-					uni.showToast({
-						title: '分类数据未加载，请先进入服务页',
-						icon: 'none'
-					})
-					return
-				}
+				this.searchError = ''
+				this.resultGroups = []
 				this.searching = true
 				uni.showLoading({ title: '搜索中...', mask: true })
 				try {
-					const res = await getGoodsList({
-						categoryId,
-						goodsName: keyword,
-						ignoreSite: true
-					})
-					const list = this.parseGoodsList(res.data)
-					if (list.length > 0) {
-						this.goodsList = list
-						this.showSearchResult = true
-					} else {
-						this.emptySearchKeyword = keyword
-						this.showSearchEmpty = true
+					let goodsFailed = false
+					let activityFailed = false
+					const [goodsResponse, activityResponse] = await Promise.all([
+						getGoodsList({ goodsName: keyword, ignoreSite: true }).catch(() => {
+							goodsFailed = true
+							return { data: [] }
+						}),
+						getActivityList({ activityName: keyword, signFilter: 'active' }).catch(() => {
+							activityFailed = true
+							return { rows: [] }
+						})
+					])
+					if (goodsFailed && activityFailed) {
+						this.searchError = '搜索服务暂不可用，请稍后重试'
+						return
+					}
+					this.resultGroups = this.buildResultGroups(
+						goodsResponse.data,
+						activityResponse.rows,
+						keyword
+					)
+					this.showSearchResult = this.resultGroups.length > 0
+					this.showSearchEmpty = !this.showSearchResult
+					this.emptySearchKeyword = keyword
+					if (goodsFailed || activityFailed) {
+						uni.showToast({ title: '部分结果加载失败', icon: 'none' })
 					}
 				} catch (e) {
-					this.emptySearchKeyword = keyword
-					this.showSearchEmpty = true
+					this.searchError = '搜索服务暂不可用，请稍后重试'
 				} finally {
 					this.searching = false
 					uni.hideLoading({ noConflict: true })
@@ -209,35 +254,16 @@
 			onKeywordInput() {
 				this.showSearchEmpty = false
 				this.showSearchResult = false
-				this.goodsList = []
+				this.searchError = ''
+				this.resultGroups = []
 			},
-			goodsFn(e) {
-				let goodsId = null
-				let goodsType = ''
-				if (e && e.currentTarget && e.currentTarget.dataset) {
-					const ds = e.currentTarget.dataset
-					goodsId = ds.goodsId
-					goodsType = ds.goodsType || ''
-				} else if (e && e.goodsId) {
-					goodsId = e.goodsId
-					goodsType = e.goodsType || ''
+			openResult(item) {
+				const paths = {
+					travel: `/packagesMall/GoodsDetails/SojournGoodsDetails?id=${item.id}`,
+					education: `/packagesMall/GoodsDetails/EducationGoodsDetails?id=${item.id}`,
+					activity: `/packagesMall/Activity/detail/index?id=${item.id}`
 				}
-				if (!goodsId) {
-					uni.showToast({
-						title: '商品信息无效',
-						icon: 'none'
-					})
-					return
-				}
-				if (goodsType === 'hotel') {
-					uni.navigateTo({
-						url: `/packagesMall/GoodsDetails/SojournGoodsDetails?id=${goodsId}`
-					})
-				} else {
-					uni.navigateTo({
-						url: `/packagesMall/GoodsDetails/GoodsDetails?id=${goodsId}`
-					})
-				}
+				if (paths[item.type]) uni.navigateTo({ url: paths[item.type] })
 			},
 			clearSearch() {
 				uni.removeStorageSync('SearchRecordArr')

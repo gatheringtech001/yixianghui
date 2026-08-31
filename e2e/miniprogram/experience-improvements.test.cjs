@@ -105,6 +105,25 @@ test('home header uses one beige surface across the navbar and search area', asy
   assert.match(style, /\.head-info\s*\{[^}]*background-color:\s*\$header/)
 })
 
+test('service search covers travel, activities and education without forcing the travel category', async () => {
+  const search = await read('shop-mnp/packagesMall/search/search.vue')
+  const goodsMapper = await read('ruoyi-system/src/main/resources/mapper/system/AppGoodsMapper.xml')
+  const activityMapper = await read('ruoyi-system/src/main/resources/mapper/system/AppActivityMapper.xml')
+
+  assert.match(search, /getActivityList/)
+  assert.match(search, /Promise\.all/)
+  assert.doesNotMatch(search, /getServiceCategoryId\(\)/)
+  assert.match(search, /全国旅居/)
+  assert.match(search, /聚会活动/)
+  assert.match(search, /老年教育/)
+  assert.match(search, /hotel:\s*'travel'/)
+  assert.match(search, /education:\s*'education'/)
+  assert.match(search, /EducationGoodsDetails/)
+  assert.match(search, /Activity\/detail\/index/)
+  assert.match(goodsMapper, /goods_name like[\s\S]*?or g\.tags like[\s\S]*?or g\.description like/)
+  assert.match(activityMapper, /activity_name like[\s\S]*?or tags like[\s\S]*?or description like[\s\S]*?or address like/)
+})
+
 test('settings page uses the profile design system and keeps every existing destination', async () => {
   const source = await read('shop-mnp/packagesPublic/Setting/Setting.vue')
   const style = await read('shop-mnp/packagesPublic/Setting/Setting.scss')

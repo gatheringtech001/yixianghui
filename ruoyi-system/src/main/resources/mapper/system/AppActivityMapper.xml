@@ -52,7 +52,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 SELECT dept_id FROM cte
                 )</if>
             <if test="categoryIds != null  and categoryIds != ''"> and category_ids = #{categoryIds}</if>
-            <if test="activityName != null  and activityName != ''"> and activity_name like concat('%', #{activityName}, '%')</if>
+            <if test="activityName != null  and activityName != ''">
+                and (
+                    activity_name like concat('%', #{activityName}, '%')
+                    or tags like concat('%', #{activityName}, '%')
+                    or description like concat('%', #{activityName}, '%')
+                    or address like concat('%', #{activityName}, '%')
+                )
+            </if>
             <if test="address != null  and address != ''"> and address = #{address}</if>
             <if test="activityCover != null  and activityCover != ''"> and activity_cover = #{activityCover}</if>
             <if test="description != null  and description != ''"> and description = #{description}</if>
