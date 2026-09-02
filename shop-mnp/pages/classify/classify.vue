@@ -38,7 +38,7 @@
 				@click="switchToEducation"
 			>
 				<image class="switcher-icon" src="/static/navigation-icons/service-education.png" mode="aspectFit" />
-				<text>老年教育</text>
+				<text>芳华学院</text>
 			</view>
 		</view>
 
@@ -367,8 +367,9 @@
 		methods: {
 			getShareConfig() {
 				const item = this.currentNavbarItem
+				const displayName = this.isEducationTab ? '芳华学院' : (item && item.categoryName)
 				return {
-					title: item ? `逸享荟${item.categoryName}` : '逸享荟康养服务',
+					title: displayName ? `逸享荟${displayName}` : '逸享荟康养服务',
 					path: '/pages/classify/classify',
 					query: { cls: this.navbarSelect }
 				}
@@ -492,13 +493,13 @@
 				this.refreshNavbarListFromApi().then(() => {
 					if (!applyEducation()) {
 						uni.showToast({
-							title: '未找到老年教育分类',
+							title: '未找到芳华学院分类',
 							icon: 'none'
 						})
 					}
 				}).catch(() => {
 					uni.showToast({
-						title: '未找到老年教育分类',
+						title: '未找到芳华学院分类',
 						icon: 'none'
 					})
 				})

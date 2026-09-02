@@ -68,7 +68,7 @@
 					<view class="entry-card" @click="goClassify('老年教育')">
 						<image class="entry-bg" src="/static/home-design/entry-education.jpg" mode="aspectFill" />
 						<view class="entry-copy">
-							<text class="entry-title">老年教育</text>
+							<text class="entry-title">芳华学院</text>
 							<text class="entry-desc">线下课程报名</text>
 						</view>
 					</view>
@@ -285,7 +285,7 @@
 		methods: {
 			getShareConfig() {
 				return {
-					title: '逸享荟康养，旅居、活动、老年教育一站式服务',
+					title: '逸享荟康养，旅居、活动、芳华学院一站式服务',
 					path: '/pages/home/home',
 					imageUrl: this.heroImage
 				}

@@ -176,7 +176,7 @@
 			getShareConfig() {
 				const course = this.courseData || {}
 				return {
-					title: course.name || '逸享荟老年教育课程',
+					title: course.name || '逸享荟芳华学院课程',
 					path: '/packagesMall/GoodsDetails/EducationGoodsDetails',
 					query: { id: course.id },
 					imageUrl: course.cover ? this.resolveCoverUrl(course.cover) : ''

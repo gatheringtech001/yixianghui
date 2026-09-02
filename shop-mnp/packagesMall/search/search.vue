@@ -183,7 +183,7 @@
 				const definitions = [
 					{ type: 'travel', label: '全国旅居', items: rows.filter(v => v.type === 'travel') },
 					{ type: 'activity', label: '聚会活动', items: (activities || []).map(item => this.buildActivityResult(item)) },
-					{ type: 'education', label: '老年教育', items: rows.filter(v => v.type === 'education') }
+					{ type: 'education', label: '芳华学院', items: rows.filter(v => v.type === 'education') }
 				]
 				return definitions.map(group => ({
 					...group,
