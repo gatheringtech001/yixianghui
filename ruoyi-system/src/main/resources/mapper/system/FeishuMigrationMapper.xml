@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.FeishuMigrationMapper">
+    <select id="selectTables" resultType="java.util.LinkedHashMap">
+        select base_key as baseKey,
+               source_table_id as sourceTableId,
+               source_table_name as sourceTableName,
+               source_revision as sourceRevision,
+               field_count as fieldCount,
+               record_count as recordCount,
+               imported_at as importedAt
+        from app_feishu_migration_table
+        order by field(base_key, 'travel', 'eldercare'), migration_table_id
+    </select>
+
+    <select id="selectFields" resultType="java.util.LinkedHashMap">
+        select source_field_id as sourceFieldId,
+               source_field_name as sourceFieldName,
+               source_field_type as sourceFieldType,
+               source_ui_type as sourceUiType,
+               is_primary as isPrimary
+        from app_feishu_migration_field
+        where source_table_id = #{sourceTableId}
+        order by migration_field_id
+    </select>
+
+    <select id="selectSensitiveFieldNames" resultType="java.lang.String">
+        select source_field_name
+        from app_feishu_migration_field
+        where source_table_id = #{sourceTableId}
+          and (source_field_type = 13 or source_field_name regexp '身份证|地址')
+    </select>
+
+    <select id="selectRecords" resultType="java.util.LinkedHashMap">
+        select migration_record_id as migrationRecordId,
+               source_record_id as sourceRecordId,
+               fields_json as fieldsJson,
+               merge_status as mergeStatus,
+               target_table as targetTable,
+               target_id as targetId,
+               merge_message as mergeMessage,
+               imported_at as importedAt
+        from app_feishu_migration_record
+        where source_table_id = #{sourceTableId}
+        <if test="mergeStatus != null and mergeStatus != ''">
+            and merge_status = #{mergeStatus}
+        </if>
+        order by migration_record_id desc
+    </select>
+</mapper>
