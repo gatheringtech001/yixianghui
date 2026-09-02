@@ -67,6 +67,19 @@ public class FeishuMigrationController extends BaseController
         return getDataTable(records);
     }
 
+    @PreAuthorize("@ss.hasPermi('system:feishu_migration:list')")
+    @GetMapping("/relations")
+    @ApiOperation("查询飞书结构化业务关系")
+    public AjaxResult relations(@RequestParam String sourceTableId,
+                                @RequestParam String sourceRecordId)
+    {
+        if (StringUtils.isEmpty(sourceTableId) || StringUtils.isEmpty(sourceRecordId))
+        {
+            return error("源表和源记录不能为空");
+        }
+        return success(migrationMapper.selectRelations(sourceTableId, sourceRecordId));
+    }
+
     static void maskSensitiveFields(Map<String, Object> record, Set<String> sensitiveFields)
     {
         Object raw = record.remove("fieldsJson");

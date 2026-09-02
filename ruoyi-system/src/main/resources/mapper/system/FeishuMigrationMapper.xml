@@ -10,9 +10,50 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                source_revision as sourceRevision,
                field_count as fieldCount,
                record_count as recordCount,
+               case source_table_id
+                   when 'tblHDwb0OdfcH1Ib' then 'app_eldercare_customer_profile'
+                   when 'tblA33x9gGWM1b51' then 'app_customer_income_feishu'
+                   when 'tblCShsrcNLI5mz2' then 'app_activity_plan_feishu'
+                   when 'tbla1l9EkUS29VcB' then 'app_long_care_followup'
+                   when 'tblmX6fzPDdcWrxT' then 'app_medical_care_followup'
+                   when 'tblDmz6MlXt1XQGG' then 'app_eldercare_monthly_income'
+                   when 'tblRKs34PUprry5y' then 'app_consultant_feishu'
+                   when 'tblIJE3sVGcl0eBh' then 'app_satisfaction_survey'
+                   when 'tblXVuYCto8OOmAz' then 'app_travel_customer_profile'
+                   when 'tblZWWWFyzY1hAyb' then 'app_travel_order_profile'
+                   when 'tblMs6nJkL7sfIB9' then 'app_travel_settlement'
+                   when 'tblxlsfbE4psjcHr' then 'app_travel_base'
+                   when 'tbllqcoAGXIQ3HXW' then 'app_travel_host_schedule'
+                   when 'tblFLB8NaIMkj1jY' then 'app_travel_host'
+                   when 'tbl2q1qmQae6Pyen' then 'app_travel_media_account'
+               end as structuredTable,
+               (select count(*) from app_feishu_migration_record r
+                where r.source_table_id = t.source_table_id and r.merge_status = 'merged') as mergedCount,
                imported_at as importedAt
-        from app_feishu_migration_table
+        from app_feishu_migration_table t
         order by field(base_key, 'travel', 'eldercare'), migration_table_id
+    </select>
+
+    <select id="selectRelations" resultType="java.util.LinkedHashMap">
+        select rel.source_field_id as sourceFieldId,
+               f.source_field_name as sourceFieldName,
+               rel.target_source_table_id as targetSourceTableId,
+               target.source_table_name as targetSourceTableName,
+               rel.target_source_record_id as targetSourceRecordId,
+               rel.target_business_table as targetBusinessTable,
+               rel.target_business_id as targetBusinessId,
+               rel.display_text as displayText,
+               rel.relation_status as relationStatus,
+               rel.relation_message as relationMessage
+        from app_feishu_business_relation rel
+        left join app_feishu_migration_field f
+          on f.source_table_id = rel.source_table_id
+         and f.source_field_id = rel.source_field_id
+        left join app_feishu_migration_table target
+          on target.source_table_id = rel.target_source_table_id
+        where rel.source_table_id = #{sourceTableId}
+          and rel.source_record_id = #{sourceRecordId}
+        order by f.migration_field_id, rel.relation_order
     </select>
 
     <select id="selectFields" resultType="java.util.LinkedHashMap">

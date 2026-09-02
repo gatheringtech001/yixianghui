@@ -17,4 +17,7 @@ public interface FeishuMigrationMapper
 
     List<Map<String, Object>> selectRecords(@Param("sourceTableId") String sourceTableId,
                                             @Param("mergeStatus") String mergeStatus);
+
+    List<Map<String, Object>> selectRelations(@Param("sourceTableId") String sourceTableId,
+                                              @Param("sourceRecordId") String sourceRecordId);
 }
