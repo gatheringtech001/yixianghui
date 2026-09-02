@@ -8,7 +8,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
@@ -28,21 +27,19 @@ public class TalentCenterOperationsService
             "待确认", "已确认", "已取消", "已入住", "已离店", "已结算", "退款中", "已退款"));
     private final TalentCenterOperationsMapper mapper;
     private final TalentCenterResourceMapper resourceMapper;
-    private final ISysMenuService menuService;
     private final RedisCache redisCache;
 
     public TalentCenterOperationsService(TalentCenterOperationsMapper mapper,
-            TalentCenterResourceMapper resourceMapper, ISysMenuService menuService, RedisCache redisCache)
+            TalentCenterResourceMapper resourceMapper, RedisCache redisCache)
     {
         this.mapper = mapper;
         this.resourceMapper = resourceMapper;
-        this.menuService = menuService;
         this.redisCache = redisCache;
     }
 
-    public Map<String, Object> snapshot(String actorId)
+    public Map<String, Object> snapshot(String actorId, String actorScope)
     {
-        Access access = access(actorId);
+        Access access = access(actorId, actorScope);
         List<Map<String, Object>> customers = mapper.selectCustomers(access.userId, access.consultantId, access.admin);
         for (Map<String, Object> customer : customers) customer.put("timeline", Collections.emptyList());
         Map<String, Object> payload = new LinkedHashMap<>();
@@ -57,12 +54,12 @@ public class TalentCenterOperationsService
     }
 
     @Transactional
-    public Map<String, Object> update(String actorId, String businessLine, String resource, String recordId,
+    public Map<String, Object> update(String actorId, String actorScope, String businessLine, String resource, String recordId,
             TalentCenterOperationUpdateRequest request, String idempotencyKey)
     {
         validateConfirmation(request, idempotencyKey);
         reserve(idempotencyKey);
-        Access access = access(actorId);
+        Access access = access(actorId, actorScope);
         Long id = parseId(recordId, resource);
         int changed;
         Map<String, Object> values = new LinkedHashMap<>();
@@ -111,12 +108,11 @@ public class TalentCenterOperationsService
         return result;
     }
 
-    private Access access(String actorId)
+    private Access access(String actorId, String actorScope)
     {
         SysUser actor = resourceMapper.selectEnabledActorByActorId(actorId);
         if (actor == null) throw new TalentCenterApiException(403, "达人账号尚未绑定小程序后台身份");
-        Set<String> permissions = menuService.selectMenuPermsByUserId(actor.getUserId());
-        boolean admin = actor.isAdmin() || (permissions != null && permissions.contains("*:*:*"));
+        boolean admin = "admin".equals(actorScope);
         return new Access(actor.getUserId(), mapper.selectConsultantId(actor.getUserId()), admin);
     }
 

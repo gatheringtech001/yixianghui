@@ -18,6 +18,7 @@ public class TalentCenterHmacVerifier
     private static final long ALLOWED_SKEW_SECONDS = 300;
     private static final Pattern SAFE_NONCE = Pattern.compile("[A-Za-z0-9._:-]{8,128}");
     private static final Pattern SAFE_ACTOR_ID = Pattern.compile("[A-Za-z0-9._:-]{1,128}");
+    private static final Pattern SAFE_ACTOR_SCOPE = Pattern.compile("self|admin");
     private static final Pattern HEX_SIGNATURE = Pattern.compile("[A-Fa-f0-9]{64}");
     private final RedisCache redisCache;
     private final String configuredServiceId;
@@ -32,7 +33,7 @@ public class TalentCenterHmacVerifier
         this.secret = secret;
     }
 
-    public void verify(String serviceId, String actorId, String timestamp, String nonce, String signature,
+    public void verify(String serviceId, String actorId, String actorScope, String timestamp, String nonce, String signature,
             String method, String path, byte[] body)
     {
         if (isBlank(configuredServiceId) || configuredServiceId.length() > 64 || isBlank(secret))
@@ -47,6 +48,10 @@ public class TalentCenterHmacVerifier
         {
             throw new TalentCenterApiException(401, "X-Actor-Id 格式不正确");
         }
+        if (actorScope == null || !SAFE_ACTOR_SCOPE.matcher(actorScope).matches())
+        {
+            throw new TalentCenterApiException(401, "X-Actor-Scope 格式不正确");
+        }
         long epochSeconds = parseTimestamp(timestamp);
         if (Math.abs(Instant.now().getEpochSecond() - epochSeconds) > ALLOWED_SKEW_SECONDS)
         {
@@ -56,7 +61,7 @@ public class TalentCenterHmacVerifier
         {
             throw new TalentCenterApiException(401, "nonce 格式不正确");
         }
-        verifySignature(signature, method, path, timestamp, nonce, actorId, body);
+        verifySignature(signature, method, path, timestamp, nonce, actorId, actorScope, body);
         String nonceHash = sha256Hex((serviceId + ":" + nonce).getBytes(StandardCharsets.UTF_8));
         if (!redisCache.setCacheObjectIfAbsent("talent:center:nonce:" + nonceHash, "used", 300, TimeUnit.SECONDS))
         {
@@ -65,13 +70,14 @@ public class TalentCenterHmacVerifier
     }
 
     private void verifySignature(String signature, String method, String path, String timestamp,
-            String nonce, String actorId, byte[] body)
+            String nonce, String actorId, String actorScope, byte[] body)
     {
         if (signature == null || !HEX_SIGNATURE.matcher(signature).matches())
         {
             throw new TalentCenterApiException(401, "签名错误");
         }
         String payload = method + "\n" + path + "\n" + timestamp + "\n" + nonce + "\n" + actorId + "\n"
+                + actorScope + "\n"
                 + sha256Hex(body);
         byte[] expected = hmac(payload);
         byte[] supplied = decodeHex(signature);

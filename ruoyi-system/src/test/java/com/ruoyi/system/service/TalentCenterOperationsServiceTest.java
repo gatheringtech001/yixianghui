@@ -32,7 +32,6 @@ class TalentCenterOperationsServiceTest
 {
     private TalentCenterOperationsMapper mapper;
     private TalentCenterResourceMapper resourceMapper;
-    private ISysMenuService menuService;
     private RedisCache redisCache;
     private TalentCenterOperationsService service;
 
@@ -41,9 +40,8 @@ class TalentCenterOperationsServiceTest
     {
         mapper = mock(TalentCenterOperationsMapper.class);
         resourceMapper = mock(TalentCenterResourceMapper.class);
-        menuService = mock(ISysMenuService.class);
         redisCache = mock(RedisCache.class);
-        service = new TalentCenterOperationsService(mapper, resourceMapper, menuService, redisCache);
+        service = new TalentCenterOperationsService(mapper, resourceMapper, redisCache);
         when(redisCache.setCacheObjectIfAbsent(anyString(), eq("used"), eq(24L), any())).thenReturn(true);
         when(mapper.selectCustomerStatuses()).thenReturn(Collections.singletonList("已成交"));
         when(mapper.selectCustomers(any(), any(), eq(false))).thenReturn(Collections.emptyList());
@@ -57,7 +55,7 @@ class TalentCenterOperationsServiceTest
         bind("talent-user", 101L, Collections.emptySet());
         when(mapper.selectConsultantId(101L)).thenReturn(501L);
 
-        Map<String, Object> result = service.snapshot("talent-user");
+        Map<String, Object> result = service.snapshot("talent-user", "self");
 
         assertEquals("self", result.get("scope"));
         verify(mapper).selectCustomers(101L, 501L, false);
@@ -74,7 +72,7 @@ class TalentCenterOperationsServiceTest
         when(mapper.selectOrders(1L, true)).thenReturn(Collections.emptyList());
         when(mapper.selectSettlements(1L, null, true)).thenReturn(Collections.emptyList());
 
-        Map<String, Object> result = service.snapshot("talent-admin");
+        Map<String, Object> result = service.snapshot("talent-admin", "admin");
 
         assertEquals("admin", result.get("scope"));
         verify(mapper).selectCustomers(1L, null, true);
@@ -84,7 +82,7 @@ class TalentCenterOperationsServiceTest
     void unmappedActorCannotReadAnyBusinessData()
     {
         TalentCenterApiException error = assertThrows(TalentCenterApiException.class,
-                () -> service.snapshot("unknown-user"));
+                () -> service.snapshot("unknown-user", "self"));
 
         assertEquals(403, error.getHttpStatus());
         verifyNoInteractions(mapper);
@@ -98,7 +96,7 @@ class TalentCenterOperationsServiceTest
         when(mapper.updateCustomer(7L, 501L, false, "潜在客户", "已成交", null, null,
                 true, false, false)).thenReturn(1);
 
-        Map<String, Object> result = service.update("talent-user", "eldercare", "customers", "customer:7",
+        Map<String, Object> result = service.update("talent-user", "self", "eldercare", "customers", "customer:7",
                 request("潜在客户", "已成交"), "idem-00000001");
 
         assertEquals("customer", result.get("kind"));
@@ -113,7 +111,7 @@ class TalentCenterOperationsServiceTest
         when(mapper.selectConsultantId(101L)).thenReturn(501L);
 
         TalentCenterApiException error = assertThrows(TalentCenterApiException.class,
-                () -> service.update("talent-user", "eldercare", "customers", "customer:7",
+                () -> service.update("talent-user", "self", "eldercare", "customers", "customer:7",
                         request("潜在客户", "已成交"), "idem-00000002"));
 
         assertEquals(409, error.getHttpStatus());
@@ -125,7 +123,7 @@ class TalentCenterOperationsServiceTest
         bind("talent-admin", 1L, setOf("*:*:*"));
 
         TalentCenterApiException error = assertThrows(TalentCenterApiException.class,
-                () -> service.update("talent-admin", "travel", "settlements", "income:7",
+                () -> service.update("talent-admin", "admin", "travel", "settlements", "income:7",
                         settlementRequest(), "idem-00000003"));
 
         assertEquals(404, error.getHttpStatus());
@@ -149,12 +147,38 @@ class TalentCenterOperationsServiceTest
         }
     }
 
+    @Test
+    void signedAdminScopeDoesNotRequireRuoYiSuperAdministrator()
+    {
+        bind("talent-admin", 101L, Collections.emptySet());
+        when(mapper.selectConsultantId(101L)).thenReturn(501L);
+        when(mapper.selectCustomers(101L, 501L, true)).thenReturn(Collections.emptyList());
+        when(mapper.selectOrders(101L, true)).thenReturn(Collections.emptyList());
+        when(mapper.selectSettlements(101L, 501L, true)).thenReturn(Collections.emptyList());
+
+        Map<String, Object> result = service.snapshot("talent-admin", "admin");
+
+        assertEquals("admin", result.get("scope"));
+        verify(mapper).selectCustomers(101L, 501L, true);
+    }
+
+    @Test
+    void signedSelfScopeDoesNotInheritRuoYiSuperAdministrator()
+    {
+        bind("talent-user", 1L, setOf("*:*:*"));
+        when(mapper.selectConsultantId(1L)).thenReturn(501L);
+
+        Map<String, Object> result = service.snapshot("talent-user", "self");
+
+        assertEquals("self", result.get("scope"));
+        verify(mapper).selectCustomers(1L, 501L, false);
+    }
+
     private void bind(String actorId, Long userId, Set<String> permissions)
     {
         SysUser actor = new SysUser();
         actor.setUserId(userId);
         when(resourceMapper.selectEnabledActorByActorId(actorId)).thenReturn(actor);
-        when(menuService.selectMenuPermsByUserId(userId)).thenReturn(permissions);
     }
 
     private TalentCenterOperationUpdateRequest request(String expectedStatus, String status)

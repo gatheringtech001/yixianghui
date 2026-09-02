@@ -26,7 +26,7 @@ public class TalentCenterOperationsController
     @GetMapping
     public AjaxResult snapshot(HttpServletRequest request)
     {
-        return AjaxResult.success(service.snapshot(actorId(request)));
+        return AjaxResult.success(service.snapshot(actorId(request), actorScope(request)));
     }
 
     @PutMapping("/{businessLine}/{resource}/{recordId}")
@@ -34,12 +34,17 @@ public class TalentCenterOperationsController
             @PathVariable String recordId, @RequestBody TalentCenterOperationUpdateRequest body,
             HttpServletRequest request)
     {
-        return ResponseEntity.ok(AjaxResult.success(service.update(actorId(request), businessLine, resource,
+        return ResponseEntity.ok(AjaxResult.success(service.update(actorId(request), actorScope(request), businessLine, resource,
                 recordId, body, request.getHeader("Idempotency-Key"))));
     }
 
     private String actorId(HttpServletRequest request)
     {
         return (String) request.getAttribute(TalentCenterHmacFilter.ACTOR_ID_ATTRIBUTE);
+    }
+
+    private String actorScope(HttpServletRequest request)
+    {
+        return (String) request.getAttribute(TalentCenterHmacFilter.ACTOR_SCOPE_ATTRIBUTE);
     }
 }

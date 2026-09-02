@@ -27,6 +27,7 @@ public class TalentCenterHmacFilter extends OncePerRequestFilter
 {
     public static final String SERVICE_ID_ATTRIBUTE = "talentCenterServiceId";
     public static final String ACTOR_ID_ATTRIBUTE = "talentCenterActorId";
+    public static final String ACTOR_SCOPE_ATTRIBUTE = "talentCenterActorScope";
     private static final String PREFIX = "/internal/talent-center/";
     private static final int MAX_BODY_BYTES = 64 * 1024;
     private final TalentCenterHmacVerifier verifier;
@@ -54,10 +55,12 @@ public class TalentCenterHmacFilter extends OncePerRequestFilter
             String path = request.getRequestURI().substring(request.getContextPath().length());
             String serviceId = request.getHeader("X-Service-Id");
             String actorId = request.getHeader("X-Actor-Id");
-            verifier.verify(serviceId, actorId, request.getHeader("X-Timestamp"), request.getHeader("X-Nonce"),
+            String actorScope = request.getHeader("X-Actor-Scope");
+            verifier.verify(serviceId, actorId, actorScope, request.getHeader("X-Timestamp"), request.getHeader("X-Nonce"),
                     request.getHeader("X-Signature"), request.getMethod(), path, body);
             wrapped.setAttribute(SERVICE_ID_ATTRIBUTE, serviceId);
             wrapped.setAttribute(ACTOR_ID_ATTRIBUTE, actorId);
+            wrapped.setAttribute(ACTOR_SCOPE_ATTRIBUTE, actorScope);
             chain.doFilter(wrapped, response);
         }
         catch (TalentCenterApiException e)
