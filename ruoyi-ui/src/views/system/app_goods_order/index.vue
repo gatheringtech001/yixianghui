@@ -398,7 +398,8 @@
       </el-table-column>
       <el-table-column label="订单状态" align="center" prop="status" min-width="80">
         <template slot-scope="scope">
-          <dict-tag :options="dict.type.order_status" :value="scope.row.status"/>
+          <span v-if="scope.row.orderOrigin === 'feishu_history'">未记录</span>
+          <dict-tag v-else :options="dict.type.order_status" :value="scope.row.status"/>
         </template>
       </el-table-column>
       <el-table-column label="旅居状态" align="center" prop="travelStatus" min-width="110">

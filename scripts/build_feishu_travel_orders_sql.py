@@ -122,14 +122,13 @@ def build(input_path: Path) -> tuple[str, dict[str, int]]:
             if goods else "0"
         )
         travel_status = TRAVEL_STATUS.get(fields.get("订单状态"))
-        generic_status = "4" if travel_status == "2" else ("0" if travel_status in (None, "0") else "2")
         amount = number(fields.get("消费金额"))
         source_json = json.dumps(fields, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
         values = [
             "0", verified_goods, verified_dept, sql_text(order_nos[index]),
             sql_text("feishu_history"), sql_text(record["record_id"]), sql_text(order_nos[index]),
             sql_text(fields.get("渠道")), sql_text(customer_record_id), sql_text(base_record_id), sql_text(base_name),
-            amount, amount, "NULL", sql_text(generic_status), sql_text(travel_status),
+            amount, amount, "NULL", sql_text("0"), sql_text(travel_status),
             sql_text(mysql_time(fields.get("入住日期"))), sql_text(mysql_time(fields.get("离店日期"))),
             sql_text(fields.get("客户名称")), sql_text(fields.get("联系方式")),
             sql_text(list_text(fields.get("房型"))), integer(fields.get("房间数")), integer(fields.get("同行人数")),
