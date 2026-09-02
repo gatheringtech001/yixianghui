@@ -43,6 +43,7 @@ class StructuredSqlTest(unittest.TestCase):
             self.assertIn(table, self.sql)
         self.assertIn("app_customer_feishu_source", self.sql)
         self.assertIn("tmp_feishu_customer_match", self.sql)
+        self.assertIn("CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'1',1,0,0", self.sql)
         self.assertIn("canonical_status", self.sql)
 
 

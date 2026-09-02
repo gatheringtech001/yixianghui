@@ -157,8 +157,9 @@ def _activity_sql(tables):
     date, address = (_col(table, name) for name in ("日期", "地址"))
     return [
         "INSERT INTO app_activity (activity_name,address,description,activity_time,create_time,update_time,status,is_free,price,vip_price) "
-        f"SELECT CONCAT('飞书活动-',p.feishu_record_id),p.{address},'飞书活动计划回填',DATE_FORMAT(p.{date},'%Y-%m-%d %H:%i:%s'),CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'0',1,0,0 FROM `{target}` p "
+        f"SELECT CONCAT('飞书活动-',p.feishu_record_id),p.{address},'飞书活动计划回填',DATE_FORMAT(p.{date},'%Y-%m-%d %H:%i:%s'),CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'1',1,0,0 FROM `{target}` p "
         "WHERE NOT EXISTS (SELECT 1 FROM app_activity a WHERE BINARY a.activity_name=BINARY CONCAT('飞书活动-',p.feishu_record_id));",
+        f"UPDATE app_activity a JOIN `{target}` p ON BINARY a.activity_name=BINARY CONCAT('飞书活动-',p.feishu_record_id) SET a.status='1';",
         f"UPDATE `{target}` p JOIN app_activity a ON BINARY a.activity_name=BINARY CONCAT('飞书活动-',p.feishu_record_id) SET p.canonical_table='app_activity',p.canonical_id=a.activity_id,p.canonical_status='linked',p.canonical_message=NULL;",
         f"UPDATE app_feishu_migration_record r JOIN `{target}` p ON p.feishu_record_id=r.source_record_id SET r.merge_status='merged',r.target_table='app_activity',r.target_id=p.canonical_id,r.merge_message=NULL WHERE r.source_table_id={_q(table['table_id'])};",
     ]
