@@ -33,6 +33,21 @@
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
+      <el-form-item label="来源" prop="orderOrigin">
+        <el-select v-model="queryParams.orderOrigin" placeholder="请选择来源" clearable>
+          <el-option label="小程序" value="mini_program" />
+          <el-option label="飞书历史" value="feishu_history" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="飞书订单编号" prop="feishuOrderNo">
+        <el-input v-model="queryParams.feishuOrderNo" placeholder="请输入飞书订单编号" clearable @keyup.enter.native="handleQuery" />
+      </el-form-item>
+      <el-form-item label="渠道" prop="channel">
+        <el-input v-model="queryParams.channel" placeholder="请输入渠道" clearable @keyup.enter.native="handleQuery" />
+      </el-form-item>
+      <el-form-item label="旅居基地" prop="travelBaseName">
+        <el-input v-model="queryParams.travelBaseName" placeholder="请输入旅居基地" clearable @keyup.enter.native="handleQuery" />
+      </el-form-item>
 <!--      <el-form-item label="商品合计金额" prop="moneyTotal">-->
 <!--        <el-input-->
 <!--          v-model="queryParams.moneyTotal"-->
@@ -298,13 +313,34 @@
       <el-table-column label="所属分站" align="center" prop="deptName" fixed="left" min-width="120" show-overflow-tooltip/>
       <el-table-column label="收货地址" align="center" prop="addressId" v-if="false"/>
       <el-table-column label="订单号" align="center" prop="orderNo" fixed="left" min-width="180" :resizable="true" show-overflow-tooltip/>
+      <el-table-column label="来源" align="center" prop="orderOrigin" fixed="left" min-width="90">
+        <template slot-scope="scope">
+          <el-tag size="small" :type="scope.row.orderOrigin === 'feishu_history' ? 'warning' : 'success'">
+            {{ scope.row.orderOrigin === 'feishu_history' ? '飞书历史' : '小程序' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="旅居基地" align="center" prop="travelBaseName" min-width="150" show-overflow-tooltip>
+        <template slot-scope="scope">
+          <span>{{ scope.row.travelBaseName || '—' }}</span>
+          <el-tag v-if="scope.row.orderOrigin === 'feishu_history' && !scope.row.goodsId" size="mini" type="danger">未匹配商品</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="渠道" align="center" prop="channel" min-width="80" />
+      <el-table-column label="房型" align="center" prop="roomType" min-width="120" show-overflow-tooltip />
+      <el-table-column label="房间/同行" align="center" min-width="90">
+        <template slot-scope="scope">{{ scope.row.roomCount || '—' }} / {{ scope.row.travelerCount || '—' }}</template>
+      </el-table-column>
+      <el-table-column label="客服负责人" align="center" prop="serviceOwner" min-width="100" show-overflow-tooltip />
+      <el-table-column label="服务备注" align="center" prop="serviceRemark" min-width="140" show-overflow-tooltip />
       <el-table-column label="商品合计金额" align="center" prop="moneyTotal" fixed="left" min-width="80" :resizable="true"/>
       <el-table-column label="折扣金额" align="center" prop="moneyDiscount" min-width="80"/>
       <el-table-column label="商品应付金额" align="center" prop="moneyPayable" min-width="80" :resizable="true"/>
       <el-table-column label="快递费" align="center" prop="moneyExpress" min-width="80"/>
       <el-table-column label="是否已支付" align="center" prop="payStatus" min-width="80">
         <template slot-scope="scope">
-          <dict-tag :options="dict.type.common_is_not" :value="scope.row.payStatus"/>
+          <span v-if="scope.row.payStatus == null">未记录</span>
+          <dict-tag v-else :options="dict.type.common_is_not" :value="scope.row.payStatus"/>
         </template>
       </el-table-column>
       <el-table-column label="支付金额" align="center" prop="payMoney" min-width="80"/>
@@ -619,6 +655,10 @@ export default {
         deptId: null,
         addressId: null,
         orderNo: null,
+        orderOrigin: null,
+        feishuOrderNo: null,
+        channel: null,
+        travelBaseName: null,
         moneyTotal: null,
         moneyDiscount: null,
         moneyPayable: null,

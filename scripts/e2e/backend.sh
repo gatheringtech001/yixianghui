@@ -89,11 +89,16 @@ apply_goods_order_schema() {
   local database="${E2E_DB_NAME:-yixianghui_e2e}"
   local username="${E2E_DB_USERNAME:-yixianghui_e2e}"
   local migration="${REPO_ROOT}/sql/app_goods_order_booking_fields.sql"
+  local travel_status_migration="${REPO_ROOT}/sql/app_goods_order_travel_status.sql"
   local expected_column_count=4
   local actual_column_count
+  local history_column_count
+  local history_migration="${REPO_ROOT}/sql/app_goods_order_feishu_history.sql"
   require_file "${migration}"
+  require_file "${travel_status_migration}"
   validate_identifier "${database}"
   validate_identifier "${username}"
+  "${MYSQL_BIN}" -u"${username}" "${database}" < "${travel_status_migration}"
   "${MYSQL_BIN}" -u"${username}" "${database}" < "${migration}"
   actual_column_count="$("${MYSQL_BIN}" -u"${username}" -Nse "
     SELECT COUNT(*)
@@ -109,6 +114,20 @@ apply_goods_order_schema() {
   ")"
   if [[ "${actual_column_count}" != "${expected_column_count}" ]]; then
     echo "Goods order schema verification failed: expected ${expected_column_count} booking columns, found ${actual_column_count}." >&2
+    exit 1
+  fi
+  history_column_count="$("${MYSQL_BIN}" -u"${username}" -Nse "
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = '${database}' AND table_name = 'app_goods_order'
+      AND column_name IN ('order_origin','feishu_record_id','feishu_order_no','channel',
+        'travel_customer_record_id','travel_base_record_id','travel_base_name','room_type',
+        'room_count','traveler_count','service_owner','service_remark','source_fields_json');
+  ")"
+  if [[ "${history_column_count}" == "0" ]]; then
+    require_file "${history_migration}"
+    "${MYSQL_BIN}" -u"${username}" "${database}" < "${history_migration}"
+  elif [[ "${history_column_count}" != "13" ]]; then
+    echo "Feishu history order schema is partially applied (${history_column_count}/13 columns)." >&2
     exit 1
   fi
 }
