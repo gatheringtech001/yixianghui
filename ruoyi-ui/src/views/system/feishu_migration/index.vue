@@ -79,7 +79,7 @@
             show-overflow-tooltip
           >
             <template slot-scope="scope">
-              {{ formatValue(scope.row.fields[field.sourceFieldName]) }}
+              {{ formatValue(scope.row.fields[field.sourceFieldName], field) }}
             </template>
           </el-table-column>
           <el-table-column label="业务归属" min-width="190" fixed="right">
@@ -115,7 +115,7 @@
       <div class="detail-list">
         <div v-for="field in fields" :key="field.sourceFieldId" class="detail-row">
           <div class="detail-label">{{ field.sourceFieldName }}</div>
-          <div class="detail-value">{{ formatValue(detailFields[field.sourceFieldName]) || '—' }}</div>
+          <div class="detail-value">{{ formatValue(detailFields[field.sourceFieldName], field) || '—' }}</div>
         </div>
       </div>
       <div class="relation-section">
@@ -245,9 +245,13 @@ export default {
       this.detailRelations = response.data || []
       this.detailOpen = true
     },
-    formatValue(value) {
+    formatValue(value, field) {
       if (value === null || value === undefined || value === '') return ''
-      if (Array.isArray(value)) return value.map(item => this.formatValue(item)).filter(Boolean).join('、')
+      const dateTypes = ['DateTime', 'CreatedTime', 'ModifiedTime']
+      if (field && dateTypes.includes(field.sourceUiType) && typeof value === 'number') {
+        return new Date(value).toLocaleString('zh-CN', { hour12: false })
+      }
+      if (Array.isArray(value)) return value.map(item => this.formatValue(item, field)).filter(Boolean).join('、')
       if (typeof value === 'object') {
         if (value.text || value.name || value.label) return value.text || value.name || value.label
         return JSON.stringify(value)
