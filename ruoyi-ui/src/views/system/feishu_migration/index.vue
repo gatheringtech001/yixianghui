@@ -1,7 +1,7 @@
 <template>
   <div class="app-container migration-page">
     <el-alert
-      title="飞书数据已无损迁入后台数据库；本页只读展示原始记录，正式业务表归并会按稳定业务键逐批处理。"
+      title="飞书15张表已结构化进入后台：每个字段有物理列，客户、订单、收入、活动和顾问已连接正式业务表；本页只读展示字段与关系。"
       type="info"
       :closable="false"
       show-icon
@@ -20,6 +20,10 @@
         <div class="summary-value">{{ totalRecords }}</div>
         <div class="summary-label">迁移记录</div>
       </el-card>
+      <el-card shadow="never">
+        <div class="summary-value">{{ mergedRecords }}</div>
+        <div class="summary-label">已结构化</div>
+      </el-card>
     </div>
 
     <div class="content-row">
@@ -37,7 +41,7 @@
             @click="selectTable(item)"
           >
             <span>{{ item.sourceTableName }}</span>
-            <small>{{ item.recordCount }} 条</small>
+            <small>{{ item.mergedCount }}/{{ item.recordCount }}</small>
           </button>
         </div>
       </el-card>
@@ -47,7 +51,7 @@
           <div>
             <strong>{{ selectedTable ? selectedTable.sourceTableName : '请选择数据表' }}</strong>
             <span v-if="selectedTable" class="record-meta">
-              {{ selectedTable.fieldCount }} 个字段 · {{ selectedTable.recordCount }} 条记录
+              {{ selectedTable.fieldCount }} 个字段 · {{ selectedTable.recordCount }} 条记录 · {{ selectedTable.structuredTable }}
             </span>
           </div>
           <el-select v-model="queryParams.mergeStatus" clearable size="small" placeholder="归并状态" @change="search">
@@ -55,6 +59,7 @@
             <el-option label="已匹配" value="matched" />
             <el-option label="已导入" value="imported" />
             <el-option label="冲突" value="conflict" />
+            <el-option label="已结构化" value="merged" />
           </el-select>
         </div>
 
@@ -77,6 +82,12 @@
               {{ formatValue(scope.row.fields[field.sourceFieldName]) }}
             </template>
           </el-table-column>
+          <el-table-column label="业务归属" min-width="190" fixed="right">
+            <template slot-scope="scope">
+              <span v-if="scope.row.targetTable">{{ scope.row.targetTable }} #{{ scope.row.targetId }}</span>
+              <el-tag v-else type="danger" size="mini">未关联</el-tag>
+            </template>
+          </el-table-column>
           <el-table-column label="操作" width="90" fixed="right">
             <template slot-scope="scope">
               <el-button type="text" size="mini" @click="showDetail(scope.row)">全部字段</el-button>
@@ -95,11 +106,38 @@
     </div>
 
     <el-drawer :title="detailTitle" :visible.sync="detailOpen" size="52%">
+      <div class="canonical-box">
+        <strong>业务归属</strong>
+        <span v-if="detailRecord.targetTable">{{ detailRecord.targetTable }} #{{ detailRecord.targetId }}</span>
+        <span v-else>未关联正式业务对象</span>
+        <div v-if="detailRecord.mergeMessage" class="relation-warning">{{ detailRecord.mergeMessage }}</div>
+      </div>
       <div class="detail-list">
         <div v-for="field in fields" :key="field.sourceFieldId" class="detail-row">
           <div class="detail-label">{{ field.sourceFieldName }}</div>
           <div class="detail-value">{{ formatValue(detailFields[field.sourceFieldName]) || '—' }}</div>
         </div>
+      </div>
+      <div class="relation-section">
+        <h4>关联记录</h4>
+        <el-empty v-if="!detailRelations.length" description="无关联记录" :image-size="70" />
+        <el-table v-else :data="detailRelations" border size="mini">
+          <el-table-column prop="sourceFieldName" label="字段" min-width="130" />
+          <el-table-column prop="targetSourceTableName" label="目标表" min-width="130" />
+          <el-table-column prop="displayText" label="目标记录" min-width="160" show-overflow-tooltip />
+          <el-table-column label="状态" width="90">
+            <template slot-scope="scope">
+              <el-tag :type="scope.row.relationStatus === 'resolved' ? 'success' : 'danger'" size="mini">
+                {{ scope.row.relationStatus === 'resolved' ? '已关联' : '待处理' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="业务对象" min-width="180">
+            <template slot-scope="scope">
+              {{ scope.row.targetBusinessTable || '—' }}<span v-if="scope.row.targetBusinessId"> #{{ scope.row.targetBusinessId }}</span>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
     </el-drawer>
   </div>
@@ -108,6 +146,7 @@
 <script>
 import {
   listMigrationFields,
+  listMigrationRelations,
   listMigrationRecords,
   listMigrationTables
 } from '@/api/system/feishuMigration'
@@ -125,6 +164,8 @@ export default {
       selectedTableId: '',
       detailOpen: false,
       detailFields: {},
+      detailRecord: {},
+      detailRelations: [],
       queryParams: {
         pageNum: 1,
         pageSize: 20,
@@ -145,6 +186,9 @@ export default {
     },
     totalRecords() {
       return this.tables.reduce((sum, item) => sum + Number(item.recordCount || 0), 0)
+    },
+    mergedRecords() {
+      return this.tables.reduce((sum, item) => sum + Number(item.mergedCount || 0), 0)
     },
     visibleFields() {
       const primary = this.fields.filter(item => Number(item.isPrimary) === 1)
@@ -191,8 +235,14 @@ export default {
       this.queryParams.pageNum = 1
       this.loadRecords()
     },
-    showDetail(row) {
+    async showDetail(row) {
       this.detailFields = row.fields || {}
+      this.detailRecord = row
+      const response = await listMigrationRelations({
+        sourceTableId: this.selectedTableId,
+        sourceRecordId: row.sourceRecordId
+      })
+      this.detailRelations = response.data || []
       this.detailOpen = true
     },
     formatValue(value) {
@@ -205,10 +255,10 @@ export default {
       return String(value)
     },
     statusLabel(status) {
-      return { pending: '待归并', matched: '已匹配', imported: '已导入', conflict: '冲突' }[status] || status
+      return { pending: '待归并', matched: '已匹配', imported: '已导入', merged: '已结构化', conflict: '冲突' }[status] || status
     },
     statusType(status) {
-      return { pending: 'warning', matched: '', imported: 'success', conflict: 'danger' }[status] || 'info'
+      return { pending: 'warning', matched: '', imported: 'success', merged: 'success', conflict: 'danger' }[status] || 'info'
     }
   }
 }
@@ -216,7 +266,7 @@ export default {
 
 <style scoped>
 .migration-page { background: #f5f7fa; min-height: calc(100vh - 84px); }
-.summary-row { display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap: 16px; margin: 16px 0; }
+.summary-row { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 16px; margin: 16px 0; }
 .summary-value { color: #303133; font-size: 28px; font-weight: 700; }
 .summary-label { color: #909399; margin-top: 6px; }
 .content-row { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 16px; align-items: start; }
@@ -231,6 +281,10 @@ export default {
 .detail-row { display: grid; grid-template-columns: 190px minmax(0, 1fr); border-bottom: 1px solid #ebeef5; padding: 12px 0; }
 .detail-label { color: #606266; font-weight: 600; padding-right: 16px; }
 .detail-value { color: #303133; white-space: pre-wrap; word-break: break-all; }
+.canonical-box { margin: 0 24px 16px; padding: 14px 16px; border: 1px solid #d9ecff; border-radius: 6px; background: #f4f9ff; }
+.canonical-box strong { margin-right: 12px; }
+.relation-warning { color: #e6a23c; margin-top: 8px; }
+.relation-section { padding: 0 24px 24px; }
 @media (max-width: 900px) {
   .content-row { grid-template-columns: 1fr; }
   .table-directory { position: static; }

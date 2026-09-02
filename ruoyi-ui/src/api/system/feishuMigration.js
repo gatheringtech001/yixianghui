@@ -21,3 +21,11 @@ export function listMigrationRecords(query) {
     params: query
   })
 }
+
+export function listMigrationRelations(query) {
+  return request({
+    url: '/system/feishu_migration/relations',
+    method: 'get',
+    params: query
+  })
+}
