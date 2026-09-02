@@ -335,24 +335,15 @@
 				})
 			},
 			onServer(type) {
+				if (type === 'retail') {
+					uni.navigateTo({ url: '/packagesPublic/TalentCenter/index' })
+					return
+				}
 				if (!this.userInfo) {
 					this.userLogin()
 					return
 				}
-				let consultant = uni.getStorageSync('consultant')
 				switch (type) {
-					case 'retail':
-						if (!consultant || consultant == '' || consultant == undefined) {
-							uni.navigateTo({ url: '/packagesMember/retail/apply/index' })
-						} else if (consultant.status === '02') {
-							uni.navigateTo({ url: '/packagesMember/retail/apply/index' })
-						} else if (consultant.status === '00') {
-							uni.showToast({ title: '顾问申请审核中', icon: 'none' })
-							uni.navigateTo({ url: '/packagesMember/retail/apply/index' })
-						} else {
-							uni.navigateTo({ url: '/packagesMember/retail/index' })
-						}
-						break
 					case 'address':
 						uni.navigateTo({ url: '/packagesPublic/AddressList/AddressList' })
 						break

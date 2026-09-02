@@ -365,6 +365,12 @@
 	}, {
 		"root": "packagesPublic",
 		"pages": [{
+				"path": "TalentCenter/index",
+				"style": {
+					"navigationBarTitleText": "达人中心",
+					"navigationBarBackgroundColor": "#EFEBDF"
+				}
+			}, {
 				"path": "site/index",
 				"style": {
 					"navigationBarTitleText": "分站列表",

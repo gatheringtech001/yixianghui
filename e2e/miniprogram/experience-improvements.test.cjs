@@ -23,7 +23,8 @@ test('travel presentation derives honest unit prices and trims list copy', async
   const {
     compactListingText,
     formatCalendarPrice,
-    resolveCalendarUnitPrice
+    resolveCalendarUnitPrice,
+    sanitizeTravelCustomerText
   } = await loadTravelPresentation()
 
   assert.equal(resolveCalendarUnitPrice({ average: 99, total: 693, nights: 7 }), 99)
@@ -32,6 +33,9 @@ test('travel presentation derives honest unit prices and trims list copy', async
   assert.equal(formatCalendarPrice(99), '￥99/人')
   assert.equal(formatCalendarPrice(0), '')
   assert.equal(compactListingText('<p> 安心旅居\n康养配套 </p>', 8), '安心旅居 康养配…')
+  assert.equal(sanitizeTravelCustomerText('知识库价格，按人计价'), '')
+  assert.equal(sanitizeTravelCustomerText('知识库价格：含三餐'), '含三餐')
+  assert.equal(sanitizeTravelCustomerText('独立卫浴'), '独立卫浴')
 })
 
 test('authorization is a full-page gated flow and phone binding stays optional', async () => {
@@ -115,13 +119,41 @@ test('service search covers travel, activities and education without forcing the
   assert.doesNotMatch(search, /getServiceCategoryId\(\)/)
   assert.match(search, /全国旅居/)
   assert.match(search, /聚会活动/)
-  assert.match(search, /老年教育/)
+  assert.match(search, /label:\s*'芳华学院'/)
   assert.match(search, /hotel:\s*'travel'/)
   assert.match(search, /education:\s*'education'/)
   assert.match(search, /EducationGoodsDetails/)
   assert.match(search, /Activity\/detail\/index/)
   assert.match(goodsMapper, /goods_name like[\s\S]*?or g\.tags like[\s\S]*?or g\.description like/)
   assert.match(activityMapper, /activity_name like[\s\S]*?or tags like[\s\S]*?or description like[\s\S]*?or address like/)
+})
+
+test('customer-facing education branding is 芳华学院 while category matching stays compatible', async () => {
+  const home = await read('shop-mnp/pages/home/home.vue')
+  const classify = await read('shop-mnp/pages/classify/classify.vue')
+  const educationDetail = await read('shop-mnp/packagesMall/GoodsDetails/EducationGoodsDetails.vue')
+  const authorization = await read('shop-mnp/components/AuthProfilePopup/AuthProfilePopup.vue')
+
+  assert.match(home, /entry-title">芳华学院</)
+  assert.match(home, /旅居、活动、芳华学院一站式服务/)
+  assert.match(classify, /switcher-item[\s\S]*?<text>芳华学院<\/text>/)
+  assert.match(classify, /categoryName === '老年教育'/)
+  assert.match(classify, /this\.isEducationTab \? '芳华学院'/)
+  assert.match(classify, /未找到芳华学院分类/)
+  assert.match(educationDetail, /逸享荟芳华学院课程/)
+  assert.match(authorization, /康养旅居 · 活动 · 芳华学院/)
+})
+
+test('wellness consultant center opens the deployed Talent Center directly', async () => {
+  const my = await read('shop-mnp/pages/my/my.vue')
+  const talentCenter = await read('shop-mnp/packagesPublic/TalentCenter/index.vue')
+  const pages = await read('shop-mnp/pages.json')
+
+  assert.match(my, /type === 'retail'[\s\S]*?packagesPublic\/TalentCenter\/index/)
+  assert.doesNotMatch(my, /packagesMember\/retail\//)
+  assert.match(talentCenter, /<web-view\s+:src="talentCenterUrl"/)
+  assert.match(talentCenter, /https:\/\/gatheringtech\.com\/talent\//)
+  assert.match(pages, /"path":\s*"TalentCenter\/index"/)
 })
 
 test('settings page uses the profile design system and keeps every existing destination', async () => {
