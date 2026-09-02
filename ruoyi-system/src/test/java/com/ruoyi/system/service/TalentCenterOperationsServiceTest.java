@@ -89,6 +89,21 @@ class TalentCenterOperationsServiceTest
     }
 
     @Test
+    void actorStatusReportsLinkWithoutReadingBusinessRows()
+    {
+        bind("talent-user", 101L, Collections.emptySet());
+
+        Map<String, Object> linked = service.actorStatus("talent-user", "self");
+        Map<String, Object> unlinked = service.actorStatus("unknown-user", "admin");
+
+        assertEquals(true, linked.get("linked"));
+        assertEquals("self", linked.get("scope"));
+        assertEquals(false, unlinked.get("linked"));
+        assertEquals("admin", unlinked.get("scope"));
+        verifyNoInteractions(mapper);
+    }
+
+    @Test
     void customerUpdateUsesOwnerScopeAndCompareAndSet()
     {
         bind("talent-user", 101L, Collections.emptySet());

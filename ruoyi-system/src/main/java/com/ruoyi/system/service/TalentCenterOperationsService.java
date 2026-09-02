@@ -53,6 +53,15 @@ public class TalentCenterOperationsService
         return payload;
     }
 
+    public Map<String, Object> actorStatus(String actorId, String actorScope)
+    {
+        SysUser actor = resourceMapper.selectEnabledActorByActorId(actorId);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("linked", actor != null);
+        payload.put("scope", "admin".equals(actorScope) ? "admin" : "self");
+        return payload;
+    }
+
     @Transactional
     public Map<String, Object> update(String actorId, String actorScope, String businessLine, String resource, String recordId,
             TalentCenterOperationUpdateRequest request, String idempotencyKey)
