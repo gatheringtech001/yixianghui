@@ -51,6 +51,11 @@ public interface IAppGoodsOrderService
     public int updateAppGoodsOrder(AppGoodsOrder appGoodsOrder);
 
     /**
+     * 按旅居履约状态机更新订单；支付、退款状态不能通过此入口修改。
+     */
+    int updateTravelStatus(Long orderId, String travelStatus);
+
+    /**
      * 批量删除商品订单
      * 
      * @param orderIds 需要删除的商品订单主键集合

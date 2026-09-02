@@ -9,6 +9,7 @@ import com.ruoyi.system.domain.*;
 import com.ruoyi.system.mapper.AppAttachmentsMapper;
 import com.ruoyi.system.mapper.AppGoodsOrderMapper;
 import com.ruoyi.system.mapper.AppPayLogMapper;
+import com.ruoyi.system.service.TravelOrderStatusPolicy;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -135,6 +136,14 @@ public class AppGoodsOrderAfterServiceImpl implements IAppGoodsOrderAfterService
                 AppGoodsOrder appGoodsOrder = new AppGoodsOrder();
                 appGoodsOrder.setOrderId(appGoodsOrderAfter.getOrderId());
                 appGoodsOrder.setStatus("3");
+                AppGoodsOrder current = appGoodsOrderMapper.selectAppGoodsOrderByOrderId(appGoodsOrderAfter.getOrderId());
+                if (current != null && current.getTravelStatus() != null) {
+                    if (!TravelOrderStatusPolicy.REFUNDING.equals(current.getTravelStatus())
+                            && !TravelOrderStatusPolicy.REFUNDED.equals(current.getTravelStatus())) {
+                        appGoodsOrder.setTravelStatusBeforeRefund(current.getTravelStatus());
+                    }
+                    appGoodsOrder.setTravelStatus(TravelOrderStatusPolicy.REFUNDING);
+                }
                 appGoodsOrderMapper.updateAppGoodsOrder(appGoodsOrder);
             }
             appGoodsOrderAfter.setStatus("0");

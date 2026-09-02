@@ -133,6 +133,14 @@ public class AppGoodsOrder extends BaseEntity
     /** 订单状态 */
     @Excel(name = "订单状态")
     private String status;
+
+    /** 旅居履约状态：0待确认 1已确认 2已取消 3已入住 4已离店 5已结算 6退款中 7已退款 */
+    @Excel(name = "旅居状态", readConverterExp = "0=待确认,1=已确认,2=已取消,3=已入住,4=已离店,5=已结算,6=退款中,7=已退款")
+    private String travelStatus;
+
+    /** 退款前旅居履约状态，用于退款失败或拒绝时恢复 */
+    private String travelStatusBeforeRefund;
+
     @Excel(name = "所属分站")
     private String deptName;
 
@@ -449,6 +457,26 @@ public class AppGoodsOrder extends BaseEntity
     public String getStatus() 
     {
         return status;
+    }
+
+    public String getTravelStatus()
+    {
+        return travelStatus;
+    }
+
+    public void setTravelStatus(String travelStatus)
+    {
+        this.travelStatus = travelStatus;
+    }
+
+    public String getTravelStatusBeforeRefund()
+    {
+        return travelStatusBeforeRefund;
+    }
+
+    public void setTravelStatusBeforeRefund(String travelStatusBeforeRefund)
+    {
+        this.travelStatusBeforeRefund = travelStatusBeforeRefund;
     }
 
     public String getDeptName() {

@@ -178,6 +178,12 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         if (order.getPayStatus() == null || order.getPayStatus().isEmpty()) {
             order.setPayStatus("0");
         }
+        if ("hotel".equals(goods.getGoodsType())) {
+            order.setTravelStatus(TravelOrderStatusPolicy.PENDING_CONFIRMATION);
+        } else {
+            order.setTravelStatus(null);
+            order.setTravelStatusBeforeRefund(null);
+        }
         Integer isSku = goods.getIsSku();
         if (isSku == null || isSku != 1) {
             int dateinter = -1;
@@ -405,8 +411,37 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     @Override
     public int updateAppGoodsOrder(AppGoodsOrder appGoodsOrder)
     {
+        AppGoodsOrder current = appGoodsOrderMapper.selectAppGoodsOrderByOrderId(appGoodsOrder.getOrderId());
+        appGoodsOrder.setTravelStatus(null);
+        appGoodsOrder.setTravelStatusBeforeRefund(null);
+        if (current != null && current.getTravelStatus() != null
+                && "0".equals(current.getPayStatus())
+                && "2".equals(appGoodsOrder.getStatus()) && !"2".equals(current.getStatus())) {
+            appGoodsOrder.setTravelStatus(TravelOrderStatusPolicy.CANCELLED);
+        }
         appGoodsOrder.setUpdateTime(DateUtils.getNowDate());
         return appGoodsOrderMapper.updateAppGoodsOrder(appGoodsOrder);
+    }
+
+    @Override
+    public int updateTravelStatus(Long orderId, String travelStatus)
+    {
+        AppGoodsOrder current = appGoodsOrderMapper.selectAppGoodsOrderByOrderId(orderId);
+        if (current == null) throw new ServiceException("订单不存在");
+        AppGoods goods = appGoodsMapper.selectAppGoodsByGoodsId(current.getGoodsId());
+        if (goods == null || !"hotel".equals(goods.getGoodsType())) {
+            throw new ServiceException("只有旅居订单可以修改旅居状态");
+        }
+        try {
+            TravelOrderStatusPolicy.requireManualTransition(current.getTravelStatus(), travelStatus);
+        } catch (IllegalArgumentException ex) {
+            throw new ServiceException(ex.getMessage());
+        }
+        AppGoodsOrder update = new AppGoodsOrder();
+        update.setOrderId(orderId);
+        update.setTravelStatus(travelStatus);
+        update.setUpdateTime(DateUtils.getNowDate());
+        return appGoodsOrderMapper.updateAppGoodsOrder(update);
     }
 
     /**
@@ -636,6 +671,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                     AppGoodsOrder upOrder = new AppGoodsOrder();
                     upOrder.setOrderId(appGoodsOrderAfter.getOrderId());
                     upOrder.setStatus("1");
+                    restoreTravelStatusAfterRefund(upOrder);
                     upOrder.setUpdateTime(DateUtils.getNowDate());
                     appGoodsOrderMapper.updateAppGoodsOrder(upOrder);
                 }
@@ -739,6 +775,15 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             AppGoodsOrder upOrder = new AppGoodsOrder();
             upOrder.setOrderId(after.getOrderId());
             upOrder.setStatus(refundDone ? "4" : "3");
+            AppGoodsOrder current = appGoodsOrderMapper.selectAppGoodsOrderByOrderId(after.getOrderId());
+            if (current != null && current.getTravelStatus() != null) {
+                if (!TravelOrderStatusPolicy.REFUNDING.equals(current.getTravelStatus())
+                        && !TravelOrderStatusPolicy.REFUNDED.equals(current.getTravelStatus())) {
+                    upOrder.setTravelStatusBeforeRefund(current.getTravelStatus());
+                }
+                upOrder.setTravelStatus(refundDone
+                        ? TravelOrderStatusPolicy.REFUNDED : TravelOrderStatusPolicy.REFUNDING);
+            }
             if (refundDone) {
                 upOrder.setPayStatus("4");
             }
@@ -891,6 +936,9 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                     tradeState.equals(Transaction.TradeStateEnum.CLOSED)){
                 if(null!=goodsOrder) {
                     goodsOrder.setStatus("2");
+                    if (goodsOrder.getTravelStatus() != null) {
+                        goodsOrder.setTravelStatus(TravelOrderStatusPolicy.CANCELLED);
+                    }
                 }
             }
             if(null!=goodsOrder) {
@@ -1038,6 +1086,9 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         up.setOrderId(goodsOrder.getOrderId());
         up.setPayStatus("1");
         up.setStatus("1");
+        if (firstPay && TravelOrderStatusPolicy.PENDING_CONFIRMATION.equals(goodsOrder.getTravelStatus())) {
+            up.setTravelStatus(TravelOrderStatusPolicy.CONFIRMED);
+        }
         // 实付以微信为准，同时回写应付，避免列表/退款仍用下单时的错误金额
         if (yuan.compareTo(BigDecimal.ZERO) > 0) {
             up.setPayMoney(yuan);
@@ -1053,6 +1104,9 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         appGoodsOrderMapper.updateAppGoodsOrder(up);
         goodsOrder.setPayStatus("1");
         goodsOrder.setStatus("1");
+        if (up.getTravelStatus() != null) {
+            goodsOrder.setTravelStatus(up.getTravelStatus());
+        }
         syncOrderDetailGoodsMoney(goodsOrder.getOrderId(), yuan);
 
         if (!grantGold || payLog == null) {
@@ -1385,6 +1439,18 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                     upAfter.setUpdateTime(now);
                     appGoodsOrderAfterMapper.updateAppGoodsOrderAfter(upAfter);
                 }
+                String orderType = StringUtils.defaultIfBlank(appPayRefundLog.getOrderType(), "");
+                String outTradeNo = refundNotification.getOutTradeNo();
+                boolean goodsRefund = "2".equals(orderType)
+                        || (StringUtils.isEmpty(orderType) && outTradeNo != null && outTradeNo.startsWith("20"));
+                if (goodsRefund && appPayRefundLog.getOrderId() != null) {
+                    AppGoodsOrder upOrder = new AppGoodsOrder();
+                    upOrder.setOrderId(appPayRefundLog.getOrderId());
+                    upOrder.setStatus("1");
+                    restoreTravelStatusAfterRefund(upOrder);
+                    upOrder.setUpdateTime(now);
+                    appGoodsOrderMapper.updateAppGoodsOrder(upOrder);
+                }
             }
             // PROCESSING：保持退款中，仍回 SUCCESS 避免无意义重试风暴
             returnMap.put("code", "SUCCESS");
@@ -1493,11 +1559,16 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         if (order == null) {
             return;
         }
-        if (!"4".equals(order.getStatus())) {
+        boolean travelStatusMissing = order.getTravelStatus() != null
+                && !TravelOrderStatusPolicy.REFUNDED.equals(order.getTravelStatus());
+        if (!"4".equals(order.getStatus()) || travelStatusMissing) {
             AppGoodsOrder upOrder = new AppGoodsOrder();
             upOrder.setOrderId(orderId);
             upOrder.setStatus("4");
             upOrder.setPayStatus("4");
+            if (order.getTravelStatus() != null) {
+                upOrder.setTravelStatus(TravelOrderStatusPolicy.REFUNDED);
+            }
             upOrder.setUpdateTime(now);
             appGoodsOrderMapper.updateAppGoodsOrder(upOrder);
             releaseEducationStockIfNeeded(order);
@@ -1512,6 +1583,15 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         }
         goldService.reverseOnRefund(uid, AppGoldBizType.GOODS_REFUND, orderId, refundFen, refundNo);
         clearGoodsOrderCache(orderId);
+    }
+
+    private void restoreTravelStatusAfterRefund(AppGoodsOrder update)
+    {
+        AppGoodsOrder current = appGoodsOrderMapper.selectAppGoodsOrderByOrderId(update.getOrderId());
+        if (current == null || current.getTravelStatus() == null) return;
+        String previous = StringUtils.defaultIfBlank(current.getTravelStatusBeforeRefund(),
+                TravelOrderStatusPolicy.CONFIRMED);
+        update.setTravelStatus(previous);
     }
 
     /**
@@ -1668,6 +1748,9 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             up.setOrderId(latest.getOrderId());
             up.setStatus("2");
             up.setPayStatus("2");
+            if (latest.getTravelStatus() != null) {
+                up.setTravelStatus(TravelOrderStatusPolicy.CANCELLED);
+            }
             up.setUpdateTime(now);
             if (appGoodsOrderMapper.updateAppGoodsOrder(up) > 0) {
                 releaseEducationStockIfNeeded(latest);

@@ -36,6 +36,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="createTime"    column="create_time"    />
         <result property="updateTime"    column="update_time"    />
         <result property="status"    column="status"    />
+        <result property="travelStatus"    column="travel_status"    />
+        <result property="travelStatusBeforeRefund"    column="travel_status_before_refund"    />
         <result property="deptName"    column="dept_name"    />
         <result property="checkInDate"    column="check_in_date"    />
         <result property="checkOutDate"    column="check_out_date"    />
@@ -44,7 +46,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectAppGoodsOrderVo">
-        select order_id, user_id, goods_id, dept_id, address_id, order_no, money_total, money_discount, money_payable, money_express, pay_status, pay_money, pay_type, pay_time, goods_count, coupon_got_ids, remark, send_time, send_express_name, send_express_simple, send_express_no, check_num, is_checked, receive_time, is_award, is_comment, is_apply_cancel, is_cash, create_time, update_time, status,
+        select order_id, user_id, goods_id, dept_id, address_id, order_no, money_total, money_discount, money_payable, money_express, pay_status, pay_money, pay_type, pay_time, goods_count, coupon_got_ids, remark, send_time, send_express_name, send_express_simple, send_express_no, check_num, is_checked, receive_time, is_award, is_comment, is_apply_cancel, is_cash, create_time, update_time, status, travel_status, travel_status_before_refund,
                check_in_date, check_out_date, contact_name, contact_phone from app_goods_order
     </sql>
 
@@ -54,7 +56,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                appgoods.pay_type, appgoods.pay_time, appgoods.goods_count, appgoods.coupon_got_ids, appgoods.remark, appgoods.send_time, appgoods.send_express_name,
                appgoods.send_express_simple, appgoods.send_express_no, appgoods.check_num, appgoods.is_checked, appgoods.receive_time, appgoods.is_award,
                appgoods.is_comment, appgoods.is_apply_cancel,
-               appgoods.is_cash, appgoods.create_time, appgoods.update_time, appgoods.status,appgoods.check_in_date, appgoods.check_out_date,appgoods.contact_name, appgoods.contact_phone,dept.dept_name from app_goods_order appgoods
+               appgoods.is_cash, appgoods.create_time, appgoods.update_time, appgoods.status, appgoods.travel_status, appgoods.travel_status_before_refund,
+               appgoods.check_in_date, appgoods.check_out_date,appgoods.contact_name, appgoods.contact_phone,dept.dept_name from app_goods_order appgoods
                                                                                                                      LEFT JOIN sys_dept dept on appgoods.dept_id=dept.dept_id
     </sql>
 
@@ -88,6 +91,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="isApplyCancel != null "> and is_apply_cancel = #{isApplyCancel}</if>
             <if test="isCash != null "> and is_cash = #{isCash}</if>
             <if test="status != null  and status != ''"> and appgoods.status = #{status}</if>
+            <if test="travelStatus != null  and travelStatus != ''"> and appgoods.travel_status = #{travelStatus}</if>
              <if test="checkInDate != null "> and check_in_date = #{checkInDate}</if>
               <if test="checkOutDate != null "> and check_out_date = #{checkOutDate}</if>
                <if test="contactName != null  and contactName != ''"> and contact_name = #{contactName}</if>
@@ -146,6 +150,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="createTime != null">create_time,</if>
             <if test="updateTime != null">update_time,</if>
             <if test="status != null and status != ''">status,</if>
+            <if test="travelStatus != null and travelStatus != ''">travel_status,</if>
+            <if test="travelStatusBeforeRefund != null and travelStatusBeforeRefund != ''">travel_status_before_refund,</if>
             <if test="checkInDate != null">check_in_date,</if>
             <if test="checkOutDate != null">check_out_date,</if>
             <if test="contactName != null">contact_name,</if>
@@ -182,6 +188,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="createTime != null">#{createTime},</if>
             <if test="updateTime != null">#{updateTime},</if>
             <if test="status != null and status != ''">#{status},</if>
+            <if test="travelStatus != null and travelStatus != ''">#{travelStatus},</if>
+            <if test="travelStatusBeforeRefund != null and travelStatusBeforeRefund != ''">#{travelStatusBeforeRefund},</if>
             <if test="checkInDate != null">#{checkInDate},</if>
             <if test="checkOutDate != null">#{checkOutDate},</if>
             <if test="contactName != null">#{contactName},</if>
@@ -222,6 +230,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="createTime != null">create_time = #{createTime},</if>
             <if test="updateTime != null">update_time = #{updateTime},</if>
             <if test="status != null and status != ''">status = #{status},</if>
+            <if test="travelStatus != null and travelStatus != ''">travel_status = #{travelStatus},</if>
+            <if test="travelStatusBeforeRefund != null and travelStatusBeforeRefund != ''">travel_status_before_refund = #{travelStatusBeforeRefund},</if>
             <if test="checkInDate != null">check_in_date = #{checkInDate},</if>
             <if test="checkOutDate != null">check_out_date = #{checkOutDate},</if>
             <if test="contactName != null">contact_name = #{contactName},</if>

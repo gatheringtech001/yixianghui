@@ -203,6 +203,34 @@ public class AppGoodsOrderController extends BaseController
     }
 
     /**
+     * 推进旅居履约状态。支付与退款状态由原有交易流程维护。
+     */
+    @PreAuthorize("@ss.hasPermi('system:app_goods_order:edit')")
+    @Log(title = "旅居订单状态", businessType = BusinessType.UPDATE)
+    @PatchMapping("/{orderId}/travel-status")
+    @ApiOperation("修改旅居订单状态")
+    public AjaxResult updateTravelStatus(@PathVariable Long orderId,
+                                         @RequestBody TravelStatusRequest request)
+    {
+        return toAjax(appGoodsOrderService.updateTravelStatus(orderId, request.getTravelStatus()));
+    }
+
+    public static class TravelStatusRequest
+    {
+        private String travelStatus;
+
+        public String getTravelStatus()
+        {
+            return travelStatus;
+        }
+
+        public void setTravelStatus(String travelStatus)
+        {
+            this.travelStatus = travelStatus;
+        }
+    }
+
+    /**
      * 删除商品订单
      */
     @PreAuthorize("@ss.hasPermi('system:app_goods_order:remove')")
