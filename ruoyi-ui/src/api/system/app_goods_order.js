@@ -35,6 +35,15 @@ export function updateApp_goods_order(data) {
   })
 }
 
+// 推进旅居订单履约状态
+export function updateTravelStatus(orderId, travelStatus) {
+  return request({
+    url: '/system/app_goods_order/' + orderId + '/travel-status',
+    method: 'patch',
+    data: { travelStatus }
+  })
+}
+
 // 删除商品订单
 export function delApp_goods_order(orderId) {
   return request({

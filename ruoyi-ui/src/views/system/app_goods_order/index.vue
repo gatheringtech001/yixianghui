@@ -225,6 +225,16 @@
           />
         </el-select>
       </el-form-item>
+      <el-form-item label="旅居状态" prop="travelStatus">
+        <el-select v-model="queryParams.travelStatus" placeholder="请选择旅居状态" clearable>
+          <el-option
+            v-for="item in travelStatusOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+      </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
         <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
@@ -353,6 +363,28 @@
       <el-table-column label="订单状态" align="center" prop="status" min-width="80">
         <template slot-scope="scope">
           <dict-tag :options="dict.type.order_status" :value="scope.row.status"/>
+        </template>
+      </el-table-column>
+      <el-table-column label="旅居状态" align="center" prop="travelStatus" min-width="110">
+        <template slot-scope="scope">
+          <span v-if="scope.row.travelStatus == null">—</span>
+          <el-dropdown
+            v-else-if="nextTravelStatuses(scope.row.travelStatus).length"
+            @command="status => handleTravelStatusChange(scope.row, status)"
+          >
+            <el-tag size="small" type="success">
+              {{ travelStatusLabel(scope.row.travelStatus) }}
+              <i class="el-icon-arrow-down el-icon--right"></i>
+            </el-tag>
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item
+                v-for="item in nextTravelStatuses(scope.row.travelStatus)"
+                :key="item.value"
+                :command="item.value"
+              >{{ item.label }}</el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
+          <el-tag v-else size="small" type="info">{{ travelStatusLabel(scope.row.travelStatus) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right">
@@ -544,7 +576,7 @@
 </template>
 
 <script>
-import { listApp_goods_order, getApp_goods_order, delApp_goods_order, addApp_goods_order, updateApp_goods_order } from "@/api/system/app_goods_order";
+import { listApp_goods_order, getApp_goods_order, delApp_goods_order, addApp_goods_order, updateApp_goods_order, updateTravelStatus } from "@/api/system/app_goods_order";
 export default {
   name: "App_goods_order",
   dicts: ['common_is_not', 'pay_type', 'order_status'],
@@ -564,6 +596,16 @@ export default {
       total: 0,
       // 商品订单表格数据
       app_goods_orderList: [],
+      travelStatusOptions: [
+        { value: '0', label: '待确认' },
+        { value: '1', label: '已确认' },
+        { value: '2', label: '已取消' },
+        { value: '3', label: '已入住' },
+        { value: '4', label: '已离店' },
+        { value: '5', label: '已结算' },
+        { value: '6', label: '退款中' },
+        { value: '7', label: '已退款' }
+      ],
       // 弹出层标题
       title: "",
       // 是否显示弹出层
@@ -598,7 +640,8 @@ export default {
         isComment: null,
         isApplyCancel: null,
         isCash: null,
-        status: null
+        status: null,
+        travelStatus: null
       },
       // 表单参数
       form: {},
@@ -681,6 +724,25 @@ export default {
     handleQuery() {
       this.queryParams.pageNum = 1;
       this.getList();
+    },
+    travelStatusLabel(status) {
+      const option = this.travelStatusOptions.find(item => item.value === status);
+      return option ? option.label : '未知状态';
+    },
+    nextTravelStatuses(status) {
+      const transitions = {
+        '1': ['3'],
+        '3': ['4'],
+        '4': ['5']
+      };
+      const targets = transitions[status] || [];
+      return this.travelStatusOptions.filter(item => targets.includes(item.value));
+    },
+    handleTravelStatusChange(row, travelStatus) {
+      updateTravelStatus(row.orderId, travelStatus).then(() => {
+        this.$modal.msgSuccess('旅居状态已更新');
+        this.getList();
+      });
     },
     /** 重置按钮操作 */
     resetQuery() {
