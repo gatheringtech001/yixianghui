@@ -178,4 +178,8 @@ def build_canonical_sql(tables):
     d = customer_ddl + consultant_ddl
     m = _self_links(tables) + customer_dml + consultant_dml + _orders_sql(tables)
     m += relation_resolve + _income_sql(tables) + _activity_sql(tables) + relation_resolve
+    m.append(
+        "UPDATE app_feishu_business_relation SET relation_message='target record is absent from Feishu export' "
+        "WHERE relation_status='unresolved';"
+    )
     return d, m
