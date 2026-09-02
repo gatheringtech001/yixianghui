@@ -224,7 +224,11 @@
 	import { goodsCollect, deleteCollect, goodsCollectList } from '@/api/member/index'
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
 	import { prepareRichTextHtml } from '@/utils/richText'
-	import { formatCalendarPrice, resolveCalendarUnitPrice } from '@/utils/travelPresentation'
+	import {
+		formatCalendarPrice,
+		resolveCalendarUnitPrice,
+		sanitizeTravelCustomerText
+	} from '@/utils/travelPresentation'
 	import { parseInvitePageOptions } from '@/utils/invite'
 	import sharePageMixin from '@/utils/sharePageMixin'
 
@@ -617,9 +621,9 @@
                     }
                     if (item.optionType == '304') {
                       if (!skuGroupItem.descOne) {
-                        skuGroupItem.descOne = item.optionValue || '';
+                        skuGroupItem.descOne = sanitizeTravelCustomerText(item.optionValue);
                       } else if (!skuGroupItem.descTwo) {
-                        skuGroupItem.descTwo = item.optionValue || '';
+                        skuGroupItem.descTwo = sanitizeTravelCustomerText(item.optionValue);
                       }
                     }
                   });
@@ -672,7 +676,7 @@
                           optionAvgPrice = item.optionValue;
                         }
                         if(item.optionType == '304'){
-                          optionAttrName = item.optionValue;
+                          optionAttrName = sanitizeTravelCustomerText(item.optionValue);
                         }
                       });
                       return {

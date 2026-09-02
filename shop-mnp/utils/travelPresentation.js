@@ -37,3 +37,10 @@ export function compactListingText(value, maxLength = 56) {
 	if (!text || text.length <= maxLength) return text
 	return `${text.slice(0, maxLength).trim()}…`
 }
+
+export function sanitizeTravelCustomerText(value) {
+	const text = String(value || '').trim()
+	if (!text) return ''
+	const sanitized = text.replace(/知识库价格[，,：:\s-]*/g, '').trim()
+	return sanitized === '按人计价' ? '' : sanitized
+}
