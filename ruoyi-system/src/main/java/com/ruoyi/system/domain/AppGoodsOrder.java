@@ -43,6 +43,20 @@ public class AppGoodsOrder extends BaseEntity
     @Excel(name = "订单号")
     private String orderNo;
 
+    /** 订单来源：mini_program 或 feishu_history */
+    private String orderOrigin;
+    private String feishuRecordId;
+    private String feishuOrderNo;
+    private String channel;
+    private String travelCustomerRecordId;
+    private String travelBaseRecordId;
+    private String travelBaseName;
+    private String roomType;
+    private Integer roomCount;
+    private Integer travelerCount;
+    private String serviceOwner;
+    private String serviceRemark;
+
     /** 商品合计金额 */
     @Excel(name = "商品合计金额")
     private BigDecimal moneyTotal;
@@ -238,6 +252,31 @@ public class AppGoodsOrder extends BaseEntity
     {
         return orderNo;
     }
+
+    public String getOrderOrigin() { return orderOrigin; }
+    public void setOrderOrigin(String orderOrigin) { this.orderOrigin = orderOrigin; }
+    public String getFeishuRecordId() { return feishuRecordId; }
+    public void setFeishuRecordId(String feishuRecordId) { this.feishuRecordId = feishuRecordId; }
+    public String getFeishuOrderNo() { return feishuOrderNo; }
+    public void setFeishuOrderNo(String feishuOrderNo) { this.feishuOrderNo = feishuOrderNo; }
+    public String getChannel() { return channel; }
+    public void setChannel(String channel) { this.channel = channel; }
+    public String getTravelCustomerRecordId() { return travelCustomerRecordId; }
+    public void setTravelCustomerRecordId(String value) { this.travelCustomerRecordId = value; }
+    public String getTravelBaseRecordId() { return travelBaseRecordId; }
+    public void setTravelBaseRecordId(String value) { this.travelBaseRecordId = value; }
+    public String getTravelBaseName() { return travelBaseName; }
+    public void setTravelBaseName(String travelBaseName) { this.travelBaseName = travelBaseName; }
+    public String getRoomType() { return roomType; }
+    public void setRoomType(String roomType) { this.roomType = roomType; }
+    public Integer getRoomCount() { return roomCount; }
+    public void setRoomCount(Integer roomCount) { this.roomCount = roomCount; }
+    public Integer getTravelerCount() { return travelerCount; }
+    public void setTravelerCount(Integer travelerCount) { this.travelerCount = travelerCount; }
+    public String getServiceOwner() { return serviceOwner; }
+    public void setServiceOwner(String serviceOwner) { this.serviceOwner = serviceOwner; }
+    public String getServiceRemark() { return serviceRemark; }
+    public void setServiceRemark(String serviceRemark) { this.serviceRemark = serviceRemark; }
 
     public void setMoneyTotal(BigDecimal moneyTotal) 
     {

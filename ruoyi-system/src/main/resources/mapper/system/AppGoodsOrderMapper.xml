@@ -11,6 +11,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="deptId"    column="dept_id"    />
         <result property="addressId"    column="address_id"    />
         <result property="orderNo"    column="order_no"    />
+        <result property="orderOrigin" column="order_origin" />
+        <result property="feishuRecordId" column="feishu_record_id" />
+        <result property="feishuOrderNo" column="feishu_order_no" />
+        <result property="channel" column="channel" />
+        <result property="travelCustomerRecordId" column="travel_customer_record_id" />
+        <result property="travelBaseRecordId" column="travel_base_record_id" />
+        <result property="travelBaseName" column="travel_base_name" />
+        <result property="roomType" column="room_type" />
+        <result property="roomCount" column="room_count" />
+        <result property="travelerCount" column="traveler_count" />
+        <result property="serviceOwner" column="service_owner" />
+        <result property="serviceRemark" column="service_remark" />
         <result property="moneyTotal"    column="money_total"    />
         <result property="moneyDiscount"    column="money_discount"    />
         <result property="moneyPayable"    column="money_payable"    />
@@ -46,12 +58,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectAppGoodsOrderVo">
-        select order_id, user_id, goods_id, dept_id, address_id, order_no, money_total, money_discount, money_payable, money_express, pay_status, pay_money, pay_type, pay_time, goods_count, coupon_got_ids, remark, send_time, send_express_name, send_express_simple, send_express_no, check_num, is_checked, receive_time, is_award, is_comment, is_apply_cancel, is_cash, create_time, update_time, status, travel_status, travel_status_before_refund,
+        select order_id, user_id, goods_id, dept_id, address_id, order_no, order_origin, feishu_record_id, feishu_order_no, channel, travel_customer_record_id, travel_base_record_id, travel_base_name, room_type, room_count, traveler_count, service_owner, service_remark, money_total, money_discount, money_payable, money_express, pay_status, pay_money, pay_type, pay_time, goods_count, coupon_got_ids, remark, send_time, send_express_name, send_express_simple, send_express_no, check_num, is_checked, receive_time, is_award, is_comment, is_apply_cancel, is_cash, create_time, update_time, status, travel_status, travel_status_before_refund,
                check_in_date, check_out_date, contact_name, contact_phone from app_goods_order
     </sql>
 
     <sql id="selectAppGoodsOrderRefVo">
         select appgoods.order_id, appgoods.user_id, appgoods.goods_id, appgoods.dept_id, appgoods.address_id, appgoods.order_no,
+               appgoods.order_origin, appgoods.feishu_record_id, appgoods.feishu_order_no, appgoods.channel,
+               appgoods.travel_customer_record_id, appgoods.travel_base_record_id, appgoods.travel_base_name,
+               appgoods.room_type, appgoods.room_count, appgoods.traveler_count, appgoods.service_owner, appgoods.service_remark,
                appgoods.money_total, appgoods.money_discount, appgoods.money_payable, appgoods.money_express, appgoods.pay_status, appgoods.pay_money,
                appgoods.pay_type, appgoods.pay_time, appgoods.goods_count, appgoods.coupon_got_ids, appgoods.remark, appgoods.send_time, appgoods.send_express_name,
                appgoods.send_express_simple, appgoods.send_express_no, appgoods.check_num, appgoods.is_checked, appgoods.receive_time, appgoods.is_award,
@@ -69,6 +84,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="deptId != null "> and dept_id = #{deptId}</if>
             <if test="addressId != null "> and address_id = #{addressId}</if>
             <if test="orderNo != null  and orderNo != ''"> and order_no = #{orderNo}</if>
+            <if test="orderOrigin != null and orderOrigin != ''"> and appgoods.order_origin = #{orderOrigin}</if>
+            <if test="feishuOrderNo != null and feishuOrderNo != ''"> and appgoods.feishu_order_no = #{feishuOrderNo}</if>
+            <if test="channel != null and channel != ''"> and appgoods.channel = #{channel}</if>
+            <if test="travelBaseName != null and travelBaseName != ''"> and appgoods.travel_base_name like concat('%', #{travelBaseName}, '%')</if>
             <if test="moneyTotal != null "> and money_total = #{moneyTotal}</if>
             <if test="moneyDiscount != null "> and money_discount = #{moneyDiscount}</if>
             <if test="moneyPayable != null "> and money_payable = #{moneyPayable}</if>
