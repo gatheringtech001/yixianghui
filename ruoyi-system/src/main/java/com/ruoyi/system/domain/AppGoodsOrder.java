@@ -43,6 +43,13 @@ public class AppGoodsOrder extends BaseEntity
     @Excel(name = "订单号")
     private String orderNo;
 
+    /** 列表筛选使用：travel、education；null 表示全部 */
+    private String businessType;
+
+    /** 列表展示使用，不写入订单表 */
+    private String goodsName;
+    private String goodsType;
+
     /** 订单来源：mini_program 或 feishu_history */
     private String orderOrigin;
     private String feishuRecordId;
@@ -255,6 +262,12 @@ public class AppGoodsOrder extends BaseEntity
 
     public String getOrderOrigin() { return orderOrigin; }
     public void setOrderOrigin(String orderOrigin) { this.orderOrigin = orderOrigin; }
+    public String getBusinessType() { return businessType; }
+    public void setBusinessType(String businessType) { this.businessType = businessType; }
+    public String getGoodsName() { return goodsName; }
+    public void setGoodsName(String goodsName) { this.goodsName = goodsName; }
+    public String getGoodsType() { return goodsType; }
+    public void setGoodsType(String goodsType) { this.goodsType = goodsType; }
     public String getFeishuRecordId() { return feishuRecordId; }
     public void setFeishuRecordId(String feishuRecordId) { this.feishuRecordId = feishuRecordId; }
     public String getFeishuOrderNo() { return feishuOrderNo; }

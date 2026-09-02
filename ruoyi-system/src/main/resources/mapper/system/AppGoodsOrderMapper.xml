@@ -11,6 +11,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="deptId"    column="dept_id"    />
         <result property="addressId"    column="address_id"    />
         <result property="orderNo"    column="order_no"    />
+        <result property="goodsName" column="goods_name" />
+        <result property="goodsType" column="goods_type" />
         <result property="orderOrigin" column="order_origin" />
         <result property="feishuRecordId" column="feishu_record_id" />
         <result property="feishuOrderNo" column="feishu_order_no" />
@@ -55,6 +57,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="checkOutDate"    column="check_out_date"    />
         <result property="contactName"    column="contact_name"    />
         <result property="contactPhone"    column="contact_phone"    />
+        <result property="interCount" column="inter_count" />
     </resultMap>
 
     <sql id="selectAppGoodsOrderVo">
@@ -65,25 +68,51 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <sql id="selectAppGoodsOrderRefVo">
         select appgoods.order_id, appgoods.user_id, appgoods.goods_id, appgoods.dept_id, appgoods.address_id, appgoods.order_no,
                appgoods.order_origin, appgoods.feishu_record_id, appgoods.feishu_order_no, appgoods.channel,
-               appgoods.travel_customer_record_id, appgoods.travel_base_record_id, appgoods.travel_base_name,
-               appgoods.room_type, appgoods.room_count, appgoods.traveler_count, appgoods.service_owner, appgoods.service_remark,
+               appgoods.travel_customer_record_id, appgoods.travel_base_record_id,
+               COALESCE(appgoods.travel_base_name, goods.goods_name) as travel_base_name,
+               COALESCE(appgoods.room_type, orderdetail.sku_name) as room_type,
+               COALESCE(appgoods.room_count, orderdetail.goods_count) as room_count,
+               COALESCE(appgoods.traveler_count, orderdetail.self_goods_count) as traveler_count,
+               appgoods.service_owner, appgoods.service_remark,
                appgoods.money_total, appgoods.money_discount, appgoods.money_payable, appgoods.money_express, appgoods.pay_status, appgoods.pay_money,
                appgoods.pay_type, appgoods.pay_time, appgoods.goods_count, appgoods.coupon_got_ids, appgoods.remark, appgoods.send_time, appgoods.send_express_name,
                appgoods.send_express_simple, appgoods.send_express_no, appgoods.check_num, appgoods.is_checked, appgoods.receive_time, appgoods.is_award,
                appgoods.is_comment, appgoods.is_apply_cancel,
                appgoods.is_cash, appgoods.create_time, appgoods.update_time, appgoods.status, appgoods.travel_status, appgoods.travel_status_before_refund,
-               appgoods.check_in_date, appgoods.check_out_date,appgoods.contact_name, appgoods.contact_phone,dept.dept_name from app_goods_order appgoods
-                                                                                                                     LEFT JOIN sys_dept dept on appgoods.dept_id=dept.dept_id
+               appgoods.check_in_date, appgoods.check_out_date, appgoods.contact_name, appgoods.contact_phone,
+               dept.dept_name, goods.goods_name, goods.goods_type, orderdetail.inter_count
+        from app_goods_order appgoods
+        LEFT JOIN sys_dept dept on appgoods.dept_id=dept.dept_id
+        LEFT JOIN app_goods goods on appgoods.goods_id=goods.goods_id
+        LEFT JOIN (
+            select detail.order_id, max(detail.goods_count) as goods_count,
+                   max(detail.self_goods_count) as self_goods_count,
+                   max(detail.inter_count) as inter_count, max(sku.sku_name) as sku_name
+            from app_goods_order_detail detail
+            left join app_goods_sku sku on detail.sku_id=sku.sku_id
+            group by detail.order_id
+        ) orderdetail on appgoods.order_id=orderdetail.order_id
     </sql>
 
     <select id="selectAppGoodsOrderList" parameterType="AppGoodsOrder" resultMap="AppGoodsOrderResult">
         <include refid="selectAppGoodsOrderRefVo"/>
         <where>  
-            <if test="userId != null "> and user_id = #{userId}</if>
-            <if test="goodsId != null "> and goods_id = #{goodsId}</if>
-            <if test="deptId != null "> and dept_id = #{deptId}</if>
-            <if test="addressId != null "> and address_id = #{addressId}</if>
-            <if test="orderNo != null  and orderNo != ''"> and order_no = #{orderNo}</if>
+            <if test="userId != null "> and appgoods.user_id = #{userId}</if>
+            <if test="goodsId != null "> and appgoods.goods_id = #{goodsId}</if>
+            <if test="deptId != null "> and appgoods.dept_id = #{deptId}</if>
+            <if test="addressId != null "> and appgoods.address_id = #{addressId}</if>
+            <if test="orderNo != null  and orderNo != ''"> and appgoods.order_no = #{orderNo}</if>
+            <if test="businessType != null and businessType != ''">
+                <choose>
+                    <when test="businessType == 'travel'">
+                        and (appgoods.order_origin = 'feishu_history' or goods.goods_type = 'hotel' or appgoods.travel_status is not null)
+                    </when>
+                    <when test="businessType == 'education'">
+                        and goods.goods_type = 'education'
+                    </when>
+                    <otherwise>and 1 = 0</otherwise>
+                </choose>
+            </if>
             <if test="orderOrigin != null and orderOrigin != ''"> and appgoods.order_origin = #{orderOrigin}</if>
             <if test="feishuOrderNo != null and feishuOrderNo != ''"> and appgoods.feishu_order_no = #{feishuOrderNo}</if>
             <if test="channel != null and channel != ''"> and appgoods.channel = #{channel}</if>
