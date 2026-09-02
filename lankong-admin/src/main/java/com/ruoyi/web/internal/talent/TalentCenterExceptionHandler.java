@@ -8,7 +8,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.system.domain.talent.TalentCenterApiException;
 
-@RestControllerAdvice(assignableTypes = TalentCenterAdminController.class)
+@RestControllerAdvice(assignableTypes = {
+        TalentCenterAdminController.class,
+        TalentCenterOperationsController.class
+})
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class TalentCenterExceptionHandler
 {

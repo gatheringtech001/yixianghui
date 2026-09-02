@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.TalentCenterOperationsMapper">
+    <select id="selectConsultantId" resultType="java.lang.Long">
+        select consultant_id from app_consultant where user_id = #{userId} and status = '01' limit 1
+    </select>
+
+    <select id="selectCustomers" resultType="java.util.LinkedHashMap">
+        select concat('customer:', c.customer_id) sourceRecordId, 'eldercare' businessLine,
+               c.customer_no code, c.customer_name name, c.customer_label status,
+               c.acquisition_channel sourceChannel, c.customer_goods preference,
+               c.return_visit_remark followUpNote, null orderCount, null totalSpend,
+               date_format(coalesce(c.update_time, c.create_time), '%Y-%m-%dT%H:%i:%s.000Z') sourceUpdatedAt,
+               case when c.return_visit is null then null when c.return_visit = 1 then true else false end followUpRequired
+        from app_customer c
+        where c.del_flag = '0'
+          and (#{admin} = true or (#{consultantId} is not null and c.consultant_id = #{consultantId}))
+        order by coalesce(c.update_time, c.create_time) desc, c.customer_id desc
+        limit 1000
+    </select>
+
+    <select id="selectOrders" resultType="java.util.LinkedHashMap">
+        select concat('order:', o.order_id) sourceRecordId,
+               case when g.goods_type in ('hotel', 'travel') then 'travel' else 'eldercare' end businessLine,
+               coalesce(o.feishu_order_no, o.order_no) code, o.contact_name customerName,
+               coalesce(o.travel_base_name, g.goods_name) productName,
+               case o.travel_status when '0' then '待确认' when '1' then '已确认' when '2' then '已取消'
+                    when '3' then '已入住' when '4' then '已离店' when '5' then '已结算'
+                    when '6' then '退款中' when '7' then '已退款' else o.status end status,
+               o.channel channel, coalesce(o.pay_money, o.money_payable) amount,
+               date_format(o.check_in_date, '%Y-%m-%d') checkInDate,
+               date_format(o.check_out_date, '%Y-%m-%d') checkOutDate
+        from app_goods_order o
+        left join app_goods g on g.goods_id = o.goods_id
+        where #{admin} = true or exists (
+            select 1 from app_user_inviter i
+            where i.user_id = #{actorUserId} and i.new_user_id = o.user_id and i.status = '1'
+        )
+        order by o.order_id desc
+        limit 1000
+    </select>
+
+    <select id="selectSettlements" resultType="java.util.LinkedHashMap">
+        select concat('order:', o.order_id) sourceRecordId, 'travel' businessLine,
+               coalesce(o.feishu_order_no, o.order_no) code, o.contact_name customerName,
+               coalesce(o.travel_base_name, g.goods_name) productName,
+               case o.travel_status when '0' then '待确认' when '1' then '已确认' when '2' then '已取消'
+                    when '3' then '已入住' when '4' then '已离店' when '5' then '已结算'
+                    when '6' then '退款中' when '7' then '已退款' else o.status end status,
+               o.channel channel, case when o.is_cash is null then null when o.is_cash = 1 then true else false end settled,
+               coalesce(o.pay_money, o.money_payable) amount, null profit,
+               date_format(o.check_in_date, '%Y-%m-%d') checkInDate,
+               date_format(o.check_out_date, '%Y-%m-%d') checkOutDate
+        from app_goods_order o left join app_goods g on g.goods_id = o.goods_id
+        where (g.goods_type in ('hotel', 'travel') or o.travel_status is not null)
+          and (#{admin} = true or exists (
+              select 1 from app_user_inviter i
+              where i.user_id = #{actorUserId} and i.new_user_id = o.user_id and i.status = '1'
+          ))
+        union all
+        select concat('income:', i.income_id) sourceRecordId, 'eldercare' businessLine,
+               i.income_no code, null customerName, i.product_name productName,
+               case when i.settlement = 1 then '已结算' else '待结算' end status,
+               null channel, case when i.settlement is null then null when i.settlement = 1 then true else false end settled,
+               i.purchase_amount amount,
+               case when #{admin} = true then i.company_income else i.consultant_income end profit,
+               date_format(i.trade_date, '%Y-%m-%d') checkInDate, null checkOutDate
+        from app_customer_income i
+        where #{admin} = true or (#{consultantId} is not null and i.consultant_id = #{consultantId})
+        order by sourceRecordId desc
+    </select>
+
+    <select id="selectCustomerStatuses" resultType="java.lang.String">
+        select distinct customer_label from app_customer
+        where customer_label is not null and customer_label != '' and del_flag = '0'
+        order by customer_label
+    </select>
+
+    <update id="updateCustomer">
+        update app_customer
+        <set>
+            <if test="updateStatus">customer_label = #{status},</if>
+            <if test="updatePreference">customer_goods = #{preference},</if>
+            <if test="updateFollowUpNote">return_visit_remark = #{followUpNote},</if>
+            update_time = now()
+        </set>
+        where customer_id = #{id} and del_flag = '0'
+          and (#{admin} = true or (#{consultantId} is not null and consultant_id = #{consultantId}))
+          and coalesce(customer_label, '') = coalesce(#{expectedStatus}, '')
+    </update>
+
+    <update id="updateOrderStatus">
+        update app_goods_order set travel_status = #{status}, update_time = now()
+        where order_id = #{id} and coalesce(travel_status, '') = coalesce(#{expectedStatus}, '')
+          and (#{admin} = true or exists (
+              select 1 from app_user_inviter i
+              where i.user_id = #{actorUserId} and i.new_user_id = app_goods_order.user_id and i.status = '1'
+          ))
+    </update>
+
+    <update id="updateTravelSettlement">
+        update app_goods_order set is_cash = #{settled}, update_time = now()
+        where order_id = #{id} and coalesce(is_cash, -1) = coalesce(#{expected}, -1)
+          and (#{admin} = true or exists (
+              select 1 from app_user_inviter i
+              where i.user_id = #{actorUserId} and i.new_user_id = app_goods_order.user_id and i.status = '1'
+          ))
+    </update>
+
+    <update id="updateEldercareSettlement">
+        update app_customer_income set settlement = #{settled}, update_time = now()
+        where income_id = #{id} and coalesce(settlement, -1) = coalesce(#{expected}, -1)
+          and (#{admin} = true or (#{consultantId} is not null and consultant_id = #{consultantId}))
+    </update>
+</mapper>
