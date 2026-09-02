@@ -38,21 +38,34 @@ def _customer_sql(tables):
     d = [
         "CREATE TABLE IF NOT EXISTS app_customer_feishu_source (source_table_id varchar(64) NOT NULL,source_record_id varchar(64) NOT NULL,customer_id bigint unsigned NOT NULL,business_line varchar(20) NOT NULL,match_method varchar(32) NOT NULL,match_status varchar(16) NOT NULL,match_message varchar(500) DEFAULT NULL,created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(source_table_id,source_record_id),KEY idx_customer_feishu_source_customer(customer_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"
     ]
-    m = []
+    m = [
+        "DROP TEMPORARY TABLE IF EXISTS tmp_feishu_customer_match;",
+        "CREATE TEMPORARY TABLE tmp_feishu_customer_match AS SELECT customer_id,customer_no,link_mobile FROM app_customer WHERE customer_no IS NULL OR customer_no NOT LIKE 'FS-%';",
+        "CREATE INDEX idx_tmp_feishu_customer_no ON tmp_feishu_customer_match(customer_no);",
+        "CREATE INDEX idx_tmp_feishu_customer_mobile ON tmp_feishu_customer_match(link_mobile);",
+    ]
     for table, target, business_line, key_name, db_key in (
         (travel, travel_target, "travel", "客户编号", "customer_no"),
         (elder, elder_target, "eldercare", "电话", "link_mobile"),
     ):
         source_id = table["table_id"]
         key_col = _col(table, key_name)
+        source_table = "tmp_feishu_customer_match"
         candidates = (
             f"SELECT {db_key} match_key,MIN(customer_id) customer_id,COUNT(*) candidate_count "
-            f"FROM app_customer WHERE del_flag='0' AND {db_key} IS NOT NULL AND {db_key}<>'' GROUP BY {db_key}"
+            f"FROM {source_table} WHERE {db_key} IS NOT NULL AND {db_key}<>'' GROUP BY {db_key}"
         )
+        if business_line == "travel":
+            candidates = (
+                "SELECT CAST(customer_no AS DECIMAL(20,4)) match_key,MIN(customer_id) customer_id,COUNT(*) candidate_count "
+                f"FROM {source_table} WHERE customer_no REGEXP '^[0-9]+([.][0-9]+)?$' GROUP BY CAST(customer_no AS DECIMAL(20,4))"
+            )
+        join_key = f"c.match_key=p.{key_col}" if business_line == "travel" else f"BINARY c.match_key=BINARY p.{key_col}"
+        review_key = f"k.match_key=p.{key_col}" if business_line == "travel" else f"BINARY k.match_key=BINARY p.{key_col}"
         m.append(
             "INSERT INTO app_customer_feishu_source (source_table_id,source_record_id,customer_id,business_line,match_method,match_status,match_message) "
             f"SELECT p.source_table_id,p.feishu_record_id,c.customer_id,{_q(business_line)},{_q(db_key)},'matched',NULL "
-            f"FROM `{target}` p JOIN ({candidates}) c ON BINARY c.match_key=BINARY p.{key_col} AND c.candidate_count=1 "
+            f"FROM `{target}` p JOIN ({candidates}) c ON {join_key} AND c.candidate_count=1 "
             "ON DUPLICATE KEY UPDATE customer_id=VALUES(customer_id),match_method=VALUES(match_method),match_status=VALUES(match_status),match_message=NULL;"
         )
         name = _col(table, "客户名称")
@@ -71,7 +84,7 @@ def _customer_sql(tables):
             f"SELECT p.source_table_id,p.feishu_record_id,c.customer_id,{_q(business_line)},'created',"
             f"IF(IFNULL(k.candidate_count,0)>1,'needs_review','created'),IF(IFNULL(k.candidate_count,0)>1,'multiple existing customers matched source key',NULL) "
             f"FROM `{target}` p JOIN app_customer c ON BINARY c.customer_no=BINARY CONCAT('FS-',p.feishu_record_id) "
-            f"LEFT JOIN ({candidates}) k ON BINARY k.match_key=BINARY p.{key_col} "
+            f"LEFT JOIN ({candidates}) k ON {review_key} "
             "ON DUPLICATE KEY UPDATE customer_id=VALUES(customer_id),match_status=VALUES(match_status),match_message=VALUES(match_message);"
         )
         m.append(
@@ -83,6 +96,7 @@ def _customer_sql(tables):
             "SET r.merge_status='merged',r.target_table='app_customer',r.target_id=p.canonical_id,r.merge_message=p.canonical_message "
             f"WHERE r.source_table_id={_q(source_id)};"
         )
+    m.append("DROP TEMPORARY TABLE IF EXISTS tmp_feishu_customer_match;")
     return d, m
 
 

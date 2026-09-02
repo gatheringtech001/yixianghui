@@ -42,6 +42,7 @@ class StructuredSqlTest(unittest.TestCase):
         for table in ("app_customer", "app_goods_order", "app_customer_income", "app_activity", "app_consultant"):
             self.assertIn(table, self.sql)
         self.assertIn("app_customer_feishu_source", self.sql)
+        self.assertIn("tmp_feishu_customer_match", self.sql)
         self.assertIn("canonical_status", self.sql)
 
 
