@@ -41,16 +41,20 @@
     </select>
 
     <select id="selectSettlements" resultType="java.util.LinkedHashMap">
-        select concat('order:', o.order_id) sourceRecordId, 'travel' businessLine,
-               coalesce(o.feishu_order_no, o.order_no) code, o.contact_name customerName,
-               coalesce(o.travel_base_name, g.goods_name) productName,
+        select concat('order:', o.order_id) collate utf8mb4_general_ci sourceRecordId,
+               'travel' collate utf8mb4_general_ci businessLine,
+               coalesce(o.feishu_order_no, o.order_no) collate utf8mb4_general_ci code,
+               o.contact_name collate utf8mb4_general_ci customerName,
+               coalesce(o.travel_base_name, g.goods_name) collate utf8mb4_general_ci productName,
                case o.travel_status when '0' then '待确认' when '1' then '已确认' when '2' then '已取消'
                     when '3' then '已入住' when '4' then '已离店' when '5' then '已结算'
-                    when '6' then '退款中' when '7' then '已退款' else o.status end status,
-               o.channel channel, case when o.is_cash is null then null when o.is_cash = 1 then true else false end settled,
+                    when '6' then '退款中' when '7' then '已退款' else o.status end
+                    collate utf8mb4_general_ci status,
+               o.channel collate utf8mb4_general_ci channel,
+               case when o.is_cash is null then null when o.is_cash = 1 then true else false end settled,
                coalesce(o.pay_money, o.money_payable) amount, null profit,
-               date_format(o.check_in_date, '%Y-%m-%d') checkInDate,
-               date_format(o.check_out_date, '%Y-%m-%d') checkOutDate
+               date_format(o.check_in_date, '%Y-%m-%d') collate utf8mb4_general_ci checkInDate,
+               date_format(o.check_out_date, '%Y-%m-%d') collate utf8mb4_general_ci checkOutDate
         from app_goods_order o left join app_goods g on g.goods_id = o.goods_id
         where (g.goods_type in ('hotel', 'travel') or o.travel_status is not null)
           and (#{admin} = true or exists (
@@ -58,13 +62,17 @@
               where i.user_id = #{actorUserId} and i.new_user_id = o.user_id and i.status = '1'
           ))
         union all
-        select concat('income:', i.income_id) sourceRecordId, 'eldercare' businessLine,
-               i.income_no code, null customerName, i.product_name productName,
-               case when i.settlement = 1 then '已结算' else '待结算' end status,
+        select concat('income:', i.income_id) collate utf8mb4_general_ci sourceRecordId,
+               'eldercare' collate utf8mb4_general_ci businessLine,
+               i.income_no collate utf8mb4_general_ci code, null customerName,
+               i.product_name collate utf8mb4_general_ci productName,
+               case when i.settlement = 1 then '已结算' else '待结算' end
+                    collate utf8mb4_general_ci status,
                null channel, case when i.settlement is null then null when i.settlement = 1 then true else false end settled,
                i.purchase_amount amount,
                case when #{admin} = true then i.company_income else i.consultant_income end profit,
-               date_format(i.trade_date, '%Y-%m-%d') checkInDate, null checkOutDate
+               date_format(i.trade_date, '%Y-%m-%d') collate utf8mb4_general_ci checkInDate,
+               null checkOutDate
         from app_customer_income i
         where #{admin} = true or (#{consultantId} is not null and i.consultant_id = #{consultantId})
         order by sourceRecordId desc

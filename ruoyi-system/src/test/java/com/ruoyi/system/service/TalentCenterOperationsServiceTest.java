@@ -1,5 +1,7 @@
 package com.ruoyi.system.service;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
@@ -15,7 +17,9 @@ import com.ruoyi.system.domain.talent.TalentCenterOperationUpdateRequest;
 import com.ruoyi.system.mapper.TalentCenterOperationsMapper;
 import com.ruoyi.system.mapper.TalentCenterResourceMapper;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -126,6 +130,23 @@ class TalentCenterOperationsServiceTest
 
         assertEquals(404, error.getHttpStatus());
         verify(mapper).selectConsultantId(1L);
+    }
+
+    @Test
+    void settlementUnionNormalizesHistoricalTextCollations() throws Exception
+    {
+        try (InputStream stream = getClass().getResourceAsStream(
+                "/mapper/system/TalentCenterOperationsMapper.xml"))
+        {
+            assertNotNull(stream);
+            String mapperXml = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+            assertTrue(mapperXml.contains(
+                    "coalesce(o.feishu_order_no, o.order_no) collate utf8mb4_general_ci code"));
+            assertTrue(mapperXml.contains(
+                    "coalesce(o.travel_base_name, g.goods_name) collate utf8mb4_general_ci productName"));
+            assertTrue(mapperXml.contains("i.income_no collate utf8mb4_general_ci code"));
+            assertTrue(mapperXml.contains("i.product_name collate utf8mb4_general_ci productName"));
+        }
     }
 
     private void bind(String actorId, Long userId, Set<String> permissions)
