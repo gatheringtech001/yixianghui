@@ -28,4 +28,4 @@ CREATE TABLE app_distribution_visit (
     PRIMARY KEY (visit_id),
     KEY idx_distribution_visit_channel_time (channel_code, create_time),
     KEY idx_distribution_visit_user_time (user_id, create_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='渠道访问记录';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='渠道访问记录';
