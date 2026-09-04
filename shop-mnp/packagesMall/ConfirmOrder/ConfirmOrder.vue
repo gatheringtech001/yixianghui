@@ -32,7 +32,7 @@
 			<view class="goods-list">
 				<view class="list">
 					<view class="thumb">
-						<image :src="host + goodsDetail.goodsCover" mode=""></image>
+						<image :src="mediaUrl(goodsDetail.goodsCover)" mode=""></image>
 					</view>
 					<view class="item">
 						<view class="title">
@@ -185,7 +185,8 @@
 	import {
 		getAddressList,
 		getAddressInfo,
-		createOrder
+		createOrder,
+		deleteCart
 	} from '@/api/member/index'
 	export default {
 		components: {
@@ -211,6 +212,7 @@
 				calendarEndDate: '', // 日期组件结束日期
 				fixedEndDay: 0, // 固定结束天数
 				skuDataTitle: '', // sku标题
+				cartId: null,
 			};
 		},
 		onLoad(option) {
@@ -221,6 +223,8 @@
 			} */
 			this.skuDataId = ''
 			this.skuDataTitle = ''
+			this.count = Math.max(1, Number(option.count) || 1)
+			this.cartId = option.cartId ? Number(option.cartId) : null
 			this.getGoodsDetail(option.id)
 		},
 		onPageScroll(e) {
@@ -230,6 +234,10 @@
 			this.getAddress()
 		},
 		methods: {
+			mediaUrl(path) {
+				if (!path) return ''
+				return /^https?:\/\//.test(path) ? path : this.host + path
+			},
 			async getAddress() {
 				let {
 					rows
@@ -286,6 +294,10 @@
 			 */
 			onSubmit() {
 				this.$u.throttle(() => {
+					if (this.goodsDetail.goodsType === 'online' && !this.address) {
+						uni.showToast({ icon: 'none', title: '请先选择收货地址' })
+						return
+					}
 					let params = {
 						addressId: this.goodsDetail.goodsType == 'online' ? this.address.addressId : '0',
 						goodsCount: this.count,
@@ -295,7 +307,14 @@
 						checkOutDate: this.checkOutDate,
 						skuDataId: this.skuDataId // SKU数据主键
 					}
-					createOrder(params).then(res => {
+					createOrder(params).then(async res => {
+						if (this.cartId) {
+							try {
+								await deleteCart(this.cartId)
+							} catch (error) {
+								console.warn('订单已创建，但购物车清理失败', error)
+							}
+						}
 						uni.showToast({
 							icon: 'none',
 							title: '订单创建成功！'

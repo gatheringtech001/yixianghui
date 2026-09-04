@@ -101,6 +101,20 @@ class AppGoodsOrderServiceTravelStatusTest
         assertEquals(TravelOrderStatusPolicy.CANCELLED, update.getValue().getTravelStatus());
     }
 
+    @Test
+    void releasesReservedStockForOnlineGoods()
+    {
+        AppGoodsOrder order = order(10L, 20L, null);
+        order.setGoodsCount(3L);
+        AppGoods goods = new AppGoods();
+        goods.setGoodsType("online");
+        when(goodsMapper.selectAppGoodsByGoodsId(20L)).thenReturn(goods);
+
+        service.releaseEducationStockIfNeeded(order);
+
+        verify(goodsMapper).releaseStock(20L, 3L);
+    }
+
     private AppGoodsOrder order(Long orderId, Long goodsId, String travelStatus)
     {
         AppGoodsOrder order = new AppGoodsOrder();

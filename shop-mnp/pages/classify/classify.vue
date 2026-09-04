@@ -40,6 +40,14 @@
 				<image class="switcher-icon" src="/static/navigation-icons/service-education.png" mode="aspectFit" />
 				<text>芳华学院</text>
 			</view>
+			<view
+				class="switcher-item"
+				:class="{ active: isYunnanGoodsTab }"
+				@click="switchToYunnanGoods"
+			>
+				<image class="switcher-icon" src="/static/navigation-icons/nav-service.png" mode="aspectFit" />
+				<text>云南好物</text>
+			</view>
 		</view>
 
 		<view class="page_body_view">
@@ -72,7 +80,7 @@
 						<text class="hero-desc">每门课程每周一次，一学期共10次课。线下授课，小班授课（≤18人）。招满10人开班，2026年9月开课。报名时间为2026年06月23日起至课程开课。</text>
 					</view>
 					<view class="stay-card" v-for="(item, index) in goodsList" :key="index" @click="goodsFn(item)">
-						<image :src="host + item.image" mode="aspectFill" />
+						<image :src="mediaUrl(item.image)" mode="aspectFill" />
 						<view class="listing-body">
 							<view class="card-title">{{ item.goodsName }}</view>
 							<view class="meta" v-if="item.summary">{{ item.summary }}</view>
@@ -94,7 +102,7 @@
 						<text class="goods_empty_text">{{ emptyListText }}</text>
 					</view>
 					<view class="stay-card travel-card" v-for="(item, index) in goodsList" :key="index" @click="goodsFn(item)">
-						<image :src="host + item.image" mode="aspectFill" />
+						<image :src="mediaUrl(item.image)" mode="aspectFill" />
 						<view class="listing-body">
 							<view class="card-title">{{ item.goodsName }}</view>
 							<view class="meta" v-if="item.listingSummary">{{ item.listingSummary }}</view>
@@ -219,6 +227,10 @@
 				const item = this.currentNavbarItem
 				return !!(item && item.linkType === 'activity')
 			},
+			isYunnanGoodsTab() {
+				const item = this.currentNavbarItem
+				return !!(item && String(item.categoryName || '').trim() === '云南好物')
+			},
 			isListEmpty() {
 				return this.isActivityTab ? this.activityList.length === 0 : this.goodsList.length === 0
 			},
@@ -289,6 +301,17 @@
 				this.loadBrandLogo()
 			}
 			this.syncNavbarListFromCache()
+			const requestedCategoryName = uni.getStorageSync('currentClsName')
+			if (requestedCategoryName) {
+				uni.removeStorageSync('currentClsName')
+				const requested = this.navbarList.find(item => (
+					String(item.categoryName || '').trim() === String(requestedCategoryName).trim()
+				))
+				if (requested) {
+					this.applyNavbarItem(requested)
+					return
+				}
+			}
 			this.syncSiteDisplay()
 			this.$nextTick(() => {
 				this.setBodyScrollHeight()
@@ -365,6 +388,10 @@
 			}
 		},
 		methods: {
+			mediaUrl(path) {
+				if (!path) return ''
+				return /^https?:\/\//.test(path) ? path : this.host + path
+			},
 			getShareConfig() {
 				const item = this.currentNavbarItem
 				const displayName = this.isEducationTab ? '芳华学院' : (item && item.categoryName)
@@ -503,6 +530,11 @@
 						icon: 'none'
 					})
 				})
+			},
+			switchToYunnanGoods() {
+				if (this.isYunnanGoodsTab) return
+				const item = this.navbarList.find(v => String(v.categoryName || '').trim() === '云南好物')
+				if (item) this.applyNavbarItem(item)
 			},
 			async syncSiteDisplay() {
 				let site = uni.getStorageSync('site')

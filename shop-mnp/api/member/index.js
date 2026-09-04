@@ -100,6 +100,23 @@ export function getMyCouponList(params) {
 export function createOrder(data) {
 	return request(`${uri}add_goods_order`, 'POST', data)
 }
+
+// 购物车
+export function getCartList(params = {}) {
+	return request(`${uri}cart/list`, 'GET', params)
+}
+export function addCart(data) {
+	return request(`${uri}cart/add`, 'POST', data)
+}
+export function updateCart(data) {
+	return request(`${uri}cart/edit`, 'POST', data)
+}
+export function deleteCart(cartId) {
+	return request(`${uri}cart/delete?cartId=${cartId}`, 'POST')
+}
+export function clearCart() {
+	return request(`${uri}cart/clear`, 'POST')
+}
 // 获取商品订单列表
 export function getOrderList(params) {
 	return request(`${uri}get_goods_order_list`, 'GET', params)

@@ -165,13 +165,6 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     {
         AppGoods goods = order.getGoodsList().get(0);
         validateEducationOrder(order, goods);
-        if ("education".equals(goods.getGoodsType())) {
-            long reserveCount = order.getGoodsCount() != null ? order.getGoodsCount() : 1L;
-            int reserved = appGoodsMapper.reserveStock(goods.getGoodsId(), reserveCount);
-            if (reserved <= 0) {
-                throw new ServiceException("报名名额已满");
-            }
-        }
 
         order.setCreateTime(DateUtils.getNowDate());
         if (order.getStatus() == null || order.getStatus().isEmpty()) {
@@ -312,6 +305,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         /*order.setMoneyPayable(order.getGoodsList().get(0).getVipPrice());
         order.setPayMoney(order.getGoodsList().get(0).getVipPrice());*/
         AppGoodsCouponGot usedCoupon = applyCoupon(order, goods);
+        reserveStockIfNeeded(order, goods);
         int rs = appGoodsOrderMapper.insertAppGoodsOrder(order);
         if (rs > 0) {
             order.setOrderNo("20" + DateUtils.dateTimeNow() + order.getGoodsId());
@@ -361,6 +355,17 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             }
         }
         return order;
+    }
+
+    private void reserveStockIfNeeded(AppGoodsOrder order, AppGoods goods) {
+        if (!("education".equals(goods.getGoodsType()) || "online".equals(goods.getGoodsType()))) {
+            return;
+        }
+        long reserveCount = order.getGoodsCount() != null ? order.getGoodsCount() : 1L;
+        if (appGoodsMapper.reserveStock(goods.getGoodsId(), reserveCount) <= 0) {
+            throw new ServiceException("education".equals(goods.getGoodsType())
+                    ? "报名名额已满" : "商品库存不足");
+        }
     }
 
     private AppGoodsCouponGot applyCoupon(AppGoodsOrder order, AppGoods goods) {
@@ -1783,13 +1788,14 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         }
         try {
             AppGoods goods = appGoodsMapper.selectAppGoodsByGoodsId(order.getGoodsId());
-            if (goods == null || !"education".equals(goods.getGoodsType())) {
+            if (goods == null || !("education".equals(goods.getGoodsType())
+                    || "online".equals(goods.getGoodsType()))) {
                 return;
             }
             long count = order.getGoodsCount() != null ? order.getGoodsCount() : 1L;
             appGoodsMapper.releaseStock(order.getGoodsId(), count);
         } catch (Exception ex) {
-            log.error("释放教育课程名额失败 orderId={}, goodsId={}", order.getOrderId(), order.getGoodsId(), ex);
+            log.error("释放预占库存失败 orderId={}, goodsId={}", order.getOrderId(), order.getGoodsId(), ex);
         }
     }
 

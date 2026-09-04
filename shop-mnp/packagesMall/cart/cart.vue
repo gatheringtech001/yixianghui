@@ -1,246 +1,127 @@
 <template>
-	<view class="page">
-		<view class="head">
-			<view class="edit" @click="isEdit = !isEdit">
-				<text>{{isEdit?'完成':'编辑'}}</text>
-			</view>
+	<view class="cart-page">
+		<view class="cart-head">
+			<text class="title">购物车</text>
+			<text v-if="items.length" class="clear" @click="confirmClear">清空</text>
 		</view>
-		<!-- 购物车列表 -->
-    <mescroll-body ref="mescrollRef"
-                   @down="downCallback"
-                   @up="upCallback"
-                   :down="downOption"
-                   :up="upOption"
-                   :top="0">
-		<view class="cart-list">
-			<view class="list">
-				<view class="check">
-					<text class="iconfont icon-checked"></text>
+		<view v-if="loading" class="state">加载中...</view>
+		<view v-else-if="!items.length" class="state empty">
+			<text>购物车还是空的</text>
+			<button @click="goShopping">去逛云南好物</button>
+		</view>
+		<view v-else class="cart-list">
+			<view v-for="item in items" :key="item.cartId" class="cart-item" :class="{ disabled: !isAvailable(item) }">
+				<view class="selector" @click="selectItem(item)">
+					<view class="radio" :class="{ checked: selectedId === item.cartId }"></view>
 				</view>
-				<view class="goods">
-					<view class="thumb">
-						<image src="/static/img/goods_03.png" mode=""></image>
-					</view>
-					<view class="item">
-						<view class="title">
-							<text class="two-omit">aa</text>
-						</view>
-						<view class="attribute">
-							<view class="attr">
-								<text>cc</text>
-								<text class="more"></text>
-							</view>
-						</view>
-						<view class="price-num">
-							<view class="price">
-								<text class="min">￥</text>
-								<text class="max">89.00</text>
-							</view>
-							<view class="num">
-								<view class="add">
-									<text class="iconfont icon-jian"></text>
-								</view>
-								<view class="number">
-									<text>2</text>
-								</view>
-								<view class="add">
-									<text class="iconfont icon-jia"></text>
-								</view>
-							</view>
+				<image class="cover" :src="mediaUrl(item.goodsInfo && item.goodsInfo.goodsCover)" mode="aspectFill" @click="openGoods(item)" />
+				<view class="body">
+					<text class="name" @click="openGoods(item)">{{ item.goodsInfo ? item.goodsInfo.goodsName : '商品已失效' }}</text>
+					<text v-if="item.dataValues" class="spec">{{ item.dataValues }}</text>
+					<text v-if="!isAvailable(item)" class="unavailable">商品已下架或库存不足</text>
+					<view class="row">
+						<text class="price">￥{{ displayPrice(item) }}</text>
+						<view class="counter">
+							<button @click="changeCount(item, -1)">−</button>
+							<text>{{ item.goodsCount }}</text>
+							<button @click="changeCount(item, 1)">＋</button>
 						</view>
 					</view>
-				</view>
-			</view>
-			<view class="list" v-for="(item,index) in 1" :key="index">
-				<view class="check">
-					<text class="iconfont icon-check"></text>
-				</view>
-				<view class="goods">
-					<view class="thumb">
-						<image :src="'/static/img/goods_02.png'" mode=""></image>
-					</view>
-					<view class="item">
-						<view class="title">
-							<text class="two-omit">aa</text>
-						</view>
-						<view class="attribute">
-							<view class="attr">
-								<text>bb</text>
-								<text class="more"></text>
-							</view>
-						</view>
-						<view class="price-num">
-							<view class="price">
-								<text class="min">￥</text>
-								<text class="max">89.00</text>
-							</view>
-							<view class="num">
-								<view class="add">
-									<text class="iconfont icon-jian"></text>
-								</view>
-								<view class="number">
-									<text>2</text>
-								</view>
-								<view class="add">
-									<text class="iconfont icon-jia"></text>
-								</view>
-							</view>
-						</view>
-					</view>
+					<text class="delete" @click="removeItem(item)">删除</text>
 				</view>
 			</view>
 		</view>
-    <!-- 购物车失效商品列表 -->
-    <view class="lose-efficacy-list">
-      <view class="lose-efficacy-title">
-        <view class="title">
-          <text>失效商品1件</text>
-        </view>
-        <view class="empty">
-          <text>清空失效商品</text>
-        </view>
-      </view>
-      <view class="list" v-for="(item,index) in 1" :key="index">
-        <view class="tag">
-          <text>失效</text>
-        </view>
-        <view class="goods" @click="onSkip('goods')">
-          <view class="pictrue">
-            <image :src="'/static/img/goods_01.png'" mode=""></image>
-          </view>
-          <view class="item">
-            <view class="title">
-              <text class="two-omit">aa</text>
-            </view>
-            <view class="explain">
-              <text>商品已不能购买，请联系客服进行沟通</text>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
-    <!-- 为你推荐 -->
-    <view class="recommend-info">
-      <view class="recommend-title">
-        <view class="title">
-          <image src="/static/wntj_title.png" mode=""></image>
-        </view>
-      </view>
-      <view class="goods-list">
-        <view class="list" v-for="(item,index) in goodsList" @click="onSkip('goods')" :key="index">
-          <view class="pictrue">
-            <image :src="item.img" mode="heightFix"></image>
-          </view>
-          <view class="title-tag">
-            <view class="tag">
-              <text v-if="item.is_goods === 1">特价</text>
-              {{item.name}}
-            </view>
-          </view>
-          <view class="price-info">
-            <view class="user-price">
-              <text class="min">￥</text>
-              <text class="max">{{item.price}}</text>
-            </view>
-            <view class="vip-price">
-              <image src="/static/vip_ico.png"></image>
-              <text>￥{{item.vip_price}}</text>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
-		<!-- 结算 -->
-		<view class="close-account">
-			<view class="check-total">
-				<view class="check">
-					<text class="iconfont icon-check"></text>
-					<text class="all">全选</text>
-				</view>
-				<view class="total">
-					<text>合计：</text>
-					<text class="price">￥178.00</text>
-				</view>
+		<view v-if="items.length" class="footer">
+			<view>
+				<text class="hint">每次结算 1 件商品</text>
+				<text class="total">合计 ￥{{ selectedTotal }}</text>
 			</view>
-			<view class="account">
-				<view class="btn-calculate" v-if="!isEdit">
-					<text>去结算(1)</text>
-				</view>
-				<view class="btn-del" v-else>
-					<text class="attention">移入关注</text>
-					<text class="del">删除</text>
-				</view>
-			</view>
+			<button :disabled="!selectedItem" @click="checkout">去结算</button>
 		</view>
-    </mescroll-body>
 	</view>
 </template>
 
 <script>
-	// 引入mescroll-mixins.js
-	import MescrollMixin from "@/components/mescroll-uni/mescroll-mixins.js";
+	import { clearCart, deleteCart, getCartList, updateCart } from '@/api/member/index'
+
 	export default {
-		mixins: [MescrollMixin], // 使用mixin
 		data() {
-			return {
-        mescroll: null, // mescroll实例对象 (此行可删,mixins已默认)
-        // 下拉刷新的配置(可选, 绝大部分情况无需配置)
-        downOption: {},
-        // 上拉加载的配置(可选, 绝大部分情况无需配置)
-        upOption: {
-          use: false,
-          toTop: {
-            src: '',
-          }
-        },
-		isEdit: false,
-        goodsList:[
-				// {
-				// 	id: 1,
-				// 	name: '老年运动休闲鞋，跑步鞋【足力健】',
-				// 	price: '168.00',
-				// 	vip_price: '158.00',
-				// 	img: '/static/img/goods_03.png',
-				// 	is_goods: 1,
-				// },
-			],
-		};
-	},
-	onReady() {
-      uni.hideTabBar()
-	},
-    methods:{
-      /*下拉刷新的回调, 有三种处理方式:*/
-      downCallback(){
-        this.mescroll.endSuccess();
-      },
-      /*上拉加载的回调*/
-      upCallback(page) {
-        setTimeout(() =>{
-          this.mescroll.endByPage(10, 20);
-        },2000)
-      },
-      /**
-       * 跳转点击
-       * @param {String} type 跳转类型
-       */
-      onSkip(type){
-        switch (type){
-          case 'classify':
-            uni.navigateTo({
-              url: '/packagesMall/SearchGoodsList/SearchGoodsList',
-            })
-            break;
-          case 'goods':
-            uni.navigateTo({
-              url: '/packagesMall/GoodsDetails/GoodsDetails',
-              animationType: 'zoom-fade-out',
-              animationDuration: 200
-            })
-            break;
-        }
-      }
-    }
+			return { host: this.$host, items: [], loading: false, selectedId: null }
+		},
+		computed: {
+			selectedItem() {
+				return this.items.find(item => item.cartId === this.selectedId && this.isAvailable(item)) || null
+			},
+			selectedTotal() {
+				if (!this.selectedItem) return '0.00'
+				return (Number(this.displayPrice(this.selectedItem)) * this.selectedItem.goodsCount).toFixed(2)
+			}
+		},
+		onShow() { this.loadCart() },
+		methods: {
+			async loadCart() {
+				this.loading = true
+				try {
+					const result = await getCartList({ pageNum: 1, pageSize: 200 })
+					this.items = result.rows || []
+					if (!this.selectedItem) this.selectedId = null
+				} finally { this.loading = false }
+			},
+			isAvailable(item) {
+				const goods = item && item.goodsInfo
+				return !!goods && goods.status === '1' && goods.goodsType === 'online'
+					&& Number(goods.stock) >= Number(item.goodsCount)
+			},
+			mediaUrl(path) {
+				if (!path) return '/static/image/car.png'
+				return /^https?:\/\//.test(path) ? path : this.host + path
+			},
+			displayPrice(item) {
+				const goods = item.goodsInfo || {}
+				return Number(goods.vipPrice || goods.price || 0).toFixed(2)
+			},
+			selectItem(item) {
+				if (!this.isAvailable(item)) return
+				this.selectedId = this.selectedId === item.cartId ? null : item.cartId
+			},
+			async changeCount(item, delta) {
+				const next = Number(item.goodsCount) + delta
+				if (next < 1) return this.removeItem(item)
+				try {
+					await updateCart({ cartId: item.cartId, goodsCount: next })
+					item.goodsCount = next
+				} catch (error) { this.toast(error.message || '数量修改失败') }
+			},
+			removeItem(item) {
+				uni.showModal({ title: '删除商品', content: '确认从购物车移除？', success: async result => {
+					if (!result.confirm) return
+					await deleteCart(item.cartId)
+					this.items = this.items.filter(row => row.cartId !== item.cartId)
+					if (this.selectedId === item.cartId) this.selectedId = null
+				} })
+			},
+			confirmClear() {
+				uni.showModal({ title: '清空购物车', content: '确认移除全部商品？', success: async result => {
+					if (!result.confirm) return
+					await clearCart()
+					this.items = []
+					this.selectedId = null
+				} })
+			},
+			checkout() {
+				if (!this.selectedItem) return
+				const item = this.selectedItem
+				uni.navigateTo({ url: `/packagesMall/ConfirmOrder/ConfirmOrder?id=${item.goodsId}&dataId=${item.dataId || 0}&count=${item.goodsCount}&cartId=${item.cartId}` })
+			},
+			openGoods(item) {
+				if (item.goodsInfo) uni.navigateTo({ url: `/packagesMall/GoodsDetails/GoodsDetails?id=${item.goodsId}` })
+			},
+			goShopping() {
+				uni.setStorageSync('currentClsName', '云南好物')
+				uni.switchTab({ url: '/pages/classify/classify' })
+			},
+			toast(title) { uni.showToast({ title, icon: 'none' }) }
+		}
 	}
 </script>
 

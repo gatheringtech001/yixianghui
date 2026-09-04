@@ -361,8 +361,31 @@ public class AppUserController extends BaseController
     @PostMapping("/cart/add")
     public AjaxResult cart_add(@RequestBody AppGoodsCart appGoodsCart)
     {
-        appGoodsCart.setUserId(getUserId());
-        return toAjax(cartService.insertAppGoodsCart(appGoodsCart));
+        AjaxResult invalid = validateCartRequest(appGoodsCart);
+        if (invalid != null) {
+            return invalid;
+        }
+        Long userId = getUserId();
+        AppGoods goods = goodsService.selectAppGoodsByGoodsId(appGoodsCart.getGoodsId());
+        invalid = validateCartGoods(goods, appGoodsCart.getGoodsCount());
+        if (invalid != null) {
+            return invalid;
+        }
+        appGoodsCart.setUserId(userId);
+        appGoodsCart.setIsSku(appGoodsCart.getIsSku() == null ? 0L : appGoodsCart.getIsSku());
+        appGoodsCart.setDataId(appGoodsCart.getDataId() == null ? 0L : appGoodsCart.getDataId());
+        appGoodsCart.setStatus("1");
+        AppGoodsCart existing = findCartItem(appGoodsCart);
+        if (existing == null) {
+            return toAjax(cartService.insertAppGoodsCart(appGoodsCart));
+        }
+        int nextCount = existing.getGoodsCount() + appGoodsCart.getGoodsCount();
+        invalid = validateCartGoods(goods, nextCount);
+        if (invalid != null) {
+            return invalid;
+        }
+        existing.setGoodsCount(nextCount);
+        return toAjax(cartService.updateAppGoodsCart(existing));
     }
 
     /**
@@ -373,8 +396,22 @@ public class AppUserController extends BaseController
     @PostMapping("/cart/edit")
     public AjaxResult cart_edit(@RequestBody AppGoodsCart appGoodsCart)
     {
-        // todo 添加条件userId
-        return toAjax(cartService.updateAppGoodsCart(appGoodsCart));
+        if (appGoodsCart == null || appGoodsCart.getCartId() == null
+                || appGoodsCart.getGoodsCount() == null || appGoodsCart.getGoodsCount() < 1) {
+            return error("购物车数量无效");
+        }
+        AppGoodsCart stored = ownedCart(appGoodsCart.getCartId());
+        if (stored == null) {
+            return error("购物车商品不存在");
+        }
+        AjaxResult invalid = validateCartGoods(
+                goodsService.selectAppGoodsByGoodsId(stored.getGoodsId()),
+                appGoodsCart.getGoodsCount());
+        if (invalid != null) {
+            return invalid;
+        }
+        stored.setGoodsCount(appGoodsCart.getGoodsCount());
+        return toAjax(cartService.updateAppGoodsCart(stored));
     }
 
     /**
@@ -385,8 +422,50 @@ public class AppUserController extends BaseController
     @PostMapping("/cart/delete")
     public AjaxResult cart_remove(@RequestParam("cartId") Long cartId)
     {
-        // todo 添加条件userId
+        if (ownedCart(cartId) == null) {
+            return error("购物车商品不存在");
+        }
         return toAjax(cartService.deleteAppGoodsCartByCartId(cartId));
+    }
+
+    private AjaxResult validateCartRequest(AppGoodsCart cart)
+    {
+        if (cart == null || cart.getGoodsId() == null
+                || cart.getGoodsCount() == null || cart.getGoodsCount() < 1) {
+            return error("购物车参数无效");
+        }
+        return null;
+    }
+
+    private AjaxResult validateCartGoods(AppGoods goods, int count)
+    {
+        if (goods == null || !"1".equals(goods.getStatus()) || !"online".equals(goods.getGoodsType())) {
+            return error("商品无效或已下架");
+        }
+        if (goods.getStock() == null || goods.getStock() < count) {
+            return error("商品库存不足");
+        }
+        return null;
+    }
+
+    private AppGoodsCart ownedCart(Long cartId)
+    {
+        if (cartId == null) {
+            return null;
+        }
+        AppGoodsCart cart = cartService.selectAppGoodsCartByCartId(cartId);
+        return cart != null && getUserId().equals(cart.getUserId()) ? cart : null;
+    }
+
+    private AppGoodsCart findCartItem(AppGoodsCart candidate)
+    {
+        AppGoodsCart query = new AppGoodsCart();
+        query.setUserId(candidate.getUserId());
+        query.setGoodsId(candidate.getGoodsId());
+        query.setIsSku(candidate.getIsSku());
+        query.setDataId(candidate.getDataId());
+        List<AppGoodsCart> matches = cartService.selectAppGoodsCartList(query);
+        return matches == null || matches.isEmpty() ? null : matches.get(0);
     }
 
     /**
@@ -485,6 +564,17 @@ public class AppUserController extends BaseController
             AppGoods goods = goodsService.selectAppGoodsByGoodsId(appGoodsOrder.getGoodsId());
             if (goods == null || goods.getStatus() == null || !goods.getStatus().equals("1")) {
                 return AjaxResult.error("商品无效或已下架");
+            }
+            if ("online".equals(goods.getGoodsType())) {
+                if (appGoodsOrder.getGoodsCount() == null || appGoodsOrder.getGoodsCount() < 1) {
+                    return AjaxResult.error("商品数量无效");
+                }
+                AppUserAddress address = appGoodsOrder.getAddressId() == null ? null
+                        : userAddressService.selectAppUserAddressByAddressId(appGoodsOrder.getAddressId());
+                if (address == null || address.getUserId() == null
+                        || !address.getUserId().equals(getUserId())) {
+                    return AjaxResult.error("收货地址无效");
+                }
             }
             if ("hotel".equals(goods.getGoodsType())) {
                 if (appGoodsOrder.getCheckInDate() == null || appGoodsOrder.getCheckOutDate() == null) {

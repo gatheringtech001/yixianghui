@@ -209,7 +209,6 @@ public class AppIndexController extends BaseController {
     @GetMapping(value = "/get_goods_list")
     public AjaxResult goodsList(AppGoods appGoods)
     {
-        startPage();
         if (null!=appGoods && appGoods.getDeptId() == null) {
             appGoods.setDeptId(100L);
         }else{
@@ -230,7 +229,6 @@ public class AppIndexController extends BaseController {
     @PostMapping(value = "/queryGoodsList")
     public AjaxResult queryGoodsList(@RequestBody AppGoods appGoods)
     {
-        startPage();
         if (null!=appGoods && appGoods.getDeptId() == null) {
             appGoods.setDeptId(100L);
         }else{

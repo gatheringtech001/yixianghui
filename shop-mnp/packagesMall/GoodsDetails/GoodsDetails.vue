@@ -22,7 +22,7 @@
 				<swiper class="screen-swiper round-dot" indicator-dots="true" circular="true" autoplay="true" interval="5000"
 					duration="500">
 					<swiper-item v-for="(item, index) in goodsDetail.goodsImages" :key="index">
-						<image :src="host + item" mode="aspectFill"></image>
+						<image :src="mediaUrl(item)" mode="aspectFill"></image>
 					</swiper-item>
 				</swiper>
 			</view>
@@ -145,13 +145,23 @@
 					<text class="iconfont icon-kefu"></text>
 					<text>联系客服</text>
 				</view>
+				<view class="list" @click="openCart">
+					<text class="iconfont icon-cart"></text>
+					<text>购物车</text>
+				</view>
 			</view>
 			<view class="footer-buy">
 				<view v-if="goodsDetail.goodsType == 'hotel'" class="buy-at" @tap="scrollToSectionFn('skulist')">
 					<text>查看房源</text>
 				</view>
+				<view v-else-if="goodsDetail.goodsType == 'online'" class="cart-add" @click="$u.throttle(addToCart, 500)">
+					<text>加入购物车</text>
+				</view>
 				<view v-else class="buy-at" @click="$u.throttle(buyNow, 500)">
 					<text>立即订购</text>
+				</view>
+				<view v-if="goodsDetail.goodsType == 'online'" class="buy-at compact" @click="$u.throttle(buyNow, 500)">
+					<text>立即购买</text>
 				</view>
 			</view>
 		</view>
@@ -207,6 +217,7 @@
 		getGoodsInfo,
 		getGoodsSkuInfo
 	} from '@/api/shop/index'
+	import { addCart } from '@/api/member/index'
 	import { prepareRichTextHtml } from '@/utils/richText'
 	import {
 		goodsCollect,
@@ -273,6 +284,31 @@
 			this.PageScrollTop = e.scrollTop
 		},
 		methods: {
+			mediaUrl(path) {
+				if (!path) return ''
+				return /^https?:\/\//.test(path) ? path : this.host + path
+			},
+			requireLogin(action) {
+				const userInfo = uni.getStorageSync('userInfo')
+				if (userInfo) return true
+				uni.showToast({ icon: 'none', title: `${action}请先登录~` })
+				setTimeout(() => {
+					uni.removeStorageSync('token')
+					uni.removeStorageSync('userInfo')
+					uni.navigateTo({ url: '/packagesPublic/login/login' })
+				}, 1200)
+				return false
+			},
+			openCart() {
+				if (!this.requireLogin('查看购物车')) return
+				uni.navigateTo({ url: '/packagesMall/cart/cart' })
+			},
+			addToCart() {
+				if (!this.requireLogin('加入购物车')) return
+				addCart({ goodsId: this.goodsDetail.goodsId, goodsCount: 1, isSku: 0, dataId: 0 })
+					.then(() => uni.showToast({ title: '已加入购物车', icon: 'success' }))
+					.catch(error => uni.showToast({ title: error.message || '加入失败', icon: 'none' }))
+			},
 			getShareConfig() {
 				const cover = this.goodsDetail && this.goodsDetail.goodsCover
 				return {
@@ -421,21 +457,7 @@
 				}
 			},
 			buyNow(dataId) {
-				let userInfo = uni.getStorageSync('userInfo')
-				if (!userInfo || userInfo == '' || userInfo == undefined) {
-					uni.showToast({
-						icon: 'none',
-						title: '订购请先登录~'
-					})
-					setTimeout(() => {
-						uni.removeStorageSync('token')
-						uni.removeStorageSync('userInfo')
-						uni.navigateTo({
-							url: '/packagesPublic/login/login'
-						})
-					}, 2000)
-					return
-				}
+				if (!this.requireLogin('订购')) return
 				if (this.goodsDetail && this.goodsDetail.goodsType === 'hotel') {
 					uni.navigateTo({
 						url: `/packagesMall/GoodsDetails/SojournGoodsDetails?id=${this.goodsDetail.goodsId}`
