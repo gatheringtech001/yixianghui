@@ -91,9 +91,32 @@ public class AppGoodsCoupon extends BaseEntity
     @Excel(name = "领取方式")
     private String getMethod;
 
+    /** 专属渠道码 */
+    private String channelCode;
+
+    /** 来源小程序AppID，为空时不限制来源 */
+    private String sourceAppId;
+
+    /** 进场弹窗标题 */
+    private String popupTitle;
+
+    private Long visitCount;
+    private Long orderCount;
+
     /** 优惠券状态 */
     @Excel(name = "优惠券状态")
     private String status;
+
+    public String getChannelCode() { return channelCode; }
+    public void setChannelCode(String channelCode) { this.channelCode = channelCode; }
+    public String getSourceAppId() { return sourceAppId; }
+    public void setSourceAppId(String sourceAppId) { this.sourceAppId = sourceAppId; }
+    public String getPopupTitle() { return popupTitle; }
+    public void setPopupTitle(String popupTitle) { this.popupTitle = popupTitle; }
+    public Long getVisitCount() { return visitCount; }
+    public void setVisitCount(Long visitCount) { this.visitCount = visitCount; }
+    public Long getOrderCount() { return orderCount; }
+    public void setOrderCount(Long orderCount) { this.orderCount = orderCount; }
 
     public void setCouponId(Long couponId) 
     {

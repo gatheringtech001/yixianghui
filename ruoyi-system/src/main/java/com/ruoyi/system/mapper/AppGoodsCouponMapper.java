@@ -19,6 +19,14 @@ public interface AppGoodsCouponMapper
      */
     public AppGoodsCoupon selectAppGoodsCouponByCouponId(Long couponId);
 
+    public AppGoodsCoupon selectByChannelCodeForUpdate(String channelCode);
+
+    public int incrementGotCount(Long couponId);
+
+    public int incrementUsedCount(Long couponId);
+
+    public int decrementUsedCount(Long couponId);
+
     /**
      * 查询商品优惠券列表
      * 

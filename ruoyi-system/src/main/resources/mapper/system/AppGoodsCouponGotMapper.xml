@@ -11,6 +11,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="orderId"    column="order_id"    />
         <result property="discountPrice"    column="discount_price"    />
         <result property="getMethod"    column="get_method"    />
+        <result property="channelCode" column="channel_code" />
         <result property="isUsed"    column="is_used"    />
         <result property="createTime"    column="create_time"    />
         <result property="updateTime"    column="update_time"    />
@@ -18,7 +19,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectAppGoodsCouponGotVo">
-        select got_id, coupon_id, user_id, order_id, discount_price, get_method, is_used, create_time, update_time, status from app_goods_coupon_got
+        select got_id, coupon_id, user_id, order_id, discount_price, get_method, channel_code, is_used, create_time, update_time, status from app_goods_coupon_got
     </sql>
 
     <select id="selectAppGoodsCouponGotList" parameterType="AppGoodsCouponGot" resultMap="AppGoodsCouponGotResult">
@@ -33,6 +34,42 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="status != null  and status != ''"> and status = #{status}</if>
         </where>
     </select>
+
+    <select id="selectForUpdate" resultMap="AppGoodsCouponGotResult">
+        <include refid="selectAppGoodsCouponGotVo"/> where got_id = #{gotId} for update
+    </select>
+
+    <select id="selectBestChannelCoupon" resultMap="AppGoodsCouponGotResult">
+        select g.got_id, g.coupon_id, g.user_id, g.order_id, g.discount_price,
+               g.get_method, g.channel_code, g.is_used, g.create_time, g.update_time, g.status
+        from app_goods_coupon_got g
+        join app_goods_coupon c on c.coupon_id = g.coupon_id
+        where g.user_id = #{userId} and g.is_used = 0 and g.status = '1'
+          and g.channel_code is not null and c.status = '1'
+          and (c.goods_id = 0 or c.goods_id = #{goodsId})
+          and (c.category_id = 0 or c.category_id = #{categoryId})
+          and (c.min_price is null or c.min_price &lt;= #{payable})
+          and (c.enable_start_time is null or c.enable_start_time &lt;= now())
+          and (c.enable_end_time is null or c.enable_end_time &gt;= now())
+        order by g.create_time desc limit 1 for update
+    </select>
+
+    <select id="selectByUserAndCoupon" resultMap="AppGoodsCouponGotResult">
+        <include refid="selectAppGoodsCouponGotVo"/>
+        where user_id = #{userId} and coupon_id = #{couponId} limit 1
+    </select>
+
+    <update id="markUsed">
+        update app_goods_coupon_got
+        set is_used = 1, status = '0', order_id = #{orderId}, discount_price = #{discountPrice}, update_time = now()
+        where got_id = #{gotId} and is_used = 0 and status = '1'
+    </update>
+
+    <update id="releaseByOrderId">
+        update app_goods_coupon_got
+        set is_used = 0, status = '1', order_id = 0, discount_price = 0, update_time = now()
+        where order_id = #{orderId} and is_used = 1
+    </update>
     
     <select id="selectAppGoodsCouponGotByGotId" parameterType="Long" resultMap="AppGoodsCouponGotResult">
         <include refid="selectAppGoodsCouponGotVo"/>
@@ -47,6 +84,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="orderId != null">order_id,</if>
             <if test="discountPrice != null">discount_price,</if>
             <if test="getMethod != null and getMethod != ''">get_method,</if>
+            <if test="channelCode != null and channelCode != ''">channel_code,</if>
             <if test="isUsed != null">is_used,</if>
             <if test="createTime != null">create_time,</if>
             <if test="updateTime != null">update_time,</if>
@@ -58,6 +96,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="orderId != null">#{orderId},</if>
             <if test="discountPrice != null">#{discountPrice},</if>
             <if test="getMethod != null and getMethod != ''">#{getMethod},</if>
+            <if test="channelCode != null and channelCode != ''">#{channelCode},</if>
             <if test="isUsed != null">#{isUsed},</if>
             <if test="createTime != null">#{createTime},</if>
             <if test="updateTime != null">#{updateTime},</if>

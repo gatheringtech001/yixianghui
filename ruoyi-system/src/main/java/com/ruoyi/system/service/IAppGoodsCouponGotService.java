@@ -2,6 +2,7 @@ package com.ruoyi.system.service;
 
 import java.util.List;
 import com.ruoyi.system.domain.AppGoodsCouponGot;
+import java.util.Map;
 
 /**
  * 优惠券领取记录Service接口
@@ -58,4 +59,10 @@ public interface IAppGoodsCouponGotService
      * @return 结果
      */
     public int deleteAppGoodsCouponGotByGotId(Long gotId);
+
+    public Map<String, Object> getDistributionOffer(Long userId, String channelCode,
+                                                     String sourceAppId, String scene);
+
+    public AppGoodsCouponGot claimDistributionCoupon(Long userId, String channelCode,
+                                                      String sourceAppId);
 }

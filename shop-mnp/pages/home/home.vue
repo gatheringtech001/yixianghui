@@ -181,6 +181,21 @@
 			</view>
 		</u-popup>
 
+		<u-popup v-model="showDistributionCoupon" mode="center" border-radius="20" :closeable="true">
+			<view class="distribution-coupon" v-if="distributionOffer">
+				<view class="distribution-coupon-title">{{ distributionOffer.coupon.popupTitle || '专属优惠券' }}</view>
+				<view class="distribution-coupon-value">
+					<text v-if="distributionOffer.coupon.discountType === '2'">{{ formatCouponDiscount(distributionOffer.coupon.discountPrice) }}折</text>
+					<text v-else>¥{{ distributionOffer.coupon.discountPrice }}</text>
+				</view>
+				<view class="distribution-coupon-name">{{ distributionOffer.coupon.couponName }}</view>
+				<view class="distribution-coupon-limit">满¥{{ distributionOffer.coupon.minPrice }}可用</view>
+				<view class="distribution-coupon-action" @click="claimChannelCoupon">
+					{{ distributionOffer.claimed ? '已领取，去选购' : (claimingCoupon ? '领取中...' : '立即领取') }}
+				</view>
+			</view>
+		</u-popup>
+
 		<!-- tabbar -->
 		<TabBar :tabBarShow="0"></TabBar>
 	</view>
@@ -189,7 +204,12 @@
 <script>
 	import TabBar from '@/components/TabBar/TabBar.vue'
 	import LocationService from '@/utils/location'
-	import { parseInvitePageOptions } from '@/utils/invite'
+	import {
+		parseInvitePageOptions,
+		getDistributionLaunchSource,
+		clearDistributionLaunchSource
+	} from '@/utils/invite'
+	import { getDistributionOffer, claimDistributionCoupon } from '@/api/member/index'
 	import sharePageMixin from '@/utils/sharePageMixin'
 	import {
 		getSite,
@@ -244,7 +264,11 @@
 				refreshHintText: '下拉刷新',
 				scrollViewHeight: 0,
 				brandLogoUrl: '',
-				housekeeperAvatarUrl: ''
+				housekeeperAvatarUrl: '',
+				showDistributionCoupon: false,
+				distributionOffer: null,
+				claimingCoupon: false,
+				distributionOfferChecked: false
 			}
 		},
 		onReady() {
@@ -259,6 +283,7 @@
 			this.getContactAdList()
 		},
 		async onShow() {
+			await this.loadDistributionOffer()
 			let site = uni.getStorageSync('site')
 			if (!site || site == undefined) {
 				await this.getCurrentLocation()
@@ -283,6 +308,41 @@
 			}
 		},
 		methods: {
+			async loadDistributionOffer() {
+				const source = getDistributionLaunchSource()
+				if (!source || !uni.getStorageSync('token') || this.distributionOfferChecked) return
+				this.distributionOfferChecked = true
+				try {
+					const response = await getDistributionOffer(source)
+					this.distributionOffer = response.data
+					this.showDistributionCoupon = true
+				} catch (error) {
+					clearDistributionLaunchSource()
+					console.warn('[distribution] offer unavailable:', error.message)
+				}
+			},
+			formatCouponDiscount(percent) {
+				const value = Number(percent) / 10
+				return Number.isInteger(value) ? String(value) : value.toFixed(1)
+			},
+			async claimChannelCoupon() {
+				if (!this.distributionOffer || this.claimingCoupon) return
+				if (this.distributionOffer.claimed) {
+					this.showDistributionCoupon = false
+					this.goToServiceTab()
+					return
+				}
+				this.claimingCoupon = true
+				try {
+					await claimDistributionCoupon(getDistributionLaunchSource())
+					this.distributionOffer.claimed = true
+					uni.showToast({ title: '领取成功', icon: 'success' })
+				} catch (error) {
+					uni.showToast({ title: error.message || '领取失败', icon: 'none' })
+				} finally {
+					this.claimingCoupon = false
+				}
+			},
 			getShareConfig() {
 				return {
 					title: '逸享荟康养，旅居、活动、芳华学院一站式服务',

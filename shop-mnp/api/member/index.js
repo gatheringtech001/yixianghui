@@ -83,6 +83,14 @@ export function gotCoupon(data) {
 	return request(`system/app_goods_coupon_got`, 'POST', data)
 }
 
+export function getDistributionOffer(params) {
+	return request(`${uri}distribution_offer`, 'GET', params)
+}
+
+export function claimDistributionCoupon(data) {
+	return request(`${uri}claim_distribution_coupon`, 'POST', data)
+}
+
 // 获取我的优惠券
 export function getMyCouponList(params) {
 	return request(`${uri}get_coupon_list`, 'GET', params)

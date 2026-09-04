@@ -235,6 +235,9 @@
           <dict-tag :options="dict.type.coupon_get_method" :value="scope.row.getMethod"/>
         </template>
       </el-table-column>
+      <el-table-column label="渠道码" align="center" prop="channelCode" />
+      <el-table-column label="访问次数" align="center" prop="visitCount" />
+      <el-table-column label="渠道订单" align="center" prop="orderCount" />
       <el-table-column label="优惠券状态" align="center" prop="status">
         <template slot-scope="scope">
           <dict-tag :options="dict.type.enable_status" :value="scope.row.status"/>
@@ -346,6 +349,18 @@
         <el-form-item label="领取方式" prop="getMethod">
           <el-input v-model="form.getMethod" placeholder="请输入领取方式" />
         </el-form-item>
+        <el-form-item label="渠道专属码" prop="channelCode">
+          <el-input v-model="form.channelCode" placeholder="如 partner_2026（留空表示普通券）" />
+        </el-form-item>
+        <el-form-item label="来源小程序AppID" prop="sourceAppId">
+          <el-input v-model="form.sourceAppId" placeholder="限制从该小程序进入；留空不限制" />
+        </el-form-item>
+        <el-form-item label="弹窗标题" prop="popupTitle">
+          <el-input v-model="form.popupTitle" placeholder="如 欢迎领取专属优惠" />
+        </el-form-item>
+        <el-form-item v-if="form.channelCode" label="专属路径">
+          <el-input :value="'/pages/home/home?channelCode=' + form.channelCode" readonly />
+        </el-form-item>
         <el-form-item label="优惠券状态" prop="status">
           <el-radio-group v-model="form.status">
             <el-radio
@@ -411,6 +426,9 @@ export default {
         enableStartTime: null,
         enableEndTime: null,
         getMethod: null,
+        channelCode: null,
+        sourceAppId: null,
+        popupTitle: null,
         status: null
       },
       // 表单参数
@@ -486,6 +504,9 @@ export default {
         enableStartTime: null,
         enableEndTime: null,
         getMethod: null,
+        channelCode: null,
+        sourceAppId: null,
+        popupTitle: null,
         createTime: null,
         updateTime: null,
         status: null

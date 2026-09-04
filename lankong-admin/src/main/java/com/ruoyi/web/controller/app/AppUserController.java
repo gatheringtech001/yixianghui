@@ -431,13 +431,42 @@ public class AppUserController extends BaseController
         startPage();
         AppGoodsCouponGot appGoodsCouponGot = new AppGoodsCouponGot();
         appGoodsCouponGot.setUserId(getUserId());
-        appGoodsCouponGot.setIsUsed(1);
+        appGoodsCouponGot.setIsUsed(0);
         appGoodsCouponGot.setStatus("1");
         List<AppGoodsCouponGot> list = couponGotService.selectAppGoodsCouponGotList(appGoodsCouponGot);
         for (int i = 0; i < list.size(); i++) {
             list.get(i).setCouponInfo(couponService.selectAppGoodsCouponByCouponId(list.get(i).getCouponId()));
         }
+        Date now = new Date();
+        list.removeIf(got -> got.getCouponInfo() == null
+                || !"1".equals(got.getCouponInfo().getStatus())
+                || (got.getCouponInfo().getGoodsId() != null && got.getCouponInfo().getGoodsId() > 0
+                    && !goodsId.equals(String.valueOf(got.getCouponInfo().getGoodsId())))
+                || (got.getCouponInfo().getEnableStartTime() != null
+                    && now.before(got.getCouponInfo().getEnableStartTime()))
+                || (got.getCouponInfo().getEnableEndTime() != null
+                    && now.after(got.getCouponInfo().getEnableEndTime())));
         return getDataTable(list);
+    }
+
+    @ApiOperation("获取渠道优惠")
+    @PreAuthorize("@ss.hasPermi('system:mnp:user')")
+    @GetMapping("/distribution_offer")
+    public AjaxResult distributionOffer(@RequestParam String channelCode,
+                                        @RequestParam(required = false) String sourceAppId,
+                                        @RequestParam(required = false) String scene) {
+        return success(couponGotService.getDistributionOffer(getUserId(), channelCode, sourceAppId, scene));
+    }
+
+    @ApiOperation("领取渠道优惠券")
+    @PreAuthorize("@ss.hasPermi('system:mnp:user')")
+    @PostMapping("/claim_distribution_coupon")
+    public AjaxResult claimDistributionCoupon(@RequestBody Map<String, String> body) {
+        if (body == null) {
+            return error("领取参数无效");
+        }
+        return success(couponGotService.claimDistributionCoupon(getUserId(),
+                body.get("channelCode"), body.get("sourceAppId")));
     }
 
     /**
@@ -1362,6 +1391,7 @@ public class AppUserController extends BaseController
             if (rs > 0) {
                 // 教育课程下单时预占了名额，取消时释放
                 goodsOrderService.releaseEducationStockIfNeeded(goodsOrder);
+                goodsOrderService.releaseCouponIfNeeded(goodsOrder);
                 return AjaxResult.success("取消成功");
             }
             return AjaxResult.error("取消失败");

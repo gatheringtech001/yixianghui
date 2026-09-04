@@ -39,6 +39,9 @@ public class AppGoodsCouponGot extends BaseEntity
     @Excel(name = "领取方式")
     private String getMethod;
 
+    /** 领取渠道 */
+    private String channelCode;
+
     /** 是否已使用 */
     @Excel(name = "是否已使用")
     private Integer isUsed;
@@ -108,6 +111,9 @@ public class AppGoodsCouponGot extends BaseEntity
     {
         return getMethod;
     }
+
+    public String getChannelCode() { return channelCode; }
+    public void setChannelCode(String channelCode) { this.channelCode = channelCode; }
 
     public void setIsUsed(Integer isUsed) 
     {

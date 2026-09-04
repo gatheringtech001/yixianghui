@@ -127,6 +127,8 @@ public interface IAppGoodsOrderService
      */
     void releaseEducationStockIfNeeded(AppGoodsOrder order);
 
+    void releaseCouponIfNeeded(AppGoodsOrder order);
+
     /**
      * 关闭超时未支付商品订单（含教育课释库存）
      * @param expireMinutes 超时分钟数

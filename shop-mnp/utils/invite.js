@@ -27,6 +27,31 @@ export function clearInviteParentUserId() {
 	uni.removeStorageSync('parentUserId')
 }
 
+const DISTRIBUTION_SOURCE_KEY = 'distributionLaunchSource'
+
+export function saveDistributionLaunchSource(options = {}) {
+	const query = options.query || options
+	const referrer = options.referrerInfo || {}
+	const extraData = referrer.extraData || {}
+	const channelCode = query.channelCode || extraData.channelCode
+	if (!channelCode || !/^[A-Za-z0-9_-]{2,64}$/.test(String(channelCode))) return
+	const previous = uni.getStorageSync(DISTRIBUTION_SOURCE_KEY) || {}
+	uni.setStorageSync(DISTRIBUTION_SOURCE_KEY, {
+		channelCode: String(channelCode),
+		sourceAppId: String(referrer.appId || query.sourceAppId
+			|| (previous.channelCode === String(channelCode) ? previous.sourceAppId : '') || ''),
+		scene: String(options.scene || '')
+	})
+}
+
+export function getDistributionLaunchSource() {
+	return uni.getStorageSync(DISTRIBUTION_SOURCE_KEY) || null
+}
+
+export function clearDistributionLaunchSource() {
+	uni.removeStorageSync(DISTRIBUTION_SOURCE_KEY)
+}
+
 export function getCurrentShareUserId() {
 	const userInfo = uni.getStorageSync('userInfo')
 	if (userInfo && userInfo.userId) {
@@ -122,6 +147,7 @@ export function buildInviteScene() {
 
 export function parseLaunchInviteOptions(options) {
 	if (!options) return
+	saveDistributionLaunchSource(options)
 	if (options.scene) {
 		saveInviteParentUserId(options.scene)
 	}

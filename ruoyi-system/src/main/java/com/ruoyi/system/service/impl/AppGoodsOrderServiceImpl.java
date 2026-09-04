@@ -80,6 +80,8 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     @Autowired
     private AppGoodsCouponMapper couponMapper;
     @Autowired
+    private com.ruoyi.system.mapper.AppGoodsCouponGotMapper couponGotMapper;
+    @Autowired
     private IAppUserInfoService userInfoService;
     @Autowired
     private Config wxPayConfigRuntime;
@@ -309,10 +311,18 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         }
         /*order.setMoneyPayable(order.getGoodsList().get(0).getVipPrice());
         order.setPayMoney(order.getGoodsList().get(0).getVipPrice());*/
+        AppGoodsCouponGot usedCoupon = applyCoupon(order, goods);
         int rs = appGoodsOrderMapper.insertAppGoodsOrder(order);
         if (rs > 0) {
             order.setOrderNo("20" + DateUtils.dateTimeNow() + order.getGoodsId());
             appGoodsOrderMapper.updateAppGoodsOrder(order);
+            if (usedCoupon != null) {
+                BigDecimal discount = order.getMoneyDiscount();
+                if (couponGotMapper.markUsed(usedCoupon.getGotId(), order.getOrderId(), discount) != 1) {
+                    throw new ServiceException("优惠券已被使用，请重新提交订单");
+                }
+                couponMapper.incrementUsedCount(usedCoupon.getCouponId());
+            }
             // 订单详情
             AppGoodsOrderDetail orderDetail = new AppGoodsOrderDetail();
             orderDetail.setUserId(order.getUserId());
@@ -351,6 +361,72 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             }
         }
         return order;
+    }
+
+    private AppGoodsCouponGot applyCoupon(AppGoodsOrder order, AppGoods goods) {
+        String raw = StringUtils.trimToEmpty(order.getCouponGotIds());
+        if (raw.isEmpty()) {
+            AppGoodsCouponGot automatic = couponGotMapper.selectBestChannelCoupon(
+                    order.getUserId(), goods.getGoodsId(), goods.getCategoryId(), order.getMoneyPayable());
+            if (automatic == null) {
+                order.setMoneyDiscount(BigDecimal.ZERO);
+                return null;
+            }
+            raw = String.valueOf(automatic.getGotId());
+            order.setCouponGotIds(raw);
+        }
+        if (!raw.matches("\\d+")) {
+            throw new ServiceException("每单只能使用一张优惠券");
+        }
+        AppGoodsCouponGot got = couponGotMapper.selectForUpdate(Long.valueOf(raw));
+        if (got == null || !order.getUserId().equals(got.getUserId())
+                || got.getIsUsed() == null || got.getIsUsed() != 0 || !"1".equals(got.getStatus())) {
+            throw new ServiceException("优惠券不可用");
+        }
+        AppGoodsCoupon coupon = couponMapper.selectAppGoodsCouponByCouponId(got.getCouponId());
+        Date now = new Date();
+        if (coupon == null || !"1".equals(coupon.getStatus())
+                || (coupon.getEnableStartTime() != null && now.before(coupon.getEnableStartTime()))
+                || (coupon.getEnableEndTime() != null && now.after(coupon.getEnableEndTime()))) {
+            throw new ServiceException("优惠券已失效");
+        }
+        if (coupon.getGoodsId() != null && coupon.getGoodsId() > 0
+                && !coupon.getGoodsId().equals(goods.getGoodsId())) {
+            throw new ServiceException("该优惠券不适用于此商品");
+        }
+        if (coupon.getCategoryId() != null && coupon.getCategoryId() > 0
+                && !coupon.getCategoryId().equals(goods.getCategoryId())) {
+            throw new ServiceException("该优惠券不适用于此分类");
+        }
+        BigDecimal payable = order.getMoneyPayable();
+        if (coupon.getMinPrice() != null && payable.compareTo(coupon.getMinPrice()) < 0) {
+            throw new ServiceException("订单金额未达到优惠券使用门槛");
+        }
+        BigDecimal discount;
+        if ("2".equals(coupon.getDiscountType())) {
+            discount = calculatePercentageDiscount(payable, coupon.getDiscountPrice());
+        } else {
+            discount = coupon.getDiscountPrice();
+        }
+        if (discount == null || discount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ServiceException("优惠券优惠金额无效");
+        }
+        discount = discount.min(payable).setScale(2, RoundingMode.HALF_UP);
+        order.setMoneyTotal(payable);
+        order.setMoneyDiscount(discount);
+        order.setMoneyPayable(payable.subtract(discount));
+        order.setPayMoney(order.getMoneyPayable());
+        order.setDistributionChannelCode(got.getChannelCode());
+        return got;
+    }
+
+    static BigDecimal calculatePercentageDiscount(BigDecimal payable, BigDecimal percent) {
+        if (percent == null || percent.compareTo(BigDecimal.ZERO) <= 0
+                || percent.compareTo(new BigDecimal("100")) > 0) {
+            throw new ServiceException("优惠券折扣配置错误");
+        }
+        return payable.multiply(new BigDecimal("100").subtract(percent))
+                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
     }
 
     private void validateEducationOrder(AppGoodsOrder order, AppGoods goods) {
@@ -1754,6 +1830,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             up.setUpdateTime(now);
             if (appGoodsOrderMapper.updateAppGoodsOrder(up) > 0) {
                 releaseEducationStockIfNeeded(latest);
+                releaseCouponIfNeeded(latest);
                 closed++;
             }
         }
@@ -1761,6 +1838,20 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             log.info("超时关闭未支付商品订单 {} 笔，阈值={}分钟", closed, minutes);
         }
         return closed;
+    }
+
+    @Override
+    public void releaseCouponIfNeeded(AppGoodsOrder order) {
+        if (order == null || order.getOrderId() == null
+                || StringUtils.isEmpty(order.getDistributionChannelCode())
+                || !StringUtils.defaultString(order.getCouponGotIds()).matches("\\d+")) {
+            return;
+        }
+        AppGoodsCouponGot got = couponGotMapper.selectAppGoodsCouponGotByGotId(
+                Long.valueOf(order.getCouponGotIds()));
+        if (got != null && couponGotMapper.releaseByOrderId(order.getOrderId()) > 0) {
+            couponMapper.decrementUsedCount(got.getCouponId());
+        }
     }
 
     private void closePayLogByPayNo(String payNo, Date now) {

@@ -23,13 +23,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="enableStartTime"    column="enable_start_time"    />
         <result property="enableEndTime"    column="enable_end_time"    />
         <result property="getMethod"    column="get_method"    />
+        <result property="channelCode" column="channel_code" />
+        <result property="sourceAppId" column="source_app_id" />
+        <result property="popupTitle" column="popup_title" />
+        <result property="visitCount" column="visit_count" />
+        <result property="orderCount" column="order_count" />
         <result property="createTime"    column="create_time"    />
         <result property="updateTime"    column="update_time"    />
         <result property="status"    column="status"    />
     </resultMap>
 
     <sql id="selectAppGoodsCouponVo">
-        select coupon_id, user_id, category_id, goods_id, coupon_name, coupon_content, coupon_type, min_price, discount_type, discount_price, count_per_order, coupon_total, count_per_user, coupon_got_count, coupon_used_count, enable_start_time, enable_end_time, get_method, create_time, update_time, status from app_goods_coupon
+        select c.*,
+          (select count(*) from app_distribution_visit v where v.channel_code = c.channel_code) visit_count,
+          (select count(*) from app_goods_order o where o.distribution_channel_code = c.channel_code) order_count
+        from app_goods_coupon c
     </sql>
 
     <select id="selectAppGoodsCouponList" parameterType="AppGoodsCoupon" resultMap="AppGoodsCouponResult">
@@ -55,6 +63,23 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="status != null  and status != ''"> and status = #{status}</if>
         </where>
     </select>
+
+    <select id="selectByChannelCodeForUpdate" resultMap="AppGoodsCouponResult">
+        select * from app_goods_coupon where channel_code = #{channelCode} for update
+    </select>
+
+    <update id="incrementGotCount">
+        update app_goods_coupon set coupon_got_count = coupon_got_count + 1 where coupon_id = #{couponId}
+    </update>
+
+    <update id="incrementUsedCount">
+        update app_goods_coupon set coupon_used_count = coupon_used_count + 1 where coupon_id = #{couponId}
+    </update>
+
+    <update id="decrementUsedCount">
+        update app_goods_coupon set coupon_used_count = greatest(coupon_used_count - 1, 0)
+        where coupon_id = #{couponId}
+    </update>
     
     <select id="selectAppGoodsCouponByCouponId" parameterType="Long" resultMap="AppGoodsCouponResult">
         <include refid="selectAppGoodsCouponVo"/>
@@ -81,6 +106,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="enableStartTime != null">enable_start_time,</if>
             <if test="enableEndTime != null">enable_end_time,</if>
             <if test="getMethod != null and getMethod != ''">get_method,</if>
+            <if test="channelCode != null and channelCode != ''">channel_code,</if>
+            <if test="sourceAppId != null and sourceAppId != ''">source_app_id,</if>
+            <if test="popupTitle != null and popupTitle != ''">popup_title,</if>
             <if test="createTime != null">create_time,</if>
             <if test="updateTime != null">update_time,</if>
             <if test="status != null">status,</if>
@@ -103,6 +131,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="enableStartTime != null">#{enableStartTime},</if>
             <if test="enableEndTime != null">#{enableEndTime},</if>
             <if test="getMethod != null and getMethod != ''">#{getMethod},</if>
+            <if test="channelCode != null and channelCode != ''">#{channelCode},</if>
+            <if test="sourceAppId != null and sourceAppId != ''">#{sourceAppId},</if>
+            <if test="popupTitle != null and popupTitle != ''">#{popupTitle},</if>
             <if test="createTime != null">#{createTime},</if>
             <if test="updateTime != null">#{updateTime},</if>
             <if test="status != null">#{status},</if>
@@ -129,6 +160,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="enableStartTime != null">enable_start_time = #{enableStartTime},</if>
             <if test="enableEndTime != null">enable_end_time = #{enableEndTime},</if>
             <if test="getMethod != null and getMethod != ''">get_method = #{getMethod},</if>
+            <if test="channelCode != null">channel_code = #{channelCode},</if>
+            <if test="sourceAppId != null">source_app_id = #{sourceAppId},</if>
+            <if test="popupTitle != null">popup_title = #{popupTitle},</if>
             <if test="createTime != null">create_time = #{createTime},</if>
             <if test="updateTime != null">update_time = #{updateTime},</if>
             <if test="status != null">status = #{status},</if>

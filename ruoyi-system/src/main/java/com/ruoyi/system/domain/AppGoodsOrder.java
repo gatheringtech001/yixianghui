@@ -105,6 +105,9 @@ public class AppGoodsOrder extends BaseEntity
     @Excel(name = "使用优惠券的id集合，逗号分割")
     private String couponGotIds;
 
+    /** 分销渠道码 */
+    private String distributionChannelCode;
+
     /** 发货时间 */
     @JsonFormat(pattern = "yyyy-MM-dd")
     @Excel(name = "发货时间", width = 30, dateFormat = "yyyy-MM-dd")
@@ -389,6 +392,11 @@ public class AppGoodsOrder extends BaseEntity
     public String getCouponGotIds() 
     {
         return couponGotIds;
+    }
+
+    public String getDistributionChannelCode() { return distributionChannelCode; }
+    public void setDistributionChannelCode(String distributionChannelCode) {
+        this.distributionChannelCode = distributionChannelCode;
     }
 
     public void setSendTime(Date sendTime) 
