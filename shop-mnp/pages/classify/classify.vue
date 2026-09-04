@@ -45,7 +45,7 @@
 				:class="{ active: isYunnanGoodsTab }"
 				@click="switchToYunnanGoods"
 			>
-				<image class="switcher-icon" src="/static/navigation-icons/nav-service.png" mode="aspectFit" />
+				<image class="switcher-icon" src="/static/navigation-icons/service-yunnan.png" mode="aspectFit" />
 				<text>云南好物</text>
 			</view>
 		</view>

@@ -31,15 +31,27 @@
 				<text>{{ refreshHintText }}</text>
 			</view>
 			<view class="home-scroll-inner">
-				<view class="home-hero" @click="goToServiceTab">
-					<view class="hero-copy">
-						<text class="hero-chip">康养旅居</text>
-						<view class="hero-title">康养旅居精选</view>
-						<view class="hero-desc">精选目的地 · 管家陪同 · 适老友好</view>
-						<view class="hero-btn">查看推荐</view>
-					</view>
-					<image class="hero-image" :src="heroImage" mode="aspectFill" />
-				</view>
+				<swiper
+					v-if="recommendations.length"
+					class="recommendation-swiper"
+					indicator-dots
+					circular
+					autoplay
+					interval="4200"
+					duration="500"
+				>
+					<swiper-item v-for="item in recommendations" :key="item.key">
+						<view class="recommendation-card" @click="openRecommendation(item)">
+							<image class="recommendation-image" :src="mediaUrl(item.image)" mode="aspectFill" />
+							<view class="recommendation-shade"></view>
+							<view class="recommendation-copy">
+								<text class="recommendation-section">{{ item.section }}</text>
+								<view class="recommendation-title">{{ item.title }}</view>
+								<text class="recommendation-action">查看详情</text>
+							</view>
+						</view>
+					</swiper-item>
+				</swiper>
 
 				<view class="housekeeper">
 					<image class="housekeeper-avatar" :src="housekeeperAvatarDisplay" mode="aspectFill" />
@@ -50,29 +62,38 @@
 					<view class="housekeeper-btn" @click.stop="openHousekeeper">添加管家</view>
 				</view>
 
-				<view class="entry-grid">
-					<view class="entry-card" @click="goClassify('全国旅居')">
-						<image class="entry-bg" src="/static/home-design/entry-stay.jpg" mode="aspectFill" />
+				<view class="service-entry-stack">
+					<view class="entry-card travel-entry-card" @click="goClassify('全国旅居')">
+						<image class="entry-bg" src="/static/home-design/entry-stay-wide.jpg" mode="aspectFill" />
 						<view class="entry-copy">
 							<text class="entry-title">全国旅居</text>
-							<text class="entry-desc">旅居好去处</text>
+							<text class="entry-desc">精选目的地 · 管家陪同 · 适老友好</text>
 						</view>
 					</view>
-					<view class="entry-card" @click="goClassify('聚会活动')">
-						<image class="entry-bg" src="/static/home-design/entry-activity.jpg" mode="aspectFill" />
-						<view class="entry-copy">
-							<text class="entry-title">聚会活动</text>
-							<text class="entry-desc">精彩活动汇聚</text>
+					<view class="secondary-entry-grid">
+						<view class="entry-card" @click="goClassify('云南好物')">
+							<image class="entry-icon" src="/static/navigation-icons/service-yunnan.png" mode="aspectFit" />
+							<view class="entry-copy">
+								<text class="entry-title">云南好物</text>
+								<text class="entry-desc">山野风味甄选</text>
+							</view>
+						</view>
+						<view class="entry-card" @click="goClassify('聚会活动')">
+							<image class="entry-bg" src="/static/home-design/entry-activity.jpg" mode="aspectFill" />
+							<view class="entry-copy">
+								<text class="entry-title">聚会活动</text>
+								<text class="entry-desc">精彩活动汇聚</text>
+							</view>
+						</view>
+						<view class="entry-card" @click="goClassify('老年教育')">
+							<image class="entry-bg" src="/static/home-design/entry-education.jpg" mode="aspectFill" />
+							<view class="entry-copy">
+								<text class="entry-title">芳华学院</text>
+								<text class="entry-desc">线下课程报名</text>
+							</view>
+						</view>
 						</view>
 					</view>
-					<view class="entry-card" @click="goClassify('老年教育')">
-						<image class="entry-bg" src="/static/home-design/entry-education.jpg" mode="aspectFill" />
-						<view class="entry-copy">
-							<text class="entry-title">芳华学院</text>
-							<text class="entry-desc">线下课程报名</text>
-						</view>
-					</view>
-				</view>
 
 				<view class="section-head">
 					<text class="section-title">热门城市</text>
@@ -121,17 +142,16 @@
 							<image class="product-cover" :src="host + goods.goodsCover" mode="aspectFill" />
 							<view class="product-body">
 								<view class="product-title">{{ goods.goodsName }}</view>
-								<view class="product-tags" v-if="goods.tags && goods.tags != ''">
+								<view class="product-tags" v-if="visibleGoodsTags(goods.tags).length">
 									<text
 										class="product-tag"
-										v-for="(tag, j) in goods.tags.split(/[\,|，]/).slice(0, 3)"
+										v-for="(tag, j) in visibleGoodsTags(goods.tags).slice(0, 3)"
 										:key="j"
 									>{{ tag }}</text>
 								</view>
 								<view class="product-price-row">
-									<view class="member-price">
-										<text>会员价</text>
-										<text class="price">¥{{ goods.vipPrice || goods.price }}</text>
+									<view class="product-price">
+										<text class="price">¥{{ goods.price }}</text>
 									</view>
 									<view class="product-btn">
 										<text>{{ goods.goodsType == 'online' || goods.goodsType == 'o2o' ? '购买' : '预订' }}</text>
@@ -213,7 +233,6 @@
 	import sharePageMixin from '@/utils/sharePageMixin'
 	import {
 		getSite,
-		getBannerPosList,
 		getBannerList
 	} from '@/api/index'
 	import {
@@ -227,8 +246,10 @@
 	} from '@/api/shop/index'
 	import {
 		buildHotCityCards,
+		isVisibleCatalogGoods,
 		isVisibleTravelGoods
 	} from '@/utils/travelCatalog'
+	import { getActivityList } from '@/api/activity/index'
 	import {
 		CUSTOMER_SERVICE_POSITION_ID,
 		HOUSEKEEPER_ROTATION_KEY,
@@ -243,7 +264,7 @@
 			return {
 				host: this.$host,
 				siteInfo: null,
-				swiperList: [],
+				recommendations: [],
 				hotCardList: [],
 				slideNum: 0,
 				navList: [],
@@ -278,7 +299,6 @@
 		onLoad(options) {
 			parseInvitePageOptions(options)
 			this.loadMnpAdAssets()
-			this.getAdPosList()
 			this.gethotCardList()
 			this.getContactAdList()
 		},
@@ -300,10 +320,7 @@
 				return this.housekeeperAvatarUrl || AD_FALLBACK.HOME_HOUSEKEEPER
 			},
 			heroImage() {
-				if (this.swiperList && this.swiperList.length && this.swiperList[0].adImage) {
-					const img = this.swiperList[0].adImage
-					return img.startsWith('http') ? img : this.host + img
-				}
+				if (this.recommendations.length) return this.mediaUrl(this.recommendations[0].image)
 				return '/static/home-design/hero-banner.jpg'
 			}
 		},
@@ -410,7 +427,6 @@
 				const prevCategoryId = this.currentCategoryId
 				try {
 					await Promise.all([
-						this.getAdPosList(),
 						this.gethotCardList(true),
 						this.getContactAdList()
 					])
@@ -554,24 +570,9 @@
 					url: deptId ? `/packagesPublic/site/index?id=${deptId}` : '/packagesPublic/site/index'
 				})
 			},
-			async getAdPosList() {
-				let {
-					data
-				} = await getBannerPosList()
-				this.getAdList(data[0].positionId)
-			},
-			async getAdList(positionId) {
-				let params = {
-					positionId: positionId
-				}
-				let {
-					data
-				} = await getBannerList(params)
-				this.swiperList = data
-				// console.log(data)
-			},
 			async gethotCardList(skipInit = false) {
 				const categories = await this.getClsList(true)
+				await this.loadRecommendations(categories)
 				const travel = categories.find(item => (
 					String(item.categoryName || '').trim() === '全国旅居'
 				))
@@ -592,6 +593,71 @@
 					this.initCitySelection()
 				}
 				return this.hotCardList
+			},
+			mediaUrl(path) {
+				if (!path || String(path).startsWith('/static/')) return path || ''
+				return /^https?:\/\//.test(path) ? path : this.host + path
+			},
+			pickRandom(rows) {
+				if (!rows || !rows.length) return null
+				return rows[Math.floor(Math.random() * rows.length)]
+			},
+			async loadRecommendations(categories) {
+				const sectionConfig = [
+					{ name: '全国旅居', kind: 'goods', filter: isVisibleTravelGoods },
+					{ name: '云南好物', kind: 'goods', filter: isVisibleCatalogGoods },
+					{ name: '老年教育', label: '芳华学院', kind: 'goods', filter: isVisibleCatalogGoods }
+				]
+				const goodsRequests = sectionConfig.map(async config => {
+					try {
+						const category = categories.find(item => String(item.categoryName || '').trim() === config.name)
+						if (!category) return null
+						const response = await getGoodsList({ categoryId: category.categoryId, ignoreSite: true })
+						const item = this.pickRandom((response.data || []).filter(config.filter))
+						return item && {
+							key: `${config.name}-${item.goodsId}`,
+							section: config.label || config.name,
+							title: item.goodsName,
+							image: item.goodsCover,
+							kind: 'goods',
+							goodsId: item.goodsId,
+							goodsType: item.goodsType
+						}
+					} catch (error) {
+						console.warn(`首页${config.label || config.name}推荐加载失败:`, error)
+						return null
+					}
+				})
+				const activityRequest = getActivityList({ status: 1, signFilter: 'active' })
+					.then(response => {
+						const item = this.pickRandom(response.rows || [])
+						return item && {
+							key: `activity-${item.activityId}`,
+							section: '聚会活动',
+							title: item.activityName,
+							image: item.activityCover,
+							kind: 'activity',
+							activityId: item.activityId
+						}
+					})
+					.catch(error => {
+						console.warn('首页聚会活动推荐加载失败:', error)
+						return null
+					})
+				const results = await Promise.all([...goodsRequests, activityRequest])
+				this.recommendations = results.filter(item => item && item.image)
+			},
+			openRecommendation(item) {
+				if (item.kind === 'activity') {
+					uni.navigateTo({ url: `/packagesMall/Activity/detail/index?id=${item.activityId}` })
+					return
+				}
+				this.goProdDetail(item)
+			},
+			visibleGoodsTags(tags) {
+				return String(tags || '').split(/[\,|，]/)
+					.map(tag => tag.trim())
+					.filter(tag => tag && !['云野集', '云南好物'].includes(tag))
 			},
 			getCityImageUrl(item) {
 				const image = String((item && item.adImage) || '').trim()

@@ -69,70 +69,49 @@ $header: #EFEBDF;
 	}
 }
 
-.home-hero {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) 300rpx;
-	gap: 20rpx;
-	align-items: start;
-	min-height: 252rpx;
-	padding: 20rpx 20rpx 20rpx 26rpx;
-	border: 1rpx solid rgba(112, 16, 24, 0.28);
+.recommendation-swiper {
+	height: 260rpx;
+}
+
+.recommendation-card {
+	position: relative;
+	height: 252rpx;
+	border: 1rpx solid rgba(112, 16, 24, 0.24);
 	border-radius: 20rpx;
-	background: $cream;
 	overflow: hidden;
+}
 
-	.hero-copy {
-		text-align: left;
-	}
+.recommendation-image,
+.recommendation-shade {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
 
-	.hero-chip {
-		display: inline-flex;
-		align-items: center;
-		min-height: 40rpx;
-		padding: 0 14rpx;
-		border-radius: 10rpx;
-		background: #f5e9e5;
-		color: $accent;
-		font-size: 20rpx;
-		font-weight: 720;
-	}
+.recommendation-shade {
+	background: linear-gradient(90deg, rgba(25, 14, 13, 0.82), rgba(25, 14, 13, 0.12) 78%);
+}
 
-	.hero-title {
-		margin-top: 16rpx;
-		font-size: 36rpx;
-		font-weight: 840;
-		color: $ink;
-		line-height: 1.28;
-	}
+.recommendation-copy {
+	position: absolute;
+	left: 28rpx;
+	bottom: 26rpx;
+	z-index: 2;
+	max-width: 72%;
+	color: #fff;
 
-	.hero-desc {
-		margin-top: 10rpx;
-		font-size: 21rpx;
-		color: #666666;
-		line-height: 1.5;
+	.recommendation-section { font-size: 22rpx; opacity: 0.9; }
+	.recommendation-title {
+		margin: 8rpx 0 14rpx;
+		font-size: 34rpx;
+		font-weight: 820;
+		line-height: 1.25;
 		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
-
-	.hero-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-height: 56rpx;
-		margin-top: 12rpx;
-		padding: 0 32rpx;
-		border-radius: 999rpx;
-		background: $accent;
-		color: #fff;
-		font-size: 24rpx;
-		font-weight: 760;
-	}
-
-	.hero-image {
-		width: 300rpx;
-		height: 196rpx;
-		margin-top: 16rpx;
-		border-radius: 16rpx;
-	}
+	.recommendation-action { font-size: 24rpx; font-weight: 720; }
 }
 
 .housekeeper {
@@ -190,7 +169,11 @@ $header: #EFEBDF;
 	}
 }
 
-.entry-grid {
+.service-entry-stack {
+	margin-top: 12rpx;
+}
+
+.secondary-entry-grid {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	gap: 16rpx;
@@ -215,6 +198,13 @@ $header: #EFEBDF;
 		width: 100%;
 		height: 140rpx;
 		background: #f3eee9;
+	}
+
+	.entry-icon {
+		display: block;
+		width: 112rpx;
+		height: 112rpx;
+		margin: 14rpx auto 0;
 	}
 
 	.entry-copy {
@@ -255,6 +245,23 @@ $header: #EFEBDF;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
+}
+
+.travel-entry-card {
+	height: 248rpx;
+
+	.entry-bg { height: 100%; }
+	.entry-copy {
+		top: 0;
+		bottom: 0;
+		justify-content: flex-end;
+		height: 100%;
+		padding: 28rpx;
+		border: 0;
+		background: linear-gradient(90deg, rgba(25, 14, 13, 0.76), rgba(25, 14, 13, 0.06) 78%);
+	}
+	.entry-title { color: #fff; font-size: 38rpx; }
+	.entry-desc { color: rgba(255, 255, 255, 0.9); font-size: 23rpx; }
 }
 
 .section-head {
@@ -398,17 +405,11 @@ $header: #EFEBDF;
 		margin-top: 8rpx;
 	}
 
-	.member-price {
+	.product-price {
 		display: inline-flex;
 		align-items: baseline;
-		gap: 10rpx;
 		color: $accent;
 		white-space: nowrap;
-
-		text {
-			font-size: 22rpx;
-			font-weight: 760;
-		}
 
 		.price {
 			font-size: 34rpx;

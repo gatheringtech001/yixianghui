@@ -375,3 +375,71 @@
 		font-size: 28rpx;
 	}
 }
+
+/* 与全国旅居一致的酒红、暖灰和胶囊按钮体系。 */
+.page { background: #f7f7f5; color: #111111; }
+.address-data,
+.goods-data,
+.discounts-data,
+.order-price {
+	width: auto;
+	margin: 16rpx 24rpx;
+	padding: 18rpx 24rpx;
+	border: 1rpx solid #e8e1d8;
+	border-radius: 20rpx;
+	background: #ffffff;
+	box-shadow: 0 10rpx 30rpx rgba(17, 17, 17, 0.04);
+}
+.address-data {
+	padding-left: 32rpx;
+	border-left: 6rpx solid #701018;
+	.bar { display: none; }
+	.address-list .list {
+		height: auto;
+		min-height: 52rpx;
+		text { color: #555555; font-size: 24rpx; }
+		.address { color: #111111; font-size: 31rpx; font-weight: 700; }
+		.tips { color: #777777; }
+	}
+}
+.goods-data {
+	.goods-title text { color: #111111; font-size: 30rpx; font-weight: 760; }
+	.goods-list .list {
+		.thumb { width: 184rpx; }
+		.item {
+			flex: 1;
+			width: auto;
+			.title .name { color: #111111; font-weight: 700; }
+			.price-number .price text { color: #701018; }
+		}
+	}
+	.delivery .list {
+		border-top: 1rpx solid #eee9e1;
+		.title { color: #555555; }
+		.content text { color: #111111; }
+	}
+}
+.discounts-data .discounts,
+.order-price .price-list { padding: 0; }
+.discounts-data .discounts .list,
+.order-price .price-list .list { border-bottom: 1rpx solid #eee9e1; }
+.discounts-data .discounts .list:last-child,
+.order-price .price-list .list:last-child { border-bottom: 0; }
+.footer-submit {
+	padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+	border-top: 1rpx solid #e8e1d8;
+	box-shadow: 0 -10rpx 30rpx rgba(17, 17, 17, 0.06);
+	.price text { color: #701018; }
+	.submit {
+		width: 240rpx;
+		height: 76rpx;
+		border-radius: 999rpx;
+		background: #701018;
+		text { font-size: 28rpx; font-weight: 760; }
+	}
+}
+.address-tips {
+	bottom: 112rpx;
+	background: #f5e9e5;
+	text { color: #701018; }
+}

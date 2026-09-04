@@ -1,3 +1,17 @@
+function removeStyleProperties(styleValue, blockedProperties) {
+	const blocked = new Set(blockedProperties)
+	return String(styleValue || '')
+		.split(';')
+		.map(declaration => declaration.trim())
+		.filter(Boolean)
+		.filter(declaration => {
+			const separator = declaration.indexOf(':')
+			if (separator < 0) return false
+			return !blocked.has(declaration.slice(0, separator).trim().toLowerCase())
+		})
+		.join(';')
+}
+
 export function normalizeRichTextHtml(html) {
 	if (!html) return ''
 
@@ -5,30 +19,21 @@ export function normalizeRichTextHtml(html) {
 
 	content = content.replace(/<img\b([^>]*?)\s*\/?>/gi, (match, attrs) => {
 		let nextAttrs = String(attrs || '')
+			.replace(/\swidth\s*=\s*["'][^"']*["']/gi, '')
+			.replace(/\swidth\s*=\s*[^\s/>]+/gi, '')
 			.replace(/\sheight\s*=\s*["'][^"']*["']/gi, '')
 			.replace(/\sheight\s*=\s*[^\s/>]+/gi, '')
 			.replace(/\s+\/$/, '')
 
 		if (/style\s*=\s*["']([^"']*)["']/i.test(nextAttrs)) {
 			nextAttrs = nextAttrs.replace(/style\s*=\s*["']([^"']*)["']/i, (styleMatch, styleValue) => {
-				let style = styleValue
-					.replace(/(?:^|;|\s)height\s*:\s*[^;]+;?/gi, '')
-					.replace(/(?:^|;|\s)max-height\s*:\s*[^;]+;?/gi, '')
-					.replace(/(?:^|;|\s)min-height\s*:\s*[^;]+;?/gi, '')
-
-				if (!/max-width\s*:/i.test(style)) {
-					style = `max-width:100%;${style}`
-				}
-				if (!/height\s*:/i.test(style)) {
-					style = `height:auto;${style}`
-				}
-				if (!/display\s*:/i.test(style)) {
-					style = `display:block;${style}`
-				}
-				return `style="${style}"`
+				const preserved = removeStyleProperties(styleValue, [
+					'width', 'min-width', 'max-width', 'height', 'min-height', 'max-height', 'object-fit'
+				])
+				return `style="width:100%;max-width:100%;display:block;${preserved ? `${preserved};` : ''}"`
 			})
 		} else {
-			nextAttrs += ' style="max-width:100%;height:auto;display:block;"'
+			nextAttrs += ' style="width:100%;max-width:100%;display:block;"'
 		}
 
 		return `<img${nextAttrs}>`
@@ -37,18 +42,17 @@ export function normalizeRichTextHtml(html) {
 	content = content.replace(/<figure([^>]*)>/gi, '<div$1>')
 	content = content.replace(/<\/figure>/gi, '</div>')
 
-	content = content.replace(/<div([^>]*?)style\s*=\s*["']([^"']*)["']([^>]*?)>/gi, (match, before, styleValue, after) => {
+	content = content.replace(/<(div|p|section|table|tbody|tr|td)([^>]*?)style\s*=\s*["']([^"']*)["']([^>]*?)>/gi, (match, tag, before, styleValue, after) => {
 		if (/background(-image)?\s*:/i.test(styleValue)) {
 			return match
 		}
-		if (!/height\s*:|max-height\s*:|overflow\s*:\s*hidden/i.test(styleValue)) {
+		if (!/(?:width|height|max-width|max-height|min-width|min-height)\s*:|overflow\s*:\s*hidden/i.test(styleValue)) {
 			return match
 		}
-		const style = styleValue
-			.replace(/(?:^|;|\s)height\s*:\s*[^;]+;?/gi, '')
-			.replace(/(?:^|;|\s)max-height\s*:\s*[^;]+;?/gi, '')
-			.replace(/(?:^|;|\s)overflow\s*:\s*hidden;?/gi, '')
-		return `<div${before}style="${style}"${after}>`
+		const style = removeStyleProperties(styleValue, [
+			'width', 'min-width', 'max-width', 'height', 'min-height', 'max-height', 'overflow'
+		])
+		return `<${tag}${before}style="max-width:100%;${style ? `${style};` : ''}"${after}>`
 	})
 
 	return content

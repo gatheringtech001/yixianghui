@@ -32,7 +32,7 @@
 			<view class="goods-list">
 				<view class="list">
 					<view class="thumb">
-						<image :src="mediaUrl(goodsDetail.goodsCover)" mode=""></image>
+						<image :src="mediaUrl(goodsDetail.goodsCover)" mode="aspectFill"></image>
 					</view>
 					<view class="item">
 						<view class="title">
@@ -125,14 +125,6 @@
 						<text>￥{{getTotal()}}</text>
 					</view>
 				</view>
-				<view class="list">
-					<view class="title">
-						<text>会员折扣</text>
-					</view>
-					<view class="price">
-						<text>-￥{{ (goodsDetail.price - goodsDetail.vipPrice).toFixed(2) }}</text>
-					</view>
-				</view>
 				<!-- <view class="list">
 					<view class="title">
 						<text>运费</text>
@@ -153,7 +145,7 @@
 		</view>
 		<!-- 地址提示 -->
 		<view class="address-tips" :style="scrollTop >= 100 ? '':'display:none'"
-			v-if="goodsDetail && goodsDetail.goodsType!='hotel'">
+			v-if="address && goodsDetail && goodsDetail.goodsType!='hotel'">
 			<text>{{address.provinceName}}{{address.cityName}}{{address.countyName}}{{address.streetName || ''}}{{address.addressDetail}}</text>
 		</view>
 		<!-- 底部合计提交 -->
@@ -277,13 +269,9 @@
 				if (this.skuDataId) this.getGoodsSkuInfoByIdFn(this.skuDataId)
 			},
 			getTotal() {
-				let price = this.goodsDetail.price,
-					vipPrice = this.goodsDetail.vipPrice
-				let total = 0
-				if (vipPrice && vipPrice != 0) total = vipPrice * this.count
-				else total = price * this.count
+				const total = Number(this.goodsDetail.price || 0) * this.count
 				this.orderAmount = total
-				return total
+				return total.toFixed(2)
 			},
 			// 选择优惠券
 			chooseCoupon() {
@@ -303,6 +291,7 @@
 						goodsCount: this.count,
 						goodsId: this.goodsDetail.goodsId,
 						couponGotIds: '',
+						remark: this.remark.trim(),
 						checkInDate: this.checkInDate,
 						checkOutDate: this.checkOutDate,
 						skuDataId: this.skuDataId // SKU数据主键

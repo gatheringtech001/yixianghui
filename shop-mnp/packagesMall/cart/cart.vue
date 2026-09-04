@@ -78,7 +78,7 @@
 			},
 			displayPrice(item) {
 				const goods = item.goodsInfo || {}
-				return Number(goods.vipPrice || goods.price || 0).toFixed(2)
+				return Number(goods.price || 0).toFixed(2)
 			},
 			selectItem(item) {
 				if (!this.isAvailable(item)) return

@@ -986,3 +986,96 @@
 		}
 	}
 }
+
+/* 逸享荟统一商城视觉：覆盖当前商品详情使用到的旧商城样式。 */
+.page { background: #f7f7f5; color: #111111; }
+.banner-title { padding-bottom: 0; background: #ffffff; }
+.banner { height: 680rpx; }
+.goods-title {
+	margin: 0;
+	padding: 28rpx 30rpx 12rpx;
+	text { color: #111111; font-size: 38rpx; line-height: 1.35; }
+}
+.goods-tags {
+	padding: 0 30rpx;
+	text { margin-top: 10rpx; font-size: 22rpx; border-radius: 10rpx; }
+}
+.price-info {
+	height: 104rpx;
+	padding: 0 30rpx 18rpx;
+	.price {
+		.min, .max { color: #701018; }
+		.max { font-size: 46rpx; }
+	}
+	.info .list {
+		padding: 0 16rpx;
+		text { color: #555555; font-size: 24rpx; }
+		button { gap: 4rpx; }
+	}
+}
+.goods-discounts,
+.sku_box_view,
+.products-introduction {
+	margin: 16rpx 24rpx;
+	border: 1rpx solid #e8e1d8;
+	border-radius: 20rpx;
+	background: #ffffff;
+}
+.goods-discounts {
+	padding: 0 24rpx;
+	.list { padding: 0; }
+}
+.products-introduction {
+	padding: 0 0 130rpx;
+	overflow: hidden;
+	.title {
+		justify-content: flex-start;
+		height: 92rpx;
+		padding: 0 28rpx;
+		text { margin: 0; color: #111111; font-size: 32rpx; font-weight: 760; }
+	}
+	.title::before,
+	.title::after { display: none; }
+	.content {
+		width: 100%;
+		max-width: 100%;
+		padding: 0;
+		overflow: visible;
+		::v-deep .u-parse,
+		::v-deep #_top,
+		::v-deep ._root,
+		::v-deep ._rich-text { width: 100% !important; max-width: 100% !important; overflow: visible !important; }
+		::v-deep img,
+		::v-deep image,
+		::v-deep ._img { width: 100% !important; max-width: 100% !important; height: auto !important; display: block !important; }
+	}
+}
+.page-footer {
+	gap: 14rpx;
+	padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+	border-top: 1rpx solid #e8e1d8;
+	box-shadow: 0 -10rpx 30rpx rgba(17, 17, 17, 0.06);
+	.footer-fn .list {
+		text { color: #555555; font-size: 22rpx; }
+		.iconfont { color: #333333; }
+	}
+	.footer-buy {
+		gap: 12rpx;
+		.cart-add,
+		.buy-at,
+		.buy-at.compact {
+			flex: 1;
+			width: auto;
+			height: 72rpx;
+			margin: 0;
+			border-radius: 999rpx;
+			background: #701018;
+			text { color: #ffffff; font-size: 26rpx; font-weight: 760; }
+		}
+		.cart-add {
+			border: 2rpx solid #701018;
+			background: #ffffff;
+			text { color: #701018; }
+		}
+	}
+}

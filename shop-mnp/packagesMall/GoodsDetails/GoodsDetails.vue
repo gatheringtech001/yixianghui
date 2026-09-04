@@ -40,35 +40,19 @@
 				<view class="price">
 					<text class="min">￥</text>
 					<text class="max">{{goodsDetail.price}}</text>
-					<text class="vip min" v-if="goodsDetail.goodsType != 'hotel'">会员价: ￥{{goodsDetail.vipPrice}}</text>
-					<text class="vip min" v-else>起</text>
+					<text class="min" v-if="goodsDetail.goodsType == 'hotel'">起</text>
 				</view>
 				<view class="info">
 					<view class="list">
 						<button open-type="share">
-							<text class="iconfont icon-share"></text>
+							<u-icon name="share" color="#333333" size="40" />
 							<text>分享</text>
 						</button>
 					</view>
 					<view class="list" @click="onAttention">
-						<text class="iconfont" :class="AttentionShow==0?'icon-guanzhu-off':'icon-guanzhu-on action'"></text>
+						<u-icon :name="AttentionShow == 0 ? 'heart' : 'heart-fill'" :color="AttentionShow == 0 ? '#333333' : '#701018'" size="40" />
 						<text>{{ AttentionShow == 0 ? '收藏' : '已收藏' }}</text>
 					</view>
-				</view>
-			</view>
-			<!-- 开通会员 -->
-			<view class="dredge-vip">
-				<view class="title">
-					<text class="iconfont icon-vip"></text>
-					<text>
-						开通年卡会员预计估算优惠
-						<text class="col">{{ (goodsDetail.price - goodsDetail.vipPrice).toFixed(2) }}</text>
-						元
-					</text>
-				</view>
-				<view class="dredge" @click="openVip">
-					<text>立即</text>
-					<text>开通</text>
 				</view>
 			</view>
 		</view>
@@ -127,6 +111,7 @@
 					:domain="host"
 					:lazy-load="false"
 					:show-with-animation="false"
+					:tag-style="richTextTagStyle"
 				></u-parse>
 			</view>
 		</view>
@@ -230,21 +215,6 @@
 	} from '@/api/member/index'
 	import BaseUrl from '@/api/baseUrl'
 
-	function getRandomPresetColor() {
-		const colors = [
-			'#FF6B6B', '#4ECDC4', '#45B7D1', '#2e9aff',
-			'#a89823', '#82E0AA', '#F1948A', '#178b37', '#A569BD'
-		];
-		return colors[Math.floor(Math.random() * colors.length)];
-	}
-
-	function hexToRgba(hex, opacity = 0.1) {
-		hex = hex.replace('#', '');
-		const r = parseInt(hex.substring(0, 2), 16);
-		const g = parseInt(hex.substring(2, 4), 16);
-		const b = parseInt(hex.substring(4, 6), 16);
-		return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-	}
 	export default {
 		mixins: [sharePageMixin],
 		data() {
@@ -261,7 +231,13 @@
 				showContact: false,
 				address: null,
 				collectId: null,
-				skuDataList: []
+				skuDataList: [],
+				richTextTagStyle: {
+					img: 'width:100%;max-width:100%;display:block;',
+					image: 'width:100%;max-width:100%;display:block;',
+					table: 'width:100%;max-width:100%;table-layout:fixed;',
+					p: 'max-width:100%;margin:0;'
+				}
 			};
 		},
 		onLoad(option) {
@@ -346,15 +322,10 @@
 					data
 				} = await getGoodsInfo(id)
 				if(data.tags){
-				const tags = data.tags.split(/[\,|，]/);
-				data.tags = tags.map(e => {
-					const color = getRandomPresetColor();
-					return {
-						text: e,
-						color: color,
-						bg: hexToRgba(color, 0.15)
-					}
-				})
+					data.tags = data.tags.split(/[\,|，]/)
+						.map(tag => tag.trim())
+						.filter(tag => tag && !['云野集', '云南好物'].includes(tag))
+						.map(tag => ({ text: tag, color: '#701018', bg: '#f5e9e5' }))
 				}
 				this.goodsDetail = data
 				if (this.goodsDetail.goodsImages && this.goodsDetail.goodsImages != '') this.goodsDetail.goodsImages = this
@@ -384,12 +355,6 @@
 						this.collectId = null
 					}
 				}
-			},
-			// 开通会员
-			openVip() {
-				uni.switchTab({
-					url: '/pages/MembersOpened/MembersOpened'
-				})
 			},
 			// 选择收货地址
 			chooseAddress() {
