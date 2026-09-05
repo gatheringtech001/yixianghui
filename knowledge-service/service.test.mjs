@@ -124,16 +124,20 @@ test("search requires model reranking and returns source citations", async () =>
   };
   const models = {
     async embed() { return [[0.3, 0.4]]; },
+  };
+  const reranker = {
     async rerank(question, candidates, limit) {
       assert.equal(question, "哪里可以看梯田？");
       assert.equal(limit, 8);
-      return candidates;
+      return candidates.map((item) => ({ ...item, rerankScore: 0.95 }));
     },
   };
-  const service = new KnowledgeService({ source: {}, models, store, manifestFile: "unused" });
+  const service = new KnowledgeService({ source: {}, models, reranker, store, manifestFile: "unused" });
   const results = await service.search("哪里可以看梯田？");
   assert.equal(results.length, 1);
   assert.equal(results[0].title, "元阳基地");
   assert.equal(results[0].sourceUrl, "https://example.test/docx/1");
+  assert.equal(results[0].score, 0.95);
+  assert.equal(results[0].retrievalScore, 0.8);
   await assert.rejects(() => service.search("哪里可以看梯田？", 0), /limit/);
 });

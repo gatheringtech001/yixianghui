@@ -1,4 +1,6 @@
 import http from "node:http";
+import { pathToFileURL } from "node:url";
+import { CohereReranker, CohereRerankError } from "./cohere.mjs";
 import {
   AzureModels,
   FeishuSource,
@@ -28,7 +30,11 @@ function config() {
       apiKey,
       apiVersion: required("AZURE_OPENAI_API_VERSION"),
       embeddingModel: process.env.AZURE_EMBEDDING_MODEL ?? "text-embedding-3-large",
-      rerankModel: process.env.AZURE_RERANK_MODEL ?? "gpt-4.1",
+    },
+    rerank: {
+      url: required("COHERE_RERANK_URL"),
+      apiKey: required("COHERE_RERANK_KEY"),
+      model: required("COHERE_RERANK_MODEL"),
     },
     qdrant: {
       url: process.env.QDRANT_URL ?? "http://127.0.0.1:6333",
@@ -65,6 +71,7 @@ export function createServer(settings = config()) {
   const service = new KnowledgeService({
     source: new FeishuSource(settings.source),
     models: new AzureModels(settings.models),
+    reranker: new CohereReranker(settings.rerank),
     store,
     manifestFile: settings.manifestFile,
   });
@@ -78,7 +85,9 @@ export function createServer(settings = config()) {
         if (!authorized(request, settings.apiToken)) return reply(response, 401, { error: "unauthorized" });
         const body = await readBody(request);
         const results = await service.search(body.question, Number(body.limit ?? 8));
-        return reply(response, 200, { question: body.question, results });
+        return reply(response, 200, {
+          question: body.question, rerankModel: settings.rerank.model, results,
+        });
       }
       if (request.method === "POST" && request.url === "/admin/sync") {
         if (!authorized(request, settings.adminToken)) return reply(response, 401, { error: "unauthorized" });
@@ -89,12 +98,22 @@ export function createServer(settings = config()) {
       return reply(response, 404, { error: "not found" });
     } catch (error) {
       console.error(new Date().toISOString(), error.message);
+      if (error instanceof CohereRerankError) {
+        if (error.retryAfter) response.setHeader("retry-after", String(error.retryAfter));
+        return reply(response, error.statusCode, {
+          error: error.message, retryAfterSeconds: error.retryAfter,
+        });
+      }
       return reply(response, 500, { error: error.message });
     }
   });
 }
 
-const settings = config();
-createServer(settings).listen(settings.port, "127.0.0.1", () => {
-  console.log(`knowledge service listening on 127.0.0.1:${settings.port}`);
-});
+// PM2 uses its loader as argv[1]; pm_exec_path identifies the actual entrypoint.
+const entrypoint = process.env.pm_exec_path ?? process.argv[1];
+if (entrypoint && import.meta.url === pathToFileURL(entrypoint).href) {
+  const settings = config();
+  createServer(settings).listen(settings.port, "127.0.0.1", () => {
+    console.log(`knowledge service listening on 127.0.0.1:${settings.port}; reranker=${settings.rerank.model}`);
+  });
+}
