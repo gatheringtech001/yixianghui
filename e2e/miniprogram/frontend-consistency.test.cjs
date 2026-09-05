@@ -32,6 +32,7 @@ test('fixed commerce footers reserve the real device safe area', () => {
 
 test('brand color and key touch targets are consistent and readable', () => {
   assert.match(read('uni.scss'), /\$base:\s*#701018/)
+  assert.match(read('uni.scss'), /\$u-type-primary:\s*#701018/)
   assert.match(read('components/TabBar/TabBar.scss'), /font-size:\s*24rpx/)
   assert.match(read('packagesMall/cart/cart.scss'), /min-width:\s*44px/)
   assert.match(read('packagesMall/cart/cart.scss'), /min-height:\s*44px/)

@@ -30,7 +30,7 @@ $rgba-07 : rgba(233,59,61,0.7); // 基础色透明度0.7
 $rgba-08 : rgba(233,59,61,0.8); // 基础色透明度0.8
 
 /* 行为相关颜色 */
-$uni-color-primary: #007aff;
+$uni-color-primary: #701018;
 $uni-color-success: #4cd964;
 $uni-color-warning: #f0ad4e;
 $uni-color-error: #dd524d;
@@ -92,3 +92,7 @@ $uni-font-size-paragraph:30upx;
 
 /* uni.scss */
 @import 'uview-ui/theme.scss';
+$u-type-primary: #701018;
+$u-type-primary-light: #f5e9e5;
+$u-type-primary-disabled: #c7aaa9;
+$u-type-primary-dark: #580c12;

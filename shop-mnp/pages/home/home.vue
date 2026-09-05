@@ -357,7 +357,7 @@
 					const response = await getDistributionOffer(source)
 					if (this.loadingDistributionKey !== key || getDistributionLaunchSource() !== source) return
 					this.distributionOfferKey = key
-					this.distributionOfferSource = { ...source }
+					this.distributionOfferSource = source
 					this.distributionOffer = response.data
 					this.showDistributionCoupon = !response.data.claimed
 					if (response.data.claimed) clearDistributionLaunchSource()

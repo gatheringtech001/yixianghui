@@ -3,6 +3,7 @@ const path = require('node:path')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const vm = require('node:vm')
+const loadPage = require('./vue-page-harness.cjs')
 
 const root = path.resolve(__dirname, '../..')
 const read = file => fs.readFileSync(path.join(root, file), 'utf8')
@@ -157,6 +158,21 @@ test('claim completion closes its own offer but cannot clear a newly opened chan
   assert.equal(source.channelCode,'channel-b')
   page.distributionOffer={claimed:false};page.distributionOfferSource=source
   const second=page.claimChannelCoupon();finish();await second
+  assert.equal(page.showDistributionCoupon,false)
+  assert.equal(source,null)
+})
+
+test('loading and then claiming the same offer closes the actual page prompt', async () => {
+  let source={channelCode:'channel-a',entryId:1}
+  const {page}=loadPage('pages/home/home.vue',{
+    TabBar:{},AuthProfilePopup:{},sharePageMixin:{},
+    uni:{getStorageSync:key=>key==='token'?'session':{userId:7},showToast(){}},
+    getDistributionLaunchSource:()=>source,clearDistributionLaunchSource:()=>{source=null},
+    getDistributionOffer:async()=>({data:{claimed:false,coupon:{}}}),claimDistributionCoupon:async()=>({})
+  })
+  await page.loadDistributionOffer()
+  assert.equal(page.showDistributionCoupon,true)
+  await page.claimChannelCoupon()
   assert.equal(page.showDistributionCoupon,false)
   assert.equal(source,null)
 })
