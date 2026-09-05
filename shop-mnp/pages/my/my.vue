@@ -65,11 +65,11 @@
 						<text class="order-label">待付款</text>
 						<text class="order-badge" v-if="orders && orders > 0">{{ orders }}</text>
 					</view>
-					<view class="order-item" @click="onSkipOrder(2)">
+					<view class="order-item" @click="onSkipOrder(6)">
 						<image class="order-icon" src="/static/profile-icons/order-shipping.png" mode="aspectFit" />
 						<text class="order-label">待发货</text>
 					</view>
-					<view class="order-item" @click="onSkipOrder(3)">
+					<view class="order-item" @click="onSkipOrder(7)">
 						<image class="order-icon" src="/static/profile-icons/order-receive.png" mode="aspectFit" />
 						<text class="order-label">待收货</text>
 					</view>

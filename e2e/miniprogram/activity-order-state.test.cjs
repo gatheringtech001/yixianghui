@@ -87,7 +87,19 @@ test('shared order center loads activity bookings and routes them to activity de
     '../../shop-mnp/packagesMall/MyOrderList/MyOrderList.vue'
   ), 'utf8')
 
-  assert.match(source, /getActivityOrderList\(\{ pageNum: 1, pageSize: 100 \}\)/)
+  assert.match(source, /getActivityOrderList\(params\)/)
   assert.match(source, />活动预约<\/text>/)
   assert.match(source, /MyActivity\/detail\/index\?orderId=\$\{item\.orderId\}/)
+})
+
+test('shipping tabs only include paid retail goods in the matching fulfillment stage', async () => {
+  const {filterOrdersByTab} = await loadActivityOrderState()
+  const retail = {status:'1',goodsList:[{goodsType:'online'}]}
+  const rows = [
+    {...retail,orderId:1}, {...retail,orderId:2,sendTime:'2026-09-06 10:00:00'},
+    {...retail,orderId:3,sendTime:'2026-09-06 10:00:00',receiveTime:'2026-09-07 10:00:00'},
+    {orderId:4,status:'1',goodsList:[{goodsType:'hotel'}]}, {...retail,orderId:5,status:'2'}
+  ]
+  assert.deepEqual(filterOrdersByTab(rows,6).map(r=>r.orderId), [1])
+  assert.deepEqual(filterOrdersByTab(rows,7).map(r=>r.orderId), [2])
 })

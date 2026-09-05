@@ -2,7 +2,7 @@
 	<view class="page">
 		
 		<!-- 订单tab -->
-		<view class="order-tab">
+		<scroll-view class="order-tab" scroll-x :show-scrollbar="false">
 			<view class="tab" :class="{'action':OrderType == 0}" @click="onOrderTab(0)">
 				<text>全部</text>
 				<text class="line"></text>
@@ -15,6 +15,8 @@
 				<text>已付款</text>
 				<text class="line"></text>
 			</view>
+			<view class="tab" :class="{'action':OrderType == 6}" @click="onOrderTab(6)"><text>待发货</text><text class="line"></text></view>
+			<view class="tab" :class="{'action':OrderType == 7}" @click="onOrderTab(7)"><text>待收货</text><text class="line"></text></view>
 			<view class="tab" :class="{'action':OrderType == 3}" @click="onOrderTab(3)">
 				<text>已取消</text>
 				<text class="line"></text>
@@ -27,7 +29,9 @@
 				<text>已退款</text>
 				<text class="line"></text>
 			</view>
-		</view>
+		</scroll-view>
+		<view v-if="loadError" class="order-state" @click="getOrders()">{{ loadError }}，点击重试</view>
+		<view v-else-if="loading && !orderList.length" class="order-state">加载订单中…</view>
 		<!-- 订单列表 -->
 		<view class="order-list" v-if="orderList && orderList.length > 0">
 			<view class="list" v-for="(item,index) in orderList" @click="onOrderList(item)" :key="index">
@@ -109,7 +113,9 @@
 			</view>
 		</view>
 		
-		<view class="empty" v-else>
+		<view class="order-more" v-if="loading && orderList.length">加载中…</view>
+		<button class="order-more" v-else-if="!loading && hasMore" @click="getOrders(false)">加载更多订单</button>
+		<view class="empty" v-if="!loading && !loadError && !hasMore && !orderList.length">
 			<u-empty text="暂无订单" mode="list"></u-empty>
 			<button @click="buyNow">立即下单</button>
 		</view>
@@ -122,6 +128,7 @@
 	import { getActivityOrderList, cancelActivityOrder, syncActivityOrderPay, syncActivityOrderRefund } from '@/api/activity/index'
 	import {
 		filterOrdersByTab,
+		getRetailFulfillmentLabel,
 		mapActivityOrderForOrderList,
 		mergeOrdersByCreateTime
 	} from '@/utils/activityOrderState.js'
@@ -130,6 +137,8 @@
 		getOrderProductSpec,
 		collectGoodsIds
 	} from '@/utils/orderGoodsDisplay.js'
+	const ORDER_PAGE_SIZE = 20
+	const emptyFeed = () => ({rows:[], page:0, total:0, more:false, error:''})
 	export default {
 		data() {
 			return {
@@ -137,6 +146,8 @@
 				OrderType: 0,
 				orderList: [],
 				productNameMap: {},
+				feeds: {goods:emptyFeed(), activity:emptyFeed()},
+				loading: false, loadSequence: 0, listError: '',
 				labels: {
 					courseTime: '\u4e0a\u8bfe\u65f6\u95f4\uff1a',
 					coursePlace: '\u6388\u8bfe\u5730\u70b9\uff1a',
@@ -150,6 +161,11 @@
 		},
 		onShow() {
 			this.getOrders()
+		},
+		onReachBottom() { if (this.hasMore) this.getOrders(false) },
+		computed: {
+			loadError() { return this.listError || [this.feeds.goods.error, this.feeds.activity.error].filter(Boolean).join('；') },
+			hasMore() { return Object.values(this.feeds).some(feed => feed.more) }
 		},
 		methods:{
 			isActivityOrder(item) {
@@ -245,6 +261,8 @@
 				return remark ? `拒绝原因：${remark}` : '您的售后申请未通过，可查看详情或重新申请'
 			},
 			getOrderStatusText(item) {
+				const fulfillment = getRetailFulfillmentLabel(item)
+				if (fulfillment) return fulfillment
 				if (!item) return ''
 				if (String(item.status) === '1' && this.isAfterRejected(item)) {
 					return '售后已拒绝'
@@ -261,84 +279,56 @@
 				}
 				return map[String(item.status)] || ''
 			},
-			async getOrders() {
-				let params = {
-					status: this.OrderType == 0 ? '' :
-							this.OrderType == 1 ? '0' :
-							this.OrderType == 2 ? '1' :
-							this.OrderType == 3 ? '2' :
-							this.OrderType == 4 ? '3' :
-							this.OrderType == 5 ? '4' : ''
-				}
-				const [goodsResult, activityResult] = await Promise.all([
-					getOrderList(params),
-					getActivityOrderList({ pageNum: 1, pageSize: 100 })
-				])
-				const rows = goodsResult.rows || []
-				const activityRows = activityResult.rows || []
-				await this.enrichProductNames(rows)
-				this.orderList = mergeOrdersByCreateTime(
-					rows,
-					filterOrdersByTab(activityRows.map(mapActivityOrderForOrderList), this.OrderType)
-				)
-				let needRefresh = false
-				// 待付款列表：尝试同步可能已支付成功但回调未落库的订单
-				if (this.OrderType == 1 || this.OrderType == 0) {
-					const pending = (rows || []).filter(item => String(item.status) === '0').slice(0, 5)
-					for (const item of pending) {
-						try {
-							await syncGoodsOrderPay(item.orderId)
-							needRefresh = true
-						} catch (e) {}
-					}
-					const pendingActivities = activityRows
-						.filter(item => String(item.payStatus) === '0' && String(item.status) !== '2')
-						.slice(0, 5)
-					for (const item of pendingActivities) {
-						try {
-							await syncActivityOrderPay(item.orderId)
-							needRefresh = true
-						} catch (e) {}
-					}
-				}
-				// 退款中：主动查退款结果，修复已退款仍显示退款中
-				if (this.OrderType == 4 || this.OrderType == 0) {
-					const refunding = (rows || []).filter(item => String(item.status) === '3').slice(0, 5)
-					for (const item of refunding) {
-						try {
-							const beforeAmount = this.getOrderAmount(item)
-							await syncGoodsOrderRefund(item.orderId)
-							needRefresh = true
-							const gold = Math.floor(Number(beforeAmount) || 0)
-							uni.showToast({
-								icon: 'none',
-								title: gold > 0
-									? `退款完成，已扣回${gold}金币`
-									: '退款完成'
-							})
-						} catch (e) {}
-					}
-					const refundingActivities = activityRows
-						.filter(item => String(item.payStatus) === '3')
-						.slice(0, 5)
-					for (const item of refundingActivities) {
-						try {
-							await syncActivityOrderRefund(item.orderId)
-							needRefresh = true
-						} catch (e) {}
-					}
-				}
-				if (needRefresh) {
-					const [refreshed, refreshedActivity] = await Promise.all([
-						getOrderList(params),
-						getActivityOrderList({ pageNum: 1, pageSize: 100 })
-					])
-					await this.enrichProductNames(refreshed.rows)
+			async getOrders(reset = true) {
+				if (this.loading && !reset) return
+				const sequence = ++this.loadSequence
+				if (reset) { this.feeds = {goods:emptyFeed(), activity:emptyFeed()}; this.orderList = [] }
+				this.loading = true
+				this.listError = ''
+				try {
+					await Promise.all(['goods','activity'].map(kind => this.loadOrderFeed(kind, {reset, sequence})))
+					if (sequence !== this.loadSequence) return
+					await this.enrichProductNames(this.feeds.goods.rows)
+					if (sequence !== this.loadSequence) return
 					this.orderList = mergeOrdersByCreateTime(
-						refreshed.rows,
-						filterOrdersByTab((refreshedActivity.rows || []).map(mapActivityOrderForOrderList), this.OrderType)
-					)
+						filterOrdersByTab(this.feeds.goods.rows, this.OrderType),
+						filterOrdersByTab(this.feeds.activity.rows.map(mapActivityOrderForOrderList), this.OrderType))
+				} catch (error) {
+					if (sequence === this.loadSequence) this.listError = error.message || '订单加载失败'
+				} finally { if (sequence === this.loadSequence) this.loading = false }
+			},
+			async loadOrderFeed(kind, {reset, sequence}) {
+				if (kind === 'activity' && this.OrderType >= 6) return
+				const feed = this.feeds[kind]
+				if (!reset && !feed.error && !feed.more) return
+				const params = {pageNum:reset ? 1 : feed.page + 1, pageSize:ORDER_PAGE_SIZE,
+					status:this.OrderType >= 6 ? '1' : (this.OrderType ? String(this.OrderType - 1) : '')}
+				const fetch = () => kind === 'goods' ? getOrderList(params) : getActivityOrderList(params)
+				try {
+					let result = await fetch()
+					if (sequence !== this.loadSequence) return
+					if (reset && await this.syncOrderRows(result.rows || [], kind)) result = await fetch()
+					if (sequence !== this.loadSequence) return
+					const rows = reset ? result.rows : feed.rows.concat(result.rows || [])
+					const uniqueRows = Array.from(new Map((rows || []).map(row => [row.orderId, row])).values())
+					const total = Number(result.total) || 0
+					this.feeds[kind] = {rows:uniqueRows, page:params.pageNum, total,
+						more:(result.rows || []).length > 0 && uniqueRows.length < total, error:''}
+				} catch (error) {
+					if (sequence === this.loadSequence) feed.error = `${kind === 'goods' ? '商品订单' : '活动预约'}：${error.message || '加载失败'}`
 				}
+			},
+			async syncOrderRows(rows, kind) {
+				let refreshed = false
+				const candidates = rows.filter(row => ['0','3'].includes(String(row.status))).slice(0, 5)
+				for (const row of candidates) {
+					const refund = String(row.status) === '3'
+					const sync = kind === 'goods' ? (refund ? syncGoodsOrderRefund : syncGoodsOrderPay)
+						: (refund ? syncActivityOrderRefund : syncActivityOrderPay)
+					try { await sync(row.orderId); refreshed = true }
+					catch (error) { /* 未完成支付或退款时继续展示后台原状态。 */ }
+				}
+				return refreshed
 			},
 			/**
 			 * 返回点击

@@ -1,3 +1,6 @@
+.order-state { margin: 120rpx 24rpx 24rpx; padding: 24rpx; text-align: center; font-size: 28rpx; color: #701018; background: #fff; border-radius: 12rpx; }
+.order-state + .order-list { margin-top: 24rpx; }
+.order-more { margin: 24rpx; padding: 16rpx; text-align: center; font-size: 28rpx; color: #701018; background: #fff; }
 .page{
 	position: absolute;
 	left: 0;
@@ -12,17 +15,20 @@
 	left: 0;
 	top: 0;
 	z-index: 10;
-	display: flex;
+	display: block;
+	white-space: nowrap;
 	align-items: center;
 	width: 100%;
 	height: 100rpx;
 	background-color: #FFFFFF;
 	.tab{
 		position: relative;
-		display: flex;
+		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 20%;
+		width: auto;
+		min-width: 120rpx;
+		padding: 0 16rpx;
 		height: 80%;
 		text{
 			font-size: 26rpx;

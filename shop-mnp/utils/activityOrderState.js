@@ -43,7 +43,18 @@ export function mapActivityOrderForOrderList(order) {
 export function filterOrdersByTab(orders, type) {
 	const tab = Number(type) || 0
 	if (tab === 0) return orders || []
+	if (tab === 6 || tab === 7) {
+		const label = tab === 6 ? '待发货' : '待收货'
+		return (orders || []).filter(order => getRetailFulfillmentLabel(order) === label)
+	}
 	return (orders || []).filter(order => text(order.status) === text(tab - 1))
+}
+
+export function getRetailFulfillmentLabel(order) {
+	if (!order || text(order.status) !== '1' || order.orderKind === 'activity') return ''
+	if (!(order.goodsList || []).some(goods => goods.goodsType === 'online')) return ''
+	if (order.receiveTime) return '已收货'
+	return order.sendTime ? '待收货' : '待发货'
 }
 
 export function mergeOrdersByCreateTime(goodsOrders, activityOrders) {
