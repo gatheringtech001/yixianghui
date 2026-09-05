@@ -94,9 +94,7 @@ export function createServer(settings = config()) {
   });
 }
 
-if (process.argv[1] === new URL(import.meta.url).pathname) {
-  const settings = config();
-  createServer(settings).listen(settings.port, "127.0.0.1", () => {
-    console.log(`knowledge service listening on 127.0.0.1:${settings.port}`);
-  });
-}
+const settings = config();
+createServer(settings).listen(settings.port, "127.0.0.1", () => {
+  console.log(`knowledge service listening on 127.0.0.1:${settings.port}`);
+});
