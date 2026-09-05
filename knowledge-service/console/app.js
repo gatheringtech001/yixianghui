@@ -55,7 +55,7 @@ function renderMedia(media, title) {
   const element = node(media.kind === "image" ? "img" : "video");
   element.referrerPolicy = "no-referrer";
   const start = Number.isFinite(media.startSeconds) ? Math.max(0, media.startSeconds) : 0;
-  element.src = media.previewUrl + (media.kind === "video" ? "#t=" + start : "");
+  element.src = media.kind === "video" ? media.previewUrl.split("#")[0] + "#t=" + start : media.previewUrl;
   element.addEventListener("error", () => { status.hidden = false; status.textContent = "预览加载失败或浏览器不支持此格式，请重新查询或打开飞书原件。"; });
   if (media.kind === "image") {
     element.alt = title || "检索命中的原图"; element.loading = "lazy";
