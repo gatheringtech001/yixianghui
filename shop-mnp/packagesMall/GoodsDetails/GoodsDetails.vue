@@ -349,6 +349,10 @@
 			},
 			buyNow(dataId) {
 				if (!this.requireLogin('订购')) return
+				if (this.goodsDetail.goodsType === 'online') {
+					uni.navigateTo({ url: `/packagesMall/ConfirmOrder/RetailConfirmOrder?id=${this.goodsDetail.goodsId}` })
+					return
+				}
 				if (this.goodsDetail && this.goodsDetail.goodsType === 'hotel') {
 					uni.navigateTo({
 						url: `/packagesMall/GoodsDetails/SojournGoodsDetails?id=${this.goodsDetail.goodsId}`

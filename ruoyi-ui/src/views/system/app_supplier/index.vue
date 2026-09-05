@@ -91,6 +91,7 @@
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
+          <el-button size="mini" type="text" @click="$refs.fulfillment.open(scope.row)" v-hasPermi="['system:app_goods_order:query']">发货协作</el-button>
           <el-button
             size="mini"
             type="text"
@@ -117,6 +118,7 @@
       @pagination="getList"
     />
 
+    <FulfillmentPanel ref="fulfillment" />
     <!-- 添加或修改供应商对话框 -->
     <el-dialog :title="title" :visible.sync="open" width="500px" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="80px">
@@ -146,9 +148,11 @@
 
 <script>
 import { listApp_supplier, getApp_supplier, delApp_supplier, addApp_supplier, updateApp_supplier } from "@/api/system/app_supplier";
+import FulfillmentPanel from './FulfillmentPanel.vue'
 
 export default {
   name: "App_supplier",
+  components: { FulfillmentPanel },
   dicts: ['enable_status'],
   data() {
     return {

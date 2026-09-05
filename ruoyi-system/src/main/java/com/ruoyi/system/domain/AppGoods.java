@@ -18,6 +18,9 @@ import com.ruoyi.common.core.domain.BaseEntity;
  */
 public class AppGoods extends BaseEntity
 {
+    private Long orderQuantity;
+    public Long getOrderQuantity() { return orderQuantity; }
+    public void setOrderQuantity(Long value) { orderQuantity = value; }
     private static final long serialVersionUID = 1L;
 
     /** 商品id */

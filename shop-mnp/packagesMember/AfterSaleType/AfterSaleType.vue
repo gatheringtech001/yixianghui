@@ -5,14 +5,14 @@
 			<view class="goods-list">
 				<view class="list" v-for="(item, index) in orderDetail.goodsList" :key="index">
 					<view class="thumb">
-						<image :src="host + item.goodsCover" mode=""></image>
+						<image :src="/^https?:/.test(item.goodsCover) ? item.goodsCover : host + item.goodsCover" mode="aspectFill"></image>
 					</view>
 					<view class="item">
 						<view class="title">
 							<text class="one-omit">{{item.goodsName}}</text>
 						</view>
 						<view class="num-size">
-							<text>数量：{{orderDetail.goodsCount}}</text>
+							<text>数量：{{item.orderQuantity || orderDetail.goodsCount}}</text>
 						</view>
 						<view class="price">
 							<text>￥{{ formatMoney(displayOrderAmount) }}元</text>

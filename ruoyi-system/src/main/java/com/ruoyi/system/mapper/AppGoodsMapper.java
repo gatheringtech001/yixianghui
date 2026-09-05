@@ -9,8 +9,9 @@ import com.ruoyi.system.domain.AppGoods;
  * @author lankong
  * @date 2025-03-31
  */
-public interface AppGoodsMapper 
+public interface AppGoodsMapper
 {
+    AppGoods selectRetailGoodsForUpdate(Long goodsId);
     /**
      * 查询商品
      * 

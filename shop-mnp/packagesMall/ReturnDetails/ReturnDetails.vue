@@ -3,11 +3,11 @@
 		<!-- 商品 -->
 		<view class="goods-card" v-if="orderDetail">
 			<view class="goods-row" v-for="(item, index) in orderDetail.goodsList" :key="index">
-				<image class="thumb" :src="host + item.goodsCover" mode="aspectFill"></image>
+				<image class="thumb" :src="/^https?:/.test(item.goodsCover) ? item.goodsCover : host + item.goodsCover" mode="aspectFill"></image>
 				<view class="goods-info">
 					<text class="goods-name one-omit">{{ item.goodsName }}</text>
-					<text class="goods-meta">数量：{{ orderDetail.goodsCount }}</text>
-					<text class="goods-price">￥{{ formatMoney(displayOrderAmount) }}</text>
+					<text class="goods-meta">数量：{{ item.orderQuantity || orderDetail.goodsCount }}</text>
+					<text class="goods-price">￥{{ formatMoney(item.orderQuantity ? item.price : displayOrderAmount) }}</text>
 				</view>
 			</view>
 		</view>

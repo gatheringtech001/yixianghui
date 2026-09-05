@@ -652,7 +652,9 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                 goodsDetail.setGoodsName(goodsOrder.getGoodsList().get(i).getGoodsName());
                 goodsDetail.setMerchantGoodsId(goodsOrder.getOrderDetailList().get(i).getGoodsId().toString());
                 goodsDetail.setQuantity(goodsOrder.getOrderDetailList().get(i).getGoodsCount().intValue());
-                goodsDetail.setUnitPrice(goodsOrder.getOrderDetailList().get(i).getGoodsMoney().multiply(new BigDecimal(100)).intValue());
+                goodsDetail.setUnitPrice(goodsOrder.getOrderDetailList().get(i).getGoodsMoney()
+                        .divide(BigDecimal.valueOf(goodsDetail.getQuantity()), 2, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal(100)).intValueExact());
                 goodsDetailList.add(goodsDetail);
             }
 
@@ -1213,6 +1215,8 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             return;
         }
         try {
+            // 多商品明细保存各自小计与优惠，不能把整单实付覆盖到每一行。
+            if (appGoodsOrderMapper.countRetailOrder(orderId) > 0) return;
             AppGoodsOrderDetail where = new AppGoodsOrderDetail();
             where.setOrderId(orderId);
             List<AppGoodsOrderDetail> details = orderDetailMapper.selectAppGoodsOrderDetailList(where);
@@ -1802,10 +1806,18 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                     || "online".equals(goods.getGoodsType()))) {
                 return;
             }
-            long count = order.getGoodsCount() != null ? order.getGoodsCount() : 1L;
-            appGoodsMapper.releaseStock(order.getGoodsId(), count);
+            if (appGoodsOrderMapper.countRetailOrder(order.getOrderId()) > 0) {
+                AppGoodsOrderDetail filter = new AppGoodsOrderDetail(); filter.setOrderId(order.getOrderId());
+                for (AppGoodsOrderDetail detail : orderDetailMapper.selectAppGoodsOrderDetailList(filter)) {
+                    if (appGoodsMapper.releaseStock(detail.getGoodsId(),detail.getGoodsCount()) != 1) throw new ServiceException("库存释放失败");
+                }
+            } else {
+                long count = order.getGoodsCount() != null ? order.getGoodsCount() : 1L;
+                appGoodsMapper.releaseStock(order.getGoodsId(), count);
+            }
         } catch (Exception ex) {
             log.error("释放预占库存失败 orderId={}, goodsId={}", order.getOrderId(), order.getGoodsId(), ex);
+            throw new ServiceException("释放库存失败，请重试");
         }
     }
 

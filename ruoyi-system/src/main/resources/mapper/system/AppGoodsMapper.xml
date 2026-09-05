@@ -50,6 +50,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         left join sys_dept d on g.dept_id = d.dept_id
     </sql>
 
+    <select id="selectRetailGoodsForUpdate" parameterType="Long" resultMap="AppGoodsResult">
+        <include refid="selectAppGoodsVo"/> WHERE goods_id=#{goodsId} FOR UPDATE
+    </select>
     <select id="selectAppGoodsList" parameterType="AppGoods" resultMap="AppGoodsResult">
         <include refid="selectAppGoodsListVo"/>
         <where>

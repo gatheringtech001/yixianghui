@@ -100,6 +100,12 @@ export function getMyCouponList(params) {
 export function createOrder(data) {
 	return request(`${uri}add_goods_order`, 'POST', data)
 }
+export function quoteRetailOrder(data) {
+	return request(`${uri}retail/quote`, 'POST', data)
+}
+export function submitRetailOrder(data) {
+	return request(`${uri}retail/submit`, 'POST', data)
+}
 
 // 购物车
 export function getCartList(params = {}) {

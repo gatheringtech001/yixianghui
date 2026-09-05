@@ -11,8 +11,10 @@ import com.ruoyi.system.domain.AppGoodsOrder;
  * @author lankong
  * @date 2025-04-06
  */
-public interface AppGoodsOrderMapper 
+public interface AppGoodsOrderMapper
 {
+    @org.apache.ibatis.annotations.Select("SELECT COUNT(*) FROM app_supplier_order WHERE order_id=#{orderId}")
+    int countRetailOrder(@org.apache.ibatis.annotations.Param("orderId") Long orderId);
     /**
      * 查询商品订单
      * 

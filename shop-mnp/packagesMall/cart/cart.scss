@@ -25,3 +25,8 @@
 .footer .total { margin-top: 4rpx; color: #701018; font-size: 30rpx; font-weight: 700; }
 .footer button { width: 220rpx; min-height: 76rpx; margin: 0; color: #fff; background: #701018; border-radius: 999rpx; font-size: 28rpx; font-weight: 700; }
 .footer button[disabled] { background: #c9c1bc; }
+.footer { gap: 16rpx; padding: 18rpx 24rpx 26rpx; }
+.footer .select-all { display: flex; gap: 10rpx; align-items: center; flex-shrink: 0; font-size: 26rpx; }
+.footer .hint { max-width: 260rpx; font-size: 22rpx; }
+.footer button { width: 180rpx; border-radius: 12rpx; flex-shrink: 0; }
+.counter button[disabled] { opacity: .45; }

@@ -44,6 +44,9 @@
 	"subPackages": [{
 		"root": "packagesMall",
 		"pages": [{
+			"path": "ConfirmOrder/RetailConfirmOrder",
+			"style": { "navigationBarBackgroundColor": "#EFEBDF", "navigationBarTitleText": "确认订单", "navigationBarTextStyle": "black" }
+		}, {
 			"path": "discover/discover",
 			"style": {
 				"navigationBarBackgroundColor": "#EFEBDF",

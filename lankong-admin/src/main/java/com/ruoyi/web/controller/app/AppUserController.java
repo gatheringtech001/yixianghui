@@ -64,6 +64,8 @@ public class AppUserController extends BaseController
     @Autowired
     private IAppGoodsOrderService goodsOrderService;
     @Autowired
+    private com.ruoyi.system.service.impl.RetailOrderStore retailOrderStore;
+    @Autowired
     private IAppUserAddressService userAddressService;
     @Autowired
     private IAppGoodsOrderDetailService orderDetailService;
@@ -633,6 +635,11 @@ public class AppUserController extends BaseController
         for (int i = 0; i < list.size(); i++) {
             AppGoods goods = goodsService.selectAppGoodsByGoodsId(list.get(i).getGoodsId());
             oneorder = list.get(i);
+            if (retailOrderStore.enrich(oneorder)) {
+                AppGoodsOrderAfter retailAfter = new AppGoodsOrderAfter(); retailAfter.setOrderId(oneorder.getOrderId());
+                oneorder.setOrderAfterList(orderAfterService.selectAppGoodsOrderAfterList(retailAfter));
+                continue;
+            }
             if (goods.getIsSku() == 1) {
                 detailWhere = new AppGoodsOrderDetail();
                 detailWhere.setOrderId(list.get(i).getOrderId());
@@ -688,6 +695,13 @@ public class AppUserController extends BaseController
         AppGoodsOrder goodsOrder = goodsOrderService.selectAppGoodsOrderByOrderId(orderId);
         if (goodsOrder == null || !getUserId().equals(goodsOrder.getUserId())) {
             return error("非法订单");
+        }
+        if (retailOrderStore.enrich(goodsOrder)) {
+            AppGoodsOrderDetail details = new AppGoodsOrderDetail(); details.setOrderId(orderId);
+            goodsOrder.setOrderDetailList(orderDetailService.selectAppGoodsOrderDetailList(details));
+            AppGoodsOrderAfter after = new AppGoodsOrderAfter(); after.setOrderId(orderId);
+            goodsOrder.setOrderAfterList(orderAfterService.selectAppGoodsOrderAfterList(after));
+            return success(goodsOrder);
         }
         if (goodsOrder != null) {
             if ("1".equals(StringUtils.defaultIfBlank(goodsOrder.getPayStatus(), ""))

@@ -29,7 +29,7 @@
 			<view class="goods-list">
 				<view class="list" v-for="(item, index) in orderDetail.goodsList" :key="index">
 					<view class="thumb">
-						<image :src="host + item.goodsCover" mode="aspectFill"></image>
+						<image :src="/^https?:/.test(item.goodsCover) ? item.goodsCover : host + item.goodsCover" mode="aspectFill"></image>
 					</view>
 					<view class="item">
 						<view class="product-name">
@@ -44,7 +44,7 @@
 						</view>
 						<view class="num-size">
 							<text v-if="isHotelOrder">{{ getHotelGoodsMeta() }}</text>
-							<text v-else>数量：{{ orderDetail.goodsCount }}</text>
+							<text v-else>数量：{{ item.orderQuantity || orderDetail.goodsCount }}</text>
 							<text v-if="isEducationOrder && item.unit"> | {{ item.unit }}</text>
 						</view>
 						<view class="price">

@@ -248,6 +248,11 @@
 				let {
 					data
 				} = await getGoodsInfo(id)
+				if (data && data.goodsType === 'online') {
+					const query = this.cartId ? `cartIds=${this.cartId}` : `id=${id}&count=${this.count}`
+					uni.redirectTo({ url: `/packagesMall/ConfirmOrder/RetailConfirmOrder?${query}` })
+					return
+				}
 				if (data && data.goodsType === 'education') {
 					uni.redirectTo({
 						url: `/packagesMall/ConfirmOrder/EducationConfirmOrder?id=${id}`

@@ -49,7 +49,7 @@
 				<view class="goods-list">
 					<view class="goods" v-for="(goods, index) in item.goodsList" :key="index">
 						<view class="thumb">
-							<image :src="host + goods.goodsCover" mode=""></image>
+							<image :src="/^https?:/.test(goods.goodsCover) ? goods.goodsCover : host + goods.goodsCover" mode="aspectFill"></image>
 						</view>
 						<view class="item" :class="{ 'education-item': goods.goodsType === 'education' }">
 							<view class="item-top">
@@ -66,7 +66,7 @@
 										<text class="max">{{ getGoodsLinePrice(item, goods) }}</text>
 										<text class="unit">元</text>
 									</view>
-									<view class="goods-counts">× {{item.goodsCount}}</view>
+									<view class="goods-counts">× {{goods.orderQuantity || item.goodsCount}}</view>
 								</view>
 							</view>
 							<view class="course-meta" v-if="goods.goodsType === 'education'">
@@ -206,6 +206,7 @@
 				return Number.isFinite(payable) ? payable : 0
 			},
 			getGoodsLinePrice(item, goods) {
+				if (goods && goods.orderQuantity) return this.formatMoney(goods.price)
 				const total = this.getOrderAmount(item)
 				const count = Number(item && item.goodsCount) || 1
 				if (total > 0 && count > 0) {

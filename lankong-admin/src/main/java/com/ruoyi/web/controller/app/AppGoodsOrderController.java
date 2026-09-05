@@ -32,6 +32,8 @@ import com.ruoyi.common.core.page.TableDataInfo;
 public class AppGoodsOrderController extends BaseController
 {
     @Autowired
+    private com.ruoyi.system.service.impl.RetailOrderStore retailOrderStore;
+    @Autowired
     private IAppGoodsOrderService appGoodsOrderService;
     @Autowired
     private IAppUserAddressService userAddressService;
@@ -91,7 +93,8 @@ public class AppGoodsOrderController extends BaseController
             afterWhere.setOrderId(orderId);
             appGoodsOrder.setOrderAfterList(orderAfterService.selectAppGoodsOrderAfterList(afterWhere));
         }
-        return success();
+        retailOrderStore.enrich(appGoodsOrder);
+        return success(appGoodsOrder);
     }
 
     /**
