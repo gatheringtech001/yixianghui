@@ -24,13 +24,13 @@ curl --fail-with-body --max-time 80 \
 
 - `answer`：中文答案，引用标记形如 `[S1]`。
 - `grounded`：`true` 表示模型选择了支持答案的原文；`false` 表示资料不足，此时 `sources` 为空。不是经过独立事实审核的置信度。
-- `sources`：实际引用的来源，含 `id`、`title`、`url`、`quote`（原文摘录）、`sourceId`；商品来源还包含 `entityId`、`entityTable`、`productStatus`、`snapshotAt`。
+- `sources`：实际引用的来源，含 `id`、`title`、`url`、`quote`（程序从索引直接取出的原文片段，不由模型抄写）、`sourceId`；商品来源还包含 `entityId`、`entityTable`、`productStatus`、`snapshotAt`。
 - `model`：使用的 Luna 部署名；没有检索候选、不调用模型时可缺省。
 - `retrievedCount`：召回候选数，当前最多 30。
 - `usage.inputTokens`、`usage.outputTokens`：这次 Luna 调用的 token 用量，不包含 embedding 用量；无模型调用时省略。
 
 服务依次执行问题 embedding、Qdrant 混合召回、**一次 Luna 调用完成资料筛选和回答**。问答不会再单独调用 rerank。
-系统校验引用 ID、原文摘录及答案内的引用标记；这不能自动证明每句话都正确，重要业务结论仍需核实。
+系统校验引用 ID 及答案内的引用标记，直接返回该来源的原文片段；这不能自动证明每句话都正确，重要业务结论仍需核实。
 价格、库存、上下架状态来自同步快照，不能作为实时下单承诺。接口当前为单轮问答，不接收会话历史。
 
 ## 仅检索资料

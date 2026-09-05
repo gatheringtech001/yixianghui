@@ -7,7 +7,7 @@ const point = { id: "p1", payload: { title: "建水基地", content: "提供双�
   source_url: "https://example.test/base", source_id: "base-1", source_type: "mysql_catalog",
   entity_id: "1", product_status: "1", snapshot_at: "2026-09-05T00:00:00Z" } };
 const grounded = { answer: "基地提供双人标间，包含三餐。[S1]", grounded: true,
-  citations: [{ id: "S1", quote: "提供双人标间，套餐包含三餐。" }] };
+  citations: [{ id: "S1" }] };
 
 function fixture(output = grounded, points = [point]) {
   const calls = { embedding: 0, retrieval: 0, luna: 0, rerank: 0 };
@@ -35,6 +35,7 @@ test("combined answering invokes Luna exactly once with source-grounded citation
   assert.equal(result.grounded, true);
   assert.equal(result.sources[0].url, point.payload.source_url);
   assert.equal(result.sources[0].entityId, "1");
+  assert.equal(result.sources[0].quote, point.payload.content);
   assert.equal(result.usage.inputTokens, 100);
 });
 
