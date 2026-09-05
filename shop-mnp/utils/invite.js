@@ -34,27 +34,31 @@ export function clearInviteParentUserId() {
 }
 
 const DISTRIBUTION_SOURCE_KEY = 'distributionLaunchSource'
+let distributionLaunchSource = null
+let distributionEntryId = 0
 
 export function saveDistributionLaunchSource(options = {}) {
 	const query = options.query || options
 	const referrer = options.referrerInfo || {}
 	const extraData = referrer.extraData || {}
 	const channelCode = query.channelCode || extraData.channelCode
+	// 渠道只属于本次外部进入，不能用上一次的缓存触发领券。
+	clearDistributionLaunchSource()
 	if (!channelCode || !/^[A-Za-z0-9_-]{2,64}$/.test(String(channelCode))) return
-	const previous = uni.getStorageSync(DISTRIBUTION_SOURCE_KEY) || {}
-	uni.setStorageSync(DISTRIBUTION_SOURCE_KEY, {
+	distributionLaunchSource = {
 		channelCode: String(channelCode),
-		sourceAppId: String(referrer.appId || query.sourceAppId
-			|| (previous.channelCode === String(channelCode) ? previous.sourceAppId : '') || ''),
-		scene: String(options.scene || '')
-	})
+		sourceAppId: String(referrer.appId || query.sourceAppId || ''),
+		scene: String(options.scene || ''),
+		entryId: ++distributionEntryId
+	}
 }
 
 export function getDistributionLaunchSource() {
-	return uni.getStorageSync(DISTRIBUTION_SOURCE_KEY) || null
+	return distributionLaunchSource
 }
 
 export function clearDistributionLaunchSource() {
+	distributionLaunchSource = null
 	uni.removeStorageSync(DISTRIBUTION_SOURCE_KEY)
 }
 
@@ -168,5 +172,10 @@ export function parseLaunchInviteOptions(options) {
 }
 
 export function parseInvitePageOptions(options) {
-	parseLaunchInviteOptions({ query: options || {} })
+	const query = options || {}
+	if (query.channelCode && (!distributionLaunchSource || distributionLaunchSource.channelCode !== String(query.channelCode))) {
+		saveDistributionLaunchSource({query})
+	}
+	if (query.scene) saveInviteParentUserId(query.scene)
+	if (query.parentUserId) saveInviteParentUserId(query.parentUserId)
 }

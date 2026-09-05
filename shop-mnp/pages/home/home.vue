@@ -233,7 +233,8 @@
 	import LocationService from '@/utils/location'
 	import {
 		parseInvitePageOptions,
-		getDistributionLaunchSource
+		getDistributionLaunchSource,
+		clearDistributionLaunchSource
 	} from '@/utils/invite'
 	import { getDistributionOffer, claimDistributionCoupon } from '@/api/member/index'
 	import sharePageMixin from '@/utils/sharePageMixin'
@@ -336,24 +337,30 @@
 		methods: {
 			async loadDistributionOffer() {
 				const source = getDistributionLaunchSource()
-				if (!source) return
+				if (!source) {
+					this.showDistributionCoupon = false
+					this.distributionOfferKey = ''
+					this.loadingDistributionKey = ''
+					return
+				}
 				const user = uni.getStorageSync('userInfo') || {}
-				const key = `${user.userId || 'guest'}:${source.channelCode}:${source.sourceAppId || ''}`
+				const key = `${user.userId || 'guest'}:${source.channelCode}:${source.sourceAppId || ''}:${source.entryId || ''}`
+				if (this.distributionOfferKey === key || this.loadingDistributionKey === key) return
 				if (!uni.getStorageSync('token')) {
 					this.distributionOffer = null
-					this.distributionOfferKey = ''
+					this.distributionOfferKey = key
 					this.showDistributionCoupon = true
 					return
 				}
-				if (this.distributionOfferKey === key || this.loadingDistributionKey === key) return
 				this.loadingDistributionKey = key
 				try {
 					const response = await getDistributionOffer(source)
-					if (this.loadingDistributionKey !== key) return
+					if (this.loadingDistributionKey !== key || getDistributionLaunchSource() !== source) return
 					this.distributionOfferKey = key
 					this.distributionOfferSource = { ...source }
 					this.distributionOffer = response.data
-					this.showDistributionCoupon = true
+					this.showDistributionCoupon = !response.data.claimed
+					if (response.data.claimed) clearDistributionLaunchSource()
 				} catch (error) {
 					console.warn('[distribution] offer unavailable:', error.message)
 				} finally {
@@ -373,13 +380,15 @@
 				}
 				if (this.distributionOffer.claimed) {
 					this.showDistributionCoupon = false
-					this.goToServiceTab()
+					clearDistributionLaunchSource()
 					return
 				}
 				this.claimingCoupon = true
 				try {
 					await claimDistributionCoupon(this.distributionOfferSource)
 					this.distributionOffer.claimed = true
+					this.showDistributionCoupon = false
+					clearDistributionLaunchSource()
 					uni.showToast({ title: '领取成功', icon: 'success' })
 				} catch (error) {
 					uni.showToast({ title: error.message || '领取失败', icon: 'none' })

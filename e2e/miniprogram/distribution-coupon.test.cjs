@@ -10,7 +10,7 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8')
 function homeOfferHarness() {
   const home = read('shop-mnp/pages/home/home.vue')
   const method = home.slice(home.indexOf('async loadDistributionOffer()'), home.indexOf('formatCouponDiscount(percent)'))
-  const state = { source: { channelCode: 'channel-a' }, token: 'session', calls: [], fail: false }
+  const state = { source: { channelCode: 'channel-a' }, token: 'session', calls: [], fail: false, claimed: false }
   const context = {
     uni: { getStorageSync: key => key === 'token' ? state.token : { userId: 7 } },
     getDistributionLaunchSource: () => state.source,
@@ -18,7 +18,7 @@ function homeOfferHarness() {
     getDistributionOffer: async source => {
       state.calls.push(source.channelCode)
       if (state.fail) throw new Error('offline')
-      return { data: { coupon: { channelCode: source.channelCode }, claimed: false } }
+      return { data: { coupon: { channelCode: source.channelCode }, claimed: state.claimed } }
     },
     console: { warn() {} }
   }
@@ -56,7 +56,7 @@ test('guest channel entry exposes a login-to-claim invitation', async () => {
 
 test('WeChat launch scene is not an inviter id; explicit QR invitation remains valid', async () => {
   const storage = new Map()
-  global.uni = { getStorageSync: key => storage.get(key), setStorageSync: (key, value) => storage.set(key, value) }
+  global.uni = { getStorageSync: key => storage.get(key), setStorageSync: (key, value) => storage.set(key, value), removeStorageSync: key => storage.delete(key) }
   const source = read('shop-mnp/utils/invite.js')
   const invite = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`)
   invite.parseLaunchInviteOptions({ scene: 1194, query: { channelCode: 'channel-a' } })
@@ -88,4 +88,45 @@ test('all goods orders can auto-apply a claimed channel coupon', () => {
   assert.match(order, /selectBestChannelCoupon/)
   assert.match(order, /markUsed/)
   assert.match(order, /setMoneyDiscount/)
+})
+
+test('a claimed offer does not display another claim invitation', async () => {
+  const { state, page } = homeOfferHarness()
+  state.claimed = true
+  await page.loadDistributionOffer()
+  assert.equal(page.showDistributionCoupon, false)
+  assert.equal(state.source, null)
+})
+
+test('normal entry closes a previous offer and guest dismissal survives page returns', async () => {
+  const { state, page } = homeOfferHarness()
+  state.token = ''
+  await page.loadDistributionOffer()
+  page.showDistributionCoupon = false
+  await page.loadDistributionOffer()
+  assert.equal(page.showDistributionCoupon, false)
+  state.source = null
+  page.showDistributionCoupon = true
+  await page.loadDistributionOffer()
+  assert.equal(page.showDistributionCoupon, false)
+})
+
+test('launch attribution never revives cached channels and ordinary page navigation keeps only the current entry', () => {
+  const storage = new Map([['distributionLaunchSource', {channelCode: 'old-channel'}]])
+  const context = {module:{exports:{}}, uni:{
+    getStorageSync: key => storage.get(key), setStorageSync: (key, value) => storage.set(key, value),
+    removeStorageSync: key => storage.delete(key)
+  }}
+  const source = read('shop-mnp/utils/invite.js').replace(/export /g, '')
+  vm.runInNewContext(source + ';module.exports={parseLaunchInviteOptions,parseInvitePageOptions,getDistributionLaunchSource}', context)
+  const invite = context.module.exports
+  assert.equal(invite.getDistributionLaunchSource(), null)
+  invite.parseLaunchInviteOptions({scene: 1037, query:{channelCode:'partner-a'}, referrerInfo:{appId:'source-app'}})
+  invite.parseInvitePageOptions({})
+  assert.equal(invite.getDistributionLaunchSource().sourceAppId, 'source-app')
+  invite.parseInvitePageOptions({channelCode:'partner-a'})
+  assert.equal(invite.getDistributionLaunchSource().sourceAppId, 'source-app')
+  invite.parseLaunchInviteOptions({scene:1001, query:{}})
+  assert.equal(invite.getDistributionLaunchSource(), null)
+  assert.equal(storage.has('distributionLaunchSource'), false)
 })
