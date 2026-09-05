@@ -1,5 +1,12 @@
 # 逸享荟知识库接口
 
+## 网页测试入口
+
+`https://gatheringtech.com/knowledge/console/` 提供单轮问答、仅检索、引用原文、媒体时间段和原始 JSON 检查。
+使用现有 `KNOWLEDGE_API_TOKEN` 登录；登录后换取有效期 8 小时的 HttpOnly / Secure / SameSite=Strict 会话，网页不将令牌保存到 localStorage 或 sessionStorage。
+Azure 和 Qdrant 密钥只在服务端。服务重启会使网页会话失效；原有 Bearer API 不受影响。
+页面不存储会话历史、不更改业务数据，不绕过飞书文件权限。引用和商品信息来自同步快照，不代表实时价格、库存或媒体回填已全部完成。
+
 ## 合并问答
 
 `POST https://gatheringtech.com/knowledge/ask`

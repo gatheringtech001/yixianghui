@@ -2,6 +2,7 @@ import http from "node:http";
 import { pathToFileURL } from "node:url";
 import { LunaReranker, LunaRerankError } from "./luna.mjs";
 import { answerQuestion, QuestionInputError } from "./answer.mjs";
+import { createConsoleHandler } from "./console.mjs";
 import {
   AzureModels,
   FeishuSource,
@@ -77,8 +78,15 @@ export function createServer(settings = config()) {
     manifestFile: settings.manifestFile,
   });
   let syncing = null;
+  const consoleHandler = createConsoleHandler({ token: settings.apiToken,
+    origin: process.env.KNOWLEDGE_CONSOLE_ORIGIN ?? "https://gatheringtech.com",
+    query: async ({ mode, question, limit }) => mode === "ask"
+      ? answerQuestion(service, question, limit)
+      : { question, rerankModel: settings.rerank.model, scoreType: "rank_only", results: await service.search(question, limit) },
+  });
   return http.createServer(async (request, response) => {
     try {
+      if (await consoleHandler(request, response)) return;
       if (request.method === "GET" && request.url === "/health") {
         return reply(response, 200, { ok: true, qdrant: await store.health() });
       }
