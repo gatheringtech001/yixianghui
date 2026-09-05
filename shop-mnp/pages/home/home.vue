@@ -72,7 +72,7 @@
 					</view>
 					<view class="secondary-entry-grid">
 						<view class="entry-card" @click="goClassify('云南好物')">
-							<image class="entry-icon" src="/static/navigation-icons/service-yunnan.png" mode="aspectFit" />
+							<image class="entry-bg" src="/static/home-design/entry-yunnan.jpg" mode="aspectFill" />
 							<view class="entry-copy">
 								<text class="entry-title">云南好物</text>
 								<text class="entry-desc">山野风味甄选</text>

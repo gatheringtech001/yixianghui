@@ -427,6 +427,8 @@
 				let image = ''
 				if (item.tags) {
 					tagList = item.tags.split(/[,，|]/)
+						.map(tag => tag.trim())
+						.filter(tag => tag && !['云野集', '云南好物'].includes(tag))
 				}
 				if (item.goodsImages) {
 					image = item.goodsImages.split(',')[0]

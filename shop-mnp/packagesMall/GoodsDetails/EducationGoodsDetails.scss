@@ -185,6 +185,7 @@ $soft: #f7f7f5;
 }
 
 .bottom-action {
+	height: 128rpx;
 	position: fixed;
 	left: 0;
 	right: 0;
@@ -192,8 +193,9 @@ $soft: #f7f7f5;
 	z-index: 20;
 	display: grid;
 	grid-template-columns: 1fr 1fr 1.35fr;
+	align-items: center;
 	gap: 20rpx;
-	padding: 20rpx 28rpx calc(20rpx + env(safe-area-inset-bottom));
+	padding: 14rpx 28rpx 26rpx;
 	background: rgba(255, 255, 255, 0.96);
 	border-top: 1rpx solid $line;
 	box-sizing: border-box;
@@ -202,8 +204,8 @@ $soft: #f7f7f5;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		min-height: 84rpx;
-		border-radius: 16rpx;
+		min-height: 76rpx;
+		border-radius: 12rpx;
 		font-size: 28rpx;
 		font-weight: 760;
 	}

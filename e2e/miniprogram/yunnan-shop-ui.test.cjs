@@ -19,7 +19,7 @@ test('home keeps its structure while adding the requested recommendation and ser
 	assert.ok(yunnanIndex < activityIndex)
 	assert.ok(activityIndex < schoolIndex)
 	assert.match(home, /entry-stay-wide\.jpg/)
-	assert.match(home, /service-yunnan\.png/)
+	assert.match(home, /entry-yunnan\.jpg/)
 })
 
 test('shop pages do not expose membership pricing and use regular price for checkout', () => {

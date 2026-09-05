@@ -200,13 +200,6 @@ $header: #EFEBDF;
 		background: #f3eee9;
 	}
 
-	.entry-icon {
-		display: block;
-		width: 112rpx;
-		height: 112rpx;
-		margin: 14rpx auto 0;
-	}
-
 	.entry-copy {
 		position: absolute;
 		left: 0;
@@ -258,10 +251,10 @@ $header: #EFEBDF;
 		height: 100%;
 		padding: 28rpx;
 		border: 0;
-		background: linear-gradient(90deg, rgba(25, 14, 13, 0.76), rgba(25, 14, 13, 0.06) 78%);
+		background: linear-gradient(90deg, rgba(239, 235, 223, 0.95), rgba(239, 235, 223, 0) 70%);
 	}
-	.entry-title { color: #fff; font-size: 38rpx; }
-	.entry-desc { color: rgba(255, 255, 255, 0.9); font-size: 23rpx; }
+	.entry-title { color: $accent; font-size: 38rpx; }
+	.entry-desc { color: #555; font-size: 23rpx; }
 }
 
 .section-head {

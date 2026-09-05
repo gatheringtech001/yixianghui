@@ -1,5 +1,5 @@
 <template>
-	<view>
+	<view class="goods-detail-page">
 		<view class="goods-head" v-if="PageScrollTop > 200"
 			:style="'background:rgba(255,255,255,' + PageScrollTop / 100 + ')'">
 			<!-- tab切换 -->
@@ -49,37 +49,10 @@
 							<text>分享</text>
 						</button>
 					</view>
-					<view class="list" @click="onAttention">
+					<view class="list" :aria-label="AttentionShow ? '取消收藏' : '收藏商品'" @click="onAttention">
 						<u-icon :name="AttentionShow == 0 ? 'heart' : 'heart-fill'" :color="AttentionShow == 0 ? '#333333' : '#701018'" size="40" />
 						<text>{{ AttentionShow == 0 ? '收藏' : '已收藏' }}</text>
 					</view>
-				</view>
-			</view>
-		</view>
-		<!-- 优惠金币 -->
-		<view class="goods-discounts">
-			<view class="list">
-				<view class="title">金币</view>
-				<view class="content">
-					<text>下单实付1元赠送1金币，退款按退款金额扣回</text>
-				</view>
-				<view class="more">
-					<text class="iconfont icon-more"></text>
-				</view>
-			</view>
-		</view>
-		<view class="goods-discounts" v-if="goodsDetail.goodsType == 'online'">
-			<view class="list" @click="chooseAddress">
-				<view class="title">送至</view>
-				<view class="content">
-					<view class="serve">
-						<text class="iconfont icon-dingwei"></text>
-						<text v-if="address">{{address.provinceName}}{{address.cityName}}{{address.countyName}}</text>
-						<text v-else>请选择收货地址</text>
-					</view>
-				</view>
-				<view class="more">
-					<text class="iconfont icon-more"></text>
 				</view>
 			</view>
 		</view>
@@ -116,7 +89,7 @@
 			</view>
 		</view>
 		<!-- 底部 -->
-		<view class="page-footer" v-if="goodsDetail.goodsType == 'consultation'">
+		<view class="page-footer" v-if="goodsDetail && goodsDetail.goodsType == 'consultation'">
 			<view class="footer-fn long">
 				<view class="list" @click="showContact = true">
 					<text class="iconfont icon-kefu"></text>
@@ -124,7 +97,7 @@
 				</view>
 			</view>
 		</view>
-		<view class="page-footer" v-else>
+		<view class="page-footer" v-else-if="goodsDetail">
 			<view class="footer-fn">
 				<view class="list" @click="showContact = true">
 					<text class="iconfont icon-kefu"></text>
@@ -209,10 +182,6 @@
 		deleteCollect,
 		goodsCollectList
 	} from '@/api/member/index'
-	import {
-		getAddressList,
-		getAddressInfo
-	} from '@/api/member/index'
 	import BaseUrl from '@/api/baseUrl'
 
 	export default {
@@ -229,8 +198,8 @@
 				type: 0,
 				contact: [],
 				showContact: false,
-				address: null,
 				collectId: null,
+				collectPending: false,
 				skuDataList: [],
 				richTextTagStyle: {
 					img: 'width:100%;max-width:100%;display:block;',
@@ -252,7 +221,6 @@
 			this.userInfo = uni.getStorageSync('userInfo')
 			if (!this.userInfo || this.userInfo == '' || this.userInfo == undefined) return
 			else {
-				this.getAddress()
 				this.getCollects()
 			}
 		},
@@ -294,19 +262,6 @@
 					imageUrl: cover ? (cover.startsWith('http') ? cover : this.host + cover) : ''
 				}
 			},
-			async getAddress() {
-				let {
-					rows
-				} = await getAddressList()
-				this.address = rows.find(v => v.isDefault == 1)
-			},
-			// 获取地址详情
-			async getAddressDetail(id) {
-				let {
-					data
-				} = await getAddressInfo(id)
-				this.address = data
-			},
 			async getContactAdList() {
 				let params = {
 					positionId: 2
@@ -342,25 +297,14 @@
 			},
 
 			async getCollects() {
-				let {
-					rows
-				} = await goodsCollectList()
-				if (rows && rows.length > 0) {
-					let item = rows.find(v => v.goodsId == this.goodsId)
-					if (item && item != undefined) {
-						this.AttentionShow = 1
-						this.collectId = item.collectId
-					} else {
-						this.AttentionShow = 0
-						this.collectId = null
-					}
+				try {
+					const { rows } = await goodsCollectList({ goodsId: this.goodsId, collectType: 'goods', status: '1' })
+					const item = (rows || []).find(row => row.goodsId == this.goodsId)
+					this.collectId = item ? item.collectId : null
+					this.AttentionShow = this.collectId ? 1 : 0
+				} catch (error) {
+					uni.showToast({ title: error.message || '收藏状态加载失败', icon: 'none' })
 				}
-			},
-			// 选择收货地址
-			chooseAddress() {
-				uni.navigateTo({
-					url: '/packagesPublic/AddressList/AddressList?type=creatOrder',
-				})
 			},
 			onTab(type) {
 				this.TabShow = type;
@@ -381,44 +325,26 @@
 						break;
 				}
 			},
-			onAttention() {
-				let userInfo = uni.getStorageSync('userInfo')
-				if (!userInfo || userInfo == '' || userInfo == undefined) {
-					uni.showToast({
-						icon: 'none',
-						title: '商品收藏请先登录~'
-					})
-					setTimeout(() => {
-						uni.removeStorageSync('token')
-						uni.removeStorageSync('userInfo')
-						uni.navigateTo({
-							url: '/packagesPublic/login/login'
-						})
-					}, 2000)
-					return
-				}
-				if (this.AttentionShow == 0) {
-					let params = {
-						collectType: 'goods',
-						goodsId: this.goodsDetail.goodsId
-					}
-					goodsCollect(params).then(res => {
-						this.AttentionShow = 1
-						uni.showToast({
-							title: '收藏成功',
-							icon: 'none'
-						})
-					})
-				} else {
-					deleteCollect({
-						collectId: this.collectId
-					}).then(res => {
+			async onAttention() {
+				if (this.collectPending || !this.requireLogin('商品收藏')) return
+				this.collectPending = true
+				try {
+					if (this.collectId) {
+						await deleteCollect({ collectId: this.collectId })
+						this.collectId = null
 						this.AttentionShow = 0
-						uni.showToast({
-							title: '取消成功',
-							icon: 'none'
-						})
-					})
+						uni.showToast({ title: '取消成功', icon: 'none' })
+					} else {
+						const { data } = await goodsCollect({ collectType: 'goods', goodsId: this.goodsDetail.goodsId })
+						if (!data || !data.collectId) throw new Error('收藏结果异常，请刷新后重试')
+						this.collectId = data.collectId
+						this.AttentionShow = 1
+						uni.showToast({ title: '收藏成功', icon: 'none' })
+					}
+				} catch (error) {
+					uni.showToast({ title: error.message || '收藏操作失败', icon: 'none' })
+				} finally {
+					this.collectPending = false
 				}
 			},
 			buyNow(dataId) {

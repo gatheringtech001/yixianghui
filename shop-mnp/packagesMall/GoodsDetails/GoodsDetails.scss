@@ -35,7 +35,7 @@
 		}
 		.action{
 			text{
-				color: #FF7D02;
+				color: #701018;
 				font-size: 32rpx;
 			}
 			.line{
@@ -44,7 +44,7 @@
 				bottom: -10rpx;
 				width: 100%;
 				height: 6rpx;
-				background: #FF7D02;
+				background: #701018;
 			}
 		}
 	}
@@ -702,15 +702,6 @@
 		box-sizing: border-box;
 		overflow: visible;
 		padding-bottom: 80rpx;
-
-		::v-deep img,
-		::v-deep image,
-		::v-deep ._img {
-			max-width: 100% !important;
-			width: 100% !important;
-			height: auto !important;
-			display: block;
-		}
 	}
 }
 /* 底部 */
@@ -725,8 +716,6 @@
 	background-color: #FFFFFF;
 	border-top: 2rpx solid #f6f6f6;
 	padding: 12rpx 24rpx;
-	padding-bottom: constant(safe-area-inset-bottom); /*兼容 IOS<11.2*/
-	padding-bottom: env(safe-area-inset-bottom); /*兼容 IOS>11.2*/
 	.footer-fn{
 		flex: 0 0 200rpx;
 		display: flex;
@@ -989,6 +978,7 @@
 
 /* 逸享荟统一商城视觉：覆盖当前商品详情使用到的旧商城样式。 */
 .page { background: #f7f7f5; color: #111111; }
+.goods-detail-page { padding-bottom: 128rpx; }
 .banner-title { padding-bottom: 0; background: #ffffff; }
 .banner { height: 680rpx; }
 .goods-title {
@@ -1008,7 +998,10 @@
 		.max { font-size: 46rpx; }
 	}
 	.info .list {
-		padding: 0 16rpx;
+		flex: 0 0 96rpx;
+		width: 96rpx;
+		padding: 0;
+		white-space: nowrap;
 		text { color: #555555; font-size: 24rpx; }
 		button { gap: 4rpx; }
 	}
@@ -1026,7 +1019,7 @@
 	.list { padding: 0; }
 }
 .products-introduction {
-	padding: 0 0 130rpx;
+	padding: 0;
 	overflow: hidden;
 	.title {
 		justify-content: flex-start;
@@ -1045,14 +1038,15 @@
 		::v-deep #_top,
 		::v-deep ._root,
 		::v-deep ._rich-text { width: 100% !important; max-width: 100% !important; overflow: visible !important; }
-		::v-deep img,
-		::v-deep image,
-		::v-deep ._img { width: 100% !important; max-width: 100% !important; height: auto !important; display: block !important; }
+		// u-parse 的隐藏图片依赖固定高度和负边距，不能用通用 image 样式覆盖。
 	}
 }
 .page-footer {
+	height: 128rpx;
+	box-sizing: border-box;
+	z-index: 10;
 	gap: 14rpx;
-	padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+	padding: 14rpx 24rpx 26rpx;
 	border-top: 1rpx solid #e8e1d8;
 	box-shadow: 0 -10rpx 30rpx rgba(17, 17, 17, 0.06);
 	.footer-fn .list {
@@ -1066,9 +1060,9 @@
 		.buy-at.compact {
 			flex: 1;
 			width: auto;
-			height: 72rpx;
+			height: 76rpx;
 			margin: 0;
-			border-radius: 999rpx;
+			border-radius: 12rpx;
 			background: #701018;
 			text { color: #ffffff; font-size: 26rpx; font-weight: 760; }
 		}
