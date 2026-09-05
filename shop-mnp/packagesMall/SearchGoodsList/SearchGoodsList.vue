@@ -2,7 +2,7 @@
 	<view class="page">
 		<!-- 搜索 -->
 		<view class="search-head">
-			<view class="icon-info" @click="getSite">
+			<view class="icon-info" v-if="!couponScope" @click="getSite">
 				<text class="cuIcon-location"></text>
 				<text class="city">{{siteInfo.deptName || '昆明'}}</text>
 			</view>
@@ -17,6 +17,9 @@
 		</view>
 		<!-- 商品列表 -->
 		<view class="goods-data">
+			<view v-if="couponScope" class="catalog-state">优惠券适用商品，使用门槛以结算页为准</view>
+			<view v-if="error" class="catalog-state" @click="getGoods">{{ error }}，点击重试</view>
+			<view v-if="loading" class="catalog-state">加载中…</view>
 			<mescroll-body ref="mescrollRef"
 				@init="mescrollInit"
 				@down="downCallback"
@@ -27,7 +30,7 @@
 				<view class="goods-list" v-if="goodsList.length > 0">
 					<view :class="isList?'list-view':'list-li'" v-for="(item,index) in goodsList" @click="onGoodsDetails(item)" :key="index">
 						<view class="thumb">
-							<image :src="host + item.goodsCover" mode="widthFix"></image>
+							<image :src="/^https?:/.test(item.goodsCover) ? item.goodsCover : host + item.goodsCover" mode="widthFix"></image>
 						</view>
 						<view class="item">
 							<view class="title">
@@ -47,7 +50,7 @@
 						</view>
 					</view>
 				</view>
-				<view class="empty" v-else>
+				<view class="empty" v-else-if="!loading && !error">
 					<u-empty text="暂无商品" mode="list"></u-empty>
 				</view>
 			</mescroll-body>
@@ -68,7 +71,8 @@
 		data() {
 			return {
 				host: this.$host,
-				siteInfo: null,
+				siteInfo: {},
+				couponScope: false, loading: false, error: '',
 				mescroll: null, // mescroll实例对象 (此行可删,mixins已默认)
 				// 下拉刷新的配置(可选, 绝大部分情况无需配置)
 				downOption: {},
@@ -89,11 +93,13 @@
 			}
 		},
 		onLoad(option) {
+			this.couponScope = option.couponScope === '1'
 			if(option.keyword) this.goodsName = decodeURIComponent(option.keyword)
 			if(option.categoryId) this.categoryId = option.categoryId
 			this.getGoods()
 		},
 		onShow() {
+			if (this.couponScope) return
 			const prevDeptId = this.siteInfo && this.siteInfo.deptId
 			let site = uni.getStorageSync('site')
 			if (!site || site == undefined) {
@@ -127,25 +133,31 @@
 					url: `/packagesPublic/site/index?id=${this.siteInfo.deptId}`
 				})
 			},
-			getGoods() {
+			async getGoods() {
+				if (this.loading) return
+				this.loading = true
+				this.error = ''
 				let params = {
 					goodsName: this.goodsName,
-					categoryId: this.categoryId
+					categoryId: this.categoryId,
+					ignoreSite: this.couponScope
 				}
-				// console.log(params)
-				getGoodsList(params).then(res => {
+				try {
+					const res = await getGoodsList(params)
 					this.goodsList = res.data
-				})
+					if (this.mescroll) this.mescroll.endSuccess(this.goodsList.length, false)
+				} catch (error) {
+					this.error = error.message || '商品加载失败'
+					if (this.mescroll) this.mescroll.endErr()
+				} finally { this.loading = false }
 			},
 			/*下拉刷新的回调, 有三种处理方式:*/
 			downCallback(){
-				this.mescroll.endSuccess();
+				this.getGoods()
 			},
 			/*上拉加载的回调*/
 			upCallback(page) {
-				setTimeout(() =>{
-					this.mescroll.endByPage(10, 20);
-				},2000)
+				if (!this.loading) this.mescroll.endSuccess(this.goodsList.length, false)
 			},
 			/**
 			 * 返回点击
@@ -172,6 +184,8 @@
 					uni.navigateTo({
 						url: `/packagesMall/GoodsDetails/SojournGoodsDetails?id=${item.goodsId}`
 					})
+				} else if (item.goodsType === 'education') {
+					uni.navigateTo({url:`/packagesMall/GoodsDetails/EducationGoodsDetails?id=${item.goodsId}`})
 				} else {
 					uni.navigateTo({
 						url: `/packagesMall/GoodsDetails/GoodsDetails?id=${item.goodsId}`
@@ -190,4 +204,5 @@
 
 <style scoped lang="scss">
 	@import  'SearchGoodsList.scss';
+	.catalog-state { padding: 24rpx; font-size: 28rpx; color: #701018; text-align: center; }
 </style>
