@@ -24,7 +24,7 @@
 						class="search-input"
 						type="text"
 						v-model="keyword"
-						placeholder="搜索旅居、活动和课程"
+						placeholder="搜索旅居、好物、活动和课程"
 						confirm-type="search"
 						@input="onKeywordInput"
 						@confirm="onSearch"
@@ -152,8 +152,10 @@
 				const image = item.goodsCover || String(item.goodsImages || '').split(',')[0]
 				const typeByGoodsType = {
 					hotel: 'travel',
+					online: 'yunnan',
 					education: 'education'
 				}
+				const price = item.goodsType === 'online' ? item.price : (item.vipPrice || item.price)
 				return {
 					id: item.goodsId,
 					type: typeByGoodsType[item.goodsType] || '',
@@ -162,7 +164,7 @@
 					meta: '',
 					tags: this.parseTags(item.tags),
 					image,
-					priceText: `￥${item.vipPrice || item.price || 0}`
+					priceText: `￥${price || 0}`
 				}
 			},
 			buildActivityResult(item) {
@@ -182,6 +184,7 @@
 				const rows = (goods || []).map(item => this.buildGoodsResult(item)).filter(item => item.type)
 				const definitions = [
 					{ type: 'travel', label: '全国旅居', items: rows.filter(v => v.type === 'travel') },
+					{ type: 'yunnan', label: '云南好物', items: rows.filter(v => v.type === 'yunnan') },
 					{ type: 'activity', label: '聚会活动', items: (activities || []).map(item => this.buildActivityResult(item)) },
 					{ type: 'education', label: '芳华学院', items: rows.filter(v => v.type === 'education') }
 				]
@@ -260,6 +263,7 @@
 			openResult(item) {
 				const paths = {
 					travel: `/packagesMall/GoodsDetails/SojournGoodsDetails?id=${item.id}`,
+					yunnan: `/packagesMall/GoodsDetails/GoodsDetails?id=${item.id}`,
 					education: `/packagesMall/GoodsDetails/EducationGoodsDetails?id=${item.id}`,
 					activity: `/packagesMall/Activity/detail/index?id=${item.id}`
 				}
