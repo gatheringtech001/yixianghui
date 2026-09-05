@@ -122,3 +122,14 @@ test("only the session that retrieved media can preview it, including Range requ
   await request("logout",{},{cookie});
   assert.equal((await request(preview,undefined,{cookie})).status,401);
 });
+test("external public URLs preview directly while private URLs remain links only", async(t)=>{
+  const {request,login}=await fixture(t,async()=>({results:[
+    {sourceType:"external_asset",sourceUrl:"https://example.com/a.jpg",media:{kind:"image",url:"https://example.com/a.jpg",access:"public"}},
+    {sourceType:"external_asset",sourceUrl:"https://example.com/private.jpg",media:{kind:"image",url:"https://example.com/private.jpg",access:"restricted"}},
+  ]}));
+  const cookie=await login();
+  const result=await(await request("query",{mode:"search",question:"image",limit:2},{cookie})).json();
+  assert.equal(result.results[0].media.previewUrl,"https://example.com/a.jpg");
+  assert.equal(result.results[0].media.previewMode,"external-public");
+  assert.equal(result.results[1].media.previewUrl,undefined);
+});

@@ -1,6 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { mediaDescriptor, streamPreview } from "./preview.mjs";
+import { publicMediaUrl } from "./asset-schema.mjs";
 
 const PREFIX = "/knowledge/console/";
 const COOKIE = "yxh_kb_session";
@@ -18,7 +19,7 @@ function securityHeaders(response) {
   response.setHeader("cache-control", "no-store");
   response.setHeader("x-content-type-options", "nosniff");
   response.setHeader("referrer-policy", "no-referrer");
-  response.setHeader("content-security-policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+  response.setHeader("content-security-policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https:; media-src 'self' https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
 }
 
 async function readJson(request) {
@@ -108,6 +109,10 @@ class ConsoleGateway {
   addPreviews(result, session) {
     for (const source of result.sources ?? result.results ?? []) {
       const descriptor = mediaDescriptor(source);
+      if (!descriptor && source.sourceType === "external_asset" && source.media?.access === "public" && publicMediaUrl(source.media.url)) {
+        source.media = { ...source.media, previewUrl: source.media.url, previewMode: "external-public" };
+        continue;
+      }
       if (!descriptor || !this.options.openMedia) continue;
       const id = randomBytes(18).toString("hex");
       if (session.media.size >= 100) session.media.delete(session.media.keys().next().value);

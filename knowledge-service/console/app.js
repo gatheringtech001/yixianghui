@@ -47,11 +47,13 @@ function seconds(value) {
 function renderMedia(media, title) {
   if (!["image", "video"].includes(media?.kind)) return null;
   const container = node("div", undefined, "media-preview");
-  if (!/^\/knowledge\/console\/media\/[a-f0-9]{36}$/.test(media.previewUrl ?? "")) {
+  const external = media.previewMode === "external-public" && safeUrl(media.previewUrl);
+  if (!external && !/^\/knowledge\/console\/media\/[a-f0-9]{36}$/.test(media.previewUrl ?? "")) {
     container.append(node("p", "该来源暂无可用预览，请打开原始媒体核实。", "media-message")); return container;
   }
   const status = node("p", "正在加载原始媒体…", "media-message");
   const element = node(media.kind === "image" ? "img" : "video");
+  element.referrerPolicy = "no-referrer";
   const start = Number.isFinite(media.startSeconds) ? Math.max(0, media.startSeconds) : 0;
   element.src = media.previewUrl + (media.kind === "video" ? "#t=" + start : "");
   element.addEventListener("error", () => { status.hidden = false; status.textContent = "预览加载失败或浏览器不支持此格式，请重新查询或打开飞书原件。"; });
@@ -78,8 +80,9 @@ function renderSource(source, index, mode) {
   const card = node("article", undefined, "source");
   card.id = "source-" + (source.id || index + 1);
   const meta = node("div", undefined, "source-meta");
-  const type = mediaLabel(source.media) || ({ feishu_docx: "飞书文档", mysql_catalog: "商品资料", yuque_media: "媒体分析" }[source.sourceType] || "知识资料");
+  const type = mediaLabel(source.media) || ({ feishu_docx: "飞书文档", mysql_catalog: "商品资料", yuque_media: "媒体分析", external_asset: "外部素材" }[source.sourceType] || "知识资料");
   meta.append(node("span", mode === "ask" ? source.id : `排序 ${source.rank ?? index + 1}`), node("span", type));
+  if (source.asset?.source) meta.append(node("span", "来源：" + source.asset.source), node("span", "素材ID：" + source.asset.id));
   if (source.snapshotAt) meta.append(node("span", "快照 " + String(source.snapshotAt).slice(0, 10)));
   if (mode === "search" && Number.isFinite(source.retrievalScore)) meta.append(node("span", "召回分数 " + source.retrievalScore.toFixed(4)));
   card.append(meta, node("h4", source.title || "未命名来源"));
