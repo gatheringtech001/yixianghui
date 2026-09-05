@@ -5,8 +5,8 @@ import { createConsoleHandler } from "./console.mjs";
 
 const origin = "https://gatheringtech.com";
 const prefix = "/knowledge/console/";
-async function fixture(t, query = async (body) => ({ answer: body.question, grounded: true, sources: [] })) {
-  const handle = createConsoleHandler({ token: "test-query-token", query, origin });
+async function fixture(t, query = async (body) => ({ answer: body.question, grounded: true, sources: [] }), openMedia) {
+  const handle = createConsoleHandler({ token: "test-query-token", query, origin, openMedia });
   const server = http.createServer(async (req, res) => {
     if (!await handle(req, res)) { res.writeHead(404); res.end(); }
   });
@@ -102,4 +102,23 @@ test("parallel queries in a session are rejected until the first finishes", asyn
   assert.equal((await request("query", body, { cookie })).status, 429);
   finish({ answer: "done" });
   assert.equal((await pending).status, 200);
+});
+test("only the session that retrieved media can preview it, including Range requests", async(t)=>{
+  const token="QFHyb2GxUo0OHrxnA4AcREWVnyc";
+  const calls=[];
+  const {request,login}=await fixture(t,async()=>({results:[{sourceUrl:`https://vcnnjnb870d6.feishu.cn/file/${token}`,media:{kind:"video",fileToken:token}}]}),async(descriptor,options)=>{
+    calls.push({descriptor,range:options.range});
+    return new Response(new Uint8Array([0,1,2,3]),{status:206,headers:{"content-type":"video/mp4","content-length":"4","content-range":"bytes 0-3/100"}});
+  });
+  const cookie=await login();
+  const result=await(await request("query",{mode:"search",question:"video",limit:1},{cookie})).json();
+  const preview=result.results[0].media.previewUrl.slice(prefix.length);
+  assert.ok(!preview.includes(token));
+  assert.equal((await request(preview)).status,401);
+  assert.equal((await request(preview,undefined,{cookie:await login()})).status,404);
+  const response=await request(preview,undefined,{cookie,range:"bytes=0-3"});
+  assert.equal(response.status,206); assert.equal(response.headers.get("content-range"),"bytes 0-3/100");
+  assert.equal((await response.arrayBuffer()).byteLength,4);assert.equal(calls.length,1);
+  await request("logout",{},{cookie});
+  assert.equal((await request(preview,undefined,{cookie})).status,401);
 });

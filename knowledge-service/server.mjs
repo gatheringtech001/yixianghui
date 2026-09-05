@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 import { LunaReranker, LunaRerankError } from "./luna.mjs";
 import { answerQuestion, QuestionInputError } from "./answer.mjs";
 import { createConsoleHandler } from "./console.mjs";
+import { openFeishuMedia } from "./preview.mjs";
 import {
   AzureModels,
   FeishuSource,
@@ -79,6 +80,7 @@ export function createServer(settings = config()) {
   });
   let syncing = null;
   const consoleHandler = createConsoleHandler({ token: settings.apiToken,
+    openMedia: (descriptor, options) => openFeishuMedia(service.source, descriptor, options),
     origin: process.env.KNOWLEDGE_CONSOLE_ORIGIN ?? "https://gatheringtech.com",
     query: async ({ mode, question, limit }) => mode === "ask"
       ? answerQuestion(service, question, limit)
