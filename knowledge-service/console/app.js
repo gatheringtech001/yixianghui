@@ -44,6 +44,36 @@ function seconds(value) {
   const n = Math.max(0, Math.floor(Number(value)));
   return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
 }
+function renderMedia(media, title) {
+  if (!["image", "video"].includes(media?.kind)) return null;
+  const container = node("div", undefined, "media-preview");
+  if (!/^\/knowledge\/console\/media\/[a-f0-9]{36}$/.test(media.previewUrl ?? "")) {
+    container.append(node("p", "该来源暂无可用预览，请打开原始媒体核实。", "media-message")); return container;
+  }
+  const status = node("p", "正在加载原始媒体…", "media-message");
+  const element = node(media.kind === "image" ? "img" : "video");
+  const start = Number.isFinite(media.startSeconds) ? Math.max(0, media.startSeconds) : 0;
+  element.src = media.previewUrl + (media.kind === "video" ? "#t=" + start : "");
+  element.addEventListener("error", () => { status.hidden = false; status.textContent = "预览加载失败或浏览器不支持此格式，请重新查询或打开飞书原件。"; });
+  if (media.kind === "image") {
+    element.alt = title || "检索命中的原图"; element.loading = "lazy";
+    element.addEventListener("load", () => { status.hidden = true; });
+    const link = node("a", "查看原图", "source-link"); link.href = media.previewUrl; link.target = "_blank"; link.rel = "noopener noreferrer";
+    container.append(element, status, link);
+  } else {
+    element.controls = true; element.playsInline = true; element.preload = "metadata";
+    element.setAttribute("aria-label", (title || "检索命中视频") + "预览");
+    element.addEventListener("loadedmetadata", () => { if (start < element.duration) element.currentTime = start; });
+    element.addEventListener("loadeddata", () => { status.hidden = true; });
+    const play = node("button", "从命中片段播放", "quiet"); play.type = "button";
+    play.addEventListener("click", async () => {
+      try { element.currentTime = Math.min(start, element.duration || start); await element.play(); }
+      catch { status.hidden = false; status.textContent = "视频暂时无法播放，请重试或打开原始文件。"; }
+    });
+    container.append(element, status, play);
+  }
+  return container;
+}
 function renderSource(source, index, mode) {
   const card = node("article", undefined, "source");
   card.id = "source-" + (source.id || index + 1);
@@ -57,6 +87,8 @@ function renderSource(source, index, mode) {
   if (media?.kind === "video" && Number.isFinite(media.startSeconds) && Number.isFinite(media.endSeconds)) card.append(node("p", `命中时间段：${seconds(media.startSeconds)} – ${seconds(media.endSeconds)}`));
   if (media?.page) card.append(node("p", `页码：${media.page}`));
   if (media?.folderPath) card.append(node("p", "素材路径：" + media.folderPath));
+  const preview = renderMedia(media, source.title);
+  if (preview) card.append(preview);
   const details = node("details");
   if (index === 0) details.open = true;
   details.append(node("summary", "查看引用原文"), node("blockquote", source.quote ?? source.content ?? "此来源没有返回原文片段。"));
