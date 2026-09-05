@@ -221,6 +221,11 @@
 			syncOrderAmount() {
 				getOrderDetail({ orderId: this.orderId }).then(res => {
 					const data = res && res.data
+					if (data && String(data.payStatus) === '1') {
+						this.clearDeadlineStorage()
+						this.goOrder()
+						return
+					}
 					if (!data) {
 						this.initPayDeadline()
 						this.startCountdown()

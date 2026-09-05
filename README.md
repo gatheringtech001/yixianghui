@@ -1,3 +1,13 @@
+# 逸享荟
+
+逸享荟微信小程序、运营后台与独立旅居知识库服务的源码仓库。
+
+- [当前架构与开发契约](docs/00-开发须知.md)
+- [2026-09-05 架构审查与修复记录](docs/02-设计文档/架构审查-2026-09-05.md)
+- [待执行的业务表事务引擎迁移](sql/commerce_transaction_engines.sql)
+
+下文保留原 RuoYi 框架说明；演示账号、外部演示地址及框架功能列表不代表逸享荟生产配置或验收结果。
+
 <p align="center">
 	<img alt="logo" src="https://oscimg.oschina.net/oscnet/up-d3d0a9303e11d522a06cd263f3079027715.png">
 </p>

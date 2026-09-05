@@ -4,12 +4,18 @@
 
 export function saveInviteParentUserId(sceneOrId) {
 	if (sceneOrId === undefined || sceneOrId === null || sceneOrId === '') return
-	let raw = decodeURIComponent(String(sceneOrId)).trim()
+	let raw
+	try {
+		raw = decodeURIComponent(String(sceneOrId)).trim()
+	} catch (error) {
+		return
+	}
 	if (raw.indexOf('u') === 0) {
 		raw = raw.substring(1)
 	}
-	const id = parseInt(raw, 10)
-	if (Number.isNaN(id) || id <= 0) return
+	if (!/^\d+$/.test(raw)) return
+	const id = Number(raw)
+	if (!Number.isSafeInteger(id) || id <= 0) return
 
 	const userInfo = uni.getStorageSync('userInfo')
 	if (userInfo && userInfo.userId && Number(userInfo.userId) === id) {
@@ -148,9 +154,6 @@ export function buildInviteScene() {
 export function parseLaunchInviteOptions(options) {
 	if (!options) return
 	saveDistributionLaunchSource(options)
-	if (options.scene) {
-		saveInviteParentUserId(options.scene)
-	}
 	if (options.parentUserId) {
 		saveInviteParentUserId(options.parentUserId)
 	}
@@ -165,5 +168,5 @@ export function parseLaunchInviteOptions(options) {
 }
 
 export function parseInvitePageOptions(options) {
-	parseLaunchInviteOptions(options)
+	parseLaunchInviteOptions({ query: options || {} })
 }

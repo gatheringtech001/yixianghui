@@ -287,7 +287,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
             throw new ServiceException("请填写报名人数");
         }
 
-        AppActivity activity = appActivityMapper.selectAppActivityByActivityId(order.getActivityId());
+        AppActivity activity = appActivityMapper.selectAppActivityByActivityIdForUpdate(order.getActivityId());
         if (activity == null || !"1".equals(activity.getStatus())) {
             throw new ServiceException("活动未开放报名");
         }
@@ -348,7 +348,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
             throw new ServiceException("请填写报名人数");
         }
 
-        AppActivity activity = appActivityMapper.selectAppActivityByActivityId(order.getActivityId());
+        AppActivity activity = appActivityMapper.selectAppActivityByActivityIdForUpdate(order.getActivityId());
         if (activity == null || !"1".equals(activity.getStatus())) {
             throw new ServiceException("活动未开放报名");
         }
@@ -395,12 +395,17 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
         order.setPayStatus("0");
         order.setMoneyPayable(unitPrice.multiply(new BigDecimal(count)));
         order.setPayMoney(BigDecimal.ZERO);
-        order.setOrderNo("30" + DateUtils.dateTimeNow() + order.getActivityId());
+        order.setOrderNo(null);
         order.setCreateTime(DateUtils.getNowDate());
         int rows = appActivityOrderMapper.insertAppActivityOrder(order);
         if (rows <= 0) {
             throw new ServiceException("订单创建失败");
         }
+        order.setOrderNo("30" + order.getOrderId());
+        AppActivityOrder numbered = new AppActivityOrder();
+        numbered.setOrderId(order.getOrderId());
+        numbered.setOrderNo(order.getOrderNo());
+        appActivityOrderMapper.updateAppActivityOrder(numbered);
         return order;
     }
 
@@ -565,12 +570,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
             request.setMchid(merchantId);
             request.setDescription("活动报名-" + activity.getActivityName());
             request.setNotifyUrl(payNotifyUrl);
-            if (payLog == null) {
-                request.setOutTradeNo(order.getOrderNo());
-            } else {
-                order.setOrderNo("30" + DateUtils.dateTimeNow() + order.getActivityId());
-                request.setOutTradeNo(order.getOrderNo());
-            }
+            request.setOutTradeNo(order.getOrderNo());
 
             ZonedDateTime expireAt;
             if (order.getCreateTime() != null) {

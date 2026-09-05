@@ -41,7 +41,7 @@ import com.wechat.pay.java.core.util.PemUtil;
 import com.wechat.pay.java.service.ecommercerefund.model.CreateRefundRequest;
 import com.wechat.pay.java.service.ecommercerefund.model.RefundAmount;
 import com.wechat.pay.java.service.ecommercerefund.model.RefundReqAmount;
-import com.wechat.pay.java.service.partnerpayments.jsapi.model.Transaction;
+import com.wechat.pay.java.service.payments.model.Transaction;
 import com.wechat.pay.java.service.payments.jsapi.JsapiService;
 import com.wechat.pay.java.service.payments.jsapi.JsapiServiceExtension;
 import com.wechat.pay.java.service.payments.jsapi.model.*;
@@ -163,7 +163,11 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     @Transactional(rollbackFor = Exception.class)
     public AppGoodsOrder insertAppGoodsOrder(AppGoodsOrder order)
     {
-        AppGoods goods = order.getGoodsList().get(0);
+        if (order == null || order.getGoodsId() == null) {
+            throw new ServiceException("商品无效");
+        }
+        AppGoods goods = appGoodsMapper.selectAppGoodsByGoodsId(order.getGoodsId());
+        order = NewGoodsOrderPolicy.prepare(order, goods);
         validateEducationOrder(order, goods);
 
         order.setCreateTime(DateUtils.getNowDate());
@@ -181,27 +185,16 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         }
         Integer isSku = goods.getIsSku();
         if (isSku == null || isSku != 1) {
-            int dateinter = -1;
-            if (null != order.getCheckInDate() && null != order.getCheckOutDate()) {
-                dateinter = DateUtils.differentDaysByMillisecond(order.getCheckInDate(), order.getCheckOutDate());
+            BigDecimal unitPrice = "online".equals(goods.getGoodsType()) ? goods.getPrice() : goods.getVipPrice();
+            if (unitPrice == null || unitPrice.signum() <= 0) {
+                throw new ServiceException("商品价格未配置");
             }
-            if (dateinter > -1) {
-                if (order.getGoodsCount() != null && order.getGoodsCount() > 1) {
-                    order.setMoneyPayable(new BigDecimal(dateinter).multiply(order.getGoodsList().get(0).getVipPrice()).multiply(new BigDecimal(order.getGoodsCount())));
-                    order.setPayMoney(new BigDecimal(dateinter).multiply(order.getGoodsList().get(0).getVipPrice()).multiply(new BigDecimal(order.getGoodsCount())));
-                } else {
-                    order.setMoneyPayable(new BigDecimal(dateinter).multiply(order.getGoodsList().get(0).getVipPrice()));
-                    order.setPayMoney(new BigDecimal(dateinter).multiply(order.getGoodsList().get(0).getVipPrice()));
-                }
-            } else {
-                if (order.getGoodsCount() != null && order.getGoodsCount() > 1) {
-                    order.setMoneyPayable(order.getGoodsList().get(0).getVipPrice().multiply(new BigDecimal(order.getGoodsCount())));
-                    order.setPayMoney(order.getGoodsList().get(0).getVipPrice().multiply(new BigDecimal(order.getGoodsCount())));
-                } else {
-                    order.setMoneyPayable(order.getGoodsList().get(0).getVipPrice());
-                    order.setPayMoney(order.getGoodsList().get(0).getVipPrice());
-                }
+            BigDecimal total = unitPrice.multiply(BigDecimal.valueOf(order.getGoodsCount()));
+            if ("hotel".equals(goods.getGoodsType())) {
+                total = total.multiply(BigDecimal.valueOf(order.getInterCount()));
             }
+            order.setMoneyPayable(total.setScale(2, RoundingMode.HALF_UP));
+            order.setPayMoney(order.getMoneyPayable());
         }
         // todo 上述代码可以删除
         //AppGoodsSkuData skuData = new AppGoodsSkuData();
@@ -225,12 +218,20 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             if (sku == null) {
                 throw new ServiceException("未找到房型/套餐规格，无法下单");
             }
+            NewGoodsOrderPolicy.requireOwnedSku(goods, sku);
+            if (!"200".equals(sku.getSkuType()) && !"202".equals(sku.getSkuType())) {
+                throw new ServiceException("请选择房型或住宿套餐");
+            }
             if (!isSkuEnabled(sku)) {
                 throw new ServiceException("所选房型或套餐已停用，请返回重新选择");
             }
             if (order.getSelfSkuId() != null && order.getSelfSkuId() > 0) {
                 if (selsku == null) {
                     throw new ServiceException("未找到供餐方案，请返回重新选择");
+                }
+                NewGoodsOrderPolicy.requireOwnedSku(goods, selsku);
+                if (!isSkuEnabled(selsku)) {
+                    throw new ServiceException("供餐方案已停用");
                 }
             }
             if (order.getInterCount() == null || order.getInterCount() <= 0) {
@@ -304,12 +305,27 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         }
         /*order.setMoneyPayable(order.getGoodsList().get(0).getVipPrice());
         order.setPayMoney(order.getGoodsList().get(0).getVipPrice());*/
+        order.setMoneyTotal(order.getMoneyPayable());
         AppGoodsCouponGot usedCoupon = applyCoupon(order, goods);
+        if (usedCoupon != null && order.getMoneyPayable().signum() == 0) {
+            order.setStatus("1");
+            order.setPayStatus("1");
+            order.setPayType("coupon");
+            order.setPayTime(DateUtils.getNowDate());
+            if ("hotel".equals(goods.getGoodsType())) {
+                order.setTravelStatus(TravelOrderStatusPolicy.CONFIRMED);
+            }
+        }
         reserveStockIfNeeded(order, goods);
         int rs = appGoodsOrderMapper.insertAppGoodsOrder(order);
+        if (rs != 1 || order.getOrderId() == null) {
+            throw new ServiceException("订单创建失败");
+        }
         if (rs > 0) {
-            order.setOrderNo("20" + DateUtils.dateTimeNow() + order.getGoodsId());
-            appGoodsOrderMapper.updateAppGoodsOrder(order);
+            order.setOrderNo("20" + order.getOrderId());
+            if (appGoodsOrderMapper.updateAppGoodsOrder(order) != 1) {
+                throw new ServiceException("订单编号保存失败");
+            }
             if (usedCoupon != null) {
                 BigDecimal discount = order.getMoneyDiscount();
                 if (couponGotMapper.markUsed(usedCoupon.getGotId(), order.getOrderId(), discount) != 1) {
@@ -344,7 +360,9 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             if(null!= order.getCheckOutDate()){
                 orderDetail.setOrderEndDate(order.getCheckOutDate());
             }
-            orderDetailMapper.insertAppGoodsOrderDetail(orderDetail);
+            if (orderDetailMapper.insertAppGoodsOrderDetail(orderDetail) != 1) {
+                throw new ServiceException("订单明细保存失败");
+            }
             List<AppGoodsOrderDetail> detailList = new ArrayList<>();
             detailList.add(orderDetail);
             order.setOrderDetailList(detailList);
@@ -556,6 +574,21 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
      */
     @Override
     public AjaxResult wxpayPrepay(AppGoodsOrder goodsOrder) {
+        if (goodsOrder == null || goodsOrder.getOrderId() == null) {
+            return AjaxResult.error("非法订单");
+        }
+        goodsOrder = appGoodsOrderMapper.selectAppGoodsOrderByOrderId(goodsOrder.getOrderId());
+        if (goodsOrder == null || !"0".equals(goodsOrder.getStatus()) || !"0".equals(goodsOrder.getPayStatus())) {
+            return AjaxResult.error("订单已关闭或已支付");
+        }
+        if (goodsOrder.getMoneyPayable() == null || goodsOrder.getMoneyPayable().signum() <= 0) {
+            return AjaxResult.error("订单金额无效");
+        }
+        goodsOrder.setGoodsList(java.util.Collections.singletonList(
+                appGoodsMapper.selectAppGoodsByGoodsId(goodsOrder.getGoodsId())));
+        AppGoodsOrderDetail detailQuery = new AppGoodsOrderDetail();
+        detailQuery.setOrderId(goodsOrder.getOrderId());
+        goodsOrder.setOrderDetailList(orderDetailMapper.selectAppGoodsOrderDetailList(detailQuery));
         AjaxResult rs = AjaxResult.error();
         try {
             //goodsOrder.setMoneyPayable(new BigDecimal(0.01));
@@ -582,13 +615,8 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             request.setMchid(merchantId);
             request.setDescription("购买" + goodsOrder.getGoodsList().get(0).getGoodsName());
             request.setNotifyUrl(payNotifyUrl);
-            //检查商户订单号重复是否重复
-            if(null == payLog) {
-                request.setOutTradeNo(goodsOrder.getOrderNo());
-            }else{
-                goodsOrder.setOrderNo("20" + DateUtils.dateTimeNow() + goodsOrder.getGoodsId());
-                request.setOutTradeNo(goodsOrder.getOrderNo());
-            }
+            // 同一订单重试复用商户单号，避免生成可重复支付的交易。
+            request.setOutTradeNo(goodsOrder.getOrderNo());
 
             // 支付截止时间与订单创建时间 + 30 分钟对齐（同收银台/关单任务）
             // 微信要求 time_expire 至少为下单后 1 分钟
@@ -608,7 +636,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             request.setTimeExpire(expireAt.format(formatter));
             request.setGoodsTag(goodsOrder.getGoodsList().get(0).getTags());
             Amount amount = new Amount();
-            amount.setTotal(goodsOrder.getMoneyPayable().multiply(new BigDecimal(100)).intValue());
+            amount.setTotal(goodsOrder.getMoneyPayable().multiply(new BigDecimal(100)).intValueExact());
             amount.setCurrency("CNY");
             request.setAmount(amount);
             Payer payer = new Payer();
@@ -881,6 +909,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String wxpayNotify(HttpServletRequest request) {
 //        log.info("------收到支付通知------");
         // 请求头WeChat-Signature
@@ -906,10 +935,12 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
 
         NotificationParser parser = new NotificationParser(wxPayNotificationConfig);
         // 以支付通知回调为例，验签、解密并转换成 Transaction
-        log.info("验签参数：{}", requestParam);
         Transaction transaction = parser.parse(requestParam, Transaction.class);
-        log.info("验签成功！-支付回调结果：{}", transaction.toString());
+        log.info("支付回调验签成功 outTradeNo={}", transaction.getOutTradeNo());
+        return handleVerifiedPayment(transaction);
+    }
 
+    String handleVerifiedPayment(Transaction transaction) {
         AppPayLog payLog = payLogService.selectAppPayLogByPayNo(transaction.getOutTradeNo());
        /* payLog.setNotifyContent(transaction.toString());
         payLogService.insertAppPayLog(payLog);
@@ -919,6 +950,16 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         returnMap.put("message", "失败");
         if(null==payLog){
             log.error("订单不存在，非法调用");
+            return JSONObject.toJSONString(returnMap);
+        }
+        if (!Objects.equals(appId, transaction.getAppid())
+                || !Objects.equals(merchantId, transaction.getMchid())
+                || transaction.getTradeState() != Transaction.TradeStateEnum.SUCCESS
+                || transaction.getAmount() == null || transaction.getAmount().getTotal() == null
+                || !"CNY".equals(transaction.getAmount().getCurrency())
+                || payLog.getPayMoney() == null
+                || payLog.getPayMoney().compareTo(BigDecimal.valueOf(transaction.getAmount().getTotal())) != 0) {
+            log.error("支付回调商户、状态或金额不匹配 payNo={}", payLog.getPayNo());
             return JSONObject.toJSONString(returnMap);
         }
         // 已处理过的支付日志：幂等返回成功；仍尝试补赠币（防回调中断漏赠）
@@ -936,7 +977,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         AppUserCard userCard = null;
         AppActivityOrder activityOrder = null;
         if(payLog.getPayNo().startsWith("20")) {
-            goodsOrder = appGoodsOrderMapper.selectAppGoodsOrderByOrderId(payLog.getOrderId());
+            goodsOrder = appGoodsOrderMapper.selectAppGoodsOrderByOrderIdForUpdate(payLog.getOrderId());
             if (Objects.isNull(goodsOrder)) {
                 log.error("订单不存在，非法调用");
                 return JSONObject.toJSONString(returnMap);
@@ -953,9 +994,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                     returnMap.put("message", "成功");
                     return JSONObject.toJSONString(returnMap);
                 }
-                log.warn("商品订单非待支付且未成功支付，payStatus={}, orderId={}", goodsOrder.getPayStatus(), goodsOrder.getOrderId());
-                returnMap.put("code", "SUCCESS");
-                returnMap.put("message", "成功");
+                log.error("已关闭商品订单收到支付成功回调，需对账 orderId={}", goodsOrder.getOrderId());
                 return JSONObject.toJSONString(returnMap);
             }
         }else if(payLog.getPayNo().startsWith("10")) {
@@ -972,8 +1011,6 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             }
             if ("2".equals(userCard.getStatus()) || "3".equals(userCard.getStatus())) {
                 log.warn("会员卡开通单已失效/过期，recordId={}, status={}", userCard.getRecordId(), userCard.getStatus());
-                returnMap.put("code", "SUCCESS");
-                returnMap.put("message", "成功");
                 return JSONObject.toJSONString(returnMap);
             }
         }else if(payLog.getPayNo().startsWith("30")) {
@@ -993,46 +1030,17 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                     returnMap.put("message", "成功");
                     return JSONObject.toJSONString(returnMap);
                 }
-                log.warn("活动订单非待支付且未成功支付，payStatus={}, orderId={}", activityOrder.getPayStatus(), activityOrder.getOrderId());
-                returnMap.put("code", "SUCCESS");
-                returnMap.put("message", "成功");
+                log.error("已关闭活动订单收到支付成功回调，需对账 orderId={}", activityOrder.getOrderId());
                 return JSONObject.toJSONString(returnMap);
             }
         }
-        payLog.setNotifyContent(transaction.toString());
-        //获取支付状态
-        Transaction.TradeStateEnum tradeState = transaction.getTradeState();
-
-        //如果微信响应 非 支付成功，不做处理 直接返回
-        if (!tradeState.equals(Transaction.TradeStateEnum.SUCCESS)) {
-            log.error("订单未支付成功，状态为【{}】", tradeState);
-            payLog.setStatus("2");
-            payLog.setUpdateTime(DateUtils.getNowDate());
-            payLogService.updateAppPayLog(payLog);
-            if(null!=goodsOrder) {
-                goodsOrder.setPayStatus("2");
-            }
-            if(tradeState.equals(Transaction.TradeStateEnum.REVOKED) ||
-                    tradeState.equals(Transaction.TradeStateEnum.NOTPAY) ||
-                    tradeState.equals(Transaction.TradeStateEnum.CLOSED)){
-                if(null!=goodsOrder) {
-                    goodsOrder.setStatus("2");
-                    if (goodsOrder.getTravelStatus() != null) {
-                        goodsOrder.setTravelStatus(TravelOrderStatusPolicy.CANCELLED);
-                    }
-                }
-            }
-            if(null!=goodsOrder) {
-                appGoodsOrderMapper.updateAppGoodsOrder(goodsOrder);
-            }
+        if (goodsOrder == null && userCard == null && activityOrder == null) {
             return JSONObject.toJSONString(returnMap);
         }
 
         payLog.setPayMoney(new BigDecimal(transaction.getAmount().getTotal()));
         payLog.setUpdateTime(DateUtils.getNowDate());
         payLog.setNotifyContent(transaction.toString());
-        payLog.setStatus("1");
-        payLogService.updateAppPayLog(payLog);
 
         // 如果微信响应支付成功，且当前状态为待支付，修改订单状态为已支付
         if(null!=goodsOrder) {
@@ -1052,6 +1060,9 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         if(null!=activityOrder){
             activityOrderService.handlePaySuccess(activityOrder, payLog.getPayMoney());
         }
+
+        payLog.setStatus("1");
+        payLogService.updateAppPayLog(payLog);
 
         // 统一金币服务赠币（幂等；会员受 gold.scope.card 控制，默认关闭）
         try {
@@ -1443,9 +1454,8 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                     .build();
 
             NotificationParser parser = new NotificationParser(wxPayNotificationConfig);
-            log.info("退款验签参数：{}", requestParam);
             RefundNotification refundNotification = parser.parse(requestParam, RefundNotification.class);
-            log.info("退款回调结果：{}", refundNotification);
+            log.info("退款回调验签成功 outRefundNo={}", refundNotification.getOutRefundNo());
 
             AppPayRefundLog appPayRefundLog = null;
             if (StringUtils.isNotEmpty(refundNotification.getRefundId())) {
@@ -1821,7 +1831,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             if (order == null || order.getOrderId() == null) {
                 continue;
             }
-            AppGoodsOrder latest = appGoodsOrderMapper.selectAppGoodsOrderByOrderId(order.getOrderId());
+            AppGoodsOrder latest = appGoodsOrderMapper.selectAppGoodsOrderByOrderIdForUpdate(order.getOrderId());
             if (latest == null || !"0".equals(StringUtils.defaultIfBlank(latest.getPayStatus(), ""))) {
                 continue;
             }
@@ -1849,7 +1859,6 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     @Override
     public void releaseCouponIfNeeded(AppGoodsOrder order) {
         if (order == null || order.getOrderId() == null
-                || StringUtils.isEmpty(order.getDistributionChannelCode())
                 || !StringUtils.defaultString(order.getCouponGotIds()).matches("\\d+")) {
             return;
         }

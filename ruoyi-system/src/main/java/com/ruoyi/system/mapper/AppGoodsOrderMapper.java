@@ -21,6 +21,8 @@ public interface AppGoodsOrderMapper
      */
     public AppGoodsOrder selectAppGoodsOrderByOrderId(Long orderId);
 
+    AppGoodsOrder selectAppGoodsOrderByOrderIdForUpdate(Long orderId);
+
     /**
      * 查询商品订单列表
      * 

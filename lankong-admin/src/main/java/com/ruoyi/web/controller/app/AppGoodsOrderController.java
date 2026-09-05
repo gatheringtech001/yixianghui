@@ -3,26 +3,13 @@ package com.ruoyi.web.controller.app;
 import io.swagger.annotations.Api;
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 
-import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.system.domain.*;
 import com.ruoyi.system.service.*;
-import com.ruoyi.web.core.config.WxPayConfig;
-import com.wechat.pay.java.core.Config;
-import com.wechat.pay.java.core.exception.HttpException;
-import com.wechat.pay.java.core.exception.MalformedMessageException;
-import com.wechat.pay.java.service.payments.jsapi.JsapiServiceExtension;
-import com.wechat.pay.java.service.payments.jsapi.model.Amount;
-import com.wechat.pay.java.service.payments.jsapi.model.Payer;
-import com.wechat.pay.java.service.payments.jsapi.model.PrepayRequest;
-import com.wechat.pay.java.service.payments.jsapi.model.PrepayWithRequestPaymentResponse;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -44,7 +31,6 @@ import com.ruoyi.common.core.page.TableDataInfo;
 @Api(tags = "商品订单管理")
 public class AppGoodsOrderController extends BaseController
 {
-    private static Logger log = LoggerFactory.getLogger(AppGoodsOrderController.class);
     @Autowired
     private IAppGoodsOrderService appGoodsOrderService;
     @Autowired
@@ -56,14 +42,6 @@ public class AppGoodsOrderController extends BaseController
     @Autowired
     private IAppGoodsService goodsService;
 
-    @Autowired
-    private IAppUserInfoService userInfoService;
-
-    @Resource
-    private WxPayConfig wxPayConfig;
-
-    @Autowired
-    private Config wxPayConfigRuntime;
 
     /**
      * 查询商品订单列表
@@ -149,44 +127,14 @@ public class AppGoodsOrderController extends BaseController
     public AjaxResult pay(AppGoodsOrder goodsOrder)
     {
 
-        String orderId = goodsOrder.getOrderId() + "";
-        String payMoney = "1";
-
-        AjaxResult ajaxResult = AjaxResult.success();
-        JsapiServiceExtension service =
-                new JsapiServiceExtension.Builder()
-                        .config(wxPayConfigRuntime)
-                        // 不填默认为RSA
-                        .signType("RSA")
-                        .build();
-        AppUserInfo userInfo = userInfoService.selectAppUserInfoByUserId(getUserId());
-        try {
-            PrepayRequest request = new PrepayRequest();
-            request.setAppid(wxPayConfig.getAppId());
-            request.setMchid(wxPayConfig.getMerchantId());
-            request.setDescription("描述");
-            request.setOutTradeNo(orderId);
-            // 支付成功后的回调地址
-            request.setNotifyUrl(wxPayConfig.getPayNotifyUrl());
-            Amount amount = new Amount();
-            amount.setTotal(Integer.valueOf(payMoney));
-            request.setAmount(amount);
-            Payer payer = new Payer();
-            payer.setOpenid(userInfo.getWeixinOpenid());
-            request.setPayer(payer);
-            // 调用预下单接口
-            PrepayWithRequestPaymentResponse response = service.prepayWithRequestPayment(request);
-            log.info("订单【{}】发起预支付成功，返回信息：{}", orderId, response);
-        } catch (HttpException e) { // 发送HTTP请求失败
-            log.error("微信下单发送HTTP请求失败，错误信息：{}", e.getMessage());
-        } catch (ServiceException e) { // 服务返回状态小于200或大于等于300，例如500
-            log.error("微信下单服务状态错误，错误信息：{}", e.getMessage());
-            throw new ServiceException("下单失败");
-        } catch (MalformedMessageException e) { // 服务返回成功，返回体类型不合法，或者解析返回体失败
-            log.error("服务返回成功，返回体类型不合法，或者解析返回体失败，错误信息：{}", e.getMessage());
-            throw new ServiceException("下单失败");
+        if (goodsOrder == null || goodsOrder.getOrderId() == null) {
+            return error("非法订单");
         }
-        return success();
+        AppGoodsOrder stored = appGoodsOrderService.selectAppGoodsOrderByOrderId(goodsOrder.getOrderId());
+        if (stored == null || !getUserId().equals(stored.getUserId())) {
+            return error("非法订单");
+        }
+        return appGoodsOrderService.wxpayPrepay(stored);
     }
 
     /**

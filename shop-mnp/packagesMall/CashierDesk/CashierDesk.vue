@@ -93,6 +93,11 @@
 					if (this.orderId) {
 						const res = await getOrderDetail({ orderId: this.orderId })
 						const data = res && res.data
+						if (data && String(data.payStatus) === '1') {
+							this.clearDeadlineStorage()
+							this.goOrder()
+							return
+						}
 						if (data) {
 							if (data.moneyPayable != null && data.moneyPayable !== '') {
 								this.orderAmount = data.moneyPayable

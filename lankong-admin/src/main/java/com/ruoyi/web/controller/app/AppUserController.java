@@ -1,6 +1,7 @@
 package com.ruoyi.web.controller.app;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.alibaba.fastjson2.JSON;
 import com.ruoyi.common.annotation.Anonymous;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
@@ -18,6 +19,8 @@ import com.ruoyi.system.service.*;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
@@ -27,6 +30,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.function.Supplier;
 
 /**
  * 用户中心Controller
@@ -682,7 +686,7 @@ public class AppUserController extends BaseController
     public AjaxResult getGoodsOrderInfo(@RequestParam(name = "orderId", required = true) Long orderId)
     {
         AppGoodsOrder goodsOrder = goodsOrderService.selectAppGoodsOrderByOrderId(orderId);
-        if (goodsOrder.getUserId() == null || goodsOrder.getUserId().longValue() != getUserId().longValue()) {
+        if (goodsOrder == null || !getUserId().equals(goodsOrder.getUserId())) {
             return error("非法订单");
         }
         if (goodsOrder != null) {
@@ -744,7 +748,7 @@ public class AppUserController extends BaseController
     {
         Long orderId = appGoodsOrder.getOrderId();
         AppGoodsOrder goodsOrder = goodsOrderService.selectAppGoodsOrderByOrderId(orderId);
-        if (goodsOrder.getUserId() == null || goodsOrder.getUserId().longValue() != getUserId().longValue()) {
+        if (goodsOrder == null || !getUserId().equals(goodsOrder.getUserId())) {
             return error("非法订单");
         }
         goodsOrder.setOrderDetailList(orderDetailService.selectAppGoodsOrderDetailByOrderId(orderId));
@@ -787,10 +791,9 @@ public class AppUserController extends BaseController
      */
     @Anonymous
     @RequestMapping("/wxpay_notify")
-    public String wxpay_notify(HttpServletRequest request)
+    public ResponseEntity<String> wxpay_notify(HttpServletRequest request)
     {
-        String rs = goodsOrderService.wxpayNotify(request);
-        return rs;
+        return paymentNotificationResponse(() -> goodsOrderService.wxpayNotify(request));
     }
 
     /**
@@ -799,10 +802,25 @@ public class AppUserController extends BaseController
      */
     @Anonymous
     @RequestMapping("/wxpay_refund_notify")
-    public String wxpay_refund_notify(HttpServletRequest request)
+    public ResponseEntity<String> wxpay_refund_notify(HttpServletRequest request)
     {
-        String rs = goodsOrderService.wxpayRefundNotify(request);
-        return rs;
+        return paymentNotificationResponse(() -> goodsOrderService.wxpayRefundNotify(request));
+    }
+
+    private ResponseEntity<String> paymentNotificationResponse(Supplier<String> handler)
+    {
+        String result;
+        int status = 500;
+        try {
+            result = handler.get();
+            if ("SUCCESS".equals(JSON.parseObject(result).getString("code"))) {
+                status = 200;
+            }
+        } catch (Exception error) {
+            logger.error("支付通知处理失败: {}", error.getClass().getSimpleName());
+            result = "{\"code\":\"FAIL\",\"message\":\"通知处理失败\"}";
+        }
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(result);
     }
 
     /**
@@ -952,8 +970,8 @@ public class AppUserController extends BaseController
     public AjaxResult address_getInfo(@PathVariable("addressId") Long addressId)
     {
         AppUserAddress userAddress = userAddressService.selectAppUserAddressByAddressId(addressId);
-        if (userAddress == null || userAddress.getUserId().longValue() != getUserId().longValue()) {
-            error("无效地址");
+        if (userAddress == null || !getUserId().equals(userAddress.getUserId())) {
+            return error("无效地址");
         }
         return success(userAddress);
     }
@@ -981,7 +999,7 @@ public class AppUserController extends BaseController
     public AjaxResult address_edit(@RequestBody AppUserAddress appUserAddress)
     {
         AppUserAddress userAddress = userAddressService.selectAppUserAddressByAddressId(appUserAddress.getAddressId());
-        if (userAddress.getUserId().longValue() != getUserId().longValue()) {
+        if (userAddress == null || !getUserId().equals(userAddress.getUserId())) {
             return error("无效操作");
         }
         appUserAddress.setUserId(getUserId());
@@ -998,7 +1016,7 @@ public class AppUserController extends BaseController
     public AjaxResult address_remove(@PathVariable Long addressId)
     {
         AppUserAddress userAddress = userAddressService.selectAppUserAddressByAddressId(addressId);
-        if (userAddress.getUserId().longValue() != getUserId().longValue()) {
+        if (userAddress == null || !getUserId().equals(userAddress.getUserId())) {
             return error("无效操作");
         }
         return toAjax(userAddressService.deleteAppUserAddressByAddressId(addressId));

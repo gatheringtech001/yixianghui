@@ -87,6 +87,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
     </select>
     
+    <select id="selectAppActivityByActivityIdForUpdate" parameterType="Long" resultMap="AppActivityResult">
+        <include refid="selectAppActivityVo"/>
+        where activity_id = #{activityId} for update
+    </select>
+
     <select id="selectAppActivityByActivityId" parameterType="Long" resultMap="AppActivityResult">
         <include refid="selectAppActivityVo"/>
         where activity_id = #{activityId}

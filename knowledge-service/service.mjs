@@ -11,7 +11,7 @@ import {
 } from "./lib.mjs";
 
 async function requestJson(url, options = {}) {
-  const response = await fetch(url, options);
+  const response = await fetch(url, { signal: AbortSignal.timeout(60_000), ...options });
   const text = await response.text();
   let data = {};
   try {
@@ -30,6 +30,7 @@ export class FeishuSource {
   constructor(config) {
     this.config = config;
     this.accessToken = "";
+    this.tokenExpiresAt = 0;
   }
 
   async authenticate() {
@@ -40,10 +41,14 @@ export class FeishuSource {
     });
     this.accessToken = data.tenant_access_token;
     if (!this.accessToken) throw new Error("Feishu returned no tenant access token");
+    if (!Number.isFinite(data.expire) || data.expire <= 0) {
+      throw new Error("Feishu returned no valid token expiry");
+    }
+    this.tokenExpiresAt = Date.now() + Math.max(0, data.expire - 60) * 1000;
   }
 
   async api(route) {
-    if (!this.accessToken) await this.authenticate();
+    if (!this.accessToken || Date.now() >= this.tokenExpiresAt) await this.authenticate();
     return requestJson(`https://open.feishu.cn/open-apis${route}`, {
       headers: { authorization: `Bearer ${this.accessToken}` },
     });
@@ -52,17 +57,28 @@ export class FeishuSource {
   async listDocuments() {
     const queue = [this.config.folderToken];
     const documents = [];
+    const visited = new Set();
     while (queue.length) {
       const folderToken = queue.shift();
+      if (visited.has(folderToken)) continue;
+      visited.add(folderToken);
       let pageToken = "";
+      const pages = new Set();
       do {
         const query = new URLSearchParams({ folder_token: folderToken, page_size: "200" });
         if (pageToken) query.set("page_token", pageToken);
         const result = await this.api(`/drive/v1/files?${query}`);
-        const files = result.data?.files ?? [];
+        const files = result.data?.files;
+        if (!Array.isArray(files) || files.some((file) => !file.token || !file.type)) {
+          throw new Error("Feishu returned an incomplete folder listing");
+        }
         documents.push(...files.filter((item) => item.type === "docx"));
         queue.push(...files.filter((item) => item.type === "folder").map((item) => item.token));
-        pageToken = result.data?.has_more ? String(result.data.next_page_token ?? "") : "";
+        pageToken = result.data.has_more ? String(result.data.next_page_token ?? "") : "";
+        if (result.data.has_more && (!pageToken || pages.has(pageToken))) {
+          throw new Error("Feishu returned invalid pagination");
+        }
+        pages.add(pageToken);
       } while (pageToken);
     }
     return documents;
@@ -71,7 +87,10 @@ export class FeishuSource {
   async readDocument(token) {
     const safe = encodeURIComponent(token);
     const result = await this.api(`/docx/v1/documents/${safe}/raw_content`);
-    return String(result.data?.content ?? "").trim();
+    if (typeof result.data?.content !== "string") {
+      throw new Error("Feishu returned no document content");
+    }
+    return result.data.content.trim();
   }
 }
 
@@ -139,6 +158,7 @@ export class QdrantStore {
   async ensureCollection() {
     const route = `/collections/${encodeURIComponent(this.config.collection)}`;
     const response = await fetch(`${this.config.url.replace(/\/$/, "")}${route}`, {
+      signal: AbortSignal.timeout(60_000),
       headers: this.config.apiKey ? { "api-key": this.config.apiKey } : {},
     });
     if (response.ok) return;
@@ -229,10 +249,11 @@ export class KnowledgeService {
       const sourceId = String(document.token);
       const title = sanitizeText(document.name);
       const saved = manifest.documents[sourceId];
-      if (saved?.modifiedTime === String(document.modified_time ?? "")) continue;
+      if (saved?.title === title && document.modified_time
+          && saved.modifiedTime === String(document.modified_time)) continue;
       const raw = await this.source.readDocument(sourceId);
       const documentHash = contentHash(raw);
-      if (saved?.contentHash === documentHash) {
+      if (saved?.title === title && saved.contentHash === documentHash) {
         saved.modifiedTime = String(document.modified_time ?? "");
         continue;
       }

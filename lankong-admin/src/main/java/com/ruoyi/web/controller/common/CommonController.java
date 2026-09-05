@@ -74,7 +74,7 @@ public class CommonController
     /**
      * 通用上传请求（单个）
      */
-    //@PreAuthorize("@ss.hasPermi('system:mnp:user')")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/upload")
     public AjaxResult uploadFile(MultipartFile file) throws Exception
     {
@@ -101,7 +101,7 @@ public class CommonController
     /**
      * 通用上传请求（多个）
      */
-    //@PreAuthorize("@ss.hasPermi('system:mnp:user')")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/uploads")
     public AjaxResult uploadFiles(List<MultipartFile> files) throws Exception
     {

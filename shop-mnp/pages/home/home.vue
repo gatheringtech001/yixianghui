@@ -134,7 +134,7 @@
 						<view
 							class="product-card"
 							v-for="(goods, i) in currentGoodsList"
-							:key="'home-goods-' + (goods.goodsId || i)"
+							:key="goods.goodsId"
 							:data-goods-id="goods.goodsId"
 							:data-goods-type="goods.goodsType || ''"
 							@tap.stop="goProdDetail"
@@ -202,6 +202,10 @@
 		</u-popup>
 
 		<u-popup v-model="showDistributionCoupon" mode="center" border-radius="20" :closeable="true">
+			<view class="distribution-coupon" v-if="!distributionOffer">
+				<view class="distribution-coupon-title">你有一份专属优惠待领取</view>
+				<view class="distribution-coupon-action" @click="claimChannelCoupon">登录查看优惠</view>
+			</view>
 			<view class="distribution-coupon" v-if="distributionOffer">
 				<view class="distribution-coupon-title">{{ distributionOffer.coupon.popupTitle || '专属优惠券' }}</view>
 				<view class="distribution-coupon-value">
@@ -215,6 +219,7 @@
 				</view>
 			</view>
 		</u-popup>
+		<AuthProfilePopup ref="authProfilePopup" />
 
 		<!-- tabbar -->
 		<TabBar :tabBarShow="0"></TabBar>
@@ -223,11 +228,12 @@
 
 <script>
 	import TabBar from '@/components/TabBar/TabBar.vue'
+	import AuthProfilePopup from '@/components/AuthProfilePopup/AuthProfilePopup.vue'
+	import { ensureLogin } from '@/utils/login'
 	import LocationService from '@/utils/location'
 	import {
 		parseInvitePageOptions,
-		getDistributionLaunchSource,
-		clearDistributionLaunchSource
+		getDistributionLaunchSource
 	} from '@/utils/invite'
 	import { getDistributionOffer, claimDistributionCoupon } from '@/api/member/index'
 	import sharePageMixin from '@/utils/sharePageMixin'
@@ -258,6 +264,7 @@
 	export default {
 		mixins: [sharePageMixin],
 		components: {
+			AuthProfilePopup,
 			TabBar
 		},
 		data() {
@@ -289,7 +296,9 @@
 				showDistributionCoupon: false,
 				distributionOffer: null,
 				claimingCoupon: false,
-				distributionOfferChecked: false
+				distributionOfferKey: '',
+				loadingDistributionKey: '',
+				distributionOfferSource: null
 			}
 		},
 		onReady() {
@@ -327,15 +336,28 @@
 		methods: {
 			async loadDistributionOffer() {
 				const source = getDistributionLaunchSource()
-				if (!source || !uni.getStorageSync('token') || this.distributionOfferChecked) return
-				this.distributionOfferChecked = true
+				if (!source) return
+				const user = uni.getStorageSync('userInfo') || {}
+				const key = `${user.userId || 'guest'}:${source.channelCode}:${source.sourceAppId || ''}`
+				if (!uni.getStorageSync('token')) {
+					this.distributionOffer = null
+					this.distributionOfferKey = ''
+					this.showDistributionCoupon = true
+					return
+				}
+				if (this.distributionOfferKey === key || this.loadingDistributionKey === key) return
+				this.loadingDistributionKey = key
 				try {
 					const response = await getDistributionOffer(source)
+					if (this.loadingDistributionKey !== key) return
+					this.distributionOfferKey = key
+					this.distributionOfferSource = { ...source }
 					this.distributionOffer = response.data
 					this.showDistributionCoupon = true
 				} catch (error) {
-					clearDistributionLaunchSource()
 					console.warn('[distribution] offer unavailable:', error.message)
+				} finally {
+					if (this.loadingDistributionKey === key) this.loadingDistributionKey = ''
 				}
 			},
 			formatCouponDiscount(percent) {
@@ -343,7 +365,12 @@
 				return Number.isInteger(value) ? String(value) : value.toFixed(1)
 			},
 			async claimChannelCoupon() {
-				if (!this.distributionOffer || this.claimingCoupon) return
+				if (this.claimingCoupon) return
+				if (!this.distributionOffer || !uni.getStorageSync('token')) {
+					this.showDistributionCoupon = false
+					if (await ensureLogin(this)) await this.loadDistributionOffer()
+					return
+				}
 				if (this.distributionOffer.claimed) {
 					this.showDistributionCoupon = false
 					this.goToServiceTab()
@@ -351,7 +378,7 @@
 				}
 				this.claimingCoupon = true
 				try {
-					await claimDistributionCoupon(getDistributionLaunchSource())
+					await claimDistributionCoupon(this.distributionOfferSource)
 					this.distributionOffer.claimed = true
 					uni.showToast({ title: '领取成功', icon: 'success' })
 				} catch (error) {

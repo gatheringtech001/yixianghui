@@ -136,7 +136,8 @@ public class WeChatMiniProgramServiceImpl implements IWeChatMiniProgramService
         }
         catch (IOException e)
         {
-            log.error("微信接口请求失败: {}", url, e);
+            // URL 查询参数包含令牌或 AppSecret，异常信息也可能包含完整 URL。
+            log.error("微信接口请求失败: {}", e.getClass().getSimpleName());
             throw new ServiceException("微信接口请求失败");
         }
         finally

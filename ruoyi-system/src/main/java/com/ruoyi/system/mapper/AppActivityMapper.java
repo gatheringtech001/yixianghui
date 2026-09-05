@@ -20,6 +20,8 @@ public interface AppActivityMapper
      */
     public AppActivity selectAppActivityByActivityId(Long activityId);
 
+    AppActivity selectAppActivityByActivityIdForUpdate(Long activityId);
+
     /**
      * 查询活动列表
      * 
