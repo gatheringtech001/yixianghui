@@ -67,7 +67,7 @@
 						<image class="entry-bg" src="/static/home-design/entry-stay-wide.jpg" mode="aspectFill" />
 						<view class="entry-copy">
 							<text class="entry-title">全国旅居</text>
-							<text class="entry-desc">精选目的地 · 管家陪同 · 适老友好</text>
+							<text class="entry-desc">精选目的地<text>管家陪同 · 适老友好</text></text>
 						</view>
 					</view>
 					<view class="secondary-entry-grid">
