@@ -1,6 +1,6 @@
 import http from "node:http";
 import { pathToFileURL } from "node:url";
-import { CohereReranker, CohereRerankError } from "./cohere.mjs";
+import { LunaReranker, LunaRerankError } from "./luna.mjs";
 import {
   AzureModels,
   FeishuSource,
@@ -32,9 +32,9 @@ function config() {
       embeddingModel: process.env.AZURE_EMBEDDING_MODEL ?? "text-embedding-3-large",
     },
     rerank: {
-      url: required("COHERE_RERANK_URL"),
-      apiKey: required("COHERE_RERANK_KEY"),
-      model: required("COHERE_RERANK_MODEL"),
+      url: required("LUNA_RERANK_URL"),
+      apiKey: required("LUNA_RERANK_KEY"),
+      model: required("LUNA_RERANK_MODEL"),
     },
     qdrant: {
       url: process.env.QDRANT_URL ?? "http://127.0.0.1:6333",
@@ -71,7 +71,7 @@ export function createServer(settings = config()) {
   const service = new KnowledgeService({
     source: new FeishuSource(settings.source),
     models: new AzureModels(settings.models),
-    reranker: new CohereReranker(settings.rerank),
+    reranker: new LunaReranker(settings.rerank),
     store,
     manifestFile: settings.manifestFile,
   });
@@ -86,7 +86,7 @@ export function createServer(settings = config()) {
         const body = await readBody(request);
         const results = await service.search(body.question, Number(body.limit ?? 8));
         return reply(response, 200, {
-          question: body.question, rerankModel: settings.rerank.model, results,
+          question: body.question, rerankModel: settings.rerank.model, scoreType: "rank_only", results,
         });
       }
       if (request.method === "POST" && request.url === "/admin/sync") {
@@ -98,7 +98,7 @@ export function createServer(settings = config()) {
       return reply(response, 404, { error: "not found" });
     } catch (error) {
       console.error(new Date().toISOString(), error.message);
-      if (error instanceof CohereRerankError) {
+      if (error instanceof LunaRerankError) {
         if (error.retryAfter) response.setHeader("retry-after", String(error.retryAfter));
         return reply(response, error.statusCode, {
           error: error.message, retryAfterSeconds: error.retryAfter,
