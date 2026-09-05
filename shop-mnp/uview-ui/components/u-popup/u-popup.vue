@@ -318,6 +318,8 @@ export default {
 			this.close();
 		},
 		close() {
+			// 初始化隐藏态不回写父组件，避免覆盖页面刚发起的打开请求。
+			if (!this.visibleSync && !this.showDrawer) return;
 			// 标记关闭是内部发生的，否则修改了value值，导致watch中对value检测，导致再执行一遍close
 			// 造成@close事件触发两次
 			this.closeFromInner = true;
@@ -335,6 +337,8 @@ export default {
 		// 此处的原理是，关闭时先通过动画隐藏弹窗和遮罩，再移除整个组件
 		// 打开时，先渲染组件，延时一定时间再让遮罩和弹窗的动画起作用
 		change(param1, param2, status) {
+			// 新状态替换旧动画，不能让延迟关闭把刚打开的弹窗再次隐藏。
+			clearTimeout(this.timer);
 			// 如果this.popup为false，意味着为picker，actionsheet等组件调用了popup组件
 			if (this.popup == true) {
 				this.$emit('input', status);
