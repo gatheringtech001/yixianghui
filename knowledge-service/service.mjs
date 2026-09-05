@@ -287,6 +287,12 @@ export class KnowledgeService {
       sourceUrl: item.payload.source_url,
       sourceId: item.payload.source_id,
       chunkIndex: item.payload.chunk_index,
+      sourceType: item.payload.source_type,
+      entityTable: item.payload.entity_table,
+      entityId: item.payload.entity_id,
+      productStatus: item.payload.product_status,
+      snapshotAt: item.payload.snapshot_at,
+      orphanRelation: item.payload.orphan_relation,
     }));
   }
 }
