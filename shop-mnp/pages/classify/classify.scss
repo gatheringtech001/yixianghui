@@ -417,3 +417,4 @@ $rail-bg: #f6f3ed;
 		font-weight: 760;
 	}
 }
+.cart-entry { display: inline-flex; align-items: center; justify-content: center; gap: 8rpx; min-width: 150rpx; min-height: 80rpx; margin-left: 16rpx; color: #701018; font-size: 28rpx; flex-shrink: 0; }

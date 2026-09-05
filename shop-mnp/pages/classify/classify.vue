@@ -12,6 +12,7 @@
 					<u-icon name="search" color="#8a8a8a" size="32" />
 					<text class="search-text">{{ searchPlaceholder }}</text>
 				</view>
+				<view class="cart-entry" v-if="isYunnanGoodsTab" @click="openCart"><u-icon name="shopping-cart" color="#701018" size="36" /><text>购物车</text></view>
 			</view>
 		</view>
 
@@ -183,7 +184,7 @@
 	import LocationService from '@/utils/location'
 	import { parseInvitePageOptions } from '@/utils/invite'
 	import sharePageMixin from '@/utils/sharePageMixin'
-	import { bindPageAuthPopup } from '@/utils/login'
+	import { bindPageAuthPopup, runWithAuth } from '@/utils/login'
 	import { getSite } from '@/api/index'
 	import {
 		AD_POSITION,
@@ -388,6 +389,9 @@
 			}
 		},
 		methods: {
+			openCart() {
+				runWithAuth(this, ok => { if (ok) uni.navigateTo({url:'/packagesMall/cart/cart'}) })
+			},
 			mediaUrl(path) {
 				if (!path) return ''
 				return /^https?:\/\//.test(path) ? path : this.host + path
