@@ -5,6 +5,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +30,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+import org.mockito.ArgumentCaptor;
 
 class TalentCenterOperationsServiceTest
 {
@@ -61,6 +66,48 @@ class TalentCenterOperationsServiceTest
         verify(mapper).selectCustomers(101L, 501L, false);
         verify(mapper).selectOrders(101L, false);
         verify(mapper).selectSettlements(101L, 501L, false);
+    }
+
+    @Test
+    void commissionLedgerUsesRealOwnerAndNeverAllowsSelfToChooseAnotherRecipient()
+    {
+        bind("talent-user", 101L, Collections.emptySet());
+        when(mapper.selectConsultantId(101L)).thenReturn(501L);
+        when(mapper.selectCommissionPeople(any())).thenReturn(Collections.emptyList());
+        when(mapper.selectCommissionRecords(any())).thenReturn(Collections.emptyList());
+        Map<String, Object> result = service.commissions("talent-user", "self", "all", "first");
+        assertEquals("self", result.get("scope"));
+        ArgumentCaptor<Map> filters = ArgumentCaptor.forClass(Map.class);
+        verify(mapper).selectCommissionRecords(filters.capture());
+        assertEquals(false, filters.getValue().get("admin"));
+        assertEquals(501L, filters.getValue().get("consultantId"));
+        assertEquals(403, assertThrows(TalentCenterApiException.class,
+                () -> service.commissions("talent-user", "self", "502", "first")).getHttpStatus());
+    }
+
+    @Test
+    void commissionLedgerPaginatesAndKeepsAdministratorScope()
+    {
+        bind("talent-admin", 1L, setOf("*:*:*"));
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (int id = 100; id >= 50; id--) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", String.valueOf(id)); rows.add(row);
+        }
+        when(mapper.selectCommissionPeople(any())).thenReturn(Collections.emptyList());
+        when(mapper.selectCommissionRecords(any())).thenReturn(rows);
+        Map<String, Object> result = service.commissions("talent-admin", "admin", "unassigned", "first");
+        assertEquals("admin", result.get("scope"));
+        assertEquals("51", result.get("nextCursor"));
+        assertEquals(50, ((List<?>) result.get("records")).size());
+    }
+
+    @Test
+    void unmappedActorCannotReadCommissionRows()
+    {
+        assertEquals(403, assertThrows(TalentCenterApiException.class,
+                () -> service.commissions("unknown", "self", "all", "first")).getHttpStatus());
+        verify(mapper, never()).selectCommissionRecords(any());
     }
 
     @Test

@@ -7,6 +7,9 @@ import org.apache.ibatis.annotations.Param;
 public interface TalentCenterOperationsMapper
 {
     Long selectConsultantId(@Param("userId") Long userId);
+    Map<String, Object> selectCommissionSummary(Map<String, Object> filters);
+    List<Map<String, Object>> selectCommissionPeople(Map<String, Object> filters);
+    List<Map<String, Object>> selectCommissionRecords(Map<String, Object> filters);
     List<Map<String, Object>> selectCustomers(@Param("actorUserId") Long actorUserId,
             @Param("consultantId") Long consultantId, @Param("admin") boolean admin);
     List<Map<String, Object>> selectOrders(@Param("actorUserId") Long actorUserId,

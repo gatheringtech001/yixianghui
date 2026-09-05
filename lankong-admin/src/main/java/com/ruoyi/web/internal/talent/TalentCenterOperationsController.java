@@ -35,6 +35,13 @@ public class TalentCenterOperationsController
         return AjaxResult.success(service.actorStatus(actorId(request), actorScope(request)));
     }
 
+    @GetMapping("/commissions/{recipient}/{before}")
+    public AjaxResult commissions(@PathVariable String recipient, @PathVariable String before,
+            HttpServletRequest request)
+    {
+        return AjaxResult.success(service.commissions(actorId(request), actorScope(request), recipient, before));
+    }
+
     @PutMapping("/{businessLine}/{resource}/{recordId}")
     public ResponseEntity<AjaxResult> update(@PathVariable String businessLine, @PathVariable String resource,
             @PathVariable String recordId, @RequestBody TalentCenterOperationUpdateRequest body,

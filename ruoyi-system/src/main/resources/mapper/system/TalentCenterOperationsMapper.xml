@@ -1,6 +1,52 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ruoyi.system.mapper.TalentCenterOperationsMapper">
+    <sql id="commissionScope">
+        from app_customer_income i
+        left join app_consultant c on c.consultant_id = i.consultant_id
+        where (#{admin} = true or (#{consultantId} is not null and i.consultant_id = #{consultantId}))
+        <if test="recipientId != null">and c.consultant_id = #{recipientId}</if>
+        <if test="unassigned">and c.consultant_id is null</if>
+    </sql>
+
+    <sql id="commissionAmounts">
+        count(*) recordCount,
+        coalesce(sum(case when i.consultant_income is null then 1 else 0 end), 0) missingAmountCount,
+        coalesce(sum(case when c.consultant_id is null then 1 else 0 end), 0) missingOwnerCount,
+        coalesce(sum(cast(round(i.consultant_income * 100) as signed)), 0) totalCents,
+        coalesce(sum(case when i.settlement = 0 then cast(round(i.consultant_income * 100) as signed) else 0 end), 0) pendingCents,
+        coalesce(sum(case when i.settlement = 1 then cast(round(i.consultant_income * 100) as signed) else 0 end), 0) settledCents,
+        coalesce(sum(case when i.settlement is null or i.settlement not in (0, 1) then cast(round(i.consultant_income * 100) as signed) else 0 end), 0) unmarkedCents
+    </sql>
+
+    <select id="selectCommissionSummary" resultType="java.util.LinkedHashMap">
+        select <include refid="commissionAmounts" />
+        <include refid="commissionScope" />
+    </select>
+
+    <select id="selectCommissionPeople" resultType="java.util.LinkedHashMap">
+        select coalesce(cast(c.consultant_id as char), 'unassigned') recipientId,
+               coalesce(nullif(c.consultant_name, ''), '归属待确认') recipientName,
+               <include refid="commissionAmounts" />
+        <include refid="commissionScope" />
+        group by c.consultant_id, c.consultant_name
+        order by pendingCents desc, recipientId
+    </select>
+
+    <select id="selectCommissionRecords" resultType="java.util.LinkedHashMap">
+        select cast(i.income_id as char) id,
+               coalesce(cast(c.consultant_id as char), 'unassigned') recipientId,
+               coalesce(nullif(c.consultant_name, ''), '归属待确认') recipientName,
+               coalesce(i.income_no, '') orderCode, coalesce(i.product_name, '') productName,
+               coalesce(date_format(i.trade_date, '%Y-%m-%d'), '') occurredOn,
+               cast(round(i.consultant_income * 100) as signed) commissionCents,
+               case when i.settlement = 0 then 'pending' when i.settlement = 1 then 'settled' else 'unmarked' end status
+        <include refid="commissionScope" />
+        <if test="beforeId != null">and i.income_id &lt; #{beforeId}</if>
+        order by i.income_id desc
+        limit 51
+    </select>
+
     <select id="selectConsultantId" resultType="java.lang.Long">
         select consultant_id from app_consultant where user_id = #{userId} and status = '01' limit 1
     </select>

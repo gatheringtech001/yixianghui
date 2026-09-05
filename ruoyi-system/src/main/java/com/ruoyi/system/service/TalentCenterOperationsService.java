@@ -62,6 +62,44 @@ public class TalentCenterOperationsService
         return payload;
     }
 
+    @Transactional(readOnly = true)
+    public Map<String, Object> commissions(String actorId, String actorScope, String recipient, String before)
+    {
+        Access access = access(actorId, actorScope);
+        Map<String, Object> filters = new LinkedHashMap<>();
+        filters.put("admin", access.admin);
+        filters.put("consultantId", access.consultantId);
+        filters.put("unassigned", false);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("scope", access.admin ? "admin" : "self");
+        result.put("recipients", mapper.selectCommissionPeople(filters));
+        if (!"all".equals(recipient))
+        {
+            Long recipientId = "unassigned".equals(recipient) ? null : commissionId(recipient);
+            if (!access.admin && (recipientId == null || !recipientId.equals(access.consultantId)))
+                throw new TalentCenterApiException(403, "只能查看本人佣金");
+            filters.put("recipientId", recipientId);
+            filters.put("unassigned", "unassigned".equals(recipient));
+        }
+        result.put("summary", mapper.selectCommissionSummary(filters));
+        filters.put("beforeId", "first".equals(before) ? null : commissionId(before));
+        List<Map<String, Object>> records = mapper.selectCommissionRecords(filters);
+        boolean more = records.size() > 50;
+        List<Map<String, Object>> page = more ? records.subList(0, 50) : records;
+        result.put("records", page);
+        result.put("nextCursor", more ? String.valueOf(page.get(49).get("id")) : null);
+        result.put("readAt", Instant.now().toString());
+        result.put("sourceNote", "取自小程序后台消费记录中的管家提成；未填金额不视为零。旅居佣金尚无已确认的个人归属与金额，不按订单额推算。");
+        return result;
+    }
+
+    private Long commissionId(String value)
+    {
+        if (value == null || !value.matches("[1-9][0-9]{0,14}"))
+            throw new TalentCenterApiException(400, "佣金筛选参数不正确");
+        return Long.valueOf(value);
+    }
+
     @Transactional
     public Map<String, Object> update(String actorId, String actorScope, String businessLine, String resource, String recordId,
             TalentCenterOperationUpdateRequest request, String idempotencyKey)
