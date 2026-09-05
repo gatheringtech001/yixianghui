@@ -35,8 +35,9 @@
 					<view
 						class="btn-collect"
 						:class="{ collected: !!collectId }"
+						:aria-label="collectId ? '取消收藏' : '收藏商品'"
 						@click.stop="toggleCollect"
-					>{{ collectId ? '已收藏' : '收藏' }}</view>
+					><u-icon :name="collectId ? 'heart-fill' : 'heart'" color="#701018" size="32" /><text>{{ collectId ? '已收藏' : '收藏' }}</text></view>
 				</view>
 				<view class="base_desc_view">
 					{{ formatDescText(hotelData.desc) }}

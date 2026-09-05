@@ -26,7 +26,7 @@
 					@click.stop="toggleCollect"
 				>
 					<u-icon
-						:name="collectId ? 'star-fill' : 'star'"
+						:name="collectId ? 'heart-fill' : 'heart'"
 						color="#701018"
 						size="44"
 					></u-icon>

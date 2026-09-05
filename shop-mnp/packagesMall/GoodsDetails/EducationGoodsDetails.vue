@@ -28,8 +28,9 @@
 							<view
 								class="btn-collect"
 								:class="{ collected: !!collectId }"
+								:aria-label="collectId ? '取消收藏' : '收藏课程'"
 								@click.stop="toggleCollect"
-							>{{ collectId ? '已收藏' : '收藏' }}</view>
+							><u-icon :name="collectId ? 'heart-fill' : 'heart'" color="#701018" size="32" /><text>{{ collectId ? '已收藏' : '收藏' }}</text></view>
 						</view>
 						<text class="course-desc" v-if="courseData.summary">{{ courseData.summary }}</text>
 						<view class="detail-tags" v-if="courseData.tagList.length">

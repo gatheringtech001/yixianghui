@@ -13,12 +13,10 @@ const activityDetailDir = path.resolve(
   __dirname,
   '../../shop-mnp/packagesMall/Activity/detail'
 )
-const compiledActivityDetailDir = path.resolve(
-  __dirname,
-  '../../shop-mnp/unpackage/dist/dev/mp-weixin/packagesMall/Activity/detail'
-)
+const compiledActivityDetailDir = path.join(process.env.MINIPROGRAM_PROJECT_PATH || path.resolve(
+  __dirname, '../../shop-mnp/unpackage/dist/dev/mp-weixin'), 'packagesMall/Activity/detail')
 
-test('activity detail compiles collect as a star over the cover', async () => {
+test('activity detail compiles the shared favorite icon over the cover', async () => {
   const [template, styles, compiledWxml] = await Promise.all([
     fs.readFile(path.join(activityDetailDir, 'index.vue'), 'utf8'),
     fs.readFile(path.join(activityDetailDir, 'index.scss'), 'utf8'),
@@ -26,10 +24,10 @@ test('activity detail compiles collect as a star over the cover', async () => {
   ])
 
   assert.match(template, /class="collect-star"/)
-  assert.match(template, /:name="collectId \? 'star-fill' : 'star'"/)
+  assert.match(template, /:name="collectId \? 'heart-fill' : 'heart'"/)
   assert.doesNotMatch(template, /class="btn-collect"/)
   assert.doesNotMatch(template, />\s*\{\{ collectId \? '已收藏' : '收藏' \}\}/)
-  assert.match(compiledWxml, /name="\{\{collectId\?'star-fill':'star'\}\}"/)
+  assert.match(compiledWxml, /name="\{\{collectId\?'heart-fill':'heart'\}\}"/)
 
   const activitySheetStart = template.indexOf('<view class="activity-sheet"')
   const compiledActivitySheetStart = compiledWxml.indexOf('<view class="activity-sheet')

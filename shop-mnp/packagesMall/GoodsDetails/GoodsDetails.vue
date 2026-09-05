@@ -45,12 +45,12 @@
 				<view class="info">
 					<view class="list">
 						<button open-type="share">
-							<u-icon name="share" color="#333333" size="40" />
+							<u-icon name="share-fill" color="#701018" size="32" />
 							<text>分享</text>
 						</button>
 					</view>
 					<view class="list" :aria-label="AttentionShow ? '取消收藏' : '收藏商品'" @click="onAttention">
-						<u-icon :name="AttentionShow == 0 ? 'heart' : 'heart-fill'" :color="AttentionShow == 0 ? '#333333' : '#701018'" size="40" />
+						<u-icon :name="AttentionShow == 0 ? 'heart' : 'heart-fill'" color="#701018" size="40" />
 						<text>{{ AttentionShow == 0 ? '收藏' : '已收藏' }}</text>
 					</view>
 				</view>
