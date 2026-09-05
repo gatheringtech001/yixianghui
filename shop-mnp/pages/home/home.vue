@@ -384,11 +384,15 @@
 					return
 				}
 				this.claimingCoupon = true
+				const source = this.distributionOfferSource
+				const offer = this.distributionOffer
 				try {
-					await claimDistributionCoupon(this.distributionOfferSource)
-					this.distributionOffer.claimed = true
-					this.showDistributionCoupon = false
-					clearDistributionLaunchSource()
+					await claimDistributionCoupon(source)
+					offer.claimed = true
+					if (getDistributionLaunchSource() === source) {
+						this.showDistributionCoupon = false
+						clearDistributionLaunchSource()
+					}
 					uni.showToast({ title: '领取成功', icon: 'success' })
 				} catch (error) {
 					uni.showToast({ title: error.message || '领取失败', icon: 'none' })

@@ -130,3 +130,33 @@ test('launch attribution never revives cached channels and ordinary page navigat
   assert.equal(invite.getDistributionLaunchSource(), null)
   assert.equal(storage.has('distributionLaunchSource'), false)
 })
+
+test('a late offer response cannot reopen the popup after an ordinary entry', async () => {
+  const {state,page}=homeOfferHarness()
+  const source = state.source
+  const pending = page.loadDistributionOffer()
+  state.source = null
+  await pending
+  assert.notEqual(page.showDistributionCoupon,true)
+  assert.notEqual(page.distributionOfferSource,source)
+})
+
+test('claim completion closes its own offer but cannot clear a newly opened channel', async () => {
+  const home=read('shop-mnp/pages/home/home.vue')
+  const method=home.slice(home.indexOf('async claimChannelCoupon()'), home.indexOf('getShareConfig()'))
+  let source={channelCode:'channel-a'}, finish
+  const oldSource=source
+  const methods=vm.runInNewContext(`({${method}})`, {
+    uni:{getStorageSync:()=> 'token',showToast(){}}, getDistributionLaunchSource:()=>source,
+    clearDistributionLaunchSource:()=>{source=null}, claimDistributionCoupon:()=>new Promise(r=>{finish=r})
+  })
+  const page={...methods,showDistributionCoupon:true,distributionOffer:{claimed:false},distributionOfferSource:oldSource}
+  const pending=page.claimChannelCoupon()
+  source={channelCode:'channel-b'}
+  finish();await pending
+  assert.equal(source.channelCode,'channel-b')
+  page.distributionOffer={claimed:false};page.distributionOfferSource=source
+  const second=page.claimChannelCoupon();finish();await second
+  assert.equal(page.showDistributionCoupon,false)
+  assert.equal(source,null)
+})
