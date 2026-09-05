@@ -41,7 +41,9 @@ WHERE g.specifications LIKE 'YUNYE:%' AND s.supplier_id IS NOT NULL
 AND NOT EXISTS (SELECT 1 FROM app_supplier_goods b WHERE b.goods_id=g.goods_id);
 -- Reuse the existing Quartz management UI. Notifications remain PAUSED until configured.
 -- Server environment: SUPPLIER_NOTICE_ENABLED defaults to false.
--- Configure SUPPLIER_NOTICE_YUNYE_WEBHOOK outside Git, then enable the Quartz job.
+-- Configure SUPPLIER_NOTICE_OPERATIONS_WEBHOOK for our INTERNAL operations group outside Git.
+-- Operations manually forwards verified shipping lists to the supplier's ordinary WeChat group.
+-- Enable the server switch and Quartz job only after the recipient group is verified.
 INSERT INTO sys_job(job_name,job_group,invoke_target,cron_expression,misfire_policy,concurrent,status,create_by,create_time,remark)
-SELECT '供应商待发货通知','DEFAULT','supplierFulfillmentService.dispatchPending','0 0/30 * * * ?','3','1','1','admin',NOW(),'启用前配置供应商通知渠道；默认暂停'
+SELECT '内部运营待发货通知','DEFAULT','supplierFulfillmentService.dispatchPending','0 0/30 * * * ?','3','1','1','admin',NOW(),'通知内部企业微信群，运营转发给供应商；启用前配置通知地址；默认暂停'
 WHERE NOT EXISTS (SELECT 1 FROM sys_job WHERE invoke_target='supplierFulfillmentService.dispatchPending');

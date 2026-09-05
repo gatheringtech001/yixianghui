@@ -166,6 +166,55 @@ class RetailCheckoutDatabaseTest {
         assertEquals("sent",jdbc.queryForObject("SELECT notice_status FROM app_supplier_order",String.class));
         assertNull(jdbc.queryForObject("SELECT send_express_no FROM app_goods_order",String.class));
     }
+    @Test void operationsNoticeIncludesSupplierAndForwardingInstructionsWithoutCustomerData() {
+        jdbc.update("UPDATE app_supplier_goods SET supplier_id=2");
+        AppGoodsOrder order=submit(request());
+        jdbc.update("UPDATE app_goods_order SET pay_status='1',status='1' WHERE order_id=?",order.getOrderId());
+        org.springframework.web.client.RestTemplate client=mock(org.springframework.web.client.RestTemplate.class);
+        when(client.postForObject(anyString(),any(),eq(String.class))).thenReturn("{\"errcode\":0}");
+        set(fulfillment,"client",client);set(fulfillment,"enabled",true);set(fulfillment,"webhook","https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=local-test-only");
+        fulfillment.dispatchPending();fulfillment.dispatchPending();
+        org.mockito.ArgumentCaptor<Object> payload=org.mockito.ArgumentCaptor.forClass(Object.class);
+        verify(client,times(1)).postForObject(anyString(),payload.capture(),eq(String.class));
+        String message=com.alibaba.fastjson2.JSON.toJSONString(payload.getValue());
+        assertTrue(message.contains("内部运营待办"));
+        assertTrue(message.contains("测试其他供应商"));
+        assertTrue(message.contains(order.getOrderNo()));
+        assertTrue(message.contains("测试玉米"));assertTrue(message.contains("测试茶叶"));
+        assertTrue(message.contains("转发给对应供应商"));
+        assertTrue(message.contains("客户管理 → 供应商 → 发货协作"));
+        assertFalse(message.contains("测试收货人"));assertFalse(message.contains("00000000000"));assertFalse(message.contains("测试地址"));
+        assertEquals("sent",jdbc.queryForObject("SELECT notice_status FROM app_supplier_order",String.class));
+        assertNull(jdbc.queryForObject("SELECT confirmed_at FROM app_supplier_order",java.sql.Timestamp.class));
+        assertNull(jdbc.queryForObject("SELECT send_express_no FROM app_goods_order",String.class));
+    }
+    @Test void invalidOperationsWebhookIsNotReportedAsConfiguredOrContacted() {
+        org.springframework.web.client.RestTemplate client=mock(org.springframework.web.client.RestTemplate.class);
+        set(fulfillment,"client",client);set(fulfillment,"enabled",true);
+        for (String invalid : Arrays.asList("", "https://example.com/send?key=test", "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test#fragment")) {
+            set(fulfillment,"webhook",invalid);
+            assertEquals(false,fulfillment.configuration().get("configured"));
+            assertThrows(ServiceException.class,()->fulfillment.dispatchPending());
+        }
+        verifyNoInteractions(client);
+        set(fulfillment,"webhook","https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=local-test-only");
+        assertEquals(true,fulfillment.configuration().get("configured"));
+        assertEquals("企业微信内部运营群",fulfillment.configuration().get("channel"));
+        assertFalse(com.alibaba.fastjson2.JSON.toJSONString(fulfillment.configuration()).contains("local-test-only"));
+    }
+    @Test void operationsNoticeSkipsUnpaidCancelRequestedAndDisabledSupplierOrders() {
+        AppGoodsOrder order=submit(request());
+        org.springframework.web.client.RestTemplate client=mock(org.springframework.web.client.RestTemplate.class);
+        set(fulfillment,"client",client);set(fulfillment,"enabled",true);set(fulfillment,"webhook","https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=local-test-only");
+        fulfillment.dispatchPending();
+        jdbc.update("UPDATE app_goods_order SET pay_status='1',status='1',is_apply_cancel=1 WHERE order_id=?",order.getOrderId());
+        fulfillment.dispatchPending();
+        jdbc.update("UPDATE app_goods_order SET is_apply_cancel=0 WHERE order_id=?",order.getOrderId());
+        jdbc.update("UPDATE app_supplier SET status='0' WHERE supplier_id=1");
+        fulfillment.dispatchPending();
+        verifyNoInteractions(client);
+        assertEquals(0,jdbc.queryForObject("SELECT attempts FROM app_supplier_order",Integer.class));
+    }
     @Test void uncertainNotificationNeedsExplicitRetryAndCancelledOrdersAreExcluded() {
         AppGoodsOrder order=submit(request());
         jdbc.update("UPDATE app_goods_order SET pay_status='1',status='1' WHERE order_id=?",order.getOrderId());

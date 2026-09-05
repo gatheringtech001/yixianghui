@@ -21,7 +21,7 @@ import org.springframework.web.client.RestTemplate;
 public class SupplierFulfillmentService {
     @Autowired private JdbcTemplate jdbc;
     @Value("${supplier.notice.enabled:false}") private boolean enabled;
-    @Value("${supplier.notice.yunye-webhook:}") private String webhook;
+    @Value("${supplier.notice.operations-webhook:}") private String webhook;
     private static final int MAX_ATTEMPTS = 5;
     private RestTemplate client = createClient();
     private static RestTemplate createClient() {
@@ -32,7 +32,7 @@ public class SupplierFulfillmentService {
 
     public Map<String,Object> configuration() {
         Map<String,Object> result = new HashMap<>(); result.put("enabled",enabled);
-        result.put("channel","企业微信群机器人"); result.put("configured",webhook != null && !webhook.isEmpty());
+        result.put("channel","企业微信内部运营群"); result.put("configured",validWebhook());
         return result;
     }
     @Data
@@ -107,28 +107,30 @@ public class SupplierFulfillmentService {
     }
     public void dispatchPending() {
         if (!enabled) return;
-        validateWebhook();
+        if (!validWebhook()) throw new ServiceException("请在服务器配置有效的企业微信内部运营群通知地址");
         jdbc.update("UPDATE app_supplier_order SET notice_status='uncertain',last_error='上次发送中断，请核对后重试' WHERE notice_status='sending' AND next_attempt<NOW()");
-        List<Long> ids = jdbc.query("SELECT f.order_id FROM app_supplier_order f JOIN app_goods_order o ON o.order_id=f.order_id JOIN app_supplier s ON s.supplier_id=f.supplier_id WHERE f.notice_status IN ('pending','failed') AND f.attempts<? AND (f.next_attempt IS NULL OR f.next_attempt<=NOW()) AND s.supplier_code='YUNYE' AND s.status='1' AND o.pay_status='1' AND o.status='1' AND (o.is_apply_cancel IS NULL OR o.is_apply_cancel<>1) AND (o.send_express_no IS NULL OR o.send_express_no='') ORDER BY f.fulfillment_id LIMIT 20",(rs,n)->rs.getLong(1),MAX_ATTEMPTS);
+        List<Long> ids = jdbc.query("SELECT f.order_id FROM app_supplier_order f JOIN app_goods_order o ON o.order_id=f.order_id JOIN app_supplier s ON s.supplier_id=f.supplier_id WHERE f.notice_status IN ('pending','failed') AND f.attempts<? AND (f.next_attempt IS NULL OR f.next_attempt<=NOW()) AND s.status='1' AND o.pay_status='1' AND o.status='1' AND (o.is_apply_cancel IS NULL OR o.is_apply_cancel<>1) AND (o.send_express_no IS NULL OR o.send_express_no='') ORDER BY f.fulfillment_id LIMIT 20",(rs,n)->rs.getLong(1),MAX_ATTEMPTS);
         for (Long id : ids) send(id);
     }
-    private void validateWebhook() {
+    private boolean validWebhook() {
         try {
             URI uri = URI.create(webhook);
-            if (!"https".equals(uri.getScheme()) || !"qyapi.weixin.qq.com".equals(uri.getHost())
-                    || !"/cgi-bin/webhook/send".equals(uri.getPath()) || uri.getUserInfo()!=null || uri.getPort()!=-1
-                    || uri.getQuery()==null || !uri.getQuery().matches("key=[A-Za-z0-9-]+")) throw new IllegalArgumentException();
-        } catch (Exception error) { throw new ServiceException("请在服务器配置有效的云野集企业微信通知地址"); }
+            return "https".equals(uri.getScheme()) && "qyapi.weixin.qq.com".equals(uri.getHost())
+                    && "/cgi-bin/webhook/send".equals(uri.getPath()) && uri.getUserInfo()==null && uri.getPort()==-1
+                    && uri.getFragment()==null && uri.getQuery()!=null && uri.getQuery().matches("key=[A-Za-z0-9-]+");
+        } catch (IllegalArgumentException | NullPointerException error) { return false; }
     }
     private void send(Long orderId) {
         int claimed = jdbc.update("UPDATE app_supplier_order f JOIN app_goods_order o ON o.order_id=f.order_id SET f.notice_status='sending',f.attempts=f.attempts+1,f.next_attempt=DATE_ADD(NOW(),INTERVAL 15 MINUTE) WHERE f.order_id=? AND f.notice_status IN ('pending','failed') AND o.pay_status='1' AND o.status='1' AND (o.is_apply_cancel IS NULL OR o.is_apply_cancel<>1) AND (o.send_express_no IS NULL OR o.send_express_no='')",orderId);
         if (claimed != 1) return;
-        Map<String,Object> row = jdbc.queryForMap("SELECT o.order_no,f.lines_snapshot FROM app_supplier_order f JOIN app_goods_order o ON o.order_id=f.order_id WHERE f.order_id=?",orderId);
-        StringBuilder text = new StringBuilder("逸享荟待发货订单 ").append(row.get("order_no")).append("\n");
+        Map<String,Object> row = jdbc.queryForMap("SELECT o.order_no,f.lines_snapshot,s.supplier_name FROM app_supplier_order f JOIN app_goods_order o ON o.order_id=f.order_id JOIN app_supplier s ON s.supplier_id=f.supplier_id WHERE f.order_id=?",orderId);
+        StringBuilder text = new StringBuilder("【逸享荟·内部运营待办】\n供应商：").append(row.get("supplier_name"))
+                .append("\n已付款待发货订单：").append(row.get("order_no")).append("\n");
         List<RetailCheckout.Line> lines = JSON.parseArray(String.valueOf(row.get("lines_snapshot")),RetailCheckout.Line.class);
         for (RetailCheckout.Line line : lines.subList(0,Math.min(5,lines.size()))) text.append(line.getGoodsName(),0,Math.min(40,line.getGoodsName().length())).append(" × ").append(line.getCount()).append("\n");
         text.append("共 ").append(lines.size()).append(" 种商品。\n");
-        text.append("请联系平台确认发货清单；以平台当前订单状态为准。");
+        text.append("请运营在后台【客户管理 → 供应商 → 发货协作】核对订单当前状态，导出完整发货清单，转发给对应供应商。\n")
+                .append("供应商确认后登记接单，实际发货后回填物流。此消息仅通知内部运营，不代表已转发、已接单或已发货。");
         try {
             JSONObject payload = new JSONObject(); payload.put("msgtype","text"); payload.put("text",Collections.singletonMap("content",text.toString()));
             String response = client.postForObject(webhook,payload,String.class);
