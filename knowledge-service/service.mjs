@@ -5,6 +5,7 @@ import {
   chunkDocument,
   contentHash,
   pointId,
+  sanitizeText,
   sparseVector,
   validateQuestion,
 } from "./lib.mjs";
@@ -226,6 +227,7 @@ export class KnowledgeService {
     let chunks = 0;
     for (const document of documents) {
       const sourceId = String(document.token);
+      const title = sanitizeText(document.name);
       const saved = manifest.documents[sourceId];
       if (saved?.modifiedTime === String(document.modified_time ?? "")) continue;
       const raw = await this.source.readDocument(sourceId);
@@ -234,7 +236,7 @@ export class KnowledgeService {
         saved.modifiedTime = String(document.modified_time ?? "");
         continue;
       }
-      const parts = chunkDocument(String(document.name ?? ""), raw);
+      const parts = chunkDocument(title, raw);
       const pointIds = parts.map((item) => pointId(sourceId, item.index));
       for (let offset = 0; offset < parts.length; offset += 16) {
         const batch = parts.slice(offset, offset + 16);
@@ -245,7 +247,7 @@ export class KnowledgeService {
           payload: {
             source_type: "feishu_docx",
             source_id: sourceId,
-            title: String(document.name ?? ""),
+            title,
             content: item.content,
             content_hash: contentHash(item.content),
             chunk_index: item.index,
@@ -258,7 +260,7 @@ export class KnowledgeService {
       const obsolete = (saved?.pointIds ?? []).filter((id) => !pointIds.includes(id));
       await this.store.deleteIds(obsolete);
       manifest.documents[sourceId] = {
-        title: String(document.name ?? ""),
+        title,
         modifiedTime: String(document.modified_time ?? ""),
         contentHash: documentHash,
         pointIds,

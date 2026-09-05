@@ -5,6 +5,7 @@ import {
   chunkDocument,
   lexicalTokens,
   pointId,
+  sanitizeText,
   sparseVector,
   validateQuestion,
 } from "./lib.mjs";
@@ -57,4 +58,10 @@ test("applyRerankOrder rejects duplicates and unknown IDs", () => {
     candidates[2],
     candidates[0],
   ]);
+});
+
+test("sanitizeText replaces unpaired surrogates before JSON transport", () => {
+  const sanitized = sanitizeText(`正常\ud800内容\udc00和😀`);
+  assert.equal(sanitized, "正常�内容�和😀");
+  assert.doesNotMatch(JSON.stringify(sanitized), /\\ud[89a-f][0-9a-f]{2}/i);
 });

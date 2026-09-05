@@ -15,13 +15,36 @@ function splitLong(text, maxChars, overlap) {
   return parts;
 }
 
+export function sanitizeText(value) {
+  const text = String(value ?? "");
+  let output = "";
+  for (let index = 0; index < text.length; index += 1) {
+    const code = text.charCodeAt(index);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = text.charCodeAt(index + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        output += text[index] + text[index + 1];
+        index += 1;
+      } else {
+        output += "\ufffd";
+      }
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      output += "\ufffd";
+    } else {
+      output += text[index];
+    }
+  }
+  return output;
+}
+
 export function chunkDocument(title, raw, options = {}) {
   const maxChars = options.maxChars ?? 1200;
   const overlap = options.overlap ?? 160;
   if (maxChars < 200 || overlap < 0 || overlap >= maxChars) {
     throw new Error("invalid chunk options");
   }
-  const content = String(raw ?? "")
+  const safeTitle = sanitizeText(title);
+  const content = sanitizeText(raw)
     .replace(/\r\n?/g, "\n")
     .replace(/[\t\u00a0]+/g, " ")
     .replace(/\n{3,}/g, "\n\n")
@@ -51,7 +74,7 @@ export function chunkDocument(title, raw, options = {}) {
   if (current) chunks.push(current);
   return chunks.map((contentPart, index) => ({
     index,
-    text: title ? `${title}\n${contentPart}` : contentPart,
+    text: safeTitle ? `${safeTitle}\n${contentPart}` : contentPart,
     content: contentPart,
   }));
 }
