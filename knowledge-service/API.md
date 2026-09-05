@@ -54,3 +54,14 @@ curl --fail-with-body --max-time 80 \
 在 n8n/Dify 等工具中使用 HTTP 请求节点：POST、上述 URL、Bearer Auth（查询令牌）、JSON 请求体；读取 `answer` 作为回复并展示 `sources`。无需给这些工具 Azure 或 Qdrant 管理密钥。
 
 本机连接文件位于 `/Users/kevin/.codex/yixianghui/connections/gatheringtech-knowledge.env`，权限 600，包含 `KNOWLEDGE_API_TOKEN` 与接口地址。此文件不进入 Git。复制到其他机器时同样限制读取权限。
+
+## 图片、视频与 PDF 来源
+
+多媒体索引使用可观察画面描述、OCR 和视频自动转写形成文字向量；不是图像相似度向量。原件仍保存在飞书/MACE，查询使用原有 `/search` 与 `/ask`。
+
+- `/search` 的 `results[].media`、`/ask` 的 `sources[].media` 包含媒体元数据。
+- `media.kind` 为 `image`、`video` 或 `pdf`；`fileToken` 是飞书文件标识，不是访问密钥。
+- 视频返回 `startSeconds`、`endSeconds`；当前每 10 秒取关键帧并补片尾，按 30 秒区间索引，可能遗漏短暂画面。自动语音转写可能有识别误差。
+- PDF 返回 `page`。目录素材保留 `folderPath`，不通过相似文件名推断其属于某个基地。
+- `media.url` 是原媒体或飞书文件链接，源站权限与有效期仍适用；`sourceUrl`/`url` 保留可回查的飞书来源。
+- 首轮回填或源站失败时，已完成的记录可用，但不能据此认为媒体全量已经完成；以同步任务覆盖报告和失败清单为准。
