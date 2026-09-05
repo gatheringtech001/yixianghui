@@ -978,7 +978,7 @@
 
 /* 逸享荟统一商城视觉：覆盖当前商品详情使用到的旧商城样式。 */
 .page { background: #f7f7f5; color: #111111; }
-.goods-detail-page { padding-bottom: 128rpx; }
+.goods-detail-page { padding-bottom: calc(128rpx + env(safe-area-inset-bottom)); }
 .banner-title { padding-bottom: 0; background: #ffffff; }
 .banner { height: 680rpx; }
 .goods-title {
@@ -1042,11 +1042,11 @@
 	}
 }
 .page-footer {
-	height: 128rpx;
+	height: calc(128rpx + env(safe-area-inset-bottom));
 	box-sizing: border-box;
 	z-index: 10;
 	gap: 14rpx;
-	padding: 14rpx 24rpx 26rpx;
+	padding: 14rpx 24rpx calc(26rpx + env(safe-area-inset-bottom));
 	border-top: 1rpx solid #e8e1d8;
 	box-shadow: 0 -10rpx 30rpx rgba(17, 17, 17, 0.06);
 	.footer-fn .list {

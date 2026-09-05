@@ -81,7 +81,7 @@ export default {
 }
 </script>
 <style scoped lang="scss">
-.retail-confirm { min-height: 100vh; background: #f7f7f5; padding: 24rpx 24rpx 156rpx; color: #333; }
+.retail-confirm { min-height: 100vh; background: #f7f7f5; padding: 24rpx 24rpx calc(156rpx + env(safe-area-inset-bottom)); color: #333; }
 .card { margin-bottom: 22rpx; padding: 28rpx; background: #fff; border: 1rpx solid #e8e1d8; border-radius: 20rpx; }
 .title { display: block; font-size: 32rpx; font-weight: 700; color: #111; }
 .address > view, .row { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; }
@@ -91,6 +91,6 @@ export default {
 .line image { width: 150rpx; height: 150rpx; border-radius: 12rpx; flex-shrink: 0; }
 .line-body { flex: 1; min-width: 0; }.line-body > text { display: block; }.name { font-size: 30rpx; margin-bottom: 8rpx; }
 .row { padding: 16rpx 0; font-size: 28rpx; }.price { color: #701018; font-weight: 700; }.remark { padding-top: 20rpx; font-size: 28rpx; }
-.footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1rpx solid #e8e1d8; padding: 18rpx 28rpx 28rpx; display: flex; align-items: center; justify-content: space-between; gap: 20rpx; }
+.footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1rpx solid #e8e1d8; padding: 18rpx 28rpx calc(28rpx + env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: space-between; gap: 20rpx; }
 .total { font-size: 38rpx; font-weight: 700; color: #701018; margin-left: 12rpx; }.footer button { margin: 0; background: #701018; color: #fff; font-size: 30rpx; border-radius: 12rpx; min-width: 230rpx; }.footer button[disabled] { background: #ccc; }.error { color: #701018; }
 </style>

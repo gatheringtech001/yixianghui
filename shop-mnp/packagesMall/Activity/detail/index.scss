@@ -222,9 +222,9 @@ $page-paper: #ffffff;
 }
 
 .bottom {
-	height: 128rpx;
+	height: calc(128rpx + env(safe-area-inset-bottom));
 	background: $page-paper;
-	padding: 14rpx 36rpx 26rpx;
+	padding: 14rpx 36rpx calc(26rpx + env(safe-area-inset-bottom));
 	width: 100%;
 	box-sizing: border-box;
 	position: fixed;

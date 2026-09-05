@@ -80,9 +80,10 @@ $soft: #f7f7f5;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		min-width: 112rpx;
-		min-height: 52rpx;
-		padding: 0 20rpx;
+		width: 160rpx;
+		gap: 8rpx;
+		min-height: 76rpx;
+		padding: 0 12rpx;
 		border-radius: 999rpx;
 		border: 2rpx solid rgba(112, 16, 24, 0.45);
 		background: #fff;
@@ -185,7 +186,7 @@ $soft: #f7f7f5;
 }
 
 .bottom-action {
-	height: 128rpx;
+	height: calc(128rpx + env(safe-area-inset-bottom));
 	position: fixed;
 	left: 0;
 	right: 0;
@@ -195,7 +196,7 @@ $soft: #f7f7f5;
 	grid-template-columns: 1fr 1fr 1.35fr;
 	align-items: center;
 	gap: 20rpx;
-	padding: 14rpx 28rpx 26rpx;
+	padding: 14rpx 28rpx calc(26rpx + env(safe-area-inset-bottom));
 	background: rgba(255, 255, 255, 0.96);
 	border-top: 1rpx solid $line;
 	box-sizing: border-box;

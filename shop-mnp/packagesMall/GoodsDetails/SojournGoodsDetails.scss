@@ -87,10 +87,11 @@ $page-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 				display: inline-flex;
 				align-items: center;
 				justify-content: center;
-				min-width: 112rpx;
-				min-height: 56rpx;
+				width: 160rpx;
+				gap: 8rpx;
+				min-height: 76rpx;
 				margin-top: 6rpx;
-				padding: 0 20rpx;
+				padding: 0 12rpx;
 				border-radius: 999rpx;
 				border: 2rpx solid rgba(112, 16, 24, 0.45);
 				background: #fff;
@@ -441,7 +442,7 @@ $page-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 } /* end .page_view — 底栏/弹层已移出 scroll-view，样式不能再挂在 .page_view 下 */
 
 .page_foot_view {
-	height: 128rpx;
+	height: calc(128rpx + env(safe-area-inset-bottom));
 	width: 100%;
 	background-color: $page-paper;
 	position: fixed;
