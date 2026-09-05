@@ -52,7 +52,7 @@
 					>
 						<image v-if="item.image" :src="imageUrl(item.image)" mode="aspectFill" />
 						<view class="item_content_view">
-							<view class="result-type">{{ group.label }}</view>
+							<view class="result-type" v-if="item.type !== 'yunnan'">{{ group.label }}</view>
 							<view class="content_title_view">{{ item.title }}</view>
 							<view class="content_desc_view" v-if="item.description">{{ item.description }}</view>
 							<view class="content_meta_view" v-if="item.meta">{{ item.meta }}</view>
@@ -156,13 +156,15 @@
 					education: 'education'
 				}
 				const price = item.goodsType === 'online' ? item.price : (item.vipPrice || item.price)
+				const tags = this.parseTags(item.tags)
 				return {
 					id: item.goodsId,
 					type: typeByGoodsType[item.goodsType] || '',
 					title: item.goodsName,
 					description: item.description || '',
 					meta: '',
-					tags: this.parseTags(item.tags),
+					tags: item.goodsType === 'online'
+						? tags.filter(tag => !['云野集', '云南好物'].includes(tag)) : tags,
 					image,
 					priceText: `￥${price || 0}`
 				}

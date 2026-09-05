@@ -80,3 +80,10 @@ test('empty results and unavailable services keep distinct states', async () => 
 test('search placeholder includes goods as a searchable category', () => {
   assert.match(source, /placeholder="搜索旅居、好物、活动和课程"/)
 })
+
+test('Yunnan results omit redundant source tags and per-card section labels', () => {
+  const {page} = searchPage()
+  const item = page.buildGoodsResult({...corn, tags: '云野集,云南好物,玉米'})
+  assert.deepEqual(Array.from(item.tags), ['玉米'])
+  assert.match(source, /class="result-type" v-if="item.type !== 'yunnan'"/)
+})
