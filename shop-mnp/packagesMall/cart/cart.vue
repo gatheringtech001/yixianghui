@@ -4,8 +4,9 @@
 			<text class="title">购物车</text>
 			<text v-if="items.length" class="clear" @click="confirmClear">清空</text>
 		</view>
-		<view v-if="loading" class="state">加载中...</view>
-		<view v-else-if="!items.length" class="state empty">
+		<view v-if="error" class="cart-error"><text>{{ error }}</text><button @click="retryCart">登录 / 重新加载</button></view>
+		<view v-if="loading && !items.length" class="state">加载中...</view>
+		<view v-else-if="!items.length && !error" class="state empty">
 			<text>购物车还是空的</text>
 			<button @click="goShopping">去逛云南好物</button>
 		</view>
@@ -39,15 +40,19 @@
 			</view>
 			<button :disabled="!selectedItems.length || updating.length > 0" @click="checkout">结算({{ selectedItems.length }})</button>
 		</view>
+		<AuthProfilePopup ref="authProfilePopup" />
 	</view>
 </template>
 
 <script>
 	import { clearCart, deleteCart, getCartList, updateCart } from '@/api/member/index'
+	import { ensureLogin } from '@/utils/login'
+	import AuthProfilePopup from '@/components/AuthProfilePopup/AuthProfilePopup.vue'
 
 	export default {
+		components: {AuthProfilePopup},
 		data() {
-			return { host: this.$host, items: [], loading: false, selectedIds: [], initialized: false, updating: [] }
+			return { host: this.$host, items: [], loading: false, error: '', selectedIds: [], initialized: false, updating: [] }
 		},
 		computed: {
 			selectedItems() {
@@ -64,15 +69,25 @@
 		},
 		onShow() { this.loadCart() },
 		methods: {
+			async retryCart() {
+				if (!uni.getStorageSync('token') && !(await ensureLogin(this))) return
+				await this.loadCart()
+			},
 			async loadCart() {
+				if (!uni.getStorageSync('token')) {
+					this.items = []; this.selectedIds = []; this.initialized = false
+					this.error = '请先登录查看购物车'
+					return
+				}
 				this.loading = true
+				this.error = ''
 				try {
 					const result = await getCartList({ pageNum: 1, pageSize: 200 })
 					this.items = result.rows || []
 					const available = this.items.filter(this.isAvailable).map(item => item.cartId)
 					this.selectedIds = this.initialized ? this.selectedIds.filter(id => available.includes(id)) : available
 					this.initialized = true
-				} catch (error) { this.toast(error.message || '购物车加载失败') }
+				} catch (error) { this.error = error.message || '购物车加载失败' }
 				finally { this.loading = false }
 			},
 			isAvailable(item) {

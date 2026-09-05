@@ -155,7 +155,7 @@
 					online: 'yunnan',
 					education: 'education'
 				}
-				const price = item.goodsType === 'online' ? item.price : (item.vipPrice || item.price)
+				const price = item.price
 				const tags = this.parseTags(item.tags)
 				return {
 					id: item.goodsId,
@@ -179,7 +179,7 @@
 					meta: [item.activityTime, item.address].filter(Boolean).join(' · '),
 					tags: this.parseTags(item.tags),
 					image: item.activityCover,
-					priceText: isFree ? '免费' : `￥${item.vipPrice || item.price || 0}`
+					priceText: isFree ? '免费' : `￥${item.price || 0}`
 				}
 			},
 			buildResultGroups(goods, activities, keyword) {

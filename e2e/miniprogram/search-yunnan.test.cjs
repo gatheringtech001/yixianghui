@@ -87,3 +87,9 @@ test('Yunnan results omit redundant source tags and per-card section labels', ()
   assert.deepEqual(Array.from(item.tags), ['玉米'])
   assert.match(source, /class="result-type" v-if="item.type !== 'yunnan'"/)
 })
+
+test('all search categories use ordinary prices, not unsupported member prices', () => {
+  const {page}=searchPage()
+  assert.equal(page.buildGoodsResult({goodsType:'hotel',price:100,vipPrice:80}).priceText,'￥100')
+  assert.equal(page.buildActivityResult({isFree:0,price:50,vipPrice:30}).priceText,'￥50')
+})

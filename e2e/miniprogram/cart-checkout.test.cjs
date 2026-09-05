@@ -9,8 +9,8 @@ function cart(api = {}) {
   const script = source.match(/<script>([\s\S]*?)<\/script>/)[1]
     .replace(/import\s+[\s\S]*?\s+from\s+['"][^'"]+['"];?/g,'').replace('export default','module.exports =')
   const navigations = []
-  const context = {module:{exports:{}},getCartList:async()=>({rows:[item(1,29.9,2),item(2,60,1),item(3,10,1,0)]}),
-    updateCart:async()=>{},uni:{showToast(){},navigateTo:({url})=>navigations.push(url)},...api}
+  const context = {module:{exports:{}},AuthProfilePopup:{},getCartList:async()=>({rows:[item(1,29.9,2),item(2,60,1),item(3,10,1,0)]}),
+    updateCart:async()=>{},uni:{getStorageSync:()=> 'session',showToast(){},navigateTo:({url})=>navigations.push(url)},...api}
   vm.runInNewContext(script,context)
   const component=context.module.exports
   const page=component.data.call({$host:''})
@@ -37,4 +37,23 @@ test('quantity updates are serialized and checkout waits for the update',async()
   await page.loadCart();const pending=page.changeCount(page.items[0],1)
   await page.changeCount(page.items[0],1);page.checkout();assert.equal(calls,1);assert.equal(navigations.length,0)
   finish();await pending;assert.equal(page.items[0].goodsCount,3);assert.equal(page.selectedTotal,'149.70')
+})
+
+test('cart errors are recoverable and not represented as an empty cart',async()=>{
+  let failed=true
+  const {page}=cart({getCartList:async()=>{if(failed)throw Error('网络不可用');return {rows:[item(1,10,1)]}}})
+  await page.loadCart()
+  assert.equal(page.error,'网络不可用')
+  failed=false
+  await page.loadCart()
+  assert.equal(page.error,'')
+  assert.equal(page.items.length,1)
+})
+
+test('logged-out cart has a login state without requesting private data',async()=>{
+  let calls=0
+  const {page}=cart({getCartList:async()=>{calls++;return {rows:[]}},uni:{getStorageSync:()=>null}})
+  await page.loadCart()
+  assert.match(page.error,/登录/)
+  assert.equal(calls,0)
 })
