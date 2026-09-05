@@ -30,6 +30,12 @@ test("identities and video bounds are validated", () => {
   assert.throws(() => normalizeAsset({ source: "../yuque", id: "x" }, input), { status: 400 });
   assert.throws(() => normalizeAsset(identity, { ...input, kind: "video", media: { startSeconds: 20, endSeconds: 10 } }), { status: 400 });
 });
+test("caller-provided base identity is preserved and searchable without changing business data", async () => {
+  const { index, points } = fixture(); const base = { id: "travel-base:123", name: "安宁三号基地" };
+  await index.put(identity, { ...input, base });
+  assert.deepEqual((await index.get(identity)).asset.base, base);
+  assert.match([...points.values()][0].payload.content, /关联基地: 安宁三号基地 \(travel-base:123\)/);
+});
 test("upsert is idempotent and stores an isolated external source", async () => {
   const { index, calls, points } = fixture();
   const first = await index.put(identity, input);

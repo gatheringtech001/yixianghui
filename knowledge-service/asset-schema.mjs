@@ -5,7 +5,7 @@ export class AssetError extends Error {
   constructor(status, code, message) { super(message); this.status = status; this.code = code; }
 }
 const invalid = (message) => { throw new AssetError(400, "invalid_asset", message); };
-const FIELDS = ["kind", "title", "content", "url", "tags", "updatedAt", "checksum", "media"];
+const FIELDS = ["kind", "title", "content", "url", "tags", "updatedAt", "checksum", "media", "base"];
 function object(value, allowed) {
   if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).some((key) => !allowed.includes(key))) invalid("对象包含不支持的字段；此接口只接收索引，不接收文件");
 }
@@ -58,6 +58,10 @@ export function normalizeAsset(identity, input) {
   if (!/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(updatedAt) || !Number.isFinite(time) || time > Date.now() + 300000) invalid("updatedAt应为带时区的有效时间，不能超前超过5分钟");
   const asset = { ...identity, kind: input.kind, title: text(input.title, 200, "title"), content: text(input.content, 2700, "content"),
     url: url.href, tags: [...new Set((input.tags ?? []).map((tag) => text(tag, 40, "tag")))].sort(), updatedAt: new Date(time).toISOString() };
+  if (input.base !== undefined) {
+    object(input.base, ["id", "name"]);
+    asset.base = { id: text(input.base.id, 128, "base.id"), name: text(input.base.name, 160, "base.name") };
+  }
   if (input.checksum !== undefined) {
     if (!/^[a-fA-F0-9]{64}$/.test(input.checksum)) invalid("checksum应为原件SHA-256");
     asset.checksum = input.checksum.toLowerCase();
@@ -68,5 +72,6 @@ export function normalizeAsset(identity, input) {
   return asset;
 }
 export function assetText(asset) {
-  return `${asset.title}\n素材类型: ${{ text: "文字", image: "图片", video: "视频", pdf: "PDF" }[asset.kind]}\n${asset.content}\n标签: ${asset.tags.join("、")}`;
+  return `${asset.title}\n素材类型: ${{ text: "文字", image: "图片", video: "视频", pdf: "PDF" }[asset.kind]}\n${asset.content}\n标签: ${asset.tags.join("、")}`
+    + (asset.base ? `\n关联基地: ${asset.base.name} (${asset.base.id})` : "");
 }

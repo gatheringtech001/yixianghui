@@ -37,6 +37,7 @@ curl --fail-with-body --max-time 160 --request PUT \
 | `tags` | 可选，最多20个，每个最多40字符；自动去重、排序 |
 | `updatedAt` | 必填，带时区的ISO时间；更新必须晚于现有版本，不接受超前5分钟以上的时间 |
 | `checksum` | 可选，调用方提供的原件SHA-256；服务不读取原件核验此哈希 |
+| `base` | 可选，`{"id":"travel-base:123","name":"基地名称"}`；保留调用方提供的关联基地标识和名称，并加入检索，不修改业务基地表或猜测关联 |
 | `media.access` | 默认`restricted`，只提供来源链接；确实公开的HTTPS图片/视频直链可设`public`，由浏览器直接加载 |
 | `media.fileToken` | 可选，已配置飞书租户的文件标识；文档图片使用docx来源地址，独立文件使用与token对应的file来源地址 |
 | `media.startSeconds` / `endSeconds` | 视频片段可选，需成对提供，0≤起点<终点≤864000秒 |
