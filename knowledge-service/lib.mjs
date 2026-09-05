@@ -3,14 +3,23 @@ import crypto from "node:crypto";
 const HAN = /[\p{Script=Han}]/u;
 const WORDS = /[\p{Letter}\p{Number}]+/gu;
 
+function cutsSurrogatePair(text, index) {
+  if (index <= 0 || index >= text.length) return false;
+  const previous = text.charCodeAt(index - 1);
+  const current = text.charCodeAt(index);
+  return previous >= 0xd800 && previous <= 0xdbff && current >= 0xdc00 && current <= 0xdfff;
+}
+
 function splitLong(text, maxChars, overlap) {
   const parts = [];
   let start = 0;
   while (start < text.length) {
-    const end = Math.min(text.length, start + maxChars);
+    let end = Math.min(text.length, start + maxChars);
+    if (cutsSurrogatePair(text, end)) end += 1;
     parts.push(text.slice(start, end));
     if (end === text.length) break;
     start = Math.max(start + 1, end - overlap);
+    if (cutsSurrogatePair(text, start)) start -= 1;
   }
   return parts;
 }
@@ -63,7 +72,9 @@ export function chunkDocument(title, raw, options = {}) {
       continue;
     }
     if (current) chunks.push(current);
-    const tail = current.slice(-overlap);
+    let tailStart = Math.max(0, current.length - overlap);
+    if (cutsSurrogatePair(current, tailStart)) tailStart -= 1;
+    const tail = current.slice(tailStart);
     current = tail ? `${tail}\n\n${paragraph}` : paragraph;
     if (current.length > maxChars) {
       const pieces = splitLong(current, maxChars, overlap);
@@ -72,11 +83,14 @@ export function chunkDocument(title, raw, options = {}) {
     }
   }
   if (current) chunks.push(current);
-  return chunks.map((contentPart, index) => ({
-    index,
-    text: safeTitle ? `${safeTitle}\n${contentPart}` : contentPart,
-    content: contentPart,
-  }));
+  return chunks.map((contentPart, index) => {
+    const safeContent = sanitizeText(contentPart);
+    return {
+      index,
+      text: safeTitle ? `${safeTitle}\n${safeContent}` : safeContent,
+      content: safeContent,
+    };
+  });
 }
 
 export function lexicalTokens(value) {

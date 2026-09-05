@@ -65,3 +65,14 @@ test("sanitizeText replaces unpaired surrogates before JSON transport", () => {
   assert.equal(sanitized, "正常�内容�和😀");
   assert.doesNotMatch(JSON.stringify(sanitized), /\\ud[89a-f][0-9a-f]{2}/i);
 });
+
+test("chunkDocument does not split a valid surrogate pair at a chunk boundary", () => {
+  const chunks = chunkDocument("边界测试", `${"甲".repeat(199)}😀${"乙".repeat(80)}`, {
+    maxChars: 200,
+    overlap: 20,
+  });
+  assert.ok(chunks.some((chunk) => chunk.content.includes("😀")));
+  for (const chunk of chunks) {
+    assert.doesNotMatch(JSON.stringify(chunk), /\\ud[89a-f][0-9a-f]{2}/i);
+  }
+});
