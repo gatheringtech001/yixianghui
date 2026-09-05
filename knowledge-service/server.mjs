@@ -6,6 +6,7 @@ import { createConsoleHandler } from "./console.mjs";
 import { openFeishuMedia } from "./preview.mjs";
 import { AssetIndex } from "./assets.mjs";
 import { createAssetHandler } from "./assets-http.mjs";
+import { createDirectoryHandler } from "./directory.mjs";
 import {
   AzureModels,
   FeishuSource,
@@ -82,6 +83,7 @@ export function createServer(settings = config()) {
     manifestFile: settings.manifestFile,
   });
   let syncing = null;
+  const directoryHandler = createDirectoryHandler({ token: settings.apiToken, manifestFile: settings.manifestFile });
   const assetHandler = createAssetHandler({ tokens: settings.writerTokens ?? "{}",
     forbiddenTokens: [settings.apiToken, settings.adminToken], index: new AssetIndex({ store, models: service.models }) });
   const consoleHandler = createConsoleHandler({ token: settings.apiToken,
@@ -93,6 +95,7 @@ export function createServer(settings = config()) {
   });
   return http.createServer(async (request, response) => {
     try {
+      if (await directoryHandler(request, response)) return;
       if (await assetHandler(request, response)) return;
       if (await consoleHandler(request, response)) return;
       if (request.method === "GET" && request.url === "/health") {

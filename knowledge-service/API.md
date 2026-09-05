@@ -1,5 +1,14 @@
 # 逸享荟知识库接口
 
+## 完整文档目录
+
+`GET https://gatheringtech.com/knowledge/documents?limit=100&cursor=...`
+
+使用已有查询令牌（Bearer `KNOWLEDGE_API_TOKEN`），只读已完成索引的文档清单，不调用搜索或模型，不按素材是否存在过滤。
+返回 `items`（`id`、`title`、`sourceId`、`sourceType`、`sourceUrl`、`updatedAt`）、完整 `total`、`snapshot` 和 `nextCursor`。
+`limit` 范围 1–200，默认 100；首次省略 cursor，继续请求至 nextCursor 为 null。分页中目录改变返回 409，客户端应重新加载，不能把已收集的部分结果当成完整目录。
+此目录是知识库已索引文档，不等同于业务商品或可售房态。
+
 ## 外部素材索引写入（不上传原文件）
 
 `PUT https://gatheringtech.com/knowledge/assets/{source}/{id}`
