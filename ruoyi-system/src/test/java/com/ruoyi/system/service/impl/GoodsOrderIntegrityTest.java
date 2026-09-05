@@ -91,7 +91,7 @@ class GoodsOrderIntegrityTest {
         AppGoodsOrder first = service.insertAppGoodsOrder(request());
         AppGoodsOrder second = service.insertAppGoodsOrder(request());
         assertNotEquals(first.getOrderNo(), second.getOrderNo());
-        assertEquals("20" + first.getOrderId(), first.getOrderNo());
+        assertTrue(first.getOrderNo().matches("[A-Za-z0-9_\\-|*]{6,32}"));
     }
 
     @Test
@@ -162,7 +162,7 @@ class GoodsOrderIntegrityTest {
         stored.setOrderId(1L);
         stored.setStatus("2");
         stored.setPayStatus("2");
-        when(orders.selectAppGoodsOrderByOrderId(1L)).thenReturn(stored);
+        when(orders.selectAppGoodsOrderByOrderIdForUpdate(1L)).thenReturn(stored);
         assertEquals("订单已关闭或已支付", service.wxpayPrepay(stored).get("msg"));
     }
 

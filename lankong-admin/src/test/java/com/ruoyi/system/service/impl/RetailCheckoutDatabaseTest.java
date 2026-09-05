@@ -74,6 +74,7 @@ class RetailCheckoutDatabaseTest {
     }
     @Test void multiItemOrderHasCorrectAmountsSnapshotsAndCartCleanup() {
         Request r = request(); AppGoodsOrder order = submit(r);
+        assertTrue(order.getOrderNo().matches("[A-Za-z0-9_\\-|*]{6,32}"));
         assertEquals(new BigDecimal("124.80"),order.getMoneyPayable());
         assertEquals(3L,order.getGoodsCount()); assertEquals(2,order.getGoodsList().size());
         assertEquals(2L,order.getGoodsList().get(0).getOrderQuantity());
@@ -183,7 +184,8 @@ class RetailCheckoutDatabaseTest {
         assertTrue(message.contains("测试玉米"));assertTrue(message.contains("测试茶叶"));
         assertTrue(message.contains("转发给对应供应商"));
         assertTrue(message.contains("客户管理 → 供应商 → 发货协作"));
-        assertFalse(message.contains("测试收货人"));assertFalse(message.contains("00000000000"));assertFalse(message.contains("测试地址"));
+        String withoutOrderNumber=message.replace(order.getOrderNo(), "");
+        assertFalse(withoutOrderNumber.contains("测试收货人"));assertFalse(withoutOrderNumber.contains("00000000000"));assertFalse(withoutOrderNumber.contains("测试地址"));
         assertEquals("sent",jdbc.queryForObject("SELECT notice_status FROM app_supplier_order",String.class));
         assertNull(jdbc.queryForObject("SELECT confirmed_at FROM app_supplier_order",java.sql.Timestamp.class));
         assertNull(jdbc.queryForObject("SELECT send_express_no FROM app_goods_order",String.class));

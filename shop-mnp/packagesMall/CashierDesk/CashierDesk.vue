@@ -38,7 +38,7 @@
 		</view>
 		<view class="pay-submit">
 			<view class="jump" @click="goOrder">暂不支付</view>
-			<view class="submit" :class="{ disabled: isExpired }" @click="$u.throttle(onSubmit, 500)">{{ isExpired ? '已超时' : (orderAmount + '元') }}</view>
+			<view class="submit" :class="{ disabled: isExpired || paying }" @click="$u.throttle(onSubmit, 500)">{{ isExpired ? '已超时' : (paying ? '处理中…' : orderAmount + '元') }}</view>
 		</view>
 	</view>
 </template>
@@ -69,6 +69,7 @@
 				min: 0,
 				sec: 0,
 				isExpired: false,
+				paying: false,
 			};
 		},
 		onLoad(option){
@@ -175,6 +176,7 @@
 			 * 支付点击
 			 */
 			onSubmit(){
+				if (this.paying) return
 				if (this.isExpired) {
 					uni.showToast({ title: '支付已超时，请重新下单', icon: 'none' })
 					return
@@ -195,6 +197,7 @@
 				})
 			},
 			pay() {
+				if (this.paying) return
 				if (this.isExpired) {
 					uni.showToast({ title: '支付已超时，请重新下单', icon: 'none' })
 					return
@@ -203,9 +206,12 @@
 					orderNo: this.orderNo,
 					orderId: this.orderId
 				}
-				payOrder(params).then(res => {
-					console.log(res)
+				this.paying = true
+				return payOrder(params).then(res => {
 					let order = res.data
+					if (!order || !order.timeStamp || !order.nonceStr || !order.packageVal || !order.paySign) {
+						throw new Error('微信支付参数不完整，请重试或联系客服')
+					}
 					let orderInfo = {
 						"timeStamp": String(order.timeStamp),
 						"nonceStr": order.nonceStr,  
@@ -213,7 +219,6 @@
 						"signType": order.signType,  
 						"paySign":  order.paySign
 					}
-					console.log(orderInfo)
 					uni.requestPayment({
 						provider: 'wxpay',
 						...orderInfo,
@@ -245,7 +250,6 @@
 							})
 						},
 						fail: (e) => {
-							console.log(e)
 							uni.showModal({
 							  content: "本次支付未成功，继续支付？",
 							  confirmText: "确定",
@@ -257,8 +261,12 @@
 								}
 							  },
 							})
-						}
+						},
+						complete: () => { this.paying = false }
 					})
+				}).catch(error => {
+					this.paying = false
+					uni.showModal({ title: '暂时无法支付', content: error.message || '预支付失败，请稍后重试', showCancel: false })
 				})
 			},
 			goOrder() {

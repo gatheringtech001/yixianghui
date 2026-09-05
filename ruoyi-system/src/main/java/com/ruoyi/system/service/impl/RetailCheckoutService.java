@@ -95,7 +95,7 @@ public class RetailCheckoutService {
             if (goodsMapper.reserveStock(line.getGoodsId(),(long)line.getCount()) != 1) throw new ServiceException(line.getGoodsName()+"库存不足");
         }
         if (orderMapper.insertAppGoodsOrder(order) != 1 || order.getOrderId() == null) throw new ServiceException("创建订单失败");
-        order.setOrderNo("20"+order.getOrderId());
+        order.setOrderNo(MerchantOrderNumbers.create("20", order.getOrderId()));
         if (orderMapper.updateAppGoodsOrder(order) != 1) throw new ServiceException("保存订单失败");
         coupons.consume(quote,order);
         for (Line line : quote.getItems()) saveDetail(order,line);

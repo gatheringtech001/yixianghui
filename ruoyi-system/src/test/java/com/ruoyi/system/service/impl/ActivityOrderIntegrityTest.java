@@ -33,7 +33,7 @@ class ActivityOrderIntegrityTest {
         request.setSignName("test");
         request.setSignMobile("13800000000");
         request.setSignCount(1);
-        assertEquals("30123", service.createPendingActivityOrder(request).getOrderNo());
+        assertTrue(service.createPendingActivityOrder(request).getOrderNo().matches("[A-Za-z0-9_\\-|*]{6,32}"));
         verify(activities).selectAppActivityByActivityIdForUpdate(3L);
     }
 }

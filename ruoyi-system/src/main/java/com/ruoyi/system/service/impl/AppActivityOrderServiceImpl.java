@@ -31,10 +31,7 @@ import com.wechat.pay.java.core.Config;
 import com.wechat.pay.java.core.exception.HttpException;
 import com.wechat.pay.java.core.exception.MalformedMessageException;
 import com.wechat.pay.java.service.payments.jsapi.JsapiService;
-import com.wechat.pay.java.service.payments.jsapi.JsapiServiceExtension;
 import com.wechat.pay.java.service.payments.jsapi.model.Amount;
-import com.wechat.pay.java.service.payments.jsapi.model.Detail;
-import com.wechat.pay.java.service.payments.jsapi.model.GoodsDetail;
 import com.wechat.pay.java.service.payments.jsapi.model.Payer;
 import com.wechat.pay.java.service.payments.jsapi.model.PrepayRequest;
 import com.wechat.pay.java.service.payments.jsapi.model.PrepayWithRequestPaymentResponse;
@@ -81,6 +78,8 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
 
     @Autowired
     private Config wxPayConfigRuntime;
+    @Autowired
+    private WechatPrepayService wechatPrepayService;
 
     @Autowired
     private IAppGoldService goldService;
@@ -401,7 +400,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
         if (rows <= 0) {
             throw new ServiceException("订单创建失败");
         }
-        order.setOrderNo("30" + order.getOrderId());
+        order.setOrderNo(MerchantOrderNumbers.create("30", order.getOrderId()));
         AppActivityOrder numbered = new AppActivityOrder();
         numbered.setOrderId(order.getOrderId());
         numbered.setOrderNo(order.getOrderNo());
@@ -540,13 +539,15 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public AjaxResult wxpayPrepay(AppActivityOrder order)
     {
         AjaxResult rs = AjaxResult.error();
         if (order == null || order.getOrderId() == null) {
             throw new ServiceException("订单信息无效");
         }
-        if (!"0".equals(order.getPayStatus())) {
+        order = appActivityOrderMapper.selectAppActivityOrderByOrderId(order.getOrderId());
+        if (order == null || !"0".equals(order.getPayStatus()) || !"0".equals(order.getStatus())) {
             throw new ServiceException("订单非待支付状态");
         }
         AppActivity activity = appActivityMapper.selectAppActivityByActivityId(order.getActivityId());
@@ -555,20 +556,23 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
         }
         try {
             AppPayLog payLog = payLogService.selectAppPayLogByPayNo(order.getOrderNo());
+            String paymentNo = MerchantOrderNumbers.forPayment(order.getOrderNo(), "30", order.getOrderId());
+            if (!paymentNo.equals(order.getOrderNo())) {
+                if (payLog != null) throw new ServiceException("已有支付记录，不能修改支付单号");
+                order.setOrderNo(paymentNo);
+                AppActivityOrder numbered = new AppActivityOrder();
+                numbered.setOrderId(order.getOrderId()); numbered.setOrderNo(paymentNo);
+                if (appActivityOrderMapper.updateAppActivityOrder(numbered) != 1) throw new ServiceException("支付单号保存失败");
+            }
             AppUserInfo userInfo = userInfoService.selectAppUserInfoByUserId(order.getUserId());
             if (userInfo == null || StringUtils.isEmpty(userInfo.getWeixinOpenid())) {
                 throw new ServiceException("微信用户信息缺失，请重新登录");
             }
 
-            JsapiServiceExtension service = new JsapiServiceExtension.Builder()
-                    .config(wxPayConfigRuntime)
-                    .signType("RSA")
-                    .build();
-
             PrepayRequest request = new PrepayRequest();
             request.setAppid(appId);
             request.setMchid(merchantId);
-            request.setDescription("活动报名-" + activity.getActivityName());
+            request.setDescription("逸享荟活动订单" + order.getOrderNo());
             request.setNotifyUrl(payNotifyUrl);
             request.setOutTradeNo(order.getOrderNo());
 
@@ -587,7 +591,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
             request.setTimeExpire(expireAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
 
             Amount amount = new Amount();
-            amount.setTotal(order.getMoneyPayable().multiply(new BigDecimal(100)).intValue());
+            amount.setTotal(order.getMoneyPayable().multiply(new BigDecimal(100)).intValueExact());
             amount.setCurrency("CNY");
             request.setAmount(amount);
 
@@ -595,27 +599,11 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
             payer.setOpenid(userInfo.getWeixinOpenid());
             request.setPayer(payer);
 
-            Detail detail = new Detail();
-            detail.setCostPrice(order.getMoneyPayable().multiply(new BigDecimal(100)).intValue());
-            List<GoodsDetail> goodsDetailList = new ArrayList<>();
-            GoodsDetail goodsDetail = new GoodsDetail();
-            goodsDetail.setGoodsName(activity.getActivityName());
-            goodsDetail.setMerchantGoodsId(order.getActivityId().toString());
-            goodsDetail.setQuantity(order.getSignCount() != null ? order.getSignCount() : 1);
-            int unitFen = order.getMoneyPayable()
-                    .multiply(new BigDecimal(100))
-                    .divide(new BigDecimal(goodsDetail.getQuantity()), 0, RoundingMode.HALF_UP)
-                    .intValue();
-            goodsDetail.setUnitPrice(unitFen);
-            goodsDetailList.add(goodsDetail);
-            detail.setGoodsDetail(goodsDetailList);
-            request.setDetail(detail);
-
             SceneInfo sceneInfo = new SceneInfo();
             sceneInfo.setPayerClientIp(IpUtils.getHostIp());
             request.setSceneInfo(sceneInfo);
 
-            PrepayWithRequestPaymentResponse response = service.prepayWithRequestPayment(request);
+            PrepayWithRequestPaymentResponse response = wechatPrepayService.create(request);
             rs = AjaxResult.success(response);
 
             if (payLog == null) {
@@ -641,7 +629,6 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
                 payLog.setPayDescription(request.getDescription());
                 payLogService.updateAppPayLog(payLog);
             }
-            appActivityOrderMapper.updateAppActivityOrder(order);
             log.info("活动订单【{}】发起预支付成功", order.getOrderId());
         } catch (HttpException e) {
             log.error("活动订单微信下单HTTP失败：{}", e.getMessage());

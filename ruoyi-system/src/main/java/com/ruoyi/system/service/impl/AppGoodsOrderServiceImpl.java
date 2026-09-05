@@ -43,10 +43,8 @@ import com.wechat.pay.java.service.ecommercerefund.model.RefundAmount;
 import com.wechat.pay.java.service.ecommercerefund.model.RefundReqAmount;
 import com.wechat.pay.java.service.payments.model.Transaction;
 import com.wechat.pay.java.service.payments.jsapi.JsapiService;
-import com.wechat.pay.java.service.payments.jsapi.JsapiServiceExtension;
 import com.wechat.pay.java.service.payments.jsapi.model.*;
 import com.wechat.pay.java.service.payments.jsapi.model.Amount;
-import com.wechat.pay.java.service.payments.jsapi.model.GoodsDetail;
 import com.wechat.pay.java.service.payments.jsapi.model.QueryOrderByOutTradeNoRequest;
 import com.wechat.pay.java.service.refund.RefundService;
 import com.wechat.pay.java.service.refund.model.*;
@@ -85,6 +83,8 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     private IAppUserInfoService userInfoService;
     @Autowired
     private Config wxPayConfigRuntime;
+    @Autowired
+    private WechatPrepayService wechatPrepayService;
     @Autowired
     private NotificationConfig wxPayNotificationConfig;
     @Autowired
@@ -322,7 +322,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             throw new ServiceException("订单创建失败");
         }
         if (rs > 0) {
-            order.setOrderNo("20" + order.getOrderId());
+            order.setOrderNo(MerchantOrderNumbers.create("20", order.getOrderId()));
             if (appGoodsOrderMapper.updateAppGoodsOrder(order) != 1) {
                 throw new ServiceException("订单编号保存失败");
             }
@@ -573,47 +573,41 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
      * @return
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public AjaxResult wxpayPrepay(AppGoodsOrder goodsOrder) {
         if (goodsOrder == null || goodsOrder.getOrderId() == null) {
             return AjaxResult.error("非法订单");
         }
-        goodsOrder = appGoodsOrderMapper.selectAppGoodsOrderByOrderId(goodsOrder.getOrderId());
+        goodsOrder = appGoodsOrderMapper.selectAppGoodsOrderByOrderIdForUpdate(goodsOrder.getOrderId());
         if (goodsOrder == null || !"0".equals(goodsOrder.getStatus()) || !"0".equals(goodsOrder.getPayStatus())) {
             return AjaxResult.error("订单已关闭或已支付");
         }
         if (goodsOrder.getMoneyPayable() == null || goodsOrder.getMoneyPayable().signum() <= 0) {
             return AjaxResult.error("订单金额无效");
         }
-        goodsOrder.setGoodsList(java.util.Collections.singletonList(
-                appGoodsMapper.selectAppGoodsByGoodsId(goodsOrder.getGoodsId())));
-        AppGoodsOrderDetail detailQuery = new AppGoodsOrderDetail();
-        detailQuery.setOrderId(goodsOrder.getOrderId());
-        goodsOrder.setOrderDetailList(orderDetailMapper.selectAppGoodsOrderDetailList(detailQuery));
         AjaxResult rs = AjaxResult.error();
         try {
             //goodsOrder.setMoneyPayable(new BigDecimal(0.01));
             // ... 调用接口
             AppPayLog payLog = null;
             payLog = payLogService.selectAppPayLogByPayNo(goodsOrder.getOrderNo());
+            String paymentNo = MerchantOrderNumbers.forPayment(goodsOrder.getOrderNo(), "20", goodsOrder.getOrderId());
+            if (!paymentNo.equals(goodsOrder.getOrderNo())) {
+                if (payLog != null) throw new ServiceException("已有支付记录，不能修改支付单号");
+                goodsOrder.setOrderNo(paymentNo);
+                AppGoodsOrder numbered = new AppGoodsOrder();
+                numbered.setOrderId(goodsOrder.getOrderId()); numbered.setOrderNo(paymentNo);
+                if (appGoodsOrderMapper.updateAppGoodsOrder(numbered) != 1) throw new ServiceException("支付单号保存失败");
+            }
 
             AppUserInfo userInfo = userInfoService.selectAppUserInfoByUserId(goodsOrder.getUserId());
-            //System.setProperty("wechat.pay.java.debug", "true");
-
-            // 构建service
-            JsapiServiceExtension service =
-                    new JsapiServiceExtension.Builder()
-                            .config(wxPayConfigRuntime)
-                            // 不填默认为RSA
-                            .signType("RSA")
-                            .build();
-
-
-
-
+            if (userInfo == null || StringUtils.isEmpty(userInfo.getWeixinOpenid())) {
+                throw new ServiceException("微信用户信息缺失，请重新登录");
+            }
             PrepayRequest request = new PrepayRequest();
             request.setAppid(appId);
             request.setMchid(merchantId);
-            request.setDescription("购买" + goodsOrder.getGoodsList().get(0).getGoodsName());
+            request.setDescription("逸享荟商品订单" + goodsOrder.getOrderNo());
             request.setNotifyUrl(payNotifyUrl);
             // 同一订单重试复用商户单号，避免生成可重复支付的交易。
             request.setOutTradeNo(goodsOrder.getOrderNo());
@@ -634,7 +628,6 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             }
             DateTimeFormatter formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
             request.setTimeExpire(expireAt.format(formatter));
-            request.setGoodsTag(goodsOrder.getGoodsList().get(0).getTags());
             Amount amount = new Amount();
             amount.setTotal(goodsOrder.getMoneyPayable().multiply(new BigDecimal(100)).intValueExact());
             amount.setCurrency("CNY");
@@ -642,28 +635,11 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             Payer payer = new Payer();
             payer.setOpenid(userInfo.getWeixinOpenid());
             request.setPayer(payer);
-            Detail detail = new Detail();
-            detail.setCostPrice(goodsOrder.getMoneyPayable().multiply(new BigDecimal(100)).intValue());
-//            detail.setInvoiceId("微信123");
-
-            List<com.wechat.pay.java.service.payments.jsapi.model.GoodsDetail> goodsDetailList = new ArrayList<>();
-            for (int i = 0; i < goodsOrder.getOrderDetailList().size(); i++) {
-                GoodsDetail goodsDetail = new GoodsDetail();
-                goodsDetail.setGoodsName(goodsOrder.getGoodsList().get(i).getGoodsName());
-                goodsDetail.setMerchantGoodsId(goodsOrder.getOrderDetailList().get(i).getGoodsId().toString());
-                goodsDetail.setQuantity(goodsOrder.getOrderDetailList().get(i).getGoodsCount().intValue());
-                goodsDetail.setUnitPrice(goodsOrder.getOrderDetailList().get(i).getGoodsMoney()
-                        .divide(BigDecimal.valueOf(goodsDetail.getQuantity()), 2, RoundingMode.HALF_UP)
-                        .multiply(new BigDecimal(100)).intValueExact());
-                goodsDetailList.add(goodsDetail);
-            }
-
-            detail.setGoodsDetail(goodsDetailList);
-            request.setDetail(detail);
+            // 平台券已计入应付总额；明细留在本系统，不上传非必填的微信单品营销报文。
             SceneInfo sceneInfo = new SceneInfo();
             sceneInfo.setPayerClientIp(IpUtils.getHostIp());
             request.setSceneInfo(sceneInfo);
-            PrepayWithRequestPaymentResponse response = service.prepayWithRequestPayment(request);
+            PrepayWithRequestPaymentResponse response = wechatPrepayService.create(request);
             rs = AjaxResult.success(response);
             if(null == payLog){
                 payLog = new AppPayLog();
@@ -679,7 +655,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                 payLog.setCreateTime(DateUtils.getNowDate());
                 payLog.setOrderType("2");
                 payLog.setUserId(goodsOrder.getUserId());
-                payLogService.insertAppPayLog(payLog);
+                if (payLogService.insertAppPayLog(payLog) != 1) throw new ServiceException("支付记录保存失败");
                 goodsOrder.setPayStatus("0");
                 goodsOrder.setUpdateTime(DateUtils.getNowDate());
                 appGoodsOrderMapper.updateAppGoodsOrder(goodsOrder);
@@ -692,12 +668,11 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
                 payLogService.updateAppPayLog(payLog);
             }
             appGoodsOrderMapper.updateAppGoodsOrder(goodsOrder);
-            log.info("订单【{}】发起预支付成功，返回信息：{}", goodsOrder.getOrderId(), response);
+            log.info("订单【{}】发起预支付成功", goodsOrder.getOrderId());
         } catch (HttpException e) { // 发送HTTP请求失败
             log.error("微信下单发送HTTP请求失败，错误信息：{}", e.getMessage());
         } catch (com.ruoyi.common.exception.ServiceException e) { // 服务返回状态小于200或大于等于300，例如500
-            log.error("微信下单服务状态错误，错误信息：{}", e.getMessage());
-            throw new com.ruoyi.common.exception.ServiceException("下单失败");
+            throw e;
         } catch (MalformedMessageException e) { // 服务返回成功，返回体类型不合法，或者解析返回体失败
             log.error("服务返回成功，返回体类型不合法，或者解析返回体失败，错误信息：{}", e.getMessage());
             throw new ServiceException("下单失败");
