@@ -1,5 +1,6 @@
 <template>
 	<view class="page_view">
+		<view v-if="orderError" class="order-error" @click="syncOrderAmount">{{ orderError }}，点击重新加载</view>
 		<view class="page_price_card">
 			<text class="price_label_view">支付金额</text>
 			<text class="price_value_view">¥{{ formatMoney(reserveData.price) }}</text>
@@ -11,7 +12,7 @@
 			</view>
 			<view class="base_box_view">
 				<view class="base_label_view">房源名称</view>
-				<view class="base_value_view">豪华双床房【城景，住满7晚含接或送机站1次】；{{reserveData.roomNumber}}间</view>
+				<view class="base_value_view">{{ roomName }}；{{reserveData.roomNumber}}间</view>
 			</view>
 			<view class="base_box_view">
 				<view class="base_label_view">所在基地</view>
@@ -28,7 +29,7 @@
 			<view class="base_box_view">
 				<view class="base_label_view">供餐需求</view>
 				<view class="base_value_view">
-					{{`${comboList[reserveData.comboIndex].name} ${comboList[reserveData.comboIndex].price}/人/天；${reserveData.peopleNumber}人`}}
+					{{ mealDescription }}
 				</view>
 			</view>
 			<view class="base_box_view is_amount">
@@ -56,7 +57,7 @@
 		</view>
 		<view class="page_foot_view">
 			<view class="button_view button_secondary" @click="goOrder">暂不支付</view>
-			<view class="button_view button_primary" @click="$u.throttle(onSubmit, 500)">¥{{ formatMoney(reserveData.price) }}</view>
+			<view class="button_view button_primary" :class="{disabled:paying || orderLoading || orderError || isExpired}" @click="$u.throttle(onSubmit, 500)">{{ paying ? '处理中…' : (orderLoading ? '加载订单中…' : '¥' + formatMoney(reserveData.price)) }}</view>
 		</view>
 	</view>
 </template>
@@ -78,8 +79,6 @@
 					checkInDate: '', // 入住日期
 					checkOutDate: '', // 离开日期
 					roomNumber: 1, // 预定房间数
-					peopleNumber: 2, // 入住人数
-					comboIndex: 0, // 套餐选中的下标
 					payMthod: '微信支付', // 支付方式
 				}, // 预定信息
 				payMthodList: [{
@@ -88,19 +87,8 @@
 						color: '#55B746'
 					},
 				],
-				comboList: [{
-						name: '含早餐',
-						price: 0,
-					},
-					{
-						name: '一早一正【晚餐】',
-						price: 25,
-					},
-					{
-						name: '一日三餐',
-						price: 50,
-					}
-				], // 套餐数据集合
+				roomName: '房型信息加载中', mealDescription: '供餐信息加载中',
+				paying: false, orderLoading: true, orderError: '',
 				hotelData: {
 					name: '',
 				}, // 酒店信息
@@ -130,17 +118,11 @@
 			if (e.roomNumber) {
 				this.reserveData.roomNumber = e.roomNumber
 			}
-			if (e.peopleNumber) {
-				this.reserveData.peopleNumber = e.peopleNumber
-			}
 			if (e.checkInDate) {
 				this.reserveData.checkInDate = e.checkInDate
 			}
 			if (e.checkOutDate) {
 				this.reserveData.checkOutDate = e.checkOutDate
-			}
-			if (e.comboIndex !== undefined && e.comboIndex !== '') {
-				this.reserveData.comboIndex = Number(e.comboIndex)
 			}
 			if (e.id) {
 				this.getGoodsDetailFn(e.id)
@@ -151,8 +133,8 @@
 			if (this.orderId) {
 				this.syncOrderAmount()
 			} else {
-				this.initPayDeadline()
-				this.startCountdown()
+				this.orderLoading = false
+				this.orderError = '订单信息缺失，请返回重新下单'
 			}
 		},
 		onUnload() {
@@ -218,33 +200,39 @@
 					uni.removeStorageSync(this.deadlineStorageKey())
 				}
 			},
+			applyOrderInfo(data) {
+				const goods = (data.goodsList || [])[0] || {}
+				const detail = (data.orderDetailList || [])[0] || {}
+				this.roomName = goods.specifications || detail.skuDataValues || data.roomType || '房型信息未提供'
+				this.hotelData.name = goods.goodsName || this.hotelData.name
+				this.reserveData.roomNumber = data.goodsCount || detail.goodsCount
+				this.reserveData.checkInDate = data.checkInDate || detail.orderStartDate || ''
+				this.reserveData.checkOutDate = data.checkOutDate || detail.orderEndDate || ''
+				const people = Number(data.selfGoodsCount != null ? data.selfGoodsCount : (detail.selfGoodsCount || 0))
+				const mealId = data.selfSkuId || detail.selfSkuId
+				const meal = (goods.optionList || []).find(item => String(item.skuId) === String(mealId))
+				this.mealDescription = meal && people > 0 ? `${meal.skuName} · ${people}人` : '以所选套餐包含的供餐为准'
+				this.orderNo = data.orderNo
+				this.reserveData.price = data.moneyPayable
+				this.orderAmount = data.moneyPayable
+			},
 			syncOrderAmount() {
-				getOrderDetail({ orderId: this.orderId }).then(res => {
+				this.orderLoading = true
+				this.orderError = ''
+				return getOrderDetail({ orderId: this.orderId }).then(res => {
 					const data = res && res.data
 					if (data && String(data.payStatus) === '1') {
 						this.clearDeadlineStorage()
 						this.goOrder()
 						return
 					}
-					if (!data) {
-						this.initPayDeadline()
-						this.startCountdown()
-						return
-					}
-					const amount = data.moneyPayable != null ? data.moneyPayable : data.payMoney
-					if (amount != null && amount !== '') {
-						this.reserveData.price = amount
-						this.orderAmount = amount
-					}
-					if (data.orderNo) {
-						this.orderNo = data.orderNo
-					}
+					if (!data) throw new Error('订单加载失败')
+					if (String(data.status) !== '0' || String(data.payStatus) !== '0') throw new Error('订单不可支付，请查看订单详情')
+					this.applyOrderInfo(data)
 					this.initPayDeadline(data.createTime)
 					this.startCountdown()
-				}).catch(() => {
-					this.initPayDeadline()
-					this.startCountdown()
-				})
+				}).catch(error => { this.orderError = error.message || '订单加载失败' })
+					.finally(() => { this.orderLoading = false })
 			},
 			// 获取商品详情
 			getGoodsDetailFn(id) {
@@ -269,6 +257,7 @@
 			 * 支付点击
 			 */
 			onSubmit(){
+				if (this.paying || this.orderLoading || this.orderError) return
 				if (this.isExpired) {
 					uni.showToast({ title: '支付已超时，请重新下单', icon: 'none' })
 					return
@@ -280,7 +269,7 @@
 				  cancelText: '取消',
 				  cancelColor: '#000000',
 				  confirmText: '立即支付',
-				  confirmColor: '#3CC51F',
+				  confirmColor: '#701018',
 				  success: function(res) { // 成功回调
 				    if (res.confirm) {
 				      _this.pay()
@@ -295,6 +284,7 @@
 				this.PayPirce = `${item.name}`
 			},
 			pay() {
+				if (this.paying || this.orderLoading || this.orderError) return
 				if (this.isExpired) {
 					uni.showToast({ title: '支付已超时，请重新下单', icon: 'none' })
 					return
@@ -304,15 +294,13 @@
 					orderNo: this.orderNo,
 					orderId: this.orderId
 				}
-				payOrder(params).then(res => {
+				this.paying = true
+				return payOrder(params).then(res => {
 					if (!res || res.code !== 200 || !res.data) {
-						uni.showToast({
-							icon: 'none',
-							title: (res && res.msg) || '发起支付失败'
-						})
-						return
+						throw new Error((res && res.msg) || '发起支付失败')
 					}
 					let order = res.data
+					if (!order.timeStamp || !order.nonceStr || !order.packageVal || !order.paySign) throw new Error('微信支付参数不完整，请重试')
 					let orderInfo = {
 						"timeStamp": String(order.timeStamp),
 						"nonceStr": order.nonceStr,  
@@ -320,7 +308,6 @@
 						"signType": order.signType,  
 						"paySign":  order.paySign
 					}
-					console.log(orderInfo)
 					uni.requestPayment({
 						provider: 'wxpay',
 						...orderInfo,
@@ -346,7 +333,6 @@
 							syncGoodsOrderPay(this.orderId).then(() => finish()).catch(() => finish())
 						},
 						fail: (e) => {
-							console.log(e)
 							uni.showModal({
 							  content: "本次支付未成功，继续支付？",
 							  confirmText: "继续支付",
@@ -354,16 +340,17 @@
 							  success: (res) => {
 								if (res.confirm) {
 								  _this.pay()
-								}
+								} else if (res.cancel) { this.goOrder() }
 							  },
 							})
-						}
+						},
+						complete: () => { this.paying = false }
 					})
 				}).catch(err => {
-					console.log('payOrder', err)
+					this.paying = false
 					uni.showToast({
 						icon: 'none',
-						title: (err && err.msg) || '发起支付失败，请稍后重试'
+						title: (err && err.message) || '发起支付失败，请稍后重试'
 					})
 				})
 			}

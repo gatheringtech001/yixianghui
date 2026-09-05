@@ -188,7 +188,7 @@
 				  cancelText: '取消',
 				  cancelColor: '#000000',
 				  confirmText: '立即支付',
-				  confirmColor: '#3CC51F',
+				  confirmColor: '#701018',
 				  success: function(res) { // 成功回调
 				    if (res.confirm) {
 				      _this.pay()
@@ -252,12 +252,13 @@
 						fail: (e) => {
 							uni.showModal({
 							  content: "本次支付未成功，继续支付？",
-							  confirmText: "确定",
+							  confirmText: "继续支付",
 							  cancelText: "返回",
 							  success: (res) => {
 								if (res.confirm) {
-								  console.log("用户点击确定");
+								  return this.pay()
 								} else if (res.cancel) {
+								  this.goOrder()
 								}
 							  },
 							})

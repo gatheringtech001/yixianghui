@@ -5,6 +5,8 @@ $line: #e8e1d8;
 $paper: #ffffff;
 $soft: #f7f7f5;
 $shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
+.order-error { padding: 24rpx; color: #701018; font-size: 28rpx; background: #fff; border-radius: 12rpx; }
+.page_view .page_foot_view .button_primary.disabled { opacity: .5; }
 
 .page_view {
 	margin: 0;
