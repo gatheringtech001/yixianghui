@@ -74,7 +74,7 @@ export async function answerQuestion(service, value, maxSources = 5) {
     source: { title: payload.title, url: payload.source_url, sourceId: payload.source_id,
       sourceType: payload.source_type, entityId: payload.entity_id, entityTable: payload.entity_table,
       productStatus: payload.product_status, snapshotAt: payload.snapshot_at, chunkIndex: payload.chunk_index,
-      media: payload.media },
+      media: payload.media, asset: payload.asset },
   }));
   if (!candidates.length) return { question, answer: INSUFFICIENT, grounded: false, sources: [], retrievedCount: 0 };
   const model = service.reranker.config.model;

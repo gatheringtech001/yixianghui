@@ -4,6 +4,8 @@ import { LunaReranker, LunaRerankError } from "./luna.mjs";
 import { answerQuestion, QuestionInputError } from "./answer.mjs";
 import { createConsoleHandler } from "./console.mjs";
 import { openFeishuMedia } from "./preview.mjs";
+import { AssetIndex } from "./assets.mjs";
+import { createAssetHandler } from "./assets-http.mjs";
 import {
   AzureModels,
   FeishuSource,
@@ -23,6 +25,7 @@ function config() {
     port: Number(process.env.PORT ?? 3210),
     apiToken: required("KNOWLEDGE_API_TOKEN"),
     adminToken: required("KNOWLEDGE_ADMIN_TOKEN"),
+    writerTokens: process.env.KNOWLEDGE_INGEST_TOKENS ?? "{}",
     source: {
       appId: required("FEISHU_APP_ID"),
       appSecret: required("FEISHU_APP_SECRET"),
@@ -79,6 +82,8 @@ export function createServer(settings = config()) {
     manifestFile: settings.manifestFile,
   });
   let syncing = null;
+  const assetHandler = createAssetHandler({ tokens: settings.writerTokens ?? "{}",
+    forbiddenTokens: [settings.apiToken, settings.adminToken], index: new AssetIndex({ store, models: service.models }) });
   const consoleHandler = createConsoleHandler({ token: settings.apiToken,
     openMedia: (descriptor, options) => openFeishuMedia(service.source, descriptor, options),
     origin: process.env.KNOWLEDGE_CONSOLE_ORIGIN ?? "https://gatheringtech.com",
@@ -88,6 +93,7 @@ export function createServer(settings = config()) {
   });
   return http.createServer(async (request, response) => {
     try {
+      if (await assetHandler(request, response)) return;
       if (await consoleHandler(request, response)) return;
       if (request.method === "GET" && request.url === "/health") {
         return reply(response, 200, { ok: true, qdrant: await store.health() });

@@ -1,5 +1,60 @@
 # 逸享荟知识库接口
 
+## 外部素材索引写入（不上传原文件）
+
+`PUT https://gatheringtech.com/knowledge/assets/{source}/{id}`
+
+使用独立的写入令牌：`Authorization: Bearer <KNOWLEDGE_WRITE_TOKEN>`。现有查询令牌不能写入；每个来源的令牌只能写入/回读自己的 `source`。初始来源为 `external-materials`。
+
+接口同步完成索引：首次写入返回 `201 / created`，更新返回 `200 / updated`，相同记录重试返回 `200 / unchanged`。相同 `source + id` 只占一个索引点。只改链接、访问方式等元数据不重复向量化；更新描述/标题/标签才重新生成向量。
+不同来源或不同ID即使原件哈希相同，也分别保留，不自动合并来源或更新权。
+
+```bash
+curl --fail-with-body --max-time 160 --request PUT \
+  "https://gatheringtech.com/knowledge/assets/$KNOWLEDGE_WRITE_SOURCE/room-001" \
+  -H "Authorization: Bearer $KNOWLEDGE_WRITE_TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "kind": "image",
+    "title": "基地双床客房照片",
+    "content": "客房内有两张床，窗外可见花园。用于核对房型与窗外环境。",
+    "url": "https://your-storage.example/materials/room-001.jpg",
+    "tags": ["客房", "双床", "花园"],
+    "updatedAt": "2026-09-06T00:00:00+08:00",
+    "media": {"access": "restricted"}
+  }'
+```
+
+示例原件地址必须替换，`updatedAt` 使用素材索引的真实版本时间。令牌与来源名保存在本机受保护的连接文件中，不应粘进前端代码或Git。
+
+| 字段 | 约束 |
+| --- | --- |
+| `source`（路径） | 小写字母开头，2–48位字母/数字/下划线/连字符；必须属于此写入令牌 |
+| `id`（路径） | 1–128位字母/数字/点/下划线/连字符，字母或数字开头；稳定不变，视频片段可用 `video-001-segment-030` |
+| `kind` | 必填：`text`、`image`、`video`、`pdf` |
+| `title` / `content` | 必填，标题最多200字符、描述最多2700字符；标题、描述、标签组成的检索文本合计最多3000字符 |
+| `url` | 必填，稳定HTTPS原件或来源地址，最多2048字符；禁止嵌入密码、密钥或临时签名 |
+| `tags` | 可选，最多20个，每个最多40字符；自动去重、排序 |
+| `updatedAt` | 必填，带时区的ISO时间；更新必须晚于现有版本，不接受超前5分钟以上的时间 |
+| `checksum` | 可选，调用方提供的原件SHA-256；服务不读取原件核验此哈希 |
+| `media.access` | 默认`restricted`，只提供来源链接；确实公开的HTTPS图片/视频直链可设`public`，由浏览器直接加载 |
+| `media.fileToken` | 可选，已配置飞书租户的文件标识；文档图片使用docx来源地址，独立文件使用与token对应的file来源地址 |
+| `media.startSeconds` / `endSeconds` | 视频片段可选，需成对提供，0≤起点<终点≤864000秒 |
+| `media.page` | PDF可选，正整数页码 |
+
+不接收文件、Base64、任意扩展字段，也不自动抓网页或执行图片识别、视频转写。请由素材采集工具提交可搜索的描述、OCR/转写摘要；长内容按片段ID拆开提交，接口不会静默截断。
+
+回读单条索引：`GET /knowledge/assets/{source}/{id}`，使用同一来源的写入令牌，返回规范化的 `asset`、`pointId` 和 `indexedAt`。目前不开放批量删除或DELETE接口。
+
+写入后直接使用已有 `/knowledge/search`、`/knowledge/ask` 查询；结果中的 `asset` 包含来源、素材ID、标签及版本信息。外部索引采用独立 `external_asset` 类型，不冒充语雀来源，也不会被语雀/飞书定时同步或商品同步覆盖。
+
+注意：索引成功只证明提交的文本与元数据已入库，不证明原件链接可访问或内容真实。公开链接预览会连接原件所在站点；私有链接不会由服务器任意下载或携带你的其他凭据访问。已接入的飞书预览继续使用原有保护。
+
+写入错误：`400` 参数/JSON错误，`401` 写令牌错误或来源不匹配，`404` 索引不存在，`409 stale_revision` 版本冲突，`409 write_in_progress` 同一素材正在写入，`413` 请求超过32 KiB，`415` 非JSON文件上传，`429` 写入限流（每来源每分钟60次、进程最多4条并发），`502` 依赖失败或写入结果未确认。
+网络中断、`write_in_progress` 或依赖故障后，使用**原来的ID、内容和版本时间**重试；不要为重试生成新ID。版本冲突需要先回读核实，不能盲目刷新时间覆盖。
+
+服务端 `KNOWLEDGE_INGEST_TOKENS` 为“来源→独立密钥”的JSON配置，密钥不能与查询/管理令牌重复。新增其他工具来源时由管理员配置新来源及专属密钥；运行模式保持单个PM2实例，由进程内并发保护串行化同一素材写入。
+
 ## 网页测试入口
 
 `https://gatheringtech.com/knowledge/console/` 提供单轮问答、仅检索、引用原文、媒体时间段和原始 JSON 检查。

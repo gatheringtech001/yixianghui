@@ -294,6 +294,7 @@ export class KnowledgeService {
       snapshotAt: item.payload.snapshot_at,
       orphanRelation: item.payload.orphan_relation,
       media: item.payload.media,
+      asset: item.payload.asset,
     }));
   }
 }
