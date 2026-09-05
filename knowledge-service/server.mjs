@@ -1,6 +1,7 @@
 import http from "node:http";
 import { pathToFileURL } from "node:url";
 import { LunaReranker, LunaRerankError } from "./luna.mjs";
+import { answerQuestion, QuestionInputError } from "./answer.mjs";
 import {
   AzureModels,
   FeishuSource,
@@ -89,6 +90,12 @@ export function createServer(settings = config()) {
           question: body.question, rerankModel: settings.rerank.model, scoreType: "rank_only", results,
         });
       }
+      if (request.method === "POST" && request.url === "/ask") {
+        if (!authorized(request, settings.apiToken)) return reply(response, 401, { error: "unauthorized" });
+        const body = await readBody(request);
+        if (!body || typeof body !== "object" || Array.isArray(body)) throw new QuestionInputError("Expected a JSON object");
+        return reply(response, 200, await answerQuestion(service, body.question, body.maxSources ?? 5));
+      }
       if (request.method === "POST" && request.url === "/admin/sync") {
         if (!authorized(request, settings.adminToken)) return reply(response, 401, { error: "unauthorized" });
         if (syncing) return reply(response, 409, { error: "sync already running" });
@@ -98,6 +105,9 @@ export function createServer(settings = config()) {
       return reply(response, 404, { error: "not found" });
     } catch (error) {
       console.error(new Date().toISOString(), error.message);
+      if (error instanceof QuestionInputError || error instanceof SyntaxError) {
+        return reply(response, 400, { error: error.message });
+      }
       if (error instanceof LunaRerankError) {
         if (error.retryAfter) response.setHeader("retry-after", String(error.retryAfter));
         return reply(response, error.statusCode, {

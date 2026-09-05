@@ -53,13 +53,18 @@ export class LunaReranker {
     if (!candidates.length) return [];
     if (!Number.isInteger(limit) || limit < 1 || limit > 10) throw new Error("Invalid rerank limit");
     const count = Math.min(limit, candidates.length);
+    const data = await this.complete(requestBody(this.config, question, candidates, count), "luna_rerank");
+    return rankedCandidates(data.output.order, candidates, count);
+  }
+
+  async complete(body, event) {
     const started = Date.now();
     let response;
     try {
       response = await fetch(this.config.url, {
         method: "POST", redirect: "error", signal: AbortSignal.timeout(60_000),
         headers: { "content-type": "application/json", "api-key": this.config.apiKey },
-        body: JSON.stringify(requestBody(this.config, question, candidates, count)),
+        body: JSON.stringify(body),
       });
     } catch {
       throw new LunaRerankError("Luna rerank request failed or timed out");
@@ -80,14 +85,13 @@ export class LunaReranker {
       if (choice?.finish_reason !== "stop" || choice.message?.refusal) {
         throw new Error("Incomplete or refused response");
       }
-      data.order = JSON.parse(choice.message.content).order;
+      data.output = JSON.parse(choice.message.content);
     } catch {
       throw new LunaRerankError("Luna returned invalid or incomplete structured output");
     }
-    const result = rankedCandidates(data.order, candidates, count);
-    console.info(JSON.stringify({ event: "luna_rerank", model: data.model ?? this.config.model,
-      candidates: candidates.length, latencyMs: Date.now() - started,
+    console.info(JSON.stringify({ event, model: data.model ?? this.config.model,
+      latencyMs: Date.now() - started,
       promptTokens: data.usage?.prompt_tokens, completionTokens: data.usage?.completion_tokens }));
-    return result;
+    return data;
   }
 }
