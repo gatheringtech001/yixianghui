@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>旅居知识问答 · Gathering</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="header"><a class="brand" href="./">Gathering<span>旅居知识问答</span></a><button id="logout" class="quiet" hidden>退出登录</button></header>
+  <main>
+    <section id="login" class="login-panel" aria-labelledby="login-title">
+      <h1 id="login-title">打开你的旅居知识库</h1>
+      <p>验证身份后，测试真实的知识库回答和引用来源。</p>
+      <form id="login-form">
+        <label for="token">知识库查询令牌</label>
+        <input id="token" type="password" required autocomplete="off" maxlength="512" placeholder="输入现有知识库查询令牌">
+        <button id="login-button" class="primary">进入测试</button>
+      </form>
+      <p class="small">令牌不保存在浏览器存储中。登录会话有效期 8 小时。</p>
+    </section>
+    <div id="notice" role="alert" hidden></div>
+    <section id="workspace" hidden>
+      <div class="page-title"><div><h1>向知识库提一个问题</h1><p>看回答，也看它依据了什么。</p></div><span class="session-label">内部测试</span></div>
+      <div class="workspace-grid">
+        <aside class="query-panel">
+          <form id="query-form">
+            <fieldset id="query-fields">
+              <legend class="sr-only">查询设置</legend>
+              <div class="mode-switch" role="group" aria-label="查询模式">
+                <label><input type="radio" name="mode" value="ask" checked><span>知识问答</span></label>
+                <label><input type="radio" name="mode" value="search"><span>仅检索资料</span></label>
+              </div>
+              <p id="mode-hint" class="small">检索资料后，由 Luna 筛选引用并回答。</p>
+              <label for="question">你的问题</label>
+              <textarea id="question" minlength="2" maxlength="500" rows="6" required placeholder="例如：有哪些适合长辈泡温泉的旅居基地？"></textarea>
+              <div class="input-footer"><span>⌘ / Ctrl + Enter 提交</span><span id="count">0 / 500</span></div>
+              <div class="limit-row"><label for="limit">最多返回来源</label><select id="limit" aria-label="最多返回来源"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></div>
+              <button id="submit" class="primary" type="submit">查询知识库</button>
+              <div class="examples"><h2>试试这些问题</h2>
+                <button type="button" data-example="版纳三号温泉基地有哪些住宿和温泉信息？">温泉基地的住宿信息</button>
+                <button type="button" data-example="找一张带两张床的客房照片">找一张双床客房照片</button>
+                <button type="button" data-example="找古滇康养园两室一厅公寓的视频，说明命中的时间段">找公寓视频和时间段</button>
+              </div>
+            </fieldset>
+          </form>
+          <p class="boundary">单轮测试，不保存聊天历史。价格、库存和上下架状态来自同步快照，请到业务系统核实。</p>
+        </aside>
+        <section class="result-panel" aria-labelledby="result-title" aria-live="polite">
+          <div class="result-heading"><h2 id="result-title">查询结果</h2><button id="clear" class="quiet" type="button" hidden>清空结果</button></div>
+          <div id="empty" class="empty"><div class="empty-mark" aria-hidden="true">?</div><h3>从一个具体问题开始</h3><p>回答、引用原文和媒体线索会显示在这里。<br>没有足够资料时，会明确提示“资料不足”。</p></div>
+          <div id="loading" class="loading" role="status" hidden><span class="spinner" aria-hidden="true"></span><strong>正在查询知识库</strong><p>正在检索资料并处理结果，请稍候。</p></div>
+          <div id="result" hidden>
+            <div id="metrics" class="metrics"></div>
+            <p id="result-question" class="result-question"></p>
+            <section id="answer-section"><div class="section-heading"><h3>回答</h3><button id="copy-answer" class="quiet" type="button">复制回答</button></div><div id="answer" class="answer"></div><p id="grounding-note" class="small"></p></section>
+            <div class="section-heading sources-heading"><h3 id="sources-title">引用来源</h3></div>
+            <div id="sources"></div>
+            <details class="raw"><summary>查看原始 JSON 返回</summary><button id="copy-json" class="quiet" type="button">复制 JSON</button><pre id="raw-json"></pre></details>
+          </div>
+        </section>
+      </div>
+      <footer>原始图片、视频与文档保留飞书访问权限。媒体分析可能有误，重要信息请核对原件；当前可检索不代表回填已全部完成。</footer>
+    </section>
+  </main>
+</body>
+</html>
