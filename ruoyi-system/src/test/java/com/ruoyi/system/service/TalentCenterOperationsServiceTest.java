@@ -35,6 +35,19 @@ import org.mockito.ArgumentCaptor;
 
 class TalentCenterOperationsServiceTest
 {
+    @Test
+    void customerSnapshotIsNotSilentlyTruncated() throws Exception
+    {
+        try (InputStream input = getClass().getResourceAsStream("/mapper/system/TalentCenterOperationsMapper.xml"))
+        {
+            assertNotNull(input);
+            String xml = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            String customers = xml.substring(xml.indexOf("<select id=\"selectCustomers\""), xml.indexOf("<select id=\"selectOrders\""));
+            assertTrue(!customers.toLowerCase().contains("limit 1000"));
+            assertTrue(customers.contains("c.del_flag = '0'"));
+            assertTrue(customers.contains("c.consultant_id = #{consultantId}"));
+        }
+    }
     private TalentCenterOperationsMapper mapper;
     private TalentCenterResourceMapper resourceMapper;
     private RedisCache redisCache;

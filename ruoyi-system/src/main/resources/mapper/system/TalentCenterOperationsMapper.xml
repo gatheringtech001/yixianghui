@@ -62,7 +62,6 @@
         where c.del_flag = '0'
           and (#{admin} = true or (#{consultantId} is not null and c.consultant_id = #{consultantId}))
         order by coalesce(c.update_time, c.create_time) desc, c.customer_id desc
-        limit 1000
     </select>
 
     <select id="selectOrders" resultType="java.util.LinkedHashMap">
