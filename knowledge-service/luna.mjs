@@ -26,6 +26,7 @@ function requestBody(config, question, candidates, count) {
   const rows = candidates.map(({ id, payload }) => ({
     id: String(id), title: sanitizeText(payload.title), content: sanitizeText(payload.content),
     status: payload.product_status ?? null, orphan: payload.orphan_relation ?? false,
+    media: payload.media,
   }));
   return {
     model: config.model, reasoning_effort: "low", max_completion_tokens: 2048,

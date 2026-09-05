@@ -293,6 +293,7 @@ export class KnowledgeService {
       productStatus: item.payload.product_status,
       snapshotAt: item.payload.snapshot_at,
       orphanRelation: item.payload.orphan_relation,
+      media: item.payload.media,
     }));
   }
 }

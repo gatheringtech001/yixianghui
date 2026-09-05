@@ -11,6 +11,7 @@ const SYSTEM = `你是逸享荟知识库问答助手。只能依据本次提供�
 候选不包含答案、全部无关或不足以支持结论时，grounded=false，citations=[]，明确说明资料不足，不能猜测。
 可以回答已有资料支持的部分，但必须指出未提供的信息与冲突。真实商品推荐不推荐下架(status=0)或孤立记录；用户明确查询此类资料时可说明内容和状态。
 价格、库存、上下架状态来自历史快照，涉及这些信息时明确写出这是同步快照，实际以业务系统实时核验为准，不承诺当前有房或可下单。
+图片/视频分析是可见画面与语音的观察记录，不能由画面推断未显示的设施或把示例素材当作真实基地。用户寻找图片/视频时优先引用带media的来源，视频说明命中的时间段。
 不要输出候选资料里出现的密钥、身份证、私人联系方式或其他无关个人信息。只输出符合schema的JSON。`;
 
 function requestBody(model, question, candidates, maxSources) {
@@ -72,7 +73,8 @@ export async function answerQuestion(service, value, maxSources = 5) {
     snapshotAt: payload.snapshot_at ?? null,
     source: { title: payload.title, url: payload.source_url, sourceId: payload.source_id,
       sourceType: payload.source_type, entityId: payload.entity_id, entityTable: payload.entity_table,
-      productStatus: payload.product_status, snapshotAt: payload.snapshot_at, chunkIndex: payload.chunk_index },
+      productStatus: payload.product_status, snapshotAt: payload.snapshot_at, chunkIndex: payload.chunk_index,
+      media: payload.media },
   }));
   if (!candidates.length) return { question, answer: INSUFFICIENT, grounded: false, sources: [], retrievedCount: 0 };
   const model = service.reranker.config.model;
