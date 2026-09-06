@@ -163,6 +163,10 @@ export class QdrantStore {
   async search(question, dense, limit = 30) {
     const route = `/collections/${encodeURIComponent(this.config.collection)}/points/query`;
     const filter = { must: [{ key: "permission_scope", match: { value: "internal" } }] };
+    const kinds = [];
+    if (/图片|照片|原图/.test(question) && !/不要(?:任何)?(?:图片|照片|原图)/.test(question)) kinds.push("image");
+    if (/视频|录像/.test(question) && !/不要(?:任何)?(?:视频|录像)/.test(question)) kinds.push("video");
+    if (kinds.length) filter.must.push({ key: "media.kind", match: { any: kinds } });
     const result = await this.api(route, {
       method: "POST",
       body: JSON.stringify({

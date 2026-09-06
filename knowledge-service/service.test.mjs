@@ -3,7 +3,24 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { FeishuSource, KnowledgeService } from "./service.mjs";
+import { FeishuSource, KnowledgeService, QdrantStore } from "./service.mjs";
+
+test("media requests filter both hybrid retrieval branches, not filename mentions", async () => {
+  const store = new QdrantStore({ collection: "test" });
+  let body;
+  store.api = async (_route, options) => { body = JSON.parse(options.body); return { result: { points: [] } }; };
+  for (const [question, kinds] of [
+    ["找弥勒客房图片", ["image"]], ["找温泉视频", ["video"]],
+    ["给我基地的图片和视频", ["image", "video"]], ["基地餐食价格", []],
+  ]) {
+    await store.search(question, [0.1], 30);
+    for (const branch of body.prefetch) {
+      assert.equal(branch.filter.must[0].key, "permission_scope");
+      const media = branch.filter.must.find((item) => item.key === "media.kind");
+      assert.deepEqual(media?.match.any ?? [], kinds);
+    }
+  }
+});
 
 test("Feishu refreshes an expired token before the next API request", async (context) => {
   const calls = [];

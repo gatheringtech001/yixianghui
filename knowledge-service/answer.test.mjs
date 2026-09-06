@@ -7,7 +7,7 @@ const point = { id: "p1", payload: { title: "建水基地", content: "提供双�
   source_url: "https://example.test/base", source_id: "base-1", source_type: "mysql_catalog",
   entity_id: "1", product_status: "1", snapshot_at: "2026-09-05T00:00:00Z" } };
 const grounded = { answer: "基地提供双人标间，包含三餐。[S1]", grounded: true,
-  citations: [{ id: "S1" }] };
+  citations: [{ id: "S1", evidence: ["提供双人标间，套餐包含三餐。"] }] };
 
 function fixture(output = grounded, points = [point]) {
   const calls = { embedding: 0, retrieval: 0, luna: 0, rerank: 0 };
@@ -36,6 +36,7 @@ test("combined answering invokes Luna exactly once with source-grounded citation
   assert.equal(result.sources[0].url, point.payload.source_url);
   assert.equal(result.sources[0].entityId, "1");
   assert.equal(result.sources[0].quote, point.payload.content);
+  assert.deepEqual(result.sources[0].evidence, grounded.citations[0].evidence);
   assert.equal(result.usage.inputTokens, 100);
 });
 
@@ -45,6 +46,14 @@ test("unsupported answers return an explicit knowledge gap, not generated guesse
   assert.equal(result.grounded, false);
   assert.match(result.answer, /资料不足/);
   assert.deepEqual(result.sources, []);
+});
+
+test("an explicit insufficient verdict never exposes unrelated citations or guesses", async () => {
+  const { service } = fixture({ answer: "Maybe another hotel", grounded: false, citations: grounded.citations });
+  const result = await answerQuestion(service, "不存在的客房照片？");
+  assert.equal(result.grounded, false);
+  assert.deepEqual(result.sources, []);
+  assert.match(result.answer, /资料不足/);
 });
 
 test("an empty retrieval does not call Luna", async () => {
@@ -63,6 +72,26 @@ test("unknown sources, fabricated quotes and unmatched markers fail explicitly",
   ]) {
     await assert.rejects(answerQuestion(fixture(output).service, "住宿餐饮？"), /citation|quote|sources/);
   }
+});
+
+test("citations require exact non-empty evidence from the indexed source", async () => {
+  for (const evidence of [undefined, [], [""], ["每天免费温泉"], ["三餐", "三餐"]]) {
+    const output = { ...grounded, citations: [{ id: "S1", evidence }] };
+    await assert.rejects(answerQuestion(fixture(output).service, "住宿餐饮？"), /evidence/);
+  }
+});
+
+test("signed source links are not exposed to the model or quote output", async () => {
+  const item = { ...point, payload: { ...point.payload,
+    content: point.payload.content + " https://example.test/a.mp4?auth_key=PRIVATE_SIGNATURE" } };
+  const { service } = fixture(grounded, [item]);
+  const complete = service.reranker.complete;
+  service.reranker.complete = async (body, event) => {
+    assert.ok(!JSON.stringify(body).includes("PRIVATE_SIGNATURE"));
+    return complete(body, event);
+  };
+  const result = await answerQuestion(service, "住宿餐饮？");
+  assert.ok(!result.sources[0].quote.includes("PRIVATE_SIGNATURE"));
 });
 
 test("question and source limit validation happen before API calls", async () => {
