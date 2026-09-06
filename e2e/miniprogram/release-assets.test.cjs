@@ -24,5 +24,5 @@ test('main package photographic assets stay within the release budget', async ()
   for (const name of names) {
     total += (await fs.stat(path.join(projectRoot, 'shop-mnp/static/home-design', name))).size
   }
-  assert.ok(total <= 180 * 1024, `main package photographs use ${total} bytes`)
+  assert.ok(total <= 160 * 1024, `main package photographs use ${total} bytes`)
 })
