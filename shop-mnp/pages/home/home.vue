@@ -645,7 +645,6 @@
 			async loadRecommendations(categories) {
 				const sectionConfig = [
 					{ name: '全国旅居', kind: 'goods', filter: isVisibleTravelGoods },
-					{ name: '云南好物', kind: 'goods', filter: isVisibleCatalogGoods },
 					{ name: '老年教育', label: '芳华学院', kind: 'goods', filter: isVisibleCatalogGoods }
 				]
 				const goodsRequests = sectionConfig.map(async config => {

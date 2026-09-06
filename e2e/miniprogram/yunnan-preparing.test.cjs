@@ -50,3 +50,24 @@ test('home still routes its Yunnan entry to the corresponding service tab', () =
   assert.ok(actions.some(value=>Array.isArray(value)&&value[0]==='currentCls'&&value[1]===83))
   assert.ok(actions.includes('/pages/classify/classify'))
 })
+
+test('home recommendations skip Yunnan goods without changing the other sections', async () => {
+  const requested=[]
+  const {page}=loadPage('pages/home/home.vue',{
+    TabBar:{},AuthProfilePopup:{},sharePageMixin:{},
+    isVisibleTravelGoods:()=>true,isVisibleCatalogGoods:()=>true,
+    getGoodsList:async({categoryId})=>{
+      requested.push(categoryId)
+      return {data:[{goodsId:categoryId,goodsName:'示例',goodsCover:'/example.jpg',
+        goodsType:categoryId===83?'online':categoryId===25?'hotel':'education'}]}
+    },
+    getActivityList:async()=>({rows:[{activityId:9,activityName:'活动',activityCover:'/activity.jpg'}]})
+  })
+  await page.loadRecommendations([
+    {categoryId:25,categoryName:'全国旅居'},
+    {categoryId:83,categoryName:'云南好物'},
+    {categoryId:41,categoryName:'老年教育'}
+  ])
+  assert.equal(requested.includes(83),false)
+  assert.deepEqual(Array.from(page.recommendations, item=>item.section), ['全国旅居','芳华学院','聚会活动'])
+})

@@ -24,7 +24,7 @@
 						class="search-input"
 						type="text"
 						v-model="keyword"
-						placeholder="搜索旅居、好物、活动和课程"
+						placeholder="搜索旅居、活动和课程"
 						confirm-type="search"
 						@input="onKeywordInput"
 						@confirm="onSearch"
@@ -186,7 +186,6 @@
 				const rows = (goods || []).map(item => this.buildGoodsResult(item)).filter(item => item.type)
 				const definitions = [
 					{ type: 'travel', label: '全国旅居', items: rows.filter(v => v.type === 'travel') },
-					{ type: 'yunnan', label: '云南好物', items: rows.filter(v => v.type === 'yunnan') },
 					{ type: 'activity', label: '聚会活动', items: (activities || []).map(item => this.buildActivityResult(item)) },
 					{ type: 'education', label: '芳华学院', items: rows.filter(v => v.type === 'education') }
 				]
