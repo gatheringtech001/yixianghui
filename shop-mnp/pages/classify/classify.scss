@@ -101,6 +101,7 @@ $rail-bg: #f6f3ed;
 }
 
 .page_body_view {
+	position: relative;
 	width: 100%;
 	flex: 1;
 	height: 0; /* 配合 flex:1，避免被子元素撑开导致顶部搜索/Tab被挤出视口 */
@@ -111,6 +112,24 @@ $rail-bg: #f6f3ed;
 	padding: 0 0 0 28rpx;
 	box-sizing: border-box;
 	overflow: hidden;
+}
+
+.yunnan-preparing-mask {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 28rpx;
+	padding: 48rpx;
+	box-sizing: border-box;
+	background: #f7f7f5;
+	text { color: #701018; font-size: 32rpx; line-height: 1.8; text-align: center; font-weight: 600; }
 }
 
 .category-rail {

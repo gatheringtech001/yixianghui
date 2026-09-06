@@ -8,11 +8,11 @@
 		</u-navbar>
 		<view class="head-info">
 			<view class="head-search">
-				<view class="search" @click="searchFn">
+				<view class="search" :aria-disabled="isYunnanPreparing" @click="searchFn">
 					<u-icon name="search" color="#8a8a8a" size="32" />
 					<text class="search-text">{{ searchPlaceholder }}</text>
 				</view>
-				<view class="cart-entry" v-if="isYunnanGoodsTab" @click="openCart"><u-icon name="shopping-cart" color="#701018" size="36" /><text>购物车</text></view>
+				<view class="cart-entry" v-if="isYunnanGoodsTab && !isYunnanPreparing" @click="openCart"><u-icon name="shopping-cart" color="#701018" size="36" /><text>购物车</text></view>
 			</view>
 		</view>
 
@@ -52,6 +52,11 @@
 		</view>
 
 		<view class="page_body_view">
+			<view v-if="isYunnanPreparing" class="yunnan-preparing-mask" @tap.stop @touchmove.stop.prevent>
+				<u-icon name="clock" color="#701018" size="72" />
+				<text>板块正在准备中，敬请期待</text>
+			</view>
+			<block v-else>
 			<scroll-view
 				class="category-rail"
 				scroll-y
@@ -172,6 +177,7 @@
 					</view>
 				</block>
 			</scroll-view>
+			</block>
 		</view>
 		<TabBar ref="tabsBar" class="tabs-bar" :tabBarShow="1"></TabBar>
 		<AuthProfilePopup ref="authProfilePopup" />
@@ -232,6 +238,7 @@
 				const item = this.currentNavbarItem
 				return !!(item && String(item.categoryName || '').trim() === '云南好物')
 			},
+			isYunnanPreparing() { return this.isYunnanGoodsTab },
 			isListEmpty() {
 				return this.isActivityTab ? this.activityList.length === 0 : this.goodsList.length === 0
 			},
@@ -241,6 +248,7 @@
 				return '暂无商品'
 			},
 			searchPlaceholder() {
+				if (this.isYunnanPreparing) return '云南好物准备中'
 				if (this.isActivityTab) return '搜索活动'
 				if (this.isEducationTab) return '搜索课程'
 				return '搜索热门商品'
@@ -390,6 +398,7 @@
 		},
 		methods: {
 			openCart() {
+				if (this.isYunnanPreparing) return
 				runWithAuth(this, ok => { if (ok) uni.navigateTo({url:'/packagesMall/cart/cart'}) })
 			},
 			mediaUrl(path) {
@@ -594,6 +603,7 @@
 				})
 			},
 			searchFn() {
+				if (this.isYunnanPreparing) return
 				uni.navigateTo({
 					url: '/packagesMall/search/search'
 				})
@@ -603,6 +613,7 @@
 			},
 			async getGoodsCatrgoryFn(id) {
 				this.goodsCatrgoryList = []
+				if (this.isYunnanPreparing) { this.goodsList = []; this.loading = false; return }
 				try {
 					const categoryRequest = getGoodsCatrgorys({
 						parentId: id,
@@ -683,6 +694,7 @@
 				}
 			},
 			getGoodsListFn() {
+				if (this.isYunnanPreparing) { this.goodsList = []; this.loading = false; return }
 				if (!this.navbarSelect) return
 				this.loading = true
 				const categoryId = this.goodsCatrgorySelect == 0
