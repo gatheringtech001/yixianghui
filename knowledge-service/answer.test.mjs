@@ -7,7 +7,7 @@ const point = { id: "p1", payload: { title: "建水基地", content: "提供双�
   source_url: "https://example.test/base", source_id: "base-1", source_type: "mysql_catalog",
   entity_id: "1", product_status: "1", snapshot_at: "2026-09-05T00:00:00Z" } };
 const grounded = { answer: "基地提供双人标间，包含三餐。[S1]", grounded: true,
-  citations: [{ id: "S1", evidence: ["提供双人标间，套餐包含三餐。"] }] };
+  citations: [{ id: "S1", evidenceIds: [0] }] };
 
 function fixture(output = grounded, points = [point]) {
   const calls = { embedding: 0, retrieval: 0, luna: 0, rerank: 0 };
@@ -36,7 +36,7 @@ test("combined answering invokes Luna exactly once with source-grounded citation
   assert.equal(result.sources[0].url, point.payload.source_url);
   assert.equal(result.sources[0].entityId, "1");
   assert.equal(result.sources[0].quote, point.payload.content);
-  assert.deepEqual(result.sources[0].evidence, grounded.citations[0].evidence);
+  assert.deepEqual(result.sources[0].evidence, [point.payload.content]);
   assert.equal(result.usage.inputTokens, 100);
 });
 
@@ -74,10 +74,42 @@ test("unknown sources, fabricated quotes and unmatched markers fail explicitly",
   }
 });
 
-test("citations require exact non-empty evidence from the indexed source", async () => {
-  for (const evidence of [undefined, [], [""], ["每天免费温泉"], ["三餐", "三餐"]]) {
-    const output = { ...grounded, citations: [{ id: "S1", evidence }] };
+test("citations require valid unique passage IDs from the indexed source", async () => {
+  for (const evidenceIds of [undefined, [], [-1], [5], [0, 0], ["0"], [0.5]]) {
+    const output = { ...grounded, citations: [{ id: "S1", evidenceIds }] };
     await assert.rejects(answerQuestion(fixture(output).service, "住宿餐饮？"), /evidence/);
+  }
+});
+
+test("long Unicode source passages are bounded and extracted verbatim", async () => {
+  const content = "客房🍀".repeat(200);
+  const { service } = fixture(grounded, [{ ...point, payload: { ...point.payload, content } }]);
+  const complete = service.reranker.complete;
+  service.reranker.complete = async (body, event) => {
+    const passages = JSON.parse(body.messages[1].content).candidates[0].passages;
+    assert.equal(passages.map((p) => p.text).join(""), content);
+    for (const passage of passages) {
+      assert.ok(passage.text.length <= 350);
+      assert.ok(content.includes(passage.text));
+      assert.ok(passage.text.isWellFormed());
+    }
+    return complete(body, event);
+  };
+  const result = await answerQuestion(service, "客房信息？");
+  assert.ok(content.includes(result.sources[0].evidence[0]));
+});
+
+test("an explicit numbered base excludes other entities but comparison retains both", async () => {
+  const points = ["弥勒二号温泉基地", "普洱一号基地", "九蒸九晒滇黄精"].map((title) =>
+    ({ ...point, payload: { ...point.payload, title } }));
+  for (const [question, expected] of [["弥勒二号温泉基地的客房？", 1], ["对比弥勒二号和普洱一号基地客房", 2]]) {
+    const { service } = fixture(grounded, points);
+    const complete = service.reranker.complete;
+    service.reranker.complete = async (body, event) => {
+      assert.equal(JSON.parse(body.messages[1].content).candidates.length, expected);
+      return complete(body, event);
+    };
+    await answerQuestion(service, question);
   }
 });
 
