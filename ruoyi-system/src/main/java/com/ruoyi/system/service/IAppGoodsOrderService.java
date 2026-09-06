@@ -85,6 +85,9 @@ public interface IAppGoodsOrderService
      *  */
     AjaxResult wxpayRefund(AppGoodsOrderAfter appGoodsOrderAfter);
 
+    /** Only called with a verified, amount-matched refund while holding the order transaction. */
+    void completeReviewedRefund(com.ruoyi.system.domain.AppPayRefundLog refundLog);
+
     /**
      * 微信支付通知
      * @param request

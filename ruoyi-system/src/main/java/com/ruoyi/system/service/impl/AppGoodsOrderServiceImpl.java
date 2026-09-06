@@ -86,6 +86,8 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     @Autowired
     private WechatPrepayService wechatPrepayService;
     @Autowired
+    private GoodsRefundReviewService refundReviews;
+    @Autowired
     private NotificationConfig wxPayNotificationConfig;
     @Autowired
     private IAppPayLogService payLogService;
@@ -681,208 +683,15 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     }
 
     @Override
-    public AjaxResult wxpayRefund(AppGoodsOrderAfter appGoodsOrderAfter) {
-        AjaxResult rs = AjaxResult.error();
-        try {
-            if (appGoodsOrderAfter == null || appGoodsOrderAfter.getAfterId() == null) {
-                return AjaxResult.error("售后单无效");
-            }
-            if ("1".equals(appGoodsOrderAfter.getStatus())) {
-                if (StringUtils.isEmpty(appGoodsOrderAfter.getOutOrderNo())) {
-                    return AjaxResult.error("原支付单号缺失");
-                }
-                if (appGoodsOrderAfter.getRefundMoney() == null) {
-                    return AjaxResult.error("退款金额无效");
-                }
-                long refundFen = toFen(appGoodsOrderAfter.getRefundMoney());
-                if (refundFen <= 0) {
-                    return AjaxResult.error("退款金额无效");
-                }
-                long totalFen = resolveOriginalPayFen(appGoodsOrderAfter);
-                if (totalFen <= 0) {
-                    return AjaxResult.error("原支付金额无效，无法退款");
-                }
-                if (refundFen > totalFen) {
-                    return AjaxResult.error("退款金额不能大于实付金额");
-                }
-
-                RefundService service = new RefundService.Builder().config(wxPayConfigRuntime).build();
-                String outRefundNo = "RF" + DateUtils.dateTimeNow() + appGoodsOrderAfter.getAfterId();
-                CreateRequest refundRequest = new CreateRequest();
-                refundRequest.setOutTradeNo(appGoodsOrderAfter.getOutOrderNo());
-                refundRequest.setOutRefundNo(outRefundNo);
-                refundRequest.setReason(StringUtils.isNotEmpty(appGoodsOrderAfter.getRemark())
-                        ? appGoodsOrderAfter.getRemark() : "用户申请退款");
-                refundRequest.setNotifyUrl(refundNotifyUrl);
-                AmountReq refundAmount = new AmountReq();
-                refundAmount.setRefund(refundFen);
-                refundAmount.setCurrency("CNY");
-                refundAmount.setTotal(totalFen);
-                refundRequest.setAmount(refundAmount);
-
-                Refund response;
-                try {
-                    response = service.create(refundRequest);
-                } catch (com.wechat.pay.java.core.exception.ServiceException wxEx) {
-                    // 微信侧已全额退款时，补齐本地终态，避免「钱已退但系统失败」
-                    String errCode = wxEx.getErrorCode() != null ? wxEx.getErrorCode() : "";
-                    String errMsg = wxEx.getErrorMessage() != null ? wxEx.getErrorMessage() : wxEx.getMessage();
-                    log.error("微信退款业务失败 afterId={}, code={}, msg={}",
-                            appGoodsOrderAfter.getAfterId(), errCode, errMsg);
-                    if (isAlreadyRefundedError(errCode, errMsg)) {
-                        markGoodsRefundAccepted(appGoodsOrderAfter, null, outRefundNo, refundFen, true);
-                        return AjaxResult.success("微信侧已退款，系统状态已同步");
-                    }
-                    return AjaxResult.error(StringUtils.defaultIfBlank(errMsg, "退款失败"));
-                }
-
-                boolean refundDone = response != null && Status.SUCCESS.equals(response.getStatus());
-                try {
-                    markGoodsRefundAccepted(appGoodsOrderAfter, response, outRefundNo, refundFen, refundDone);
-                } catch (Exception persistEx) {
-                    log.error("微信退款已受理但本地落库失败 afterId={}, outRefundNo={}",
-                            appGoodsOrderAfter.getAfterId(), outRefundNo, persistEx);
-                    // 钱可能已退，返回明确提示，便于运营再次同步
-                    return AjaxResult.error("微信退款已受理，但系统状态更新失败，请稍后在订单中同步退款结果");
-                }
-            } else {
-                // 审核拒绝：售后关闭，订单恢复已支付
-                AppGoodsOrderAfter tmpAppGoodsOrderAfter = new AppGoodsOrderAfter();
-                tmpAppGoodsOrderAfter.setAfterId(appGoodsOrderAfter.getAfterId());
-                tmpAppGoodsOrderAfter.setRemark(appGoodsOrderAfter.getRemark());
-                tmpAppGoodsOrderAfter.setStatus("2");
-                tmpAppGoodsOrderAfter.setUpdateTime(DateUtils.getNowDate());
-                appGoodsOrderAfterMapper.updateAppGoodsOrderAfter(tmpAppGoodsOrderAfter);
-                if (appGoodsOrderAfter.getOrderId() != null) {
-                    AppGoodsOrder upOrder = new AppGoodsOrder();
-                    upOrder.setOrderId(appGoodsOrderAfter.getOrderId());
-                    upOrder.setStatus("1");
-                    restoreTravelStatusAfterRefund(upOrder);
-                    upOrder.setUpdateTime(DateUtils.getNowDate());
-                    appGoodsOrderMapper.updateAppGoodsOrder(upOrder);
-                }
-            }
-            rs = AjaxResult.success();
-        } catch (HttpException e) {
-            log.error("微信退款发送HTTP请求失败，错误信息：{}", e.getMessage());
-            return AjaxResult.error("退款请求失败");
-        } catch (MalformedMessageException e) {
-            log.error("微信退款响应解析失败，错误信息：{}", e.getMessage());
-            return AjaxResult.error("退款请求失败");
-        } catch (ServiceException e) {
-            log.error("微信退款业务失败，错误信息：{}", e.getMessage());
-            return AjaxResult.error(StringUtils.defaultIfBlank(e.getMessage(), "退款失败"));
-        } catch (Exception e) {
-            log.error("微信退款异常", e);
-            return AjaxResult.error("退款失败");
-        }
-        return rs;
+    public AjaxResult wxpayRefund(AppGoodsOrderAfter after) {
+        return refundReviews.nativeReview(after);
     }
 
-    private long toFen(BigDecimal yuan) {
-        if (yuan == null) {
-            return 0L;
-        }
-        return yuan.multiply(new BigDecimal("100")).setScale(0, RoundingMode.HALF_UP).longValue();
-    }
-
-    /**
-     * 原支付金额（分）：优先支付日志，其次售后单/订单实付
-     */
-    private long resolveOriginalPayFen(AppGoodsOrderAfter after) {
-        if (after == null) {
-            return 0L;
-        }
-        if (StringUtils.isNotEmpty(after.getOutOrderNo())) {
-            AppPayLog payLog = payLogService.selectAppPayLogByPayNo(after.getOutOrderNo());
-            if (payLog != null && payLog.getPayMoney() != null
-                    && payLog.getPayMoney().compareTo(BigDecimal.ZERO) > 0) {
-                return payLog.getPayMoney().setScale(0, RoundingMode.HALF_UP).longValue();
-            }
-        }
-        if (after.getOrderMoney() != null && after.getOrderMoney().compareTo(BigDecimal.ZERO) > 0) {
-            return toFen(after.getOrderMoney());
-        }
-        if (after.getOrderId() != null) {
-            AppGoodsOrder order = appGoodsOrderMapper.selectAppGoodsOrderByOrderId(after.getOrderId());
-            if (order != null && order.getPayMoney() != null && order.getPayMoney().compareTo(BigDecimal.ZERO) > 0) {
-                return toFen(order.getPayMoney());
-            }
-            if (order != null && order.getMoneyPayable() != null) {
-                return toFen(order.getMoneyPayable());
-            }
-        }
-        return 0L;
-    }
-
-    private boolean isAlreadyRefundedError(String errCode, String errMsg) {
-        String code = StringUtils.defaultString(errCode).toUpperCase();
-        String msg = StringUtils.defaultString(errMsg);
-        if (msg.contains("已全额退款") || msg.contains("订单已全额退款")
-                || msg.contains("超过剩余可退") || msg.contains("可退金额不足")) {
-            return true;
-        }
-        // 部分环境下错误码为 INVALID_REQUEST / USER_ACCOUNT_ABNORMAL 等，靠文案识别更稳妥
-        return "INVALID_REQUEST".equals(code) && (msg.contains("退款") || msg.contains("refund"));
-    }
-
-    private void markGoodsRefundAccepted(AppGoodsOrderAfter after, Refund response, String outRefundNo,
-                                         long refundFen, boolean refundDone) {
-        Date now = DateUtils.getNowDate();
-        AppPayRefundLog theRefundLog = new AppPayRefundLog();
-        theRefundLog.setOrderId(after.getOrderId());
-        theRefundLog.setUserId(after.getUserId());
-        theRefundLog.setOrderType("2");
-        if (response != null && StringUtils.isNotEmpty(response.getRefundId())) {
-            theRefundLog.setPayNo(response.getRefundId());
-            theRefundLog.setAgentPayNo(response.getTransactionId());
-        }
-        theRefundLog.setPayMethod("wxpay");
-        theRefundLog.setAgentName("微信支付");
-        theRefundLog.setAgentRefundNo(outRefundNo);
-        theRefundLog.setRefundMoney(new BigDecimal(refundFen));
-        theRefundLog.setCreateTime(now);
-        theRefundLog.setStatus(refundDone ? "1" : "0");
-        if (response != null) {
-            theRefundLog.setNotifyContent(String.valueOf(response));
-            theRefundLog.setUpdateTime(now);
-        }
-        appPayRefundLogMapper.insertAppPayRefundLog(theRefundLog);
-
-        AppGoodsOrderAfter tmpAppGoodsOrderAfter = new AppGoodsOrderAfter();
-        tmpAppGoodsOrderAfter.setAfterId(after.getAfterId());
-        tmpAppGoodsOrderAfter.setRemark(after.getRemark());
-        tmpAppGoodsOrderAfter.setStatus(refundDone ? "6" : "1");
-        tmpAppGoodsOrderAfter.setRefundMoney(after.getRefundMoney());
-        tmpAppGoodsOrderAfter.setUpdateTime(now);
-        appGoodsOrderAfterMapper.updateAppGoodsOrderAfter(tmpAppGoodsOrderAfter);
-
-        if (after.getOrderId() != null) {
-            AppGoodsOrder upOrder = new AppGoodsOrder();
-            upOrder.setOrderId(after.getOrderId());
-            upOrder.setStatus(refundDone ? "4" : "3");
-            AppGoodsOrder current = appGoodsOrderMapper.selectAppGoodsOrderByOrderId(after.getOrderId());
-            if (current != null && current.getTravelStatus() != null) {
-                if (!TravelOrderStatusPolicy.REFUNDING.equals(current.getTravelStatus())
-                        && !TravelOrderStatusPolicy.REFUNDED.equals(current.getTravelStatus())) {
-                    upOrder.setTravelStatusBeforeRefund(current.getTravelStatus());
-                }
-                upOrder.setTravelStatus(refundDone
-                        ? TravelOrderStatusPolicy.REFUNDED : TravelOrderStatusPolicy.REFUNDING);
-            }
-            if (refundDone) {
-                upOrder.setPayStatus("4");
-            }
-            upOrder.setUpdateTime(now);
-            appGoodsOrderMapper.updateAppGoodsOrder(upOrder);
-            if (refundDone) {
-                AppGoodsOrder latest = appGoodsOrderMapper.selectAppGoodsOrderByOrderId(after.getOrderId());
-                releaseEducationStockIfNeeded(latest);
-                goldService.reverseOnRefund(after.getUserId(), AppGoldBizType.GOODS_REFUND,
-                        after.getOrderId(), new BigDecimal(refundFen), outRefundNo);
-                clearGoodsOrderCache(after.getOrderId());
-            }
-        }
+    @Override
+    public void completeReviewedRefund(AppPayRefundLog refundLog) {
+        AppGoodsOrder order = appGoodsOrderMapper.selectAppGoodsOrderByOrderId(refundLog.getOrderId());
+        if (order == null) throw new ServiceException("退款原订单不存在");
+        finalizeGoodsRefundSuccess(refundLog, order.getOrderNo(), refundLog.getRefundMoney().longValueExact(), DateUtils.getNowDate());
     }
 
     @Override
@@ -1436,6 +1245,11 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             RefundNotification refundNotification = parser.parse(requestParam, RefundNotification.class);
             log.info("退款回调验签成功 outRefundNo={}", refundNotification.getOutRefundNo());
 
+            if (refundNotification.getOutRefundNo() != null && refundNotification.getOutRefundNo().startsWith("YXHAF")) {
+                refundReviews.notification(refundNotification);
+                return "{\"code\":\"SUCCESS\",\"message\":\"成功\"}";
+            }
+
             AppPayRefundLog appPayRefundLog = null;
             if (StringUtils.isNotEmpty(refundNotification.getRefundId())) {
                 appPayRefundLog = appPayRefundLogMapper.selectAppPayRefundLogByPayno(refundNotification.getRefundId());
@@ -1557,6 +1371,10 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         if (refundLog == null) {
             return AjaxResult.error("未找到退款记录");
         }
+        if (refundLog.getAgentRefundNo() != null && refundLog.getAgentRefundNo().matches("YXHAF[1-9][0-9]{0,17}")) {
+            Map<String, Object> result = refundReviews.refresh(Long.parseLong(refundLog.getAgentRefundNo().substring(5)));
+            return AjaxResult.success(String.valueOf(result.get("message")), appGoodsOrderMapper.selectAppGoodsOrderByOrderId(orderId));
+        }
         Date now = DateUtils.getNowDate();
         // 本地退款日志已成功但订单未落终态：直接补齐
         if ("1".equals(refundLog.getStatus())) {
@@ -1607,7 +1425,10 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
      */
     private void finalizeGoodsRefundSuccess(AppPayRefundLog refundLog, String outTradeNo, Long refundAmountFen, Date now) {
         Long orderId = refundLog != null ? refundLog.getOrderId() : null;
-        AppGoodsOrderAfter after = resolveGoodsAfterForRefund(orderId, outTradeNo);
+        String reference = refundLog != null ? refundLog.getAgentRefundNo() : null;
+        AppGoodsOrderAfter after = reference != null && reference.matches("YXHAF[1-9][0-9]{0,17}")
+                ? appGoodsOrderAfterMapper.selectAppGoodsOrderAfterByAfterId(Long.parseLong(reference.substring(5)))
+                : resolveGoodsAfterForRefund(orderId, outTradeNo);
         if (after != null && !"6".equals(after.getStatus())) {
             AppGoodsOrderAfter upAfter = new AppGoodsOrderAfter();
             upAfter.setAfterId(after.getAfterId());

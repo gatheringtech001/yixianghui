@@ -18,6 +18,9 @@ import com.ruoyi.common.core.domain.BaseEntity;
  */
 public class AppGoodsOrderAfter extends BaseEntity
 {
+    private Boolean returnReceived;
+    public Boolean getReturnReceived() { return returnReceived; }
+    public void setReturnReceived(Boolean value) { returnReceived = value; }
     private static final long serialVersionUID = 1L;
 
     /** 退换id */

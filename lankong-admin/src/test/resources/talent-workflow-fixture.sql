@@ -15,11 +15,22 @@ CREATE TABLE app_goods_order (
   travel_status char(1), pay_status char(1), order_origin varchar(50), travel_base_name varchar(255),
   feishu_order_no varchar(50), contact_name varchar(30), check_in_date date, check_out_date date,
   money_payable decimal(10,2), pay_money decimal(10,2), channel varchar(50), status char(1), user_id bigint, update_time datetime
+  ,travel_status_before_refund char(1)
 ) ENGINE=InnoDB;
 CREATE TABLE app_user_inviter (user_id bigint,new_user_id bigint,status char(1)) ENGINE=InnoDB;
 CREATE TABLE app_goods_order_after (
   after_id bigint PRIMARY KEY, order_id bigint, goods_id bigint, out_order_no varchar(50), status char(1),
-  app_refund_money decimal(10,2), refund_money decimal(10,2), reason_description varchar(255), remark varchar(255)
+  app_refund_money decimal(10,2), refund_money decimal(10,2), reason_description varchar(255), remark varchar(255),
+  after_type char(1),user_id bigint,goods_money decimal(10,2),back_express_name varchar(100),back_express_no varchar(100)
+) ENGINE=InnoDB;
+CREATE TABLE app_pay_log (
+  log_id bigint PRIMARY KEY AUTO_INCREMENT,order_id bigint,user_id bigint,pay_no varchar(100),
+  pay_money decimal(10,2),status char(1),pay_method varchar(100)
+) ENGINE=InnoDB;
+CREATE TABLE app_pay_refund_log (
+  log_id bigint PRIMARY KEY AUTO_INCREMENT,order_id bigint,user_id bigint,order_type varchar(50),
+  pay_no varchar(100),pay_method varchar(255),agent_name varchar(100),agent_pay_no varchar(255),
+  agent_refund_no varchar(100),refund_money decimal(10,2),status char(1),create_time datetime,update_time datetime
 ) ENGINE=InnoDB;
 CREATE TABLE app_customer (
   customer_id bigint PRIMARY KEY, customer_name varchar(30), consultant_id bigint, return_visit tinyint, del_flag char(1)

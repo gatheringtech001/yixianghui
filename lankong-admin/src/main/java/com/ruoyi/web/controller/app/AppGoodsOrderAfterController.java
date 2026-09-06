@@ -7,7 +7,6 @@ import java.util.List;
 import javax.servlet.http.HttpServletResponse;
 
 import com.ruoyi.common.utils.SecurityUtils;
-import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.system.domain.AppGoods;
 import com.ruoyi.system.service.IAppGoodsOrderService;
 import com.ruoyi.system.service.IAppGoodsService;
@@ -140,32 +139,10 @@ public class AppGoodsOrderAfterController extends BaseController
     @PreAuthorize("@ss.hasPermi('system:app_goods_order_after:edit')")
     @Log(title = "退款微信对接", businessType = BusinessType.UPDATE)
     @PostMapping("/refundPrepay")
-    public AjaxResult refundPrepay(@RequestBody AppGoodsOrderAfter appGoodsOrderAfter){
-        if (appGoodsOrderAfter == null || appGoodsOrderAfter.getAfterId() == null) {
-            return error("售后单无效");
-        }
-        // 以库中售后单为准，合并审核入参（避免把管理员ID写成用户ID）
-        AppGoodsOrderAfter dbAfter = appGoodsOrderAfterService.selectAppGoodsOrderAfterByAfterId(appGoodsOrderAfter.getAfterId());
-        if (dbAfter == null) {
-            return error("售后单不存在");
-        }
-        if (StringUtils.isNotEmpty(appGoodsOrderAfter.getStatus())) {
-            dbAfter.setStatus(appGoodsOrderAfter.getStatus());
-        }
-        if (appGoodsOrderAfter.getRefundMoney() != null) {
-            dbAfter.setRefundMoney(appGoodsOrderAfter.getRefundMoney());
-        }
-        if (StringUtils.isNotEmpty(appGoodsOrderAfter.getRemark())) {
-            dbAfter.setRemark(appGoodsOrderAfter.getRemark());
-        }
-        if (StringUtils.isNotEmpty(appGoodsOrderAfter.getOutOrderNo())) {
-            dbAfter.setOutOrderNo(appGoodsOrderAfter.getOutOrderNo());
-        }
-        if (appGoodsOrderAfter.getOrderMoney() != null) {
-            dbAfter.setOrderMoney(appGoodsOrderAfter.getOrderMoney());
-        } else if (dbAfter.getOrderMoney() == null && dbAfter.getGoodsMoney() != null) {
-            dbAfter.setOrderMoney(dbAfter.getGoodsMoney());
-        }
-        return appGoodsOrderService.wxpayRefund(dbAfter);
+    public AjaxResult refundPrepay(@RequestBody AppGoodsOrderAfter input) {
+        if (input == null || input.getAfterId() == null) return error("售后单无效");
+        input.setUpdateBy(String.valueOf(SecurityUtils.getUserId()));
+        // 原订单与支付信息在服务端重新读取，不接受前端传入的支付单号或实付金额。
+        return appGoodsOrderService.wxpayRefund(input);
     }
 }
