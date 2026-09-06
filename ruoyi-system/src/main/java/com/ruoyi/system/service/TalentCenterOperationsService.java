@@ -62,6 +62,15 @@ public class TalentCenterOperationsService
         return payload;
     }
 
+    public Map<String, Object> order(String actorId, String actorScope, String recordId)
+    {
+        Access access = access(actorId, actorScope);
+        Long id = parseId(recordId, "orders");
+        Map<String, Object> record = mapper.selectOrder(id, access.userId, access.admin);
+        if (record == null) throw new TalentCenterApiException(404, "订单不存在或无权访问");
+        return record;
+    }
+
     @Transactional(readOnly = true)
     public Map<String, Object> commissions(String actorId, String actorScope, String recipient, String before)
     {
@@ -127,8 +136,10 @@ public class TalentCenterOperationsService
         {
             if (!"travel".equals(businessLine) || request.getStatus() == null)
                 throw new TalentCenterApiException(400, "当前订单状态不可修改");
-            changed = mapper.updateOrderStatus(id, access.userId, access.admin,
-                    orderStatusCode(request.getExpectedStatus()), orderStatusCode(request.getStatus()));
+            String before = orderStatusCode(request.getExpectedStatus()), after = orderStatusCode(request.getStatus());
+            if (!("0".equals(before) && "1".equals(after)) && !TravelOrderStatusPolicy.canManuallyTransition(before, after))
+                throw new TalentCenterApiException(400, "只能按履约顺序确认、入住、离店和结算；取消与退款请在交易后台处理");
+            changed = mapper.updateOrderStatus(id, access.userId, access.admin, before, after);
             values.put("status", request.getStatus());
         }
         else if ("settlements".equals(resource))

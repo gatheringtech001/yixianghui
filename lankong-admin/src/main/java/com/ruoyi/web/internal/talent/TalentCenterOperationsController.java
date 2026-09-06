@@ -34,6 +34,11 @@ public class TalentCenterOperationsController
     {
         return AjaxResult.success(service.actorStatus(actorId(request), actorScope(request)));
     }
+    @GetMapping("/orders/{recordId}")
+    public AjaxResult order(@PathVariable String recordId, HttpServletRequest request)
+    {
+        return AjaxResult.success(service.order(actorId(request), actorScope(request), recordId));
+    }
 
     @GetMapping("/commissions/{recipient}/{before}")
     public AjaxResult commissions(@PathVariable String recipient, @PathVariable String before,

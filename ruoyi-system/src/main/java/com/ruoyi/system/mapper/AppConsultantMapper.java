@@ -66,6 +66,7 @@ public interface AppConsultantMapper
      * @return
      */
     AppConsultant selectAppConsultantByUserId(Long userId);
+    AppConsultant selectExplicitConsultantByUserId(Long userId);
 
     /**
      * 根据顾问姓名查找顾问

@@ -25,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -254,6 +256,20 @@ class TalentCenterOperationsServiceTest
         SysUser actor = new SysUser();
         actor.setUserId(userId);
         when(resourceMapper.selectEnabledActorByActorId(actorId)).thenReturn(actor);
+    }
+
+    @Test
+    void travelProgressCannotBeUsedToFakeRefundsOrReverseFulfilment()
+    {
+        bind("talent-admin", 1L, Collections.emptySet());
+        when(mapper.updateOrderStatus(anyLong(), anyLong(), anyBoolean(), anyString(), anyString())).thenReturn(1);
+        assertEquals(400, assertThrows(TalentCenterApiException.class,
+            () -> service.update("talent-admin", "admin", "travel", "orders", "order:7",
+                request("已确认", "已退款"), "idem-refund-0001")).getHttpStatus());
+        assertEquals(400, assertThrows(TalentCenterApiException.class,
+            () -> service.update("talent-admin", "admin", "travel", "orders", "order:7",
+                request("已离店", "已入住"), "idem-reverse-0001")).getHttpStatus());
+        verify(mapper, never()).updateOrderStatus(anyLong(), anyLong(), anyBoolean(), anyString(), anyString());
     }
 
     private TalentCenterOperationUpdateRequest request(String expectedStatus, String status)

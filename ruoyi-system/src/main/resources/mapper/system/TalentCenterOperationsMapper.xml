@@ -48,7 +48,12 @@
     </select>
 
     <select id="selectConsultantId" resultType="java.lang.Long">
-        select consultant_id from app_consultant where user_id = #{userId} and status = '01' limit 1
+        select c.consultant_id from app_consultant c where c.user_id = #{userId} and c.status = '01'
+          and (not exists (select 1 from talent_center_admin_actor a
+                  where a.user_id = #{userId} and a.status = '0' and a.consultant_id is not null)
+               or c.consultant_id = (select a.consultant_id from talent_center_admin_actor a
+                  where a.user_id = #{userId} and a.status = '0'))
+        order by c.consultant_id limit 1
     </select>
 
     <select id="selectCustomers" resultType="java.util.LinkedHashMap">
@@ -57,16 +62,16 @@
                c.acquisition_channel sourceChannel, c.customer_goods preference,
                c.return_visit_remark followUpNote, null orderCount, null totalSpend,
                date_format(coalesce(c.update_time, c.create_time), '%Y-%m-%dT%H:%i:%s.000Z') sourceUpdatedAt,
-               case when c.return_visit is null then null when c.return_visit = 1 then true else false end followUpRequired
+               case when c.return_visit is null then null when c.return_visit = 0 then true else false end followUpRequired
         from app_customer c
         where c.del_flag = '0'
           and (#{admin} = true or (#{consultantId} is not null and c.consultant_id = #{consultantId}))
         order by coalesce(c.update_time, c.create_time) desc, c.customer_id desc
     </select>
 
-    <select id="selectOrders" resultType="java.util.LinkedHashMap">
+    <sql id="orderProjection">
         select concat('order:', o.order_id) sourceRecordId,
-               case when g.goods_type in ('hotel', 'travel') then 'travel' else 'eldercare' end businessLine,
+               case when g.goods_type in ('hotel', 'travel') or o.order_origin = 'feishu_history' then 'travel' else 'eldercare' end businessLine,
                coalesce(o.feishu_order_no, o.order_no) code, o.contact_name customerName,
                coalesce(o.travel_base_name, g.goods_name) productName,
                case o.travel_status when '0' then '待确认' when '1' then '已确认' when '2' then '已取消'
@@ -77,10 +82,17 @@
                date_format(o.check_out_date, '%Y-%m-%d') checkOutDate
         from app_goods_order o
         left join app_goods g on g.goods_id = o.goods_id
-        where #{admin} = true or exists (
+        where (#{admin} = true or o.service_owner_user_id = #{actorUserId} or exists (
             select 1 from app_user_inviter i
             where i.user_id = #{actorUserId} and i.new_user_id = o.user_id and i.status = '1'
-        )
+        ))
+    </sql>
+    <select id="selectOrder" resultType="java.util.LinkedHashMap">
+        <include refid="orderProjection" />
+        and o.order_id = #{id}
+    </select>
+    <select id="selectOrders" resultType="java.util.LinkedHashMap">
+        <include refid="orderProjection" />
         order by o.order_id desc
         limit 1000
     </select>
@@ -102,7 +114,7 @@
                date_format(o.check_out_date, '%Y-%m-%d') collate utf8mb4_general_ci checkOutDate
         from app_goods_order o left join app_goods g on g.goods_id = o.goods_id
         where (g.goods_type in ('hotel', 'travel') or o.travel_status is not null)
-          and (#{admin} = true or exists (
+          and (#{admin} = true or o.service_owner_user_id = #{actorUserId} or exists (
               select 1 from app_user_inviter i
               where i.user_id = #{actorUserId} and i.new_user_id = o.user_id and i.status = '1'
           ))
@@ -145,19 +157,14 @@
     <update id="updateOrderStatus">
         update app_goods_order set travel_status = #{status}, update_time = now()
         where order_id = #{id} and coalesce(travel_status, '') = coalesce(#{expectedStatus}, '')
-          and (#{admin} = true or exists (
-              select 1 from app_user_inviter i
-              where i.user_id = #{actorUserId} and i.new_user_id = app_goods_order.user_id and i.status = '1'
-          ))
+          and (#{admin} = true or service_owner_user_id = #{actorUserId})
+          and (order_origin = 'feishu_history' or pay_status = '1')
     </update>
 
     <update id="updateTravelSettlement">
         update app_goods_order set is_cash = #{settled}, update_time = now()
         where order_id = #{id} and coalesce(is_cash, -1) = coalesce(#{expected}, -1)
-          and (#{admin} = true or exists (
-              select 1 from app_user_inviter i
-              where i.user_id = #{actorUserId} and i.new_user_id = app_goods_order.user_id and i.status = '1'
-          ))
+          and (#{admin} = true or service_owner_user_id = #{actorUserId})
     </update>
 
     <update id="updateEldercareSettlement">

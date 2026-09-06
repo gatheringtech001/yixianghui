@@ -247,6 +247,9 @@ public class AppConsultantServiceImpl implements IAppConsultantService
     @Override
     public AppConsultant getOrClaimConsultantByUser(Long userId, String mobile)
     {
+        // 管理员明确审核绑定的身份不再被历史手机号猜配逻辑覆盖。
+        AppConsultant explicit = appConsultantMapper.selectExplicitConsultantByUserId(userId);
+        if (explicit != null) return explicit;
         AppConsultant bound = appConsultantMapper.selectAppConsultantByUserId(userId);
         if (bound != null)
         {

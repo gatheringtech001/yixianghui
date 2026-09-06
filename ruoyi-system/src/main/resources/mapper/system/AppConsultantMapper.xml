@@ -39,6 +39,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <include refid="selectAppConsultantVo"/>
         where consultant_id = #{consultantId}
     </select>
+    <select id="selectExplicitConsultantByUserId" parameterType="Long" resultMap="AppConsultantResult">
+        select c.* from app_consultant c
+        inner join talent_center_admin_actor a on a.consultant_id=c.consultant_id and a.user_id=c.user_id
+        where a.user_id=#{userId} and a.status='0' and c.status='01'
+    </select>
     <select id="selectAppConsultantByUserId" parameterType="Long" resultMap="AppConsultantResult">
         <include refid="selectAppConsultantVo"/>
         where user_id = #{userId}
