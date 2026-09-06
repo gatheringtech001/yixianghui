@@ -6,14 +6,18 @@ import { createServer } from "./server.mjs";
 const point = { id: "p1", payload: { title: "建水基地", content: "提供双人标间，套餐包含三餐。",
   source_url: "https://example.test/base", source_id: "base-1", source_type: "mysql_catalog",
   entity_id: "1", product_status: "1", snapshot_at: "2026-09-05T00:00:00Z" } };
-const grounded = { answer: "基地提供双人标间，包含三餐。[S1]", grounded: true,
-  citations: [{ id: "S1", evidenceIds: [0] }] };
+const citations = [{ id: "S1", evidenceIds: [0] }];
+const output = (text, refs = citations) => ({ grounded: true, citations: refs,
+  statements: [{ text, sourceIndexes: refs.map((_, i) => i) }] });
+const grounded = output("基地提供双人标间，包含三餐。");
 
 function fixture(output = grounded, points = [point]) {
   const calls = { embedding: 0, retrieval: 0, luna: 0, rerank: 0 };
   const service = {
-    models: { async embed() { calls.embedding++; return [[0.1]]; } },
-    store: { async search(question, vector, limit) { calls.retrieval++; assert.equal(limit, 30); return points; } },
+    models: { async embed(texts) { calls.embedding++; return texts.map(() => [0.1]); } },
+    store: { async search(question, vector, limit) { calls.retrieval++; assert.equal(limit, 30); return points; },
+      async searchScoped(q, v, options) { calls.retrieval++; return points.filter((p) =>
+        (!options.titles.length || options.titles.includes(p.payload.title)) && (!options.kind || options.kind === p.payload.media?.kind)); } },
     reranker: { config: { model: "gpt-5.6-luna" },
       async rerank() { calls.rerank++; throw new Error("Separate rerank must not run"); },
       async complete(body, event) {
@@ -41,7 +45,7 @@ test("combined answering invokes Luna exactly once with source-grounded citation
 });
 
 test("unsupported answers return an explicit knowledge gap, not generated guesses", async () => {
-  const { service } = fixture({ answer: "Untrusted guess", grounded: false, citations: [] });
+  const { service } = fixture({ grounded: false, statements: [], citations: [] });
   const result = await answerQuestion(service, "火星基地的价格？");
   assert.equal(result.grounded, false);
   assert.match(result.answer, /资料不足/);
@@ -49,7 +53,7 @@ test("unsupported answers return an explicit knowledge gap, not generated guesse
 });
 
 test("an explicit insufficient verdict never exposes unrelated citations or guesses", async () => {
-  const { service } = fixture({ answer: "Maybe another hotel", grounded: false, citations: grounded.citations });
+  const { service } = fixture({ ...grounded, grounded: false });
   const result = await answerQuestion(service, "不存在的客房照片？");
   assert.equal(result.grounded, false);
   assert.deepEqual(result.sources, []);
@@ -63,21 +67,21 @@ test("an empty retrieval does not call Luna", async () => {
 });
 
 test("unknown sources, fabricated quotes and unmatched markers fail explicitly", async () => {
-  for (const output of [
-    { ...grounded, citations: [{ id: "S99", quote: "三餐" }] },
-    { ...grounded, citations: [{ id: "S1", quote: "每天免费温泉" }] },
-    { ...grounded, answer: "包含三餐。[S2]" },
-    { ...grounded, citations: [] },
-    { ...grounded, citations: [grounded.citations[0], grounded.citations[0]] },
+  for (const value of [
+    output("三餐", [{ id: "S99", evidenceIds: [0] }]),
+    output("三餐", [{ id: "S1", quote: "每天免费温泉" }]),
+    output("包含三餐。[S2]"),
+    output("三餐", []),
+    output("三餐", [citations[0], citations[0]]),
   ]) {
-    await assert.rejects(answerQuestion(fixture(output).service, "住宿餐饮？"), /citation|quote|sources/);
+    await assert.rejects(answerQuestion(fixture(value).service, "住宿餐饮？"), /citation|quote|sources/);
   }
 });
 
 test("citations require valid unique passage IDs from the indexed source", async () => {
   for (const evidenceIds of [undefined, [], [-1], [5], [0, 0], ["0"], [0.5]]) {
-    const output = { ...grounded, citations: [{ id: "S1", evidenceIds }] };
-    await assert.rejects(answerQuestion(fixture(output).service, "住宿餐饮？"), /evidence/);
+    const value = output("三餐", [{ id: "S1", evidenceIds }]);
+    await assert.rejects(answerQuestion(fixture(value).service, "住宿餐饮？"), /evidence/);
   }
 });
 
@@ -100,8 +104,8 @@ test("long Unicode source passages are bounded and extracted verbatim", async ()
 });
 
 test("an explicit numbered base excludes other entities but comparison retains both", async () => {
-  const points = ["弥勒二号温泉基地", "普洱一号基地", "九蒸九晒滇黄精"].map((title) =>
-    ({ ...point, payload: { ...point.payload, title } }));
+  const points = ["弥勒二号温泉基地", "普洱一号基地", "九蒸九晒滇黄精"].map((title, i) =>
+    ({ ...point, id: String(i), payload: { ...point.payload, title } }));
   for (const [question, expected] of [["弥勒二号温泉基地的客房？", 1], ["对比弥勒二号和普洱一号基地客房", 2]]) {
     const { service } = fixture(grounded, points);
     const complete = service.reranker.complete;
@@ -111,6 +115,41 @@ test("an explicit numbered base excludes other entities but comparison retains b
     };
     await answerQuestion(service, question);
   }
+});
+
+test("paragraph citations are rendered by code and shared sources are merged", async () => {
+  const value = { grounded: true, citations, statements: [
+    { text: "提供双人标间。", sourceIndexes: [0] }, { text: "套餐包含三餐。", sourceIndexes: [0] },
+  ] };
+  const result = await answerQuestion(fixture(value).service, "房型餐食？");
+  assert.equal(result.answer, "提供双人标间。[S1]\n\n套餐包含三餐。[S1]");
+  assert.equal(result.sources.length, 1);
+  assert.deepEqual(result.sources[0].evidence, [point.payload.content]);
+});
+
+test("source budget is global and paragraph indexes cannot cite missing evidence", async () => {
+  for (const sourceIndexes of [[1], [-1], [0, 0], ["0"]]) {
+    await assert.rejects(answerQuestion(fixture({ grounded: true, citations,
+      statements: [{ text: "三餐", sourceIndexes }] }).service, "餐食资料？"), /citation/);
+  }
+  const { service } = fixture();
+  const complete = service.reranker.complete;
+  service.reranker.complete = async (body, event) => {
+    const properties = body.response_format.json_schema.schema.properties;
+    assert.equal(properties.citations.maxItems, 2);
+    assert.deepEqual(properties.statements.items.properties.sourceIndexes.items.enum, [0, 1]);
+    return complete(body, event);
+  };
+  await answerQuestion(service, "餐食资料？", 2);
+});
+
+test("ambiguous cancellation is answered from both clauses without asking the model to choose", async () => {
+  const p = { ...point, payload: { ...point.payload,
+    content: "10天以内连住，入住前3天无损取消。10天以上连住，入住前5天无损取消。" } };
+  const { service, calls } = fixture(grounded, [p]);
+  const result = await answerQuestion(service, "正好连住10天，提前4天取消可以无损吗？");
+  assert.equal(result.reason, "ambiguous_policy_boundary");
+  assert.equal(calls.luna, 0);
 });
 
 test("signed source links are not exposed to the model or quote output", async () => {

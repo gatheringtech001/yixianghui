@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { queryStore } from "./answer-retrieval.mjs";
 import {
   chunkDocument,
   contentHash,
@@ -161,25 +162,11 @@ export class QdrantStore {
   }
 
   async search(question, dense, limit = 30) {
-    const route = `/collections/${encodeURIComponent(this.config.collection)}/points/query`;
-    const filter = { must: [{ key: "permission_scope", match: { value: "internal" } }] };
-    const kinds = [];
-    if (/图片|照片|原图/.test(question) && !/不要(?:任何)?(?:图片|照片|原图)/.test(question)) kinds.push("image");
-    if (/视频|录像/.test(question) && !/不要(?:任何)?(?:视频|录像)/.test(question)) kinds.push("video");
-    if (kinds.length) filter.must.push({ key: "media.kind", match: { any: kinds } });
-    const result = await this.api(route, {
-      method: "POST",
-      body: JSON.stringify({
-        prefetch: [
-          { query: dense, using: "dense", limit: 60, filter, params: { exact: true } },
-          { query: sparseVector(question), using: "lexical", limit: 60, filter },
-        ],
-        query: { fusion: "rrf" },
-        limit,
-        with_payload: true,
-      }),
-    });
-    return result.result?.points ?? [];
+    return this.searchScoped(question, dense, { limit });
+  }
+
+  async searchScoped(question, dense, options = {}) {
+    return queryStore(this, { question, dense, ...options });
   }
 
   async health() {
