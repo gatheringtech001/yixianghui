@@ -2,11 +2,10 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
-const crypto = require('node:crypto')
 const loadPage = require('./vue-page-harness.cjs')
 const detailFile = 'packagesMember/MyActivity/detail/index.vue'
 const contactFile = 'packagesMember/MyActivity/detail/ActivityTeacherContact.vue'
-const qrPath = '/packagesMember/static/qiqi-teacher-qr.png'
+const positionCode = 'mnp_activity_teacher_qr'
 const booking = {orderId: 27, status: '1', payStatus: '1', payMoney: 20,
   signCount: 1, activityInfo: {activityName: '活动测试'}}
 const flush = () => new Promise(resolve => setImmediate(resolve))
@@ -38,6 +37,14 @@ test('opening an existing free or paid reservation displays the QR without auto-
     assert.equal(page.canShowTeacher, true)
     assert.equal(page.showTeacherPopup, false)
   }
+})
+
+test('returning to a reservation refreshes the backend QR configuration', () => {
+  const {page, component} = detail()
+  let refreshes = 0
+  page.$refs = {teacherContact: {loadQr: () => { refreshes++ }}}
+  component.onShow.call(page)
+  assert.equal(refreshes, 1)
 })
 
 test('pending cancelled refunding and unknown orders never display the teacher QR', () => {
@@ -141,44 +148,73 @@ test('cancelled WeChat payment never opens the teacher prompt', async () => {
   assert.equal(page.paying, false)
 })
 
-test('the reservation card and popup preserve the supplied QR and allow image preview', () => {
+function contact(overrides = {}) {
+  return loadPage(contactFile, {
+    AD_POSITION: {ACTIVITY_TEACHER_QR: positionCode},
+    resolveAdImageUrl: (host, url) => /^https:/.test(url) ? url : host + url,
+    getBannerPosList: async () => ({data: [{positionId: 11, positionCode, status: '0'}]}),
+    getBannerList: async () => ({data: [{contentId: 35, adImage: '/profile/new-qr.png', status: '0'}]}),
+    ...overrides
+  })
+}
+
+test('teacher QR resolves its backend position code and previews the configured image', async () => {
   const previews = []
-  const {page, source} = loadPage(contactFile, {uni: {
-    env: {USER_DATA_PATH: 'wxfile://usr'},
-    getFileSystemManager: () => ({copyFile: o => {
-      assert.equal(o.srcPath, qrPath.slice(1))
-      assert.equal(o.destPath, 'wxfile://usr/activity-qiqi-teacher.png')
-      o.success()
-    }}),
-    previewImage: o => previews.push(o)
-  }})
+  const {page, source} = contact({
+    getBannerPosList: async params => {
+      assert.equal(params.positionCode, positionCode)
+      return {data: [{positionId: 11, positionCode, status: '0'}]}
+    },
+    getBannerList: async params => {
+      assert.equal(params.positionId, 11)
+      assert.equal(params.status, '0')
+      return {data: [{contentId: 35, adImage: '/profile/new-qr.png', status: '0'}]}
+    },
+    uni: {previewImage: o => previews.push(o)}
+  })
+  await page.loadQr()
   page.previewQr()
-  assert.equal(previews[0].urls[0], 'wxfile://usr/activity-qiqi-teacher.png')
+  assert.equal(previews[0].urls[0], 'https://example.invalid/profile/new-qr.png')
   assert.match(source, /扫码加齐齐老师/)
   assert.match(source, /mode="aspectFit"/)
   assert.match(source, /show-menu-by-longpress/)
-  const image = fs.readFileSync(path.resolve(__dirname, '../../shop-mnp' + qrPath))
-  assert.equal(crypto.createHash('sha256').update(image).digest('hex'), '567d62e1463136d12948bf9d2faccba35419daa73edfeec90e8c5ea34f78e236')
-  assert.equal(image.readUInt32BE(16), 239)
-  assert.equal(image.readUInt32BE(20), 247)
+  assert.doesNotMatch(source, /qiqi-teacher-qr\.png|copyFile|USER_DATA_PATH/)
 })
 
-test('a QR image resolution failure is visible and does not open a broken preview', () => {
-  const previews = [], notices = []
-  const {page} = loadPage(contactFile, {uni: {
-    env: {USER_DATA_PATH: 'wxfile://usr'},
-    getFileSystemManager: () => ({copyFile: o => o.fail()}),
-    previewImage: o => previews.push(o),
-    showToast: o => notices.push(o.title)
-  }})
+test('backend replacement is picked up on refresh without stale QR fallback', async () => {
+  let url = '/profile/first.png'
+  const {page} = contact({getBannerList: async () => ({data: [{adImage:url,status:'0'}]})})
+  await page.loadQr()
+  assert.match(page.qrImage, /first.png$/)
+  url = '/profile/replacement.png'
+  await page.loadQr()
+  assert.match(page.qrImage, /replacement.png$/)
+})
+
+test('missing disabled and failed QR configuration exposes a retry state instead of an old image', async () => {
+  for (const data of [[], [{adImage:'/profile/old.png',status:'1'}]]) {
+    const {page} = contact({getBannerList: async () => ({data})})
+    page.qrImage = 'https://example.invalid/old.png'
+    await page.loadQr()
+    assert.equal(page.qrImage, '')
+    assert.match(page.qrError, /暂未配置/)
+  }
+  const {page} = contact({getBannerPosList: async () => {throw Error('网络不可用')}})
+  await page.loadQr()
+  assert.equal(page.qrImage, '')
+  assert.equal(page.qrError, '网络不可用')
+  assert.equal(page.loading, false)
+})
+
+test('an unavailable QR cannot open a broken image preview', () => {
+  const previews = []
+  const {page} = contact({uni: {previewImage: o => previews.push(o)}})
   page.previewQr()
   assert.equal(previews.length, 0)
-  assert.deepEqual(notices, ['二维码打开失败，请重试'])
 })
 
-test('the compiled member package contains the original QR asset', {
+test('the compiled member package no longer ships a hardcoded QR asset', {
   skip: !process.env.MINIPROGRAM_PROJECT_PATH
 }, () => {
-  const image = fs.readFileSync(path.join(process.env.MINIPROGRAM_PROJECT_PATH, qrPath))
-  assert.equal(crypto.createHash('sha256').update(image).digest('hex'), '567d62e1463136d12948bf9d2faccba35419daa73edfeec90e8c5ea34f78e236')
+  assert.equal(fs.existsSync(path.join(process.env.MINIPROGRAM_PROJECT_PATH, 'packagesMember/static/qiqi-teacher-qr.png')), false)
 })

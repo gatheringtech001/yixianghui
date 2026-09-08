@@ -25,7 +25,7 @@
 					<text class="field-label">实付金额</text>
 					<text class="field-value accent">￥{{ formatMoney(detailInfo.payMoney) }}</text>
 				</view>
-				<activity-teacher-contact v-if="canShowTeacher" v-model="showTeacherPopup" />
+				<activity-teacher-contact ref="teacherContact" v-if="canShowTeacher" v-model="showTeacherPopup" />
 				<view class="sign-card">
 					<text class="card-title">预约详情</text>
 					<view class="sign-row" v-if="!isEdit">
@@ -144,6 +144,7 @@
 			this.teacherPromptPending = option.showTeacher === '1'
 		},
 		onShow() {
+			if (this.$refs.teacherContact) this.$refs.teacherContact.loadQr()
 			if (this.orderId) {
 				this.getDetail(this.orderId)
 			}

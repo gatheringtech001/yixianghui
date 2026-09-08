@@ -84,10 +84,6 @@
 				<text class="section-title">我的服务</text>
 			</view>
 			<view class="service-list">
-				<view class="service-row" @click="onServer('cart')">
-					<view class="row-left"><u-icon name="shopping-cart" color="#701018" size="44" /><text>购物车</text></view>
-					<text class="row-arrow">{{ cartCount == null ? '' : cartCount + '件 ' }}&gt;</text>
-				</view>
 				<view class="service-row" @click="onServer('retail')">
 					<view class="row-left">
 						<image class="service-icon" src="/static/profile-icons/service-advisor.png" mode="aspectFit" />
@@ -165,8 +161,7 @@
 	} from '@/utils/adAsset'
 	import {
 		getMemberCardsList,
-		getStatic,
-		getCartList
+		getStatic
 	} from '@/api/member/index'
 	import {
 		getInfo
@@ -189,7 +184,6 @@
 				defaultCard: null,
 				golds: 0,
 				coupons: 0,
-				cartCount: null,
 				collects: 0,
 				activitys: 0,
 				orders: 0,
@@ -223,7 +217,6 @@
 			this.setProfileHeadPadding()
 			this.userInfo = uni.getStorageSync('userInfo')
 			this.userCard = uni.getStorageSync('userCard')
-			this.loadCartCount()
 			if (!this.userInfo || this.userInfo == '' || this.userInfo == undefined) return
 			await this.getUserInfoFn()
 			this.getStaticData()
@@ -237,14 +230,6 @@
 			}
 		},
 		methods: {
-			async loadCartCount() {
-				this.cartCount = null
-				if (!uni.getStorageSync('token')) return
-				try {
-					const {rows} = await getCartList({pageNum:1,pageSize:200})
-					this.cartCount = (rows || []).reduce((sum, item) => sum + Number(item.goodsCount || 0), 0)
-				} catch (error) { console.warn('[cart] count unavailable:', error.message) }
-			},
 			async loadStewardImage() {
 				this.stewardImageUrl = await loadAdImageUrl(AD_POSITION.PROFILE_STEWARD, this.host)
 			},
@@ -359,9 +344,6 @@
 					return
 				}
 				switch (type) {
-					case 'cart':
-						uni.navigateTo({ url: '/packagesMall/cart/cart' })
-						break
 					case 'address':
 						uni.navigateTo({ url: '/packagesPublic/AddressList/AddressList' })
 						break

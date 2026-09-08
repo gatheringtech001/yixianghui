@@ -4,12 +4,10 @@ const path = require('node:path')
 const test = require('node:test')
 const read = file => fs.readFileSync(path.resolve(__dirname,'../../shop-mnp',file),'utf8')
 
-test('cart is discoverable from service and profile without changing the main navigation', () => {
+test('cart stays in service but is removed from profile', () => {
   assert.match(read('pages/classify/classify.vue'), /class="cart-entry"/)
   assert.match(read('pages/classify/classify.vue'), /packagesMall\/cart\/cart/)
-  assert.match(read('pages/my/my.vue'), /onServer\('cart'\)/)
-  assert.match(read('pages/my/my.vue'), /case 'cart'/)
-  assert.match(read('pages/my/my.vue'), /cartCount/)
+  assert.doesNotMatch(read('pages/my/my.vue'), /onServer\('cart'\)|case 'cart'|cartCount|getCartList|loadCartCount/)
 })
 
 test('detail share and favorite icons follow the same existing icon set', () => {

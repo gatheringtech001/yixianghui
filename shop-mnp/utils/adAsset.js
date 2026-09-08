@@ -2,6 +2,7 @@ import { getBannerPosList, getBannerList } from '@/api/index'
 
 export const AD_POSITION = {
 	BRAND_LOGO: 'mnp_brand_logo',
+	ACTIVITY_TEACHER_QR: 'mnp_activity_teacher_qr',
 	HOME_HOUSEKEEPER: 'mnp_home_housekeeper',
 	PROFILE_STEWARD: 'mnp_profile_steward'
 }
