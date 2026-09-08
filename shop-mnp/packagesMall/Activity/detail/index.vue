@@ -342,13 +342,14 @@
 								signCount: signCount
 							}
 							addActivityOrder(params).then(result => {
-								_this.activeActivityOrder = result && result.data
-								uni.showToast({
-									icon: 'none',
-									title: '活动报名成功~'
-								})
+								const order = result && result.data
+								if (!order || !order.orderId) throw new Error('报名结果缺少预约编号，请到我的预约查看')
+								_this.activeActivityOrder = order
 								_this.getDetail(_this.activityId)
 								_this.loadBookingState()
+								uni.navigateTo({
+									url: `/packagesMember/MyActivity/detail/index?orderId=${order.orderId}&showTeacher=1`
+								})
 							}).catch(err => {
 								uni.showToast({
 									icon: 'none',

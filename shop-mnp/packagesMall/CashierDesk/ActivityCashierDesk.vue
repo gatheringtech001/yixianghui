@@ -70,7 +70,6 @@
 					payTipTitle: '\u652f\u4ed8\u63d0\u793a',
 					cancel: '\u53d6\u6d88',
 					confirmPay: '\u7acb\u5373\u652f\u4ed8',
-					paySuccess: '\u652f\u4ed8\u6210\u529f',
 					payRetry: '\u672c\u6b21\u652f\u4ed8\u672a\u6210\u529f\uff0c\u7ee7\u7eed\u652f\u4ed8\uff1f',
 					confirm: '\u786e\u5b9a',
 					back: '\u8fd4\u56de',
@@ -235,22 +234,9 @@
 						...orderInfo,
 						success: () => {
 							this.clearDeadlineStorage()
-							const amountNum = Number(this.displayAmount)
-							const amount = Number.isFinite(amountNum) ? amountNum.toFixed(2) : String(this.displayAmount || '0')
-							const gold = Number.isFinite(amountNum) && amountNum > 0 ? Math.floor(amountNum) : 0
 							const finish = () => {
-								uni.showModal({
-									title: this.labels.paySuccess,
-									content: gold > 0
-										? `实付￥${amount}元，获得${gold}金币`
-										: `实付￥${amount}元`,
-									showCancel: false,
-									confirmText: '知道了',
-									success: () => {
-										uni.redirectTo({
-											url: `/packagesMall/PayResult/PayResult?orderAmount=${this.displayAmount}&type=activity&orderId=${this.orderId}`
-										})
-									}
+								uni.redirectTo({
+									url: `/packagesMember/MyActivity/detail/index?orderId=${this.orderId}&showTeacher=1`
 								})
 							}
 							// 主动查单落库，避免回调延迟导致详情仍显示待支付

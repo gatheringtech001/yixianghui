@@ -25,6 +25,7 @@
 					<text class="field-label">实付金额</text>
 					<text class="field-value accent">￥{{ formatMoney(detailInfo.payMoney) }}</text>
 				</view>
+				<activity-teacher-contact v-if="canShowTeacher" v-model="showTeacherPopup" />
 				<view class="sign-card">
 					<text class="card-title">预约详情</text>
 					<view class="sign-row" v-if="!isEdit">
@@ -71,12 +72,16 @@
 
 <script>
 	import { getActivityOrderInfo, cancelActivityOrder, editActivityOrder, syncActivityOrderPay, syncActivityOrderRefund } from '@/api/activity/index'
+	import ActivityTeacherContact from './ActivityTeacherContact.vue'
 	export default {
+		components: { ActivityTeacherContact },
 		data() {
 			return {
 				host: this.$host,
 				detailInfo: null,
 				orderId: null,
+				teacherPromptPending: false,
+				showTeacherPopup: false,
 				isEdit: false,
 				originalSignCount: 0,
 				signForm: {
@@ -87,6 +92,10 @@
 			}
 		},
 		computed: {
+			canShowTeacher() {
+				return !!(this.detailInfo && String(this.detailInfo.orderStatus) === '1'
+					&& String(this.detailInfo.payStatus) === '1')
+			},
 			coverUrl() {
 				if (!this.detailInfo || !this.detailInfo.activityCover) return '/static/home-design/entry-stay.jpg'
 				const cover = this.detailInfo.activityCover
@@ -132,6 +141,7 @@
 		},
 		onLoad(option) {
 			this.orderId = option.orderId || option.id
+			this.teacherPromptPending = option.showTeacher === '1'
 		},
 		onShow() {
 			if (this.orderId) {
@@ -160,6 +170,12 @@
 				this.signForm.signName = data.signName
 				this.originalSignCount = data.signCount
 				this.isEdit = false
+				// 仅服务端确认报名成功后弹一次；日常查看预约只展示二维码卡片。
+				if (!this.canShowTeacher) this.showTeacherPopup = false
+				if (this.canShowTeacher && this.teacherPromptPending) {
+					this.showTeacherPopup = true
+					this.teacherPromptPending = false
+				}
 				uni.setNavigationBarTitle({
 					title: info.activityName || '活动预约'
 				})
