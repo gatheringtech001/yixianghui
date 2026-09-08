@@ -153,7 +153,7 @@ function contact(overrides = {}) {
     AD_POSITION: {ACTIVITY_TEACHER_QR: positionCode},
     resolveAdImageUrl: (host, url) => /^https:/.test(url) ? url : host + url,
     getBannerPosList: async () => ({data: [{positionId: 11, positionCode, status: '0'}]}),
-    getBannerList: async () => ({data: [{contentId: 35, adImage: '/profile/new-qr.png', status: '0'}]}),
+    getBannerList: async () => ({data: [{contentId: 35, adImage: '/profile/new-qr.png', status: '1'}]}),
     ...overrides
   })
 }
@@ -167,8 +167,8 @@ test('teacher QR resolves its backend position code and previews the configured 
     },
     getBannerList: async params => {
       assert.equal(params.positionId, 11)
-      assert.equal(params.status, '0')
-      return {data: [{contentId: 35, adImage: '/profile/new-qr.png', status: '0'}]}
+      assert.equal(params.status, '1')
+      return {data: [{contentId: 35, adImage: '/profile/new-qr.png', status: '1'}]}
     },
     uni: {previewImage: o => previews.push(o)}
   })
@@ -183,7 +183,7 @@ test('teacher QR resolves its backend position code and previews the configured 
 
 test('backend replacement is picked up on refresh without stale QR fallback', async () => {
   let url = '/profile/first.png'
-  const {page} = contact({getBannerList: async () => ({data: [{adImage:url,status:'0'}]})})
+  const {page} = contact({getBannerList: async () => ({data: [{adImage:url,status:'1'}]})})
   await page.loadQr()
   assert.match(page.qrImage, /first.png$/)
   url = '/profile/replacement.png'
@@ -192,7 +192,7 @@ test('backend replacement is picked up on refresh without stale QR fallback', as
 })
 
 test('missing disabled and failed QR configuration exposes a retry state instead of an old image', async () => {
-  for (const data of [[], [{adImage:'/profile/old.png',status:'1'}]]) {
+  for (const data of [[], [{adImage:'/profile/old.png',status:'0'}]]) {
     const {page} = contact({getBannerList: async () => ({data})})
     page.qrImage = 'https://example.invalid/old.png'
     await page.loadQr()

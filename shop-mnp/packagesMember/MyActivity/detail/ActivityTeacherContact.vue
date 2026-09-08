@@ -43,8 +43,9 @@
 					const { data: positions } = await getBannerPosList({ positionCode, status: '0', pageSize: 10 })
 					const position = (positions || []).find(item => item.positionCode === positionCode && String(item.status) === '0')
 					if (!position) throw new Error('活动老师二维码暂未配置')
-					const { data: contents } = await getBannerList({ positionId: position.positionId, status: '0' })
-					const item = (contents || []).filter(row => String(row.status) === '0' && row.adImage)
+					// 广告内容沿用后台 enable_status：1 启用，0 禁用。
+					const { data: contents } = await getBannerList({ positionId: position.positionId, status: '1' })
+					const item = (contents || []).filter(row => String(row.status) === '1' && row.adImage)
 						.sort((a, b) => Number(a.orderNum || 0) - Number(b.orderNum || 0) || Number(b.contentId || 0) - Number(a.contentId || 0))[0]
 					if (!item) throw new Error('活动老师二维码暂未配置')
 					const url = resolveAdImageUrl(this.$host, item.adImage)
