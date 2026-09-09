@@ -14,6 +14,31 @@ from travel_price_parser import (
 
 
 class TravelPriceParserTest(unittest.TestCase):
+    def test_surcharge_is_not_a_lodging_package(self):
+        self.assertEqual([], parse_text_quotes('泼水节（3天）拼房每人加收150元/天'))
+
+    def test_meal_subscription_is_not_a_room_package(self):
+        self.assertEqual([], parse_text_quotes('可以包月用餐，1200元/人/30天'))
+
+    def test_vertical_room_table_preserves_explicit_room_unit(self):
+        quotes = parse_table_quotes([
+            ["六天五晚只含早（每间房）"],
+            ["标准双床房", "1880"],
+            ["豪华私汤大床", "2280"],
+        ], 4)
+        self.assertEqual([Decimal('1880'), Decimal('2280')], [q.price for q in quotes])
+        self.assertTrue(all(q.nights == 5 and q.unit == '间' and q.source_refs == (4,) for q in quotes))
+
+    def test_vertical_table_does_not_inherit_duration_into_other_sections(self):
+        quotes = parse_table_quotes([
+            ["15晚只含早（每间房）"], ["高级大床房", "5280"],
+            ["接送机服务"], ["大床房接机", "300"],
+        ])
+        self.assertEqual(1, len(quotes))
+
+    def test_vertical_table_requires_explicit_price_unit(self):
+        self.assertEqual([], parse_table_quotes([["六天五晚"], ["标准双床房", "1880"]]))
+
     def test_parses_standard_price_table(self):
         rows = [
             ["2026年含三餐价格表"],

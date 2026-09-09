@@ -132,7 +132,7 @@ def _room_label(room_type: str, occupancy: str | None) -> str:
 
 
 def parse_table_quotes(rows: list[list[str]], source_ref: int | None = None) -> list[Quote]:
-    quotes: list[Quote] = []
+    quotes: list[Quote] = _vertical_table_quotes(rows, source_ref)
     for index in range(len(rows) - 1):
         labels = [re.sub(r"\s+", "", str(cell)) for cell in rows[index]]
         prices = [str(cell).strip() for cell in rows[index + 1]]
@@ -152,12 +152,40 @@ def parse_table_quotes(rows: list[list[str]], source_ref: int | None = None) -> 
     return quotes
 
 
+def _vertical_table_quotes(rows: list[list[str]], source_ref: int | None) -> list[Quote]:
+    quotes: list[Quote] = []
+    duration, unit = None, None
+    for row in rows:
+        cells = [str(cell).strip() for cell in row]
+        if len(cells) == 1:
+            label = cells[0]
+            match = re.search(_DURATION, label)
+            duration = match.group(0) if match else None
+            unit = '间' if re.search(r'每间|按间|元[/／]间', label) else (
+                '人' if re.search(r'每人|按人|元[/／]人', label) else None)
+            continue
+        if len(cells) != 2 or not duration or not unit or not _ROOM_HINT.search(cells[0]):
+            duration, unit = None, None
+            continue
+        price = _TABLE_PRICE.fullmatch(cells[1])
+        if price:
+            explicit = price.group('unit')
+            if explicit and explicit != unit:
+                continue
+            quotes.append(_quote(cells[0], duration, price.group('amount'), unit,
+                                 'vertical-table', source_refs=(() if source_ref is None else (source_ref,))))
+    return quotes
+
+
 def _parse_text_quotes(text: str, current_room: str, room_source_ref: int | None,
                        item_ref: int | None) -> tuple[list[Quote], str, int | None]:
     quotes: list[Quote] = []
     normalized = re.sub(r"[\t\r\f\v ]+", " ", text)
     clauses = re.split(r"[；;\n]+", normalized)
     for clause in clauses:
+        # 附加费用不是房型报价，避免把节日补差或包月餐费当成低价住宿套餐。
+        if re.search(r'加收|附加费|包月用餐|定金|押金|房损', clause):
+            continue
         loose = list(_DURATION_FIRST_LOOSE.finditer(clause)) if re.search(
             r"(?:价格|套餐|旅居|房型)", clause
         ) else []
