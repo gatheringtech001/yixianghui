@@ -30,7 +30,6 @@
 				<view class="consent-check" :class="{ 'is-checked': checked }" role="checkbox" :aria-checked="checked"><u-icon v-if="checked" name="checkmark" size="24" color="#ffffff" /></view>
 				<text>我已阅读并同意《达人加入条款》及《隐私政策》，自愿提交申请</text>
 			</view>
-			<text class="join-note">提交后自动审核，通过后前往达人中心注册。请勿重复提交。</text>
 		</view>
 		<view class="join-card" v-else><view class="card-title">申请已通过</view><text class="join-note">欢迎加入我们！继续前往达人中心完善注册。</text></view>
 		<view class="join-error" v-if="error" role="alert">{{ error }}</view>
