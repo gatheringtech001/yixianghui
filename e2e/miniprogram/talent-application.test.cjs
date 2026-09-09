@@ -1,6 +1,8 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const loadPage = require('./vue-page-harness.cjs')
+const fs = require('node:fs')
+const path = require('node:path')
 
 function setup(options = {}, file = 'packagesMember/retail/apply/index.vue') {
   const calls = { apply: [], navigate: [], cache: [] }
@@ -52,6 +54,28 @@ test('application requires explicit consent and valid name and mobile', async ()
   assert.match(source, /class="consent-check"/)
   assert.match(source, /v-if="checked" name="checkmark"/)
   assert.doesNotMatch(source, /: 'checkmark-circle'/)
+})
+
+test('recruitment redesign uses a lightweight local photo and independently readable terms', () => {
+  const { page, source } = setup()
+  assert.equal(page.showTerms, false)
+  page.toggleTerms()
+  assert.equal(page.showTerms, true)
+  assert.equal(page.checked, false)
+  page.toggleTerms()
+  assert.equal(page.showTerms, false)
+  assert.match(source, /class="hero-image"/)
+  assert.match(source, /packagesMember\/static\/talent-join-hero\.jpg/)
+  assert.doesNotMatch(source, /class="join-icon"|class="eyebrow"/)
+  assert.equal((source.match(/class="term"/g) || []).length, 5)
+  assert.match(source, /@click\.stop="toggleTerms"/)
+  assert.match(source, /@click\.stop="openPrivacy"/)
+  const asset = path.resolve(__dirname, '../../shop-mnp/packagesMember/static/talent-join-hero.jpg')
+  assert.ok(fs.statSync(asset).size < 120000)
+  if (process.env.MINIPROGRAM_PROJECT_PATH) {
+    const compiledAsset = path.join(process.env.MINIPROGRAM_PROJECT_PATH, 'packagesMember/static/talent-join-hero.jpg')
+    assert.ok(fs.readFileSync(asset).equals(fs.readFileSync(compiledAsset)))
+  }
 })
 
 test('submission trims input, records consent and waits for server approval before registration', async () => {
