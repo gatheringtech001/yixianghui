@@ -272,7 +272,9 @@
 					total: this.skuPrice,
 					nights: this.reserveData.day
 				})
-				return formatCalendarPrice(unitPrice)
+				const selected = this.skuList.find(item => Number(item.skuId) === Number(this.selSkuId)
+					&& Number(item.skuSeqNo) === Number(this.selSkuSeqNo))
+				return formatCalendarPrice(unitPrice, selected && selected.priceUnit)
 			},
 			mealUnitPrice() {
 				return Number(this.currentCombo.price) || 0
@@ -478,7 +480,8 @@
 					       skuId: option.skuId,
 					       skuSeqNo: parseInt(seqNo) || 0,
 					       day,
-					       price: priceItem ? parseFloat(priceItem.optionValue) || 0 : 0
+					       price: priceItem ? parseFloat(priceItem.optionValue) || 0 : 0,
+					       priceUnit: priceItem ? priceItem.optionValueUnit : '人'
 					     };
 					   });
 					  });

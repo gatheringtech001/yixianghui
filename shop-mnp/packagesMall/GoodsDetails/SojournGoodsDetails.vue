@@ -78,10 +78,10 @@
               </view>
               <view class="item_price_view">
                 <view class="price_view">
-                  <text><text>￥ </text>{{ item.price }}</text> /人/起
+                  <text><text>￥ </text>{{ item.price }}</text> /{{ item.priceUnit }}/起
                 </view>
                 <view class="price_average_view" v-if="item.average">
-                  均￥{{ item.average }}/人/晚起
+                  均￥{{ item.average }}/{{ item.priceUnit }}/晚起
                 </view>
               </view>
               <view class="item_button_view" @click="reserveFn(getCurrentSkuData(groupIndex), item, groupIndex)">订</view>
@@ -227,6 +227,7 @@
 	import { prepareRichTextHtml } from '@/utils/richText'
 	import {
 		formatCalendarPrice,
+		travelPriceUnit,
 		resolveCalendarUnitPrice,
 		sanitizeTravelCustomerText
 	} from '@/utils/travelPresentation'
@@ -334,7 +335,7 @@
 					total: selected && selected.price,
 					nights: this.popupDate.day
 				})
-				return formatCalendarPrice(unitPrice)
+				return formatCalendarPrice(unitPrice, selected && selected.priceUnit)
 			},
 			popupSkuDataList() {
 				const group = this.skuGroupList[this.popupDate.groupIndex] || this.skuGroupList[0]
@@ -669,9 +670,11 @@
                       let optionAttrName = '';
                       let optionTotPrice = '';
                       let optionAvgPrice = '';
+                      let optionPriceUnit = '人';
                       items.forEach(item => {
                         if(item.optionType == '302'){
                           optionTotPrice = item.optionValue;
+                          optionPriceUnit = travelPriceUnit(item.optionValueUnit);
                         }
                         if(item.optionType == '301'){
                           optionAvgPrice = item.optionValue;
@@ -683,6 +686,7 @@
                       return {
                         name: optionAttrName || '',
                         price: optionTotPrice || 0,
+                        priceUnit: optionPriceUnit,
                         average: optionAvgPrice || 0,
                         skuSeqNo: parseInt(seqNo) || 0
                       };

@@ -15,14 +15,18 @@ export function resolveCalendarUnitPrice({ average, nightPrice, total, nights } 
 	return packageTotal && stayNights ? packageTotal / stayNights : 0
 }
 
-export function formatCalendarPrice(value) {
+export function travelPriceUnit(value) {
+	return /间|套/.test(String(value || '')) ? '间' : '人'
+}
+
+export function formatCalendarPrice(value, unit = '人') {
 	const number = positiveNumber(value)
 	if (!number) return ''
 	const rounded = Math.round(number * 100) / 100
 	const text = Number.isInteger(rounded)
 		? String(rounded)
 		: rounded.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
-	return `￥${text}/人`
+	return `￥${text}/${travelPriceUnit(unit)}`
 }
 
 export function compactListingText(value, maxLength = 56) {
