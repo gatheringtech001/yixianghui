@@ -1,73 +1,26 @@
-.head-banner{
-	overflow: hidden;
-	margin: 20rpx;
-	image{
-		width: 100%;
-	}
-}
-.reject-tip {
-	display: flex;
-	align-items: flex-start;
-	margin: 0 24rpx 16rpx;
-	padding: 20rpx 24rpx;
-	background: #fff8f0;
-	border-radius: 12rpx;
-	border: 1rpx solid #ffe4cc;
-
-	text {
-		flex: 1;
-		margin-left: 12rpx;
-		font-size: 26rpx;
-		color: #ff6b00;
-		line-height: 1.6;
-	}
-}
-.apply{
-	margin: 24rpx;
-	margin-top: 50rpx;
-	.title{
-		text-align: center;
-		font-size: 32rpx;
-		line-height: 2;
-		margin-top: 20rpx;
-		text{
-			color: #C30D24;
-		}
-	}
-	.form-box{
-		background: #fff;
-		margin: 30rpx 0;
-		padding: 12rpx;
-		box-shadow: 0 0 7rpx #b4b4b4;
-		border-radius: 16rpx;
-		overflow: hidden;
-		.u-form-item{
-			padding: 12rpx 24rpx !important;
-		}
-		.u-form-item--left {
-			.u-form-item--left__content{
-				font-size: 30rpx;
-				color: #666;
-				font-weight: 500;
-			}
-		}
-		.u-form-item--right{
-			.u-form-item--right__content{
-				font-size: 32rpx;
-				color: #000;
-				font-weight: 600;
-			}
-		}
-	}
-	.tips{
-		.article{
-			color: royalblue;
-		}
-	}
-}
-.submit{
-	margin: 50rpx 24rpx;
-}
-.status-box{
-	padding: 120rpx 24rpx;
-}
+.talent-join-page { min-height: 100vh; padding: 28rpx 28rpx calc(40rpx + env(safe-area-inset-bottom)); box-sizing: border-box; background: #EFEBDF; color: #261c1b; }
+.join-hero { padding: 28rpx 12rpx 40rpx; }
+.join-icon { width: 88rpx; height: 88rpx; margin-bottom: 20rpx; }
+.eyebrow, .hero-description, .role-title, .role-description, .join-note, .term, .terms-version { display: block; }
+.eyebrow { color: #701018; font-size: 26rpx; letter-spacing: 2rpx; }
+.hero-title { margin: 18rpx 0; font-size: 46rpx; line-height: 1.45; font-weight: 700; white-space: pre-line; }
+.hero-description { font-size: 29rpx; line-height: 1.8; color: #655952; }
+.join-card { margin-bottom: 24rpx; padding: 32rpx; border: 1rpx solid #e5ddd2; border-radius: 24rpx; background: #fffdf9; }
+.card-title { margin-bottom: 24rpx; font-size: 34rpx; font-weight: 700; }
+.role-row { display: flex; align-items: flex-start; gap: 20rpx; margin-bottom: 26rpx; }
+.role-row > view { flex: 1; min-width: 0; }
+.role-title { font-size: 30rpx; font-weight: 700; margin-bottom: 8rpx; }
+.role-description, .join-note, .term { font-size: 28rpx; line-height: 1.8; color: #655952; }
+.term { margin-bottom: 18rpx; }
+.policy-link { color: #701018; font-size: 28rpx; text-decoration: underline; line-height: 2; }
+.terms-version { margin-top: 16rpx; font-size: 24rpx; color: #887970; }
+.form-label { display: block; font-size: 30rpx; margin-bottom: 26rpx; }
+.join-input { margin-top: 14rpx; padding: 0 24rpx; height: 92rpx; border: 1rpx solid #e3d9ce; border-radius: 14rpx; background: #fff; font-size: 30rpx; }
+.agreement-row { display: flex; align-items: flex-start; gap: 16rpx; margin: 32rpx 0 24rpx; color: #701018; font-size: 28rpx; line-height: 1.7; }
+.agreement-row > text { flex: 1; }
+.consent-check { flex-shrink: 0; width: 34rpx; height: 34rpx; margin-top: 6rpx; border: 2rpx solid #a8998a; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; }
+.consent-check.is-checked { background: #701018; border-color: #701018; }
+.join-error { margin: 20rpx 8rpx; font-size: 28rpx; color: #a52130; line-height: 1.7; }
+.primary-button { border-radius: 18rpx; color: #fff; background: #701018; font-size: 32rpx; font-weight: 700; line-height: 96rpx; }
+.primary-button::after { border: none; }
+.primary-button[disabled] { color: #fff; background: #a68887; }

@@ -320,20 +320,20 @@
 		}, {
 			"path": "retail/index",
 			"style": {
-				"navigationBarTitleText": "康养顾问中心",
+				"navigationBarTitleText": "达人中心",
 				"navigationBarBackgroundColor": "#EFEBDF",
 				"enablePullDownRefresh": true
 			}
 		}, {
 			"path": "retail/invite/index",
 			"style": {
-				"navigationBarTitleText": "康养顾问中心",
+				"navigationBarTitleText": "达人中心",
 				"navigationBarBackgroundColor": "#EFEBDF"
 			}
 		}, {
 			"path": "retail/apply/index",
 			"style": {
-				"navigationBarTitleText": "康养顾问中心",
+				"navigationBarTitleText": "加入达人中心",
 				"navigationBarBackgroundColor": "#EFEBDF"
 			}
 		}, {

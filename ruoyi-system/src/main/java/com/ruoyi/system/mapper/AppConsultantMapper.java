@@ -68,6 +68,8 @@ public interface AppConsultantMapper
     AppConsultant selectAppConsultantByUserId(Long userId);
     AppConsultant selectExplicitConsultantByUserId(Long userId);
 
+    Long lockConsultantApplicant(@Param("userId") Long userId);
+
     /**
      * 根据顾问姓名查找顾问
      * @param consultantName

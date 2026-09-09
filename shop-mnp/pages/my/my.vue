@@ -87,7 +87,7 @@
 				<view class="service-row" @click="onServer('retail')">
 					<view class="row-left">
 						<image class="service-icon" src="/static/profile-icons/service-advisor.png" mode="aspectFit" />
-						<text>康养顾问中心</text>
+						<text>达人中心</text>
 					</view>
 					<text class="row-arrow">&gt;</text>
 				</view>

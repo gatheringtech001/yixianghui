@@ -1,170 +1,123 @@
 <template>
-	<view class="page">
-		<view class="head-banner">
-			<image :src='host + banner' mode="widthFix"></image>
+	<view class="talent-join-page">
+		<view class="join-hero">
+			<image class="join-icon" src="/static/profile-icons/service-advisor.png" mode="aspectFit" />
+			<text class="eyebrow">逸享荟 · 达人中心</text>
+			<view class="hero-title"><view>把热爱变成连接，</view><view>和我们一起出发</view></view>
+			<text class="hero-description">欢迎成为旅居达人或康养顾问，分享真实体验，陪伴更多人找到适合自己的康养生活。</text>
 		</view>
-		<view class="reject-tip" v-if="pageMode === 'form' && rejectedTip">
-			<u-icon name="info-circle-fill" color="#ff6b00" size="32"></u-icon>
-			<text>{{ rejectedTip }}</text>
+		<view class="join-card">
+			<view class="card-title">找到适合您的角色</view>
+			<view class="role-row"><u-icon name="map" size="40" color="#701018" /><view><text class="role-title">旅居达人</text><text class="role-description">记录沿途风景、分享入住体验，让您的见闻帮助更多人安心出发。</text></view></view>
+			<view class="role-row"><u-icon name="heart" size="40" color="#701018" /><view><text class="role-title">康养顾问</text><text class="role-description">倾听需求、推荐合适的旅居与康养服务，成为值得信赖的生活伙伴。</text></view></view>
+			<text class="join-note">加入后可在达人中心完善注册，了解选品、内容创作与学习工具。具体合作安排以双方确认的内容为准。</text>
 		</view>
-		<view class="apply" v-if="pageMode === 'form'">
-			<view class="title">欢迎加入<text>逸享荟康养顾问中心</text>，请填写申请信息</view>
-			<view class="form-box">
-				<u-form :model="form" ref="uForm" label-position="left" label-width='160'>
-					<u-form-item label="邀请人">
-						<text>{{ inviterName }}</text>
-					</u-form-item>
-					<u-form-item label="姓名" required prop="name">
-						<u-input v-model="form.name" />
-					</u-form-item>
-					<u-form-item label="手机号" required prop="mobile">
-						<u-input v-model="form.mobile" maxlength='11' type="number" />
-					</u-form-item>
-				</u-form>
+		<view class="join-card terms-card">
+			<view class="card-title">达人加入条款</view>
+			<text class="term">1. 请提供本人真实姓名和可联系的手机号，用于申请登记、联系服务及合作对接。</text>
+			<text class="term">2. 分享真实体验，尊重他人隐私与知识产权；不夸大服务效果，不承诺保本或固定收益。</text>
+			<text class="term">3. 康养服务介绍不替代医疗诊断、治疗或专业医疗建议。对外服务内容与合作规则需如实说明。</text>
+			<text class="term">4. 申请通过仅代表完成加入登记。具体业务身份、服务范围和经营数据权限以达人中心的规则及确认结果为准。</text>
+			<text class="term">5. 姓名和手机号仅用于上述申请及合作目的。您可通过小程序客服咨询资料更正或退出合作。</text>
+			<text class="policy-link" @click="openPrivacy">查看《隐私政策》</text>
+			<text class="terms-version">条款版本：2026-09-v1</text>
+		</view>
+		<view class="join-card" v-if="pageMode === 'form'">
+			<view class="card-title">申请加入我们</view>
+			<label class="form-label">姓名<input class="join-input" v-model="form.name" maxlength="50" placeholder="请输入您的真实姓名" /></label>
+			<label class="form-label">手机号<input class="join-input" v-model="form.mobile" type="number" maxlength="11" placeholder="请输入可联系的手机号" /></label>
+			<view class="agreement-row" @click="checked = !checked">
+				<view class="consent-check" :class="{ 'is-checked': checked }" role="checkbox" :aria-checked="checked"><u-icon v-if="checked" name="checkmark" size="24" color="#ffffff" /></view>
+				<text>我已阅读并同意《达人加入条款》及《隐私政策》，自愿提交申请</text>
 			</view>
-			<view class="tips">
-				<u-checkbox v-model="checked" shape="circle">我已经阅读并同意</u-checkbox>
-				<text class="article" @click="goToArticle">【顾问申请协议】</text>
-			</view>
+			<text class="join-note">提交后自动审核，通过后前往达人中心注册。请勿重复提交。</text>
 		</view>
-		<view class="apply status-box" v-else>
-			<u-empty :text="statusText" mode="list"></u-empty>
+		<view class="join-card" v-else><view class="card-title">申请已通过</view><text class="join-note">欢迎加入我们！继续前往达人中心完善注册。</text></view>
+		<view class="join-error" v-if="error" role="alert">{{ error }}</view>
+		<view class="join-actions">
+			<button v-if="pageMode === 'approved'" class="primary-button" @click="openCenter">进入达人中心</button>
+			<button v-else class="primary-button" :disabled="submitting || checking" :loading="submitting" @click="submit">{{ submitting ? '正在提交…' : (checking ? '正在确认状态…' : '同意条款，提交申请') }}</button>
 		</view>
-		<view class="submit" v-if="pageMode === 'form'">
-			<u-button type="error" shape="circle" @click="submit">申请成为康养顾问</u-button>
-		</view>
+		<AuthProfilePopup ref="authProfilePopup" />
 	</view>
 </template>
 
 <script>
-	import './index.scss'
-	import { getBannerList } from '@/api/index'
+	import AuthProfilePopup from '@/components/AuthProfilePopup/AuthProfilePopup.vue'
 	import { getInfo } from '@/api/public'
-	import { applyConsultant, getConsultantParent } from '@/api/member/index'
-	import { syncConsultantStorage } from '@/utils/login'
-	
+	import { applyConsultant } from '@/api/member/index'
+	import { isAuthorizedUser, runWithAuth, bindPageAuthPopup, syncConsultantStorage } from '@/utils/login'
+
 	export default {
+		components: { AuthProfilePopup },
 		data() {
-			return {
-				host: this.$host,
-				banner: '',
-				inviterName: '逸享荟',
-				pageMode: 'form',
-				statusText: '',
-				rejectedTip: '',
-				form: {
-					name: '',
-					mobile: null
-				},
-				rules: {
-					name: [
-						{ required: true, message: '请输入姓名', trigger: ['change','blur'] },
-					],
-					mobile: [
-						{ required: true, message: '请输入手机号', trigger: ['change','blur'] },
-						{
-							validator: (rule, value, callback) => {
-								return this.$u.test.mobile(value);
-							},
-							message: '手机号码不正确',
-							trigger: ['change','blur']
-						}
-					]
-				},
-				checked: false
-			};
+			return { form: { name: '', mobile: '' }, checked: false, submitting: false,
+				checking: false, pageMode: 'form', error: '' }
 		},
-		onReady() {
-			if (this.pageMode === 'form' && this.$refs.uForm) {
-				this.$refs.uForm.setRules(this.rules);
-			}
+		onShow() {
+			bindPageAuthPopup(this)
+			if (!this.submitting) this.checkConsultantStatus()
 		},
-		onLoad() {
-			this.initPage()
-		},
-		methods:{
-			async initPage() {
-				await Promise.all([this.getAdList(), this.loadInviter(), this.checkConsultantStatus()])
-			},
+		methods: {
 			async checkConsultantStatus() {
+				if (this.checking || !isAuthorizedUser()) return
+				this.checking = true
+				this.error = ''
 				try {
 					const res = await getInfo()
+					if (res.code !== 200) throw new Error(res.msg || '申请状态获取失败，请重试')
 					const consultant = res.consultant
-					if (!consultant) return
 					syncConsultantStorage(consultant)
-					if (consultant.status === '00') {
-						this.pageMode = 'pending'
-						this.statusText = '顾问申请审核中，请耐心等待'
-					} else if (consultant.status === '02') {
-						this.pageMode = 'form'
-						this.rejectedTip = consultant.remark
-							? `上次申请未通过：${consultant.remark}，可重新提交`
-							: '上次申请未通过，请修改信息后重新提交'
-						if (consultant.consultantName) this.form.name = consultant.consultantName
-						if (consultant.mobile) this.form.mobile = consultant.mobile
-					} else if (consultant.status === '01') {
-						uni.redirectTo({
-							url: '/packagesMember/retail/index'
-						})
+					if (consultant && consultant.consultantId && consultant.status === '01') {
+						this.pageMode = 'approved'
+						await this.openCenter()
+					} else if (consultant) {
+						if (!this.form.name) this.form.name = consultant.consultantName || ''
+						if (!this.form.mobile) this.form.mobile = consultant.mobile || ''
 					}
-				} catch (e) {}
+				} catch (error) {
+					this.error = error.message || '申请状态获取失败，请稍后重试'
+				} finally { this.checking = false }
 			},
-			async loadInviter() {
+			openPrivacy() { uni.navigateTo({ url: '/packagesPublic/Article/index?id=5' }) },
+			async openCenter() {
+				this.error = ''
 				try {
-					const res = await getConsultantParent()
-					if (res.code === 200 && res.data) {
-						this.inviterName = res.data.nickName || res.data.userName || res.data.consultantName || '逸享荟'
-					}
-				} catch (e) {}
+					await new Promise((resolve, reject) => uni.redirectTo({
+						url: '/packagesPublic/TalentCenter/index', success: resolve, fail: reject
+					}))
+				} catch (error) { this.error = '申请已通过，页面打开失败，请点击“进入达人中心”重试' }
 			},
-			async getAdList() {
-				let params = {
-					positionId: 4
-				}
-				let { data } = await getBannerList(params)
-				if (data && data.length > 0) {
-					this.banner = data[0].adImage
-				}
-			},
-			goToArticle() {
-				uni.navigateTo({
-					url: '/packagesPublic/Article/index?id=2'
-				})
-			},
-			submit() {
-				if(!this.checked) {
-					uni.showToast({
-						icon: 'none',
-						title: '请阅读并勾选《顾问申请协议》'
+			async submit() {
+				if (this.submitting || this.checking) return
+				this.error = ''
+				const name = String(this.form.name || '').trim()
+				const mobile = String(this.form.mobile || '').trim()
+				if (!this.checked) { this.error = '请先阅读并同意达人加入条款及隐私政策'; return }
+				if (!name || name.length > 50) { this.error = '请填写不超过50个字的真实姓名'; return }
+				if (!/^1[3-9][0-9]{9}$/.test(mobile)) { this.error = '请输入正确的11位手机号'; return }
+				this.submitting = true
+				try {
+					const loggedIn = await new Promise(resolve => runWithAuth(this, resolve))
+					if (!loggedIn) return
+					const res = await applyConsultant({
+						consultantName: name, mobile, acceptedTerms: true, termsVersion: '2026-09-v1'
 					})
-					return
-				}
-				this.$refs.uForm.validate(valid => {
-					if (valid) {
-						let params = {
-							consultantName: this.form.name,
-							mobile: this.form.mobile
-						}
-						applyConsultant(params).then(async res => {
-							if (res.code !== 200) {
-								uni.showToast({
-									icon: 'none',
-									title: res.msg || '申请失败'
-								})
-								return
-							}
-							const info = await getInfo()
-							syncConsultantStorage(info.consultant)
-							uni.showToast({
-								icon: 'none',
-								title: '申请成功，等待审核'
-							})
-							this.pageMode = 'pending'
-							this.statusText = '顾问申请审核中，请耐心等待'
-						})
+					if (res.code !== 200) throw new Error(res.msg || '申请失败，请重试')
+					const info = await getInfo()
+					if (info.code !== 200 || !info.consultant || !info.consultant.consultantId || info.consultant.status !== '01') {
+						throw new Error('申请已提交，但通过状态尚未确认，请稍后重试或联系客服')
 					}
-				});
+					syncConsultantStorage(info.consultant)
+					this.pageMode = 'approved'
+					await this.openCenter()
+				} catch (error) { this.error = error.message || '提交失败，请稍后重试' }
+				finally { this.submitting = false }
 			}
-		},
+		}
 	}
 </script>
+
+<style scoped lang="scss">
+	@import 'index.scss';
+</style>

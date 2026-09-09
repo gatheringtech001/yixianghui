@@ -2,6 +2,7 @@ package com.ruoyi.system.service;
 
 import java.util.List;
 import com.ruoyi.system.domain.AppConsultant;
+import com.ruoyi.system.domain.vo.ConsultantApplicationRequest;
 
 /**
  * 康养顾问Service接口
@@ -95,7 +96,7 @@ public interface IAppConsultantService
     AppConsultant getOrClaimConsultantByUser(Long userId, String mobile);
 
     /**
-     * 小程序申请成为顾问：合并未认领档案或新建
+     * 小程序自主申请：绑定当前登录用户，确认条款后自动通过，不按手填电话认领历史档案
      */
-    int applyConsultantAsUser(Long userId, AppConsultant consultant);
+    int applyConsultantAsUser(Long userId, ConsultantApplicationRequest application);
 }

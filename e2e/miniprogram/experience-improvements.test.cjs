@@ -144,15 +144,18 @@ test('customer-facing education branding is 芳华学院 while category matching
   assert.match(authorization, /康养旅居 · 活动 · 芳华学院/)
 })
 
-test('wellness consultant center opens the deployed Talent Center directly', async () => {
+test('talent center entry verifies application before opening the deployed registration page', async () => {
   const my = await read('shop-mnp/pages/my/my.vue')
   const talentCenter = await read('shop-mnp/packagesPublic/TalentCenter/index.vue')
   const pages = await read('shop-mnp/pages.json')
 
   assert.match(my, /type === 'retail'[\s\S]*?packagesPublic\/TalentCenter\/index/)
   assert.doesNotMatch(my, /packagesMember\/retail\//)
-  assert.match(talentCenter, /<web-view\s+:src="talentCenterUrl"/)
-  assert.match(talentCenter, /https:\/\/gatheringtech\.com\/talent\//)
+  assert.match(my, /<text>达人中心<\/text>/)
+  assert.doesNotMatch(my, /康养顾问中心/)
+  assert.match(talentCenter, /<web-view\s+v-if="talentCenterUrl"\s+:src="talentCenterUrl"/)
+  assert.match(talentCenter, /https:\/\/gatheringtech\.com\/talent\/register/)
+  assert.match(talentCenter, /consultant\.status === '01'/)
   assert.match(pages, /"path":\s*"TalentCenter\/index"/)
 })
 

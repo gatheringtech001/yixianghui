@@ -1,5 +1,7 @@
 <template>
   <div class="app-container">
+    <el-alert title="达人自主加入申请自动审核通过" type="info" :closable="false" show-icon
+      description="小程序用户同意加入条款并提交姓名、手机号后，自动登记为已通过。申请和条款版本记录在备注中；历史待审记录不会批量变更，用户重新提交后按新规则处理。" style="margin-bottom: 16px" />
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="68px">
       <el-form-item label="顾问编号" prop="consultantNo">
         <el-input

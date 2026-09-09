@@ -15,6 +15,7 @@ import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.system.domain.*;
 import com.ruoyi.system.domain.vo.ConsultantStatVo;
+import com.ruoyi.system.domain.vo.ConsultantApplicationRequest;
 import com.ruoyi.system.service.*;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -1044,7 +1045,7 @@ public class AppUserController extends BaseController
     @PreAuthorize("@ss.hasPermi('system:mnp:user')")
     @Log(title = "申请成为顾问", businessType = BusinessType.INSERT)
     @PostMapping("/apply_consultant")
-    public AjaxResult applyConsultant(@Validated @RequestBody AppConsultant consultant)
+    public AjaxResult applyConsultant(@Validated @RequestBody ConsultantApplicationRequest consultant)
     {
         try
         {

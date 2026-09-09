@@ -4,14 +4,12 @@ import java.util.List;
 
 import com.ruoyi.common.constant.CacheConstants;
 import com.ruoyi.common.core.domain.entity.SysDept;
-import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.redis.RedisCache;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.bean.BeanValidators;
 import com.ruoyi.common.utils.spring.SpringUtils;
-import com.ruoyi.system.mapper.SysUserMapper;
 import com.ruoyi.system.service.ISysDeptService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +18,8 @@ import org.springframework.stereotype.Service;
 import com.ruoyi.system.mapper.AppConsultantMapper;
 import com.ruoyi.system.domain.AppConsultant;
 import com.ruoyi.system.service.IAppConsultantService;
+import com.ruoyi.system.domain.vo.ConsultantApplicationRequest;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.validation.Validator;
 
@@ -33,12 +33,11 @@ import javax.validation.Validator;
 public class AppConsultantServiceImpl implements IAppConsultantService 
 {
     private static final Logger log = LoggerFactory.getLogger(AppConsultantServiceImpl.class);
+    private static final String SELF_APPLICATION_PREFIX = "小程序自主申请，已同意达人加入条款 ";
     @Autowired
     private AppConsultantMapper appConsultantMapper;
     @Autowired
     private ISysDeptService deptService;
-    @Autowired
-    private SysUserMapper userMapper;
 
     @Autowired
     protected Validator validator;
@@ -253,6 +252,8 @@ public class AppConsultantServiceImpl implements IAppConsultantService
         AppConsultant bound = appConsultantMapper.selectAppConsultantByUserId(userId);
         if (bound != null)
         {
+            // 自主申请已绑定登录用户，手填联系方式不是微信认证手机号，不用它解除身份。
+            if (bound.getRemark() != null && bound.getRemark().startsWith(SELF_APPLICATION_PREFIX)) return bound;
             if (isConsultantMobileMatched(bound, mobile))
             {
                 return bound;
@@ -269,45 +270,41 @@ public class AppConsultantServiceImpl implements IAppConsultantService
     }
 
     @Override
-    public int applyConsultantAsUser(Long userId, AppConsultant consultant)
+    @Transactional(rollbackFor = Exception.class)
+    public int applyConsultantAsUser(Long userId, ConsultantApplicationRequest application)
     {
+        validateApplication(application);
+        // 锁当前用户，防止同一用户并发申请产生重复档案；不授予后台或历史客户数据权限。
+        if (userId == null || appConsultantMapper.lockConsultantApplicant(userId) == null)
+            throw new ServiceException("请重新登录后申请");
         AppConsultant existing = appConsultantMapper.selectAppConsultantByUserId(userId);
-        if (existing != null)
-        {
-            throw new ServiceException("已申请，无法再次提交");
-        }
+        if (existing != null && "01".equals(existing.getStatus())) return 1;
+        if (existing != null && !"00".equals(existing.getStatus()) && !"02".equals(existing.getStatus()))
+            throw new ServiceException("当前申请状态不可提交，请联系客服");
+        AppConsultant consultant = new AppConsultant();
         consultant.setUserId(userId);
-        if (StringUtils.isEmpty(consultant.getStatus()))
-        {
-            consultant.setStatus("00");
-        }
-        String mobile = consultant.getMobile();
-        if (StringUtils.isEmpty(mobile))
-        {
-            SysUser user = userMapper.selectUserById(userId);
-            if (user != null)
-            {
-                mobile = user.getPhonenumber();
-                consultant.setMobile(mobile);
-            }
-        }
-        AppConsultant unclaimed = StringUtils.isNotEmpty(mobile)
-                ? appConsultantMapper.selectUnclaimedConsultantByMobile(mobile, false)
-                : null;
-        if (unclaimed != null)
-        {
-            consultant.setConsultantId(unclaimed.getConsultantId());
-            if (StringUtils.isEmpty(consultant.getConsultantNo()))
-            {
-                consultant.setConsultantNo(unclaimed.getConsultantNo());
-            }
-            if ("01".equals(unclaimed.getStatus()) && "00".equals(consultant.getStatus()))
-            {
-                consultant.setStatus("01");
-            }
-            return updateAppConsultant(consultant);
-        }
-        return insertAppConsultant(consultant);
+        consultant.setConsultantName(application.getConsultantName().trim());
+        consultant.setMobile(application.getMobile().trim());
+        consultant.setStatus("01");
+        consultant.setRemark(SELF_APPLICATION_PREFIX + ConsultantApplicationRequest.TERMS_VERSION
+                + "；自动审核通过；" + DateUtils.getTime());
+        if (existing != null) consultant.setConsultantId(existing.getConsultantId());
+        int rows = existing == null ? insertAppConsultant(consultant) : updateAppConsultant(consultant);
+        if (rows != 1) throw new ServiceException("申请未保存，请重试");
+        return rows;
+    }
+
+    private void validateApplication(ConsultantApplicationRequest application)
+    {
+        if (application == null || !Boolean.TRUE.equals(application.getAcceptedTerms())
+                || !ConsultantApplicationRequest.TERMS_VERSION.equals(application.getTermsVersion()))
+            throw new ServiceException("请阅读并同意最新达人加入条款");
+        String name = StringUtils.trim(application.getConsultantName());
+        if (StringUtils.isEmpty(name) || name.length() > 50)
+            throw new ServiceException("请填写不超过50个字的真实姓名");
+        String mobile = StringUtils.trim(application.getMobile());
+        if (mobile == null || !mobile.matches("^1[3-9][0-9]{9}$"))
+            throw new ServiceException("请输入正确的11位手机号");
     }
 
     /**
