@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { queryStore } from "./answer-retrieval.mjs";
+import { loadRetiredSources } from "./retired-sources.mjs";
 import {
   chunkDocument,
   contentHash,
@@ -203,7 +204,9 @@ export class KnowledgeService {
   async sync() {
     await this.store.ensureCollection();
     const manifest = await readManifest(this.manifestFile);
-    const documents = await this.source.listDocuments();
+    const retired = await loadRetiredSources();
+    const listed = await this.source.listDocuments();
+    const documents = listed.filter(item => !retired.has(String(item.token)));
     const current = new Set(documents.map((item) => String(item.token)));
     let changed = 0;
     let chunks = 0;
@@ -258,7 +261,8 @@ export class KnowledgeService {
       delete manifest.documents[sourceId];
     }
     await writeManifest(this.manifestFile, manifest);
-    return { documents: documents.length, changed, indexedChunks: chunks };
+    return { documents: documents.length, changed, indexedChunks: chunks,
+      retiredDocuments: listed.length - documents.length };
   }
 
   async search(value, limit = 8) {

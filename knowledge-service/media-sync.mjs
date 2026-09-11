@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { chunkDocument, contentHash, pointId, sparseVector } from "./lib.mjs";
 import { AzureModels, QdrantStore } from "./service.mjs";
+import { loadRetiredSources } from "./retired-sources.mjs";
 
 export function mediaPoints(record, createdAt) {
   if (!record || !/^[A-Za-z0-9:_-]{1,250}$/.test(record.id) || typeof record.text !== "string"
@@ -26,6 +27,9 @@ export async function syncMedia({ snapshot, store, models, manifestFile }) {
     throw new Error("Invalid media snapshot");
   }
   if (new Set(snapshot.records.map((record) => record.id)).size !== snapshot.records.length) throw new Error("Duplicate media IDs");
+  const retired = await loadRetiredSources();
+  const retiredRecords = snapshot.records.filter(record => retired.has(`media:${record.id}`)).length;
+  snapshot = { ...snapshot, records: snapshot.records.filter(record => !retired.has(`media:${record.id}`)) };
   let manifest = { version: 1, records: {} };
   try { manifest = JSON.parse(await fs.readFile(manifestFile, "utf8")); }
   catch (error) { if (error.code !== "ENOENT") throw error; }
@@ -71,12 +75,17 @@ export async function syncMedia({ snapshot, store, models, manifestFile }) {
     await save();
   }
   // Missing/deleted source candidates are reported, never automatically purged.
+  for (const [id, saved] of Object.entries(manifest.records)) {
+    if (!retired.has(`media:${id}`)) continue;
+    await store.deleteIds(saved.pointIds);
+    delete manifest.records[id];
+  }
   const current = new Set(snapshot.records.map((record) => record.id));
   const missingCandidates = snapshot.partial ? [] : Object.keys(manifest.records).filter((id) => !current.has(id));
   manifest.createdAt = snapshot.createdAt;
   await save();
   return { records: snapshot.records.length, indexedPoints: pending.length, changedRecords: completed,
-    payloadUpdates, missingCandidates: missingCandidates.length, failures: snapshot.failures?.length ?? 0 };
+    payloadUpdates, retiredRecords, missingCandidates: missingCandidates.length, failures: snapshot.failures?.length ?? 0 };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { buildCatalog, catalogPoints } from "./catalog.mjs";
 import { sparseVector } from "./lib.mjs";
 import { AzureModels, QdrantStore } from "./service.mjs";
+import { loadRetiredSources } from "./retired-sources.mjs";
 
 async function checkpoint(file, manifest) {
   await fs.mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
@@ -27,6 +28,9 @@ async function readManifest(file) {
 
 export async function syncCatalog({ snapshot, models, store, manifestFile, progress = () => {} }) {
   const catalog = buildCatalog(snapshot);
+  const retired = await loadRetiredSources();
+  const retiredDocuments = catalog.documents.filter(doc => retired.has(doc.sourceId)).length;
+  catalog.documents = catalog.documents.filter(doc => !retired.has(doc.sourceId));
   const manifest = await readManifest(manifestFile);
   if (manifest.exportedAt && snapshot.exportedAt < manifest.exportedAt) throw new Error("Stale catalog snapshot");
   await store.ensureCollection();
@@ -72,7 +76,7 @@ export async function syncCatalog({ snapshot, models, store, manifestFile, progr
   manifest.fingerprint = snapshot.fingerprint;
   manifest.counts = catalog.counts;
   await checkpoint(manifestFile, manifest);
-  return { documents: catalog.documents.length, rows: catalog.represented, counts: catalog.counts,
+  return { documents: catalog.documents.length, retiredDocuments, rows: catalog.represented, counts: catalog.counts,
     orphanDocuments: catalog.orphans, changed, indexedChunks: processed,
     totalPoints: Object.values(manifest.documents).reduce((count, document) => count + document.pointIds.length, 0) };
 }

@@ -110,8 +110,8 @@ test("sync is incremental and persists source metadata", async (context) => {
 
   const first = await service.sync();
   const second = await service.sync();
-  assert.deepEqual(first, { documents: 1, changed: 1, indexedChunks: 1 });
-  assert.deepEqual(second, { documents: 1, changed: 0, indexedChunks: 0 });
+  assert.deepEqual(first, { documents: 1, changed: 1, indexedChunks: 1, retiredDocuments: 0 });
+  assert.deepEqual(second, { documents: 1, changed: 0, indexedChunks: 0, retiredDocuments: 0 });
   assert.equal(calls.read, 1);
   assert.equal(calls.embed, 1);
   assert.equal(calls.upsert.length, 1);
