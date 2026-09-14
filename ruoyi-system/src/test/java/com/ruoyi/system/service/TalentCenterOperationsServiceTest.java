@@ -67,7 +67,7 @@ class TalentCenterOperationsServiceTest
         when(redisCache.setCacheObjectIfAbsent(anyString(), eq("used"), eq(24L), any())).thenReturn(true);
         when(mapper.selectCustomerStatuses()).thenReturn(Collections.singletonList("已成交"));
         when(mapper.selectCustomers(any(), any(), eq(false))).thenReturn(Collections.emptyList());
-        when(mapper.selectOrders(any(), eq(false))).thenReturn(Collections.emptyList());
+        when(mapper.selectOrders(any(), any(), eq(false))).thenReturn(Collections.emptyList());
         when(mapper.selectSettlements(any(), any(), eq(false))).thenReturn(Collections.emptyList());
     }
 
@@ -81,7 +81,7 @@ class TalentCenterOperationsServiceTest
 
         assertEquals("self", result.get("scope"));
         verify(mapper).selectCustomers(101L, 501L, false);
-        verify(mapper).selectOrders(101L, false);
+        verify(mapper).selectOrders(101L, 501L, false);
         verify(mapper).selectSettlements(101L, 501L, false);
     }
 
@@ -90,10 +90,12 @@ class TalentCenterOperationsServiceTest
     {
         bind("talent-user", 101L, Collections.emptySet());
         when(mapper.selectConsultantId(101L)).thenReturn(501L);
+        when(mapper.selectSharedCommissionCount(501L)).thenReturn(2L);
         when(mapper.selectCommissionPeople(any())).thenReturn(Collections.emptyList());
         when(mapper.selectCommissionRecords(any())).thenReturn(Collections.emptyList());
         Map<String, Object> result = service.commissions("talent-user", "self", "all", "first");
         assertEquals("self", result.get("scope"));
+        assertTrue(result.get("sourceNote").toString().contains("2 条共同服务记录"));
         ArgumentCaptor<Map> filters = ArgumentCaptor.forClass(Map.class);
         verify(mapper).selectCommissionRecords(filters.capture());
         assertEquals(false, filters.getValue().get("admin"));
@@ -133,7 +135,7 @@ class TalentCenterOperationsServiceTest
         bind("talent-admin", 1L, setOf("*:*:*"));
         when(mapper.selectConsultantId(1L)).thenReturn(null);
         when(mapper.selectCustomers(1L, null, true)).thenReturn(Collections.emptyList());
-        when(mapper.selectOrders(1L, true)).thenReturn(Collections.emptyList());
+        when(mapper.selectOrders(1L, null, true)).thenReturn(Collections.emptyList());
         when(mapper.selectSettlements(1L, null, true)).thenReturn(Collections.emptyList());
 
         Map<String, Object> result = service.snapshot("talent-admin", "admin");
@@ -232,7 +234,7 @@ class TalentCenterOperationsServiceTest
         bind("talent-admin", 101L, Collections.emptySet());
         when(mapper.selectConsultantId(101L)).thenReturn(501L);
         when(mapper.selectCustomers(101L, 501L, true)).thenReturn(Collections.emptyList());
-        when(mapper.selectOrders(101L, true)).thenReturn(Collections.emptyList());
+        when(mapper.selectOrders(101L, 501L, true)).thenReturn(Collections.emptyList());
         when(mapper.selectSettlements(101L, 501L, true)).thenReturn(Collections.emptyList());
 
         Map<String, Object> result = service.snapshot("talent-admin", "admin");

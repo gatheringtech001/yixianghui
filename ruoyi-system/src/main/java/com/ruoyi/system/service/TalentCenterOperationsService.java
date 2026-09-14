@@ -47,7 +47,7 @@ public class TalentCenterOperationsService
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("scope", access.admin ? "admin" : "self");
         payload.put("customers", customers);
-        payload.put("orders", mapper.selectOrders(access.userId, access.admin));
+        payload.put("orders", mapper.selectOrders(access.userId, access.consultantId, access.admin));
         payload.put("settlements", mapper.selectSettlements(access.userId, access.consultantId, access.admin));
         payload.put("schedules", Collections.emptyList());
         payload.put("fieldOptions", fieldOptions());
@@ -68,7 +68,7 @@ public class TalentCenterOperationsService
     {
         Access access = access(actorId, actorScope);
         Long id = parseId(recordId, "orders");
-        Map<String, Object> record = mapper.selectOrder(id, access.userId, access.admin);
+        Map<String, Object> record = mapper.selectOrder(id, access.userId, access.consultantId, access.admin);
         if (record == null) throw new TalentCenterApiException(404, "订单不存在或无权访问");
         return record;
     }
@@ -100,7 +100,10 @@ public class TalentCenterOperationsService
         result.put("records", page);
         result.put("nextCursor", more ? String.valueOf(page.get(49).get("id")) : null);
         result.put("readAt", Instant.now().toString());
-        result.put("sourceNote", "取自小程序后台消费记录中的管家提成；未填金额不视为零。旅居佣金尚无已确认的个人归属与金额，不按订单额推算。");
+        long shared = access.admin || access.consultantId == null ? 0 : mapper.selectSharedCommissionCount(access.consultantId);
+        String sharedNote = shared == 0 ? "" : "另有 " + shared + " 条共同服务记录，原表仅有共同提成总额或未填金额，尚未逐人分配，不计入个人佣金。";
+        result.put("sourceNote", "取自小程序后台消费记录中的管家提成；未填金额不视为零。" + sharedNote
+                + "旅居佣金尚无已确认的个人归属与金额，不按订单额推算。");
         return result;
     }
 

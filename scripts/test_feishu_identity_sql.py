@@ -109,7 +109,9 @@ INSERT INTO app_consultant_feishu VALUES ('source-advisors','old-record','旧快
 INCOME_FIELDS = ['销售内容', '充值金额', '消费金额', '余额', '积分', '成交日期',
                  '是否结算', '公司收入', '管家提成', '产品类别', '备注']
 INCOME_TABLE = {'table_id': 'source-income', 'name': '🧾收入明细数据',
-                'fields': [{'field_name': name, 'field_id': f'f{i}'} for i, name in enumerate(INCOME_FIELDS)],
+                'fields': [{'field_name': name, 'field_id': f'f{i}'} for i, name in enumerate(INCOME_FIELDS)] + [
+                    {'field_name': '客户姓名', 'field_id': 'Customer'},
+                    {'field_name': '养老管家', 'field_id': 'Consultant'}],
                 'records': [{'record_id': 'i1'}]}
 INCOME_SETUP = """
 SET NAMES utf8mb4;
@@ -125,12 +127,12 @@ CREATE TEMPORARY TABLE app_customer_income_feishu (
  canonical_table varchar(64),canonical_id bigint,canonical_status varchar(16),canonical_message text);
 CREATE TEMPORARY TABLE app_feishu_business_relation (
  source_table_id varchar(64),source_record_id varchar(64),target_business_table varchar(64),
- target_business_id bigint,relation_status varchar(16));
+ target_business_id bigint,relation_status varchar(16),source_field_id varchar(64));
 CREATE TEMPORARY TABLE app_feishu_migration_record (
  source_table_id varchar(64),source_record_id varchar(64),merge_status varchar(16),
  target_table varchar(64),target_id bigint,merge_message text);
 INSERT INTO app_customer_income_feishu VALUES ('source-income','i1','商品',0,100,0,0,'2026-01-01',NULL,10,NULL,NULL,NULL,NULL,NULL,'unresolved',NULL);
-INSERT INTO app_feishu_business_relation VALUES ('source-income','i1','app_customer',1,'resolved');
+INSERT INTO app_feishu_business_relation VALUES ('source-income','i1','app_customer',1,'resolved','Customer');
 """
 
 
@@ -147,28 +149,41 @@ class IncomeSqlTest(unittest.TestCase):
 
     def test_multiple_consultants_are_not_reduced_to_min_id(self):
         rows = self.run_case("""
-INSERT INTO app_feishu_business_relation VALUES ('source-income','i1','app_consultant',4,'resolved'),('source-income','i1','app_consultant',42,'resolved');
-""", "SELECT COUNT(*) FROM app_customer_income; SELECT canonical_status FROM app_customer_income_feishu;")
-        self.assertEqual(['0', 'needs_review'], rows)
+INSERT INTO app_feishu_business_relation VALUES ('source-income','i1','app_consultant',4,'resolved','Consultant'),('source-income','i1','app_consultant',42,'resolved','Consultant');
+UPDATE app_customer_income_feishu SET fs_f8=80;
+""", "SELECT COUNT(*),MIN(consultant_id),SUM(consultant_income) FROM app_customer_income; SELECT canonical_status FROM app_customer_income_feishu;")
+        self.assertEqual(['1\tNULL\t80.00', 'linked'], rows)
 
     def test_missing_or_unresolved_owner_is_not_imported_as_complete(self):
         rows = self.run_case("""
-INSERT INTO app_feishu_business_relation VALUES ('source-income','i1','app_consultant',42,'unresolved');
+INSERT INTO app_feishu_business_relation VALUES ('source-income','i1','app_consultant',42,'unresolved','Consultant');
 """, "SELECT COUNT(*) FROM app_customer_income; SELECT canonical_status FROM app_customer_income_feishu;")
         self.assertEqual(['0', 'needs_review'], rows)
 
-    def test_unique_relation_preserves_unknown_money_and_settlement(self):
+    def test_unique_relation_preserves_unknown_money_and_unchecked_settlement(self):
         rows = self.run_case("""
-INSERT INTO app_feishu_business_relation VALUES ('source-income','i1','app_consultant',4,'resolved');
+INSERT INTO app_feishu_business_relation VALUES ('source-income','i1','app_consultant',4,'resolved','Consultant');
 """, "SELECT COUNT(*),MIN(consultant_id),MIN(settlement),MIN(consultant_income) FROM app_customer_income;")
-        self.assertEqual(['1\t4\tNULL\tNULL'], rows)
+        self.assertEqual(['1\t4\t0\tNULL'], rows)
 
     def test_source_change_does_not_overwrite_business_money_or_claim_merged(self):
         rows = self.run_case("""
-INSERT INTO app_feishu_business_relation VALUES ('source-income','i1','app_consultant',4,'resolved');
+INSERT INTO app_feishu_business_relation VALUES ('source-income','i1','app_consultant',4,'resolved','Consultant');
 """, "SELECT purchase_amount FROM app_customer_income; SELECT canonical_status FROM app_customer_income_feishu;",
             "UPDATE app_customer_income_feishu SET fs_f2=999;")
         self.assertEqual(['100.00', 'needs_review'], rows)
+
+    def test_multiple_customers_and_blank_owner_preserve_one_shared_record(self):
+        rows = self.run_case("""
+INSERT INTO app_feishu_business_relation VALUES ('source-income','i1','app_customer',2,'resolved','Customer');
+""", "SELECT COUNT(*),MIN(customer_id),MIN(consultant_id),SUM(purchase_amount) FROM app_customer_income;")
+        self.assertEqual(['1\tNULL\tNULL\t100.00'], rows)
+
+    def test_unrelated_links_cannot_supply_customer_or_owner(self):
+        rows = self.run_case("""
+INSERT INTO app_feishu_business_relation VALUES ('source-income','i1','app_consultant',4,'resolved','Other');
+""", "SELECT consultant_id FROM app_customer_income;")
+        self.assertEqual(['NULL'], rows)
 
 
 CUSTOMER_TABLES = [({'key': key}, {'table_id': key, 'name': table_name, 'records': [{'record_id': 't1'}], 'fields': [

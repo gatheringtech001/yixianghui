@@ -74,7 +74,7 @@ class TalentCenterTestViewServiceTest
         TalentCenterOperationsService service = new TalentCenterOperationsService(mapper, actors, redis, testView);
         service.snapshot("tester", "self");
         verify(mapper).selectCustomers(null, 4L, false);
-        verify(mapper).selectOrders(null, false);
+        verify(mapper).selectOrders(null, 4L, false);
         verify(mapper).selectSettlements(null, 4L, false);
         assertEquals(403, assertThrows(TalentCenterApiException.class,
             () -> service.update("tester", "self", "eldercare", "customers", "customer:1", null, null)).getHttpStatus());
@@ -98,6 +98,6 @@ class TalentCenterTestViewServiceTest
         when(mapper.selectCustomers(any(), any(), anyBoolean())).thenReturn(new java.util.ArrayList<>());
         service.snapshot("tester", "self");
         verify(mapper).selectCustomers(108L, 24L, false);
-        verify(mapper).selectOrders(108L, false);
+        verify(mapper).selectOrders(108L, 24L, false);
     }
 }

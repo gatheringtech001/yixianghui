@@ -9,14 +9,15 @@ public interface TalentCenterOperationsMapper
     Long selectConsultantId(@Param("userId") Long userId);
     Map<String, Object> selectTestConsultant(@Param("id") Long id);
     Map<String, Object> selectCommissionSummary(Map<String, Object> filters);
+    long selectSharedCommissionCount(@Param("consultantId") Long consultantId);
     List<Map<String, Object>> selectCommissionPeople(Map<String, Object> filters);
     List<Map<String, Object>> selectCommissionRecords(Map<String, Object> filters);
     List<Map<String, Object>> selectCustomers(@Param("actorUserId") Long actorUserId,
             @Param("consultantId") Long consultantId, @Param("admin") boolean admin);
     List<Map<String, Object>> selectOrders(@Param("actorUserId") Long actorUserId,
-            @Param("admin") boolean admin);
+            @Param("consultantId") Long consultantId, @Param("admin") boolean admin);
     Map<String, Object> selectOrder(@Param("id") Long id, @Param("actorUserId") Long actorUserId,
-            @Param("admin") boolean admin);
+            @Param("consultantId") Long consultantId, @Param("admin") boolean admin);
     List<Map<String, Object>> selectSettlements(@Param("actorUserId") Long actorUserId,
             @Param("consultantId") Long consultantId, @Param("admin") boolean admin);
     List<String> selectCustomerStatuses();

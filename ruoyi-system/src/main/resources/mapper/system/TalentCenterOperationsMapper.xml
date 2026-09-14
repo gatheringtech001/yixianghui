@@ -28,6 +28,21 @@
         <include refid="commissionScope" />
     </select>
 
+    <select id="selectSharedCommissionCount" resultType="java.lang.Long">
+        select count(*) from app_customer_income i
+        join (
+            select source_record_id from app_feishu_business_relation
+            where binary source_table_id = binary 'tblA33x9gGWM1b51'
+              and binary source_field_id = binary 'fld26vaZVW'
+            group by source_record_id
+            having count(distinct target_business_id) &gt; 1
+               and max(case when target_business_id = #{consultantId} then 1 else 0 end) = 1
+               and sum(case when relation_status = 'resolved' and target_business_table = 'app_consultant'
+                            and target_business_id is not null then 0 else 1 end) = 0
+        ) shared on binary i.income_no = binary concat('FS-', shared.source_record_id)
+        where i.consultant_id is null
+    </select>
+
     <select id="selectCommissionPeople" resultType="java.util.LinkedHashMap">
         select coalesce(cast(c.consultant_id as char), 'unassigned') recipientId,
                coalesce(nullif(c.consultant_name, ''), '归属待确认') recipientName,
@@ -73,6 +88,29 @@
         order by coalesce(c.update_time, c.create_time) desc, c.customer_id desc
     </select>
 
+    <sql id="orderReadScope">
+        (#{admin} = true or o.service_owner_user_id = #{actorUserId} or exists (
+            select 1 from app_user_inviter i
+            where i.user_id = #{actorUserId} and i.new_user_id = o.user_id and i.status = '1'
+        ) or (#{consultantId} is not null and exists (
+            select 1 from app_feishu_business_relation r
+            join app_consultant c on c.consultant_id = r.target_business_id and c.status = '01'
+            join app_consultant_feishu p on binary p.source_table_id = binary r.target_source_table_id
+              and binary p.feishu_record_id = binary r.target_source_record_id
+              and p.canonical_table = 'app_consultant' and p.canonical_status = 'linked'
+              and p.canonical_id = c.consultant_id
+            join app_feishu_business_user u on binary u.source_table_id = binary r.source_table_id
+              and binary u.source_record_id = binary r.source_record_id
+              and binary u.source_field_id = binary r.source_field_id
+              and binary u.user_name = binary c.consultant_name and coalesce(u.feishu_user_id, '') != ''
+            where binary r.source_table_id = binary 'tblZWWWFyzY1hAyb'
+              and binary r.source_record_id = binary o.feishu_record_id
+              and binary r.source_field_id = binary 'fldXxpzt6w'
+              and r.target_business_table = 'app_consultant' and r.target_business_id = #{consultantId}
+              and r.relation_status = 'resolved' and r.relation_message = 'owner_user_unique_consultant_name'
+        )))
+    </sql>
+
     <sql id="orderProjection">
         select concat('order:', o.order_id) sourceRecordId,
                case when g.goods_type in ('hotel', 'travel') or o.order_origin = 'feishu_history' then 'travel' else 'eldercare' end businessLine,
@@ -86,10 +124,7 @@
                date_format(o.check_out_date, '%Y-%m-%d') checkOutDate
         from app_goods_order o
         left join app_goods g on g.goods_id = o.goods_id
-        where (#{admin} = true or o.service_owner_user_id = #{actorUserId} or exists (
-            select 1 from app_user_inviter i
-            where i.user_id = #{actorUserId} and i.new_user_id = o.user_id and i.status = '1'
-        ))
+        where <include refid="orderReadScope" />
     </sql>
     <select id="selectOrder" resultType="java.util.LinkedHashMap">
         <include refid="orderProjection" />
@@ -118,10 +153,7 @@
                date_format(o.check_out_date, '%Y-%m-%d') collate utf8mb4_general_ci checkOutDate
         from app_goods_order o left join app_goods g on g.goods_id = o.goods_id
         where (g.goods_type in ('hotel', 'travel') or o.travel_status is not null)
-          and (#{admin} = true or o.service_owner_user_id = #{actorUserId} or exists (
-              select 1 from app_user_inviter i
-              where i.user_id = #{actorUserId} and i.new_user_id = o.user_id and i.status = '1'
-          ))
+          and <include refid="orderReadScope" />
         union all
         select concat('income:', i.income_id) collate utf8mb4_general_ci sourceRecordId,
                'eldercare' collate utf8mb4_general_ci businessLine,

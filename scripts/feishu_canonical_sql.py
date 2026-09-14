@@ -2,6 +2,7 @@
 
 from feishu_structured_model import TARGET_TABLES, column_name
 from feishu_identity_sql import choice_join, finish_identity, prepare_identity, record_scope
+from feishu_owner_sql import owner_relations_sql
 
 
 def _q(value):
@@ -116,35 +117,45 @@ def _income_sql(tables):
     target = TARGET_TABLES[("eldercare", "🧾收入明细数据")]
     field_names = ("销售内容", "充值金额", "消费金额", "余额", "积分", "成交日期", "是否结算", "公司收入", "管家提成", "产品类别", "备注")
     product, charge, purchase, balance, score, trade, settled, company, consultant_income, product_type, remark = (_col(table, name) for name in field_names)
-    normalized_settlement = f"CASE WHEN p.{settled} IS NULL THEN NULL WHEN p.{settled}=1 THEN 1 ELSE 0 END"
-    ready = "d.customers=1 AND d.consultants=1 AND d.unresolved=0"
+    # 飞书未勾选的复选框省略返回字段；省略不代表第三种结算状态。
+    normalized_settlement = f"CASE WHEN p.{settled}=1 THEN 1 ELSE 0 END"
+    party_fields = [_q(next(f['field_id'] for f in table['fields'] if f['field_name'] == name))
+                    for name in ('客户姓名', '养老管家')]
+    ready = "d.unresolved=0"
+    customer_id = "IF(d.customers=1,d.customer_id,NULL)"
+    consultant_id = "IF(d.consultants=1,d.consultant_id,NULL)"
     equalities = [('charge_amount', charge), ('purchase_amount', purchase), ('balance', balance),
                   ('score', score), ('company_income', company), ('consultant_income', consultant_income)]
     unchanged = ' AND '.join(f"(i.{column} <=> p.{field})" for column, field in equalities)
     unchanged += f" AND (i.trade_date <=> DATE(p.{trade})) AND (i.settlement <=> {normalized_settlement})"
-    unchanged += f" AND (BINARY i.product_name <=> BINARY p.{product}) AND i.customer_id=d.customer_id AND i.consultant_id=d.consultant_id"
+    unchanged += f" AND (BINARY i.product_name <=> BINARY p.{product}) AND (i.customer_id <=> {customer_id}) AND (i.consultant_id <=> {consultant_id})"
     valid = f"({ready} AND i.income_id IS NOT NULL AND {unchanged})"
     m = [
         "DROP TEMPORARY TABLE IF EXISTS tmp_fs_income_existing;",
         "CREATE TEMPORARY TABLE tmp_fs_income_existing AS SELECT income_no FROM app_customer_income;",
         "DROP TEMPORARY TABLE IF EXISTS tmp_fs_income_links;",
         "CREATE TEMPORARY TABLE tmp_fs_income_links AS SELECT p.source_table_id,p.feishu_record_id,"
-        "COUNT(DISTINCT CASE WHEN rel.relation_status='resolved' AND rel.target_business_table='app_customer' THEN rel.target_business_id END) customers,"
-        "MIN(CASE WHEN rel.relation_status='resolved' AND rel.target_business_table='app_customer' THEN rel.target_business_id END) customer_id,"
-        "COUNT(DISTINCT CASE WHEN rel.relation_status='resolved' AND rel.target_business_table='app_consultant' THEN rel.target_business_id END) consultants,"
-        "MIN(CASE WHEN rel.relation_status='resolved' AND rel.target_business_table='app_consultant' THEN rel.target_business_id END) consultant_id,"
-        "SUM(CASE WHEN rel.source_record_id IS NOT NULL AND rel.relation_status<>'resolved' THEN 1 ELSE 0 END) unresolved "
+        f"COUNT(DISTINCT CASE WHEN rel.relation_status='resolved' AND rel.target_business_table='app_customer' AND BINARY rel.source_field_id=BINARY {party_fields[0]} THEN rel.target_business_id END) customers,"
+        f"MIN(CASE WHEN rel.relation_status='resolved' AND rel.target_business_table='app_customer' AND BINARY rel.source_field_id=BINARY {party_fields[0]} THEN rel.target_business_id END) customer_id,"
+        f"COUNT(DISTINCT CASE WHEN rel.relation_status='resolved' AND rel.target_business_table='app_consultant' AND BINARY rel.source_field_id=BINARY {party_fields[1]} THEN rel.target_business_id END) consultants,"
+        f"MIN(CASE WHEN rel.relation_status='resolved' AND rel.target_business_table='app_consultant' AND BINARY rel.source_field_id=BINARY {party_fields[1]} THEN rel.target_business_id END) consultant_id,"
+        "SUM(CASE WHEN rel.source_record_id IS NOT NULL AND (rel.relation_status<>'resolved' OR rel.target_business_id IS NULL "
+        f"OR (BINARY rel.source_field_id=BINARY {party_fields[0]} AND COALESCE(rel.target_business_table,'')<>'app_customer') "
+        f"OR (BINARY rel.source_field_id=BINARY {party_fields[1]} AND COALESCE(rel.target_business_table,'')<>'app_consultant')) THEN 1 ELSE 0 END) unresolved "
         f"FROM `{target}` p LEFT JOIN app_feishu_business_relation rel ON BINARY rel.source_table_id=BINARY p.source_table_id "
-        f"AND BINARY rel.source_record_id=BINARY p.feishu_record_id WHERE p.canonical_status<>'skipped' AND {record_scope(table)} GROUP BY p.source_table_id,p.feishu_record_id;",
+        f"AND BINARY rel.source_record_id=BINARY p.feishu_record_id AND BINARY rel.source_field_id IN ({','.join(party_fields)}) "
+        f"WHERE p.canonical_status<>'skipped' AND {record_scope(table)} GROUP BY p.source_table_id,p.feishu_record_id;",
         "INSERT INTO app_customer_income (user_id,product_name,income_no,dept_id,charge_amount,purchase_amount,balance,score,trade_date,settlement,company_income,consultant_income,product_type,remark,customer_id,consultant_id,create_by,create_time) "
         f"SELECT 0,p.{product},CONCAT('FS-',p.feishu_record_id),0,p.{charge},p.{purchase},p.{balance},p.{score},DATE(p.{trade}),{normalized_settlement},p.{company},p.{consultant_income},p.{product_type},p.{remark},"
-        "d.customer_id,d.consultant_id,'feishu',CURRENT_TIMESTAMP "
+        f"{customer_id},{consultant_id},'feishu',CURRENT_TIMESTAMP "
         f"FROM `{target}` p JOIN tmp_fs_income_links d ON BINARY d.source_table_id=BINARY p.source_table_id AND BINARY d.feishu_record_id=BINARY p.feishu_record_id "
         f"WHERE {ready} AND NOT EXISTS (SELECT 1 FROM tmp_fs_income_existing i WHERE BINARY i.income_no=BINARY CONCAT('FS-',p.feishu_record_id));",
         f"UPDATE `{target}` p JOIN tmp_fs_income_links d ON BINARY d.source_table_id=BINARY p.source_table_id AND BINARY d.feishu_record_id=BINARY p.feishu_record_id "
         "LEFT JOIN app_customer_income i ON BINARY i.income_no=BINARY CONCAT('FS-',p.feishu_record_id) "
         f"SET p.canonical_table='app_customer_income',p.canonical_id=IF({valid},i.income_id,NULL),"
-        f"p.canonical_status=IF({valid},'linked','needs_review'),p.canonical_message=IF({valid},NULL,'income_relation_or_value_requires_review');",
+        f"p.canonical_status=IF({valid},'linked','needs_review'),p.canonical_message=IF({valid},"
+        "CASE WHEN d.consultants>1 THEN 'shared_commission_unallocated' WHEN d.customers>1 THEN 'multiple_customers_preserved' "
+        "WHEN d.consultants=0 OR d.customers=0 THEN 'source_party_not_specified' ELSE NULL END,'income_relation_or_value_requires_review');",
         f"UPDATE app_feishu_migration_record r JOIN `{target}` p ON BINARY p.source_table_id=BINARY r.source_table_id AND BINARY p.feishu_record_id=BINARY r.source_record_id "
         f"SET r.merge_status=CASE p.canonical_status WHEN 'skipped' THEN 'skipped' WHEN 'linked' THEN 'merged' ELSE 'conflict' END,r.target_table=p.canonical_table,r.target_id=p.canonical_id,r.merge_message=p.canonical_message WHERE {record_scope(table)};",
         "DROP TEMPORARY TABLE IF EXISTS tmp_fs_income_links;",
@@ -176,11 +187,13 @@ def build_canonical_sql(tables):
             "SET rel.target_business_table=p.canonical_table,rel.target_business_id=IF(p.canonical_status='linked',p.canonical_id,NULL),"
             "rel.relation_status=IF(p.canonical_status='linked' AND p.canonical_id IS NOT NULL,'resolved','unresolved'),"
             "rel.relation_message=IF(p.canonical_status='linked' AND p.canonical_id IS NOT NULL,NULL,'target_requires_review') "
-            f"WHERE {record_scope(table, 'rel', True)};"
+            f"WHERE {record_scope(table, 'rel', True)} AND rel.relation_status<>'superseded' "
+            "AND COALESCE(rel.relation_message,'')<>'owner_user_unique_consultant_name';"
         )
     d = customer_ddl + consultant_ddl
     m = _self_links(tables) + customer_dml + consultant_dml + _orders_sql(tables)
     m += relation_resolve + _income_sql(tables) + _activity_sql(tables) + relation_resolve
+    m += owner_relations_sql(_table(tables, 'travel', '预订订单表'))
     m.append(
         "UPDATE app_feishu_business_relation SET relation_message='target record is absent from Feishu export' "
         "WHERE relation_status='unresolved' AND relation_message='target not resolved';"

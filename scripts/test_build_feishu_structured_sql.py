@@ -37,6 +37,8 @@ class StructuredSqlTest(unittest.TestCase):
     def test_relations_are_resolved_after_all_tables_load(self):
         self.assertIn("UPDATE app_feishu_business_relation rel JOIN `app_travel_customer_profile`", self.sql)
         self.assertIn("unresolved_relations", self.sql)
+        self.assertIn("rel.relation_status<>'superseded'", self.sql)
+        self.assertIn("COALESCE(rel.relation_message,'')<>'owner_user_unique_consultant_name'", self.sql)
 
     def test_core_business_domains_receive_canonical_rows(self):
         for table in ("app_customer", "app_goods_order", "app_customer_income", "app_consultant"):
