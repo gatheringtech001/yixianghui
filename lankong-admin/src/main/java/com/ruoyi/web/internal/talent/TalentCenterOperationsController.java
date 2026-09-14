@@ -11,16 +11,34 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.system.domain.talent.TalentCenterOperationUpdateRequest;
 import com.ruoyi.system.service.TalentCenterOperationsService;
+import com.ruoyi.system.service.TalentCenterTestViewService;
+import com.ruoyi.system.domain.talent.TalentCenterApiException;
 
 @RestController
 @RequestMapping("/internal/talent-center/v1/operations")
 public class TalentCenterOperationsController
 {
     private final TalentCenterOperationsService service;
+    private final TalentCenterTestViewService testView;
 
-    public TalentCenterOperationsController(TalentCenterOperationsService service)
+    public TalentCenterOperationsController(TalentCenterOperationsService service, TalentCenterTestViewService testView)
     {
         this.service = service;
+        this.testView = testView;
+    }
+
+    @GetMapping("/test-view")
+    public AjaxResult testView(HttpServletRequest request)
+    {
+        return AjaxResult.success(testView.status(actorId(request)));
+    }
+
+    @PutMapping("/test-view/{state}")
+    public AjaxResult switchTestView(@PathVariable String state, HttpServletRequest request)
+    {
+        if (!"on".equals(state) && !"off".equals(state))
+            throw new TalentCenterApiException(400, "测试视角参数不正确");
+        return AjaxResult.success(testView.setEnabled(actorId(request), "on".equals(state)));
     }
 
     @GetMapping

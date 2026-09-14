@@ -28,13 +28,15 @@ public class TalentCenterOperationsService
     private final TalentCenterOperationsMapper mapper;
     private final TalentCenterResourceMapper resourceMapper;
     private final RedisCache redisCache;
+    private final TalentCenterTestViewService testView;
 
     public TalentCenterOperationsService(TalentCenterOperationsMapper mapper,
-            TalentCenterResourceMapper resourceMapper, RedisCache redisCache)
+            TalentCenterResourceMapper resourceMapper, RedisCache redisCache, TalentCenterTestViewService testView)
     {
         this.mapper = mapper;
         this.resourceMapper = resourceMapper;
         this.redisCache = redisCache;
+        this.testView = testView;
     }
 
     public Map<String, Object> snapshot(String actorId, String actorScope)
@@ -113,9 +115,11 @@ public class TalentCenterOperationsService
     public Map<String, Object> update(String actorId, String actorScope, String businessLine, String resource, String recordId,
             TalentCenterOperationUpdateRequest request, String idempotencyKey)
     {
+        if (testView.activeConsultantId(actorId) != null)
+            throw new TalentCenterApiException(403, "测试视角只读，请先恢复本人视角");
         validateConfirmation(request, idempotencyKey);
         reserve(idempotencyKey);
-        Access access = access(actorId, actorScope);
+        Access access = ownAccess(actorId, actorScope);
         Long id = parseId(recordId, resource);
         int changed;
         Map<String, Object> values = new LinkedHashMap<>();
@@ -167,6 +171,15 @@ public class TalentCenterOperationsService
     }
 
     private Access access(String actorId, String actorScope)
+    {
+        Long consultantId = testView.activeConsultantId(actorId);
+        if (consultantId == null) return ownAccess(actorId, actorScope);
+        Map<String, Object> target = testView.target(consultantId);
+        Number userId = (Number) target.get("userId");
+        return new Access(userId == null ? null : userId.longValue(), consultantId, false);
+    }
+
+    private Access ownAccess(String actorId, String actorScope)
     {
         SysUser actor = resourceMapper.selectEnabledActorByActorId(actorId);
         if (actor == null) throw new TalentCenterApiException(403, "达人账号尚未绑定小程序后台身份");

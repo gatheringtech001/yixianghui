@@ -61,7 +61,9 @@ class TalentCenterOperationsServiceTest
         mapper = mock(TalentCenterOperationsMapper.class);
         resourceMapper = mock(TalentCenterResourceMapper.class);
         redisCache = mock(RedisCache.class);
-        service = new TalentCenterOperationsService(mapper, resourceMapper, redisCache);
+        TalentCenterTestViewService testView = mock(TalentCenterTestViewService.class);
+        when(testView.activeConsultantId(any())).thenReturn(null);
+        service = new TalentCenterOperationsService(mapper, resourceMapper, redisCache, testView);
         when(redisCache.setCacheObjectIfAbsent(anyString(), eq("used"), eq(24L), any())).thenReturn(true);
         when(mapper.selectCustomerStatuses()).thenReturn(Collections.singletonList("已成交"));
         when(mapper.selectCustomers(any(), any(), eq(false))).thenReturn(Collections.emptyList());
