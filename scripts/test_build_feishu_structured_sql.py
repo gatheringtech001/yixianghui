@@ -39,12 +39,28 @@ class StructuredSqlTest(unittest.TestCase):
         self.assertIn("unresolved_relations", self.sql)
 
     def test_core_business_domains_receive_canonical_rows(self):
-        for table in ("app_customer", "app_goods_order", "app_customer_income", "app_activity", "app_consultant"):
+        for table in ("app_customer", "app_goods_order", "app_customer_income", "app_consultant"):
             self.assertIn(table, self.sql)
         self.assertIn("app_customer_feishu_source", self.sql)
-        self.assertIn("tmp_feishu_customer_match", self.sql)
-        self.assertIn("CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'1',1,0,0", self.sql)
+        self.assertIn("tmp_fs_choices", self.sql)
         self.assertIn("canonical_status", self.sql)
+
+    def test_replay_never_wipes_tables_or_unrelated_sources(self):
+        for target in TARGET_TABLES.values():
+            self.assertFalse(f"DELETE FROM `{target}`;" in self.sql, f"unbounded delete: {target}")
+        for target in ('app_feishu_business_relation', 'app_feishu_business_user', 'app_feishu_business_attachment'):
+            self.assertFalse(f'DELETE FROM {target};' in self.sql, f"unbounded delete: {target}")
+            self.assertTrue(f'DELETE FROM {target} WHERE BINARY source_table_id=' in self.sql, f"scoped reset missing: {target}")
+
+    def test_unverified_people_do_not_resolve_relations_or_claim_merged(self):
+        self.assertTrue("p.canonical_status='linked' AND p.canonical_id IS NOT NULL" in self.sql)
+        self.assertTrue("WHEN 'linked' THEN 'merged' ELSE 'conflict' END" in self.sql)
+        self.assertFalse("UPDATE `app_consultant_feishu` SET canonical_table=" in self.sql)
+
+    def test_execution_records_never_recreate_deleted_business_activities(self):
+        self.assertFalse('INSERT INTO app_activity (' in self.sql)
+        self.assertFalse('UPDATE app_activity a' in self.sql)
+        self.assertTrue("canonical_status='skipped'" in self.sql)
 
 
 if __name__ == "__main__":

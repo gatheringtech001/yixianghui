@@ -93,11 +93,7 @@ def build(export):
         "CREATE TABLE IF NOT EXISTS app_feishu_business_user (business_user_id bigint unsigned NOT NULL AUTO_INCREMENT,source_table_id varchar(64) NOT NULL,source_record_id varchar(64) NOT NULL,source_field_id varchar(64) NOT NULL,feishu_user_id varchar(128) DEFAULT NULL,user_name varchar(255) DEFAULT NULL,user_email varchar(255) DEFAULT NULL,user_order int unsigned NOT NULL DEFAULT 0,PRIMARY KEY(business_user_id),UNIQUE KEY uk_feishu_business_user(source_table_id,source_record_id,source_field_id,feishu_user_id,user_order)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
         "CREATE TABLE IF NOT EXISTS app_feishu_business_attachment (business_attachment_id bigint unsigned NOT NULL AUTO_INCREMENT,source_table_id varchar(64) NOT NULL,source_record_id varchar(64) NOT NULL,source_field_id varchar(64) NOT NULL,file_token varchar(255) DEFAULT NULL,file_name varchar(500) DEFAULT NULL,file_type varchar(100) DEFAULT NULL,file_size bigint unsigned DEFAULT NULL,file_url text,attachment_order int unsigned NOT NULL DEFAULT 0,PRIMARY KEY(business_attachment_id),UNIQUE KEY uk_feishu_business_attachment(source_table_id,source_record_id,source_field_id,file_token,attachment_order)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
     ]
-    dml = [
-        "DELETE FROM app_feishu_business_relation;",
-        "DELETE FROM app_feishu_business_user;",
-        "DELETE FROM app_feishu_business_attachment;",
-    ]
+    dml = []
 
     target_by_source = {table["table_id"]: TARGET_TABLES[(base["key"], table["name"])] for base, table in tables}
     for base, table in tables:
@@ -110,10 +106,12 @@ def build(export):
             columns.append(f"`{column_name(field['field_id'])}` {kind} NULL COMMENT '{comment(field['field_name'])}'")
         ddl_columns = ",".join(columns)
         ddl.append(f"CREATE TABLE IF NOT EXISTS `{target}` (business_id bigint unsigned NOT NULL AUTO_INCREMENT,source_table_id varchar(64) NOT NULL,feishu_record_id varchar(64) NOT NULL,canonical_table varchar(64) DEFAULT NULL,canonical_id bigint unsigned DEFAULT NULL,canonical_status varchar(16) NOT NULL DEFAULT 'unresolved',canonical_message varchar(500) DEFAULT NULL,{ddl_columns},created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,PRIMARY KEY(business_id),UNIQUE KEY uk_{target}_record(feishu_record_id),KEY idx_{target}_canonical(canonical_table,canonical_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;")
-        dml.append(f"DELETE FROM `{target}`;")
 
         scalar_fields = fields
         for record in table["records"]:
+            for child in ('app_feishu_business_relation', 'app_feishu_business_user', 'app_feishu_business_attachment'):
+                dml.append(f"DELETE FROM {child} WHERE BINARY source_table_id=BINARY {quote(table['table_id'])} "
+                           f"AND BINARY source_record_id=BINARY {quote(record['record_id'])};")
             names = ["source_table_id", "feishu_record_id"] + [column_name(f["field_id"]) for f in scalar_fields]
             vals = [quote(table["table_id"]), quote(record["record_id"])]
             for field in scalar_fields:
@@ -138,7 +136,7 @@ def build(export):
                     for order, item in enumerate(attachment_items(value)):
                         dml.append("INSERT INTO app_feishu_business_attachment (source_table_id,source_record_id,source_field_id,file_token,file_name,file_type,file_size,file_url,attachment_order) VALUES ("
                                    f"{quote(table['table_id'])},{quote(record['record_id'])},{quote(field['field_id'])},{quote(item.get('file_token'))},{quote(item.get('name'))},{quote(item.get('type'))},{int(item.get('size') or 0)},{quote(item.get('url'))},{order}) ON DUPLICATE KEY UPDATE file_name=VALUES(file_name),file_type=VALUES(file_type),file_size=VALUES(file_size),file_url=VALUES(file_url);")
-        dml.append(f"UPDATE app_feishu_migration_record r JOIN `{target}` b ON b.feishu_record_id=r.source_record_id SET r.merge_status='merged',r.target_table={quote(target)},r.target_id=b.business_id,r.merge_message=NULL WHERE r.source_table_id={quote(table['table_id'])};")
+        dml.append(f"UPDATE app_feishu_migration_record r JOIN `{target}` b ON BINARY b.feishu_record_id=BINARY r.source_record_id AND BINARY b.source_table_id=BINARY r.source_table_id SET r.merge_status='merged',r.target_table={quote(target)},r.target_id=b.business_id,r.merge_message=NULL WHERE BINARY r.source_table_id=BINARY {quote(table['table_id'])};")
 
     canonical_ddl, canonical_dml = build_canonical_sql(tables)
     out.extend(ddl + canonical_ddl + ["START TRANSACTION;"] + dml + canonical_dml)
