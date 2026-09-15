@@ -58,11 +58,11 @@ public class TalentCenterOperationsController
         return AjaxResult.success(service.order(actorId(request), actorScope(request), recordId));
     }
 
-    @GetMapping("/commissions/{recipient}/{before}")
+    @GetMapping({"/commissions/{recipient}/{before}", "/commissions/{recipient}/{before}/{month}"})
     public AjaxResult commissions(@PathVariable String recipient, @PathVariable String before,
-            HttpServletRequest request)
+            @PathVariable(required = false) String month, HttpServletRequest request)
     {
-        return AjaxResult.success(service.commissions(actorId(request), actorScope(request), recipient, before));
+        return AjaxResult.success(service.commissions(actorId(request), actorScope(request), recipient, before, month));
     }
 
     @PutMapping("/{businessLine}/{resource}/{recordId}")

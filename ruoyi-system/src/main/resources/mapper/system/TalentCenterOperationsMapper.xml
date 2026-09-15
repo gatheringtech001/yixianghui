@@ -11,6 +11,12 @@
         where (#{admin} = true or (#{consultantId} is not null and i.consultant_id = #{consultantId}))
         <if test="recipientId != null">and c.consultant_id = #{recipientId}</if>
         <if test="unassigned">and c.consultant_id is null</if>
+        and <include refid="commissionMonthScope" />
+    </sql>
+
+    <sql id="commissionMonthScope">
+        (#{month} is null or (#{month} = 'undated' and i.trade_date is null)
+          or (#{monthStart} is not null and i.trade_date &gt;= #{monthStart} and i.trade_date &lt; #{monthEnd}))
     </sql>
 
     <sql id="commissionAmounts">
@@ -40,7 +46,7 @@
                and sum(case when relation_status = 'resolved' and target_business_table = 'app_consultant'
                             and target_business_id is not null then 0 else 1 end) = 0
         ) shared on binary i.income_no = binary concat('FS-', shared.source_record_id)
-        where i.consultant_id is null
+        where i.consultant_id is null and <include refid="commissionMonthScope" />
     </select>
 
     <select id="selectCommissionPeople" resultType="java.util.LinkedHashMap">

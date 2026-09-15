@@ -74,13 +74,14 @@ public class TalentCenterOperationsService
     }
 
     @Transactional(readOnly = true)
-    public Map<String, Object> commissions(String actorId, String actorScope, String recipient, String before)
+    public Map<String, Object> commissions(String actorId, String actorScope, String recipient, String before, String month)
     {
         Access access = access(actorId, actorScope);
         Map<String, Object> filters = new LinkedHashMap<>();
         filters.put("admin", access.admin);
         filters.put("consultantId", access.consultantId);
         filters.put("unassigned", false);
+        commissionMonth(filters, month);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("scope", access.admin ? "admin" : "self");
         result.put("recipients", mapper.selectCommissionPeople(filters));
@@ -100,11 +101,22 @@ public class TalentCenterOperationsService
         result.put("records", page);
         result.put("nextCursor", more ? String.valueOf(page.get(49).get("id")) : null);
         result.put("readAt", Instant.now().toString());
-        long shared = access.admin || access.consultantId == null ? 0 : mapper.selectSharedCommissionCount(access.consultantId);
+        long shared = access.admin || access.consultantId == null ? 0 : mapper.selectSharedCommissionCount(filters);
         String sharedNote = shared == 0 ? "" : "另有 " + shared + " 条共同服务记录，原表仅有共同提成总额或未填金额，尚未逐人分配，不计入个人佣金。";
-        result.put("sourceNote", "取自小程序后台消费记录中的管家提成；未填金额不视为零。" + sharedNote
+        String periodNote = month == null ? "全部月份。" : "undated".equals(month) ? "仅日期未填记录。" : "按成交日期筛选 " + month + "，日期未填记录不计入本月。";
+        result.put("sourceNote", periodNote + "取自小程序后台消费记录中的管家提成；未填金额不视为零。" + sharedNote
                 + "旅居佣金尚无已确认的个人归属与金额，不按订单额推算。");
         return result;
+    }
+
+    private void commissionMonth(Map<String, Object> filters, String month)
+    {
+        if (month != null && !"undated".equals(month) && !month.matches("(?:19|20|21)[0-9]{2}-(?:0[1-9]|1[0-2])"))
+            throw new TalentCenterApiException(400, "月份参数不正确");
+        filters.put("month", month);
+        java.time.LocalDate start = month == null || "undated".equals(month) ? null : java.time.YearMonth.parse(month).atDay(1);
+        filters.put("monthStart", start == null ? null : start.toString());
+        filters.put("monthEnd", start == null ? null : start.plusMonths(1).toString());
     }
 
     private Long commissionId(String value)

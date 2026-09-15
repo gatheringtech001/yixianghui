@@ -87,12 +87,12 @@ class TalentCenterTestViewServiceTest
         when(redis.getCacheObject(anyString())).thenReturn("true");
         when(mapper.selectCommissionRecords(any())).thenReturn(new java.util.ArrayList<>());
         TalentCenterOperationsService service = new TalentCenterOperationsService(mapper, actors, redis, testView);
-        service.commissions("tester", "self", "all", "first");
+        service.commissions("tester", "self", "all", "first", null);
         org.mockito.ArgumentCaptor<Map> filters = org.mockito.ArgumentCaptor.forClass(Map.class);
         verify(mapper).selectCommissionRecords(filters.capture());
         assertEquals(4L, filters.getValue().get("consultantId"));
         assertEquals(false, filters.getValue().get("admin"));
-        assertThrows(TalentCenterApiException.class, () -> service.commissions("tester", "self", "42", "first"));
+        assertThrows(TalentCenterApiException.class, () -> service.commissions("tester", "self", "42", "first", null));
         when(redis.getCacheObject(anyString())).thenReturn("false");
         when(mapper.selectConsultantId(108L)).thenReturn(24L);
         when(mapper.selectCustomers(any(), any(), anyBoolean())).thenReturn(new java.util.ArrayList<>());

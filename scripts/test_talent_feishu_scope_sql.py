@@ -13,7 +13,7 @@ CREATE TEMPORARY TABLE app_feishu_business_relation(source_table_id varchar(64),
 CREATE TEMPORARY TABLE app_feishu_business_user(source_table_id varchar(64),source_record_id varchar(64),source_field_id varchar(64),feishu_user_id varchar(64),user_name varchar(100));
 CREATE TEMPORARY TABLE app_consultant(consultant_id bigint,consultant_name varchar(100),status varchar(2));
 CREATE TEMPORARY TABLE app_consultant_feishu(source_table_id varchar(64),feishu_record_id varchar(64),canonical_id bigint,canonical_table varchar(64),canonical_status varchar(16));
-CREATE TEMPORARY TABLE app_customer_income(income_id bigint,income_no varchar(100),consultant_id bigint,consultant_income decimal(10,2));
+CREATE TEMPORARY TABLE app_customer_income(income_id bigint,income_no varchar(100),consultant_id bigint,consultant_income decimal(10,2),trade_date date);
 INSERT INTO app_goods_order VALUES (139,'o1',NULL,0,'feishu_history','0','0',NULL,0),(999,'o2',108,0,'feishu_history','0','0',NULL,0);
 INSERT INTO app_consultant VALUES (4,'owner','01');
 INSERT INTO app_consultant_feishu VALUES ('tblRKs34PUprry5y','c4',4,'app_consultant','linked');
@@ -32,7 +32,7 @@ def statement(name, values):
             text += expand(root.find("./sql[@id='" + child.attrib['refid'] + "']")) + (child.tail or '')
         return text
     sql = expand(root.find("./*[@id='" + name + "']"))
-    return re.sub(r'#\{(\w+)\}', lambda m: str(values[m[1]]) if values[m[1]] is not None else 'NULL', sql)
+    return re.sub(r'#\{(\w+)\}', lambda m: str(values[m[1]]) if values.get(m[1]) is not None else 'NULL', sql)
 
 
 class TalentScopeSqlTest(unittest.TestCase):
@@ -67,7 +67,7 @@ class TalentScopeSqlTest(unittest.TestCase):
 
     def test_shared_record_is_counted_once_and_not_personally_allocated(self):
         fixture = """
-INSERT INTO app_customer_income VALUES (1,'FS-i1',NULL,80),(2,'FS-i2',4,10);
+INSERT INTO app_customer_income VALUES (1,'FS-i1',NULL,80,'2026-09-01'),(2,'FS-i2',4,10,'2026-08-31');
 INSERT INTO app_feishu_business_relation VALUES
 ('tblA33x9gGWM1b51','i1','fld26vaZVW','tblRKs34PUprry5y','c4','app_consultant',4,'resolved',NULL),
 ('tblA33x9gGWM1b51','i1','fld26vaZVW','tblRKs34PUprry5y','c10','app_consultant',10,'resolved',NULL);
@@ -75,6 +75,14 @@ INSERT INTO app_feishu_business_relation VALUES
         count = statement('selectSharedCommissionCount', {'consultantId': 4})
         self.assertEqual('1\n10.00', self.run_sql(fixture, count + '; SELECT SUM(consultant_income) FROM app_customer_income WHERE consultant_id=4;'))
         self.assertEqual('0', self.run_sql(fixture, statement('selectSharedCommissionCount', {'consultantId': 24}) + ';'))
+        self.assertEqual('0', self.run_sql(fixture, statement('selectSharedCommissionCount', {'consultantId': 4, 'month': "'2026-08'", 'monthStart': "'2026-08-01'", 'monthEnd': "'2026-09-01'"}) + ';'))
+
+    def test_month_boundaries_and_undated_are_disjoint(self):
+        fixture = "INSERT INTO app_customer_income VALUES (1,'a',4,1,'2026-08-31'),(2,'b',4,2,'2026-09-01'),(3,'c',4,3,'2026-09-30'),(4,'d',4,4,'2026-10-01'),(5,'e',4,5,NULL);"
+        scope = statement('commissionMonthScope', {'month': "'2026-09'", 'monthStart': "'2026-09-01'", 'monthEnd': "'2026-10-01'"})
+        self.assertEqual('2\t5.00', self.run_sql(fixture, 'SELECT COUNT(*),SUM(consultant_income) FROM app_customer_income i WHERE '+scope+';'))
+        scope = statement('commissionMonthScope', {'month': "'undated'"})
+        self.assertEqual('1\t5.00', self.run_sql(fixture, 'SELECT COUNT(*),SUM(consultant_income) FROM app_customer_income i WHERE '+scope+';'))
 
 
 if __name__ == '__main__':

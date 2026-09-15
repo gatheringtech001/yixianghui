@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -90,10 +91,10 @@ class TalentCenterOperationsServiceTest
     {
         bind("talent-user", 101L, Collections.emptySet());
         when(mapper.selectConsultantId(101L)).thenReturn(501L);
-        when(mapper.selectSharedCommissionCount(501L)).thenReturn(2L);
+        when(mapper.selectSharedCommissionCount(any())).thenReturn(2L);
         when(mapper.selectCommissionPeople(any())).thenReturn(Collections.emptyList());
         when(mapper.selectCommissionRecords(any())).thenReturn(Collections.emptyList());
-        Map<String, Object> result = service.commissions("talent-user", "self", "all", "first");
+        Map<String, Object> result = service.commissions("talent-user", "self", "all", "first", null);
         assertEquals("self", result.get("scope"));
         assertTrue(result.get("sourceNote").toString().contains("2 条共同服务记录"));
         ArgumentCaptor<Map> filters = ArgumentCaptor.forClass(Map.class);
@@ -101,7 +102,7 @@ class TalentCenterOperationsServiceTest
         assertEquals(false, filters.getValue().get("admin"));
         assertEquals(501L, filters.getValue().get("consultantId"));
         assertEquals(403, assertThrows(TalentCenterApiException.class,
-                () -> service.commissions("talent-user", "self", "502", "first")).getHttpStatus());
+                () -> service.commissions("talent-user", "self", "502", "first", null)).getHttpStatus());
     }
 
     @Test
@@ -115,17 +116,35 @@ class TalentCenterOperationsServiceTest
         }
         when(mapper.selectCommissionPeople(any())).thenReturn(Collections.emptyList());
         when(mapper.selectCommissionRecords(any())).thenReturn(rows);
-        Map<String, Object> result = service.commissions("talent-admin", "admin", "unassigned", "first");
+        Map<String, Object> result = service.commissions("talent-admin", "admin", "unassigned", "first", null);
         assertEquals("admin", result.get("scope"));
         assertEquals("51", result.get("nextCursor"));
         assertEquals(50, ((List<?>) result.get("records")).size());
     }
 
     @Test
+    void commissionMonthScopesTotalsAndRecordsAndRejectsInvalidMonths()
+    {
+        bind("talent-user", 101L, Collections.emptySet());
+        when(mapper.selectConsultantId(101L)).thenReturn(501L);
+        when(mapper.selectCommissionRecords(any())).thenReturn(Collections.emptyList());
+        service.commissions("talent-user", "self", "all", "first", "2026-12");
+        ArgumentCaptor<Map> filters = ArgumentCaptor.forClass(Map.class);
+        verify(mapper).selectCommissionSummary(filters.capture());
+        assertEquals("2026-12-01", filters.getValue().get("monthStart"));
+        assertEquals("2027-01-01", filters.getValue().get("monthEnd"));
+        assertEquals(501L, filters.getValue().get("consultantId"));
+        verify(mapper).selectCommissionRecords(filters.getValue());
+        for (String month : Arrays.asList("2026-00", "2026-13", "2026-9", "all", "2026-09' OR 1=1"))
+            assertEquals(400, assertThrows(TalentCenterApiException.class,
+                () -> service.commissions("talent-user", "self", "all", "first", month)).getHttpStatus());
+    }
+
+    @Test
     void unmappedActorCannotReadCommissionRows()
     {
         assertEquals(403, assertThrows(TalentCenterApiException.class,
-                () -> service.commissions("unknown", "self", "all", "first")).getHttpStatus());
+                () -> service.commissions("unknown", "self", "all", "first", null)).getHttpStatus());
         verify(mapper, never()).selectCommissionRecords(any());
     }
 
