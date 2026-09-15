@@ -64,7 +64,7 @@ public class CrmReadService
             Map<String, Object> item = CrmValues.pick(origin, "businessLine", "source", "status", "needs");
             for (String key : new String[]{"source", "status", "needs"}) item.put(key, CrmValues.text(item.get(key)));
             origins.add(item);
-            historical(origin, "travel".equals(origin.get("businessLine")) ? "飞书旅居客户" : "飞书养老客户", contacts, notes, dates);
+            historical(origin, "travel".equals(origin.get("businessLine")) ? "旅居服务" : "养老服务", contacts, notes, dates);
         }
         Map<String, Object> events = eventPage(filters);
         List<Map<String, Object>> ledger = new ArrayList<>(mapper.travel(filters)); ledger.addAll(mapper.eldercare(filters));

@@ -57,8 +57,11 @@ final class CrmValues
     {
         try {
             LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
-            int age = row.get("birthday") == null ? Integer.parseInt(String.valueOf(row.get("age")))
-                    : Period.between(LocalDate.parse(String.valueOf(row.get("birthday"))), today).getYears();
+            // 历史年龄没有登记日期，不能当作当前周岁；缺少生日时不推测。
+            if (row.get("birthday") == null) return null;
+            LocalDate birthday = LocalDate.parse(String.valueOf(row.get("birthday")));
+            if (birthday.isAfter(today)) return null;
+            int age = Period.between(birthday, today).getYears();
             return age < 0 || age > 130 ? null : age;
         } catch (RuntimeException e) { return null; }
     }

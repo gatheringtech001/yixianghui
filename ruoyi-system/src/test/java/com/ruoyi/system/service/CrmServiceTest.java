@@ -10,6 +10,14 @@ import static org.mockito.Mockito.*;
 
 class CrmServiceTest
 {
+    @Test void currentAgeRequiresAValidBirthdayRatherThanUnverifiedLegacyAge() {
+        assertNull(CrmValues.age(CrmValues.map("birthday",null,"age",125)));
+        assertNull(CrmValues.age(CrmValues.map("birthday",null,"age",65)));
+        assertNull(CrmValues.age(CrmValues.map("birthday","invalid","age",65)));
+        assertNull(CrmValues.age(CrmValues.map("birthday",java.time.LocalDate.now().plusDays(1).toString(),"age",0)));
+        String birthday=java.time.LocalDate.now(java.time.ZoneId.of("Asia/Shanghai")).minusYears(68).toString();
+        assertEquals(68,CrmValues.age(CrmValues.map("birthday",birthday,"age",125)));
+    }
     @Test void sharedUnknownAndRefundedMoneyIsNotPersonalSpend() {
         Map<String,Object> result=CrmLedger.build(Arrays.asList(
             CrmValues.map("id","1","businessLine","eldercare","amountCents",12000L,"allocation","single","excluded",0),
