@@ -25,14 +25,14 @@ export function directoryPage(manifest, params) {
     nextCursor: next < items.length ? Buffer.from(JSON.stringify({ snapshot, offset: next })).toString('base64url') : null };
 }
 
-export function createDirectoryHandler({ token, manifestFile, load = async () => JSON.parse(await readFile(manifestFile, 'utf8')) }) {
+export function createDirectoryHandler({ token, manifestFile, loadMedia, load = async () => JSON.parse(await readFile(manifestFile, 'utf8')) }) {
   return async (request, response) => {
     const url = new URL(request.url, 'http://knowledge.local');
     if (url.pathname !== '/documents') return false;
     const reply = (status, body) => { response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); response.end(JSON.stringify(body)); };
     if (request.headers.authorization !== `Bearer ${token}`) { reply(401, { error: 'unauthorized' }); return true; }
     if (request.method !== 'GET') { reply(405, { error: 'read_only' }); return true; }
-    try { reply(200, directoryPage(await load(), url.searchParams)); }
+    try { reply(200, url.searchParams.get('type') === 'media' ? await loadMedia(url.searchParams) : directoryPage(await load(), url.searchParams)); }
     catch (error) { reply(error.status || 503, { error: error.status ? error.message : 'knowledge_directory_unavailable' }); }
     return true;
   };

@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 import { chunkDocument, contentHash, pointId, sparseVector } from "./lib.mjs";
 import { AzureModels, QdrantStore } from "./service.mjs";
 import { loadRetiredSources } from "./retired-sources.mjs";
+import { readVisualTagRecord, enrichPayload } from './visual-tags.mjs';
 
 export function mediaPoints(record, createdAt) {
   if (!record || !/^[A-Za-z0-9:_-]{1,250}$/.test(record.id) || typeof record.text !== "string"
@@ -22,7 +23,7 @@ export function mediaPoints(record, createdAt) {
   }));
 }
 
-export async function syncMedia({ snapshot, store, models, manifestFile }) {
+export async function syncMedia({ snapshot, store, models, manifestFile, visualTagsDirectory }) {
   if (snapshot.version !== 1 || !Array.isArray(snapshot.records) || !Number.isFinite(Date.parse(snapshot.createdAt))) {
     throw new Error("Invalid media snapshot");
   }
@@ -39,6 +40,13 @@ export async function syncMedia({ snapshot, store, models, manifestFile }) {
   let payloadUpdates = 0;
   for (const record of snapshot.records) {
     const points = mediaPoints(record, snapshot.createdAt);
+    for (const point of points) {
+      const labels = await readVisualTagRecord(point.id, visualTagsDirectory);
+      if (labels?.sourceHash === contentHash(point.payload.content)) {
+        point.payload = enrichPayload(point.payload, labels);
+        point.text = point.payload.content;
+      }
+    }
     const textHash = contentHash(JSON.stringify(points.map((point) => point.text)));
     const metadataHash = contentHash(JSON.stringify(record));
     const saved = manifest.records[record.id];

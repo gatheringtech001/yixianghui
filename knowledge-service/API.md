@@ -9,6 +9,16 @@
 `limit` 范围 1–200，默认 100；首次省略 cursor，继续请求至 nextCursor 为 null。分页中目录改变返回 409，客户端应重新加载，不能把已收集的部分结果当成完整目录。
 此目录是知识库已索引文档，不等同于业务商品或可售房态。
 
+## 完整媒体目录与视觉标签
+
+`GET https://gatheringtech.com/knowledge/documents?type=media&kind=video&limit=200&cursor=...`
+
+沿用查询令牌，返回 `items`、精确 `total` 和 `nextCursor`，不受搜索前十条限制；`kind` 可为 `video`、`image` 或省略。只返回内部可读且未退役、非孤立、未下架的索引。客户端读取所有分页并核对总数；目录数量变化时重新加载。
+
+媒体条目保留 `sourceId`、`sourceUrl`、原始 `media.fileToken` 和 `startSeconds/endSeconds`。已标注条目包含 `media.tags`、`media.visualLabels`（物体、环境、动作、属性、光线、运镜）及 `evidenceVersion`；`visualRole=document` 表示图表/截图等文档图，不应当作实景照片。标签来自已有抽帧观察，覆盖范围受原始采样约束，不推断未观察到的内容。
+
+后台 `enrich-media-tags.mjs --apply --limit=0` 对未标注条目增量处理：先保留原索引与向量备份，校验标签的逐条视觉证据，重建向量，写入后按原ID回读。标签证据存于 `/var/lib/yixianghui-knowledge/visual-tags/`；后续 `media-sync` 会保留来源内容未变化的标注，来源变化时不会复用过期标签。
+
 ## 外部素材索引写入（不上传原文件）
 
 `PUT https://gatheringtech.com/knowledge/assets/{source}/{id}`
