@@ -18,7 +18,7 @@ export function mediaUsagePolicy(payload = {}, review = payload.media?.usageRevi
   const evidence = visualEvidence(content);
   const textLines = String(content).split('\n').filter(line => /^(?:图片文字|文字|画面文字|可见文字|文字识别|OCR)[:：]/i.test(line))
     .map(line => line.replace(/^[^:：]+[:：]\s*/, '').trim());
-  const textEvidence = [...evidence.filter(line => TEXT.test(line)), ...textLines.filter(line => line && !NO_TEXT.test(line)
+  const textEvidence = [...evidence.filter(line => TEXT.test(line) && !NO_TEXT.test(line)), ...textLines.filter(line => line && !NO_TEXT.test(line)
     && (!UNCERTAIN.test(line) || /文字|印刷|字幕|汉字|字样|“|”/.test(line)))];
   const reviewed = review?.version === 1 && review.sourceHash === usageSourceHash(payload);
   const absent = /(?:没有看到|未看到|未观察到|未见|没有|不含)(?:任何|明显|清晰|可见|可读)*文字/.test(content);

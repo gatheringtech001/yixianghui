@@ -18,6 +18,7 @@ test('subtitles, scene lettering and uncertain lettering cannot be labelled clea
     assert.equal(result.media.usage.usable, false); assert.ok(result.media.tags.includes('不可用'));
   }
   assert.equal(mediaUsagePolicy(payload('画面: 花草。\n画面文字: 无')).hasVisibleText, false);
+  assert.notEqual(mediaUsagePolicy(payload('画面: 树叶特写，无文字。\n画面文字: 无')).hasVisibleText, true);
   assert.equal(mediaUsagePolicy(payload('画面: 花草。\n不确定: 疑似字幕，无法辨认')).hasVisibleText, null);
 });
 test('policy labels preserve visual tags, identity and time range without changing retrieval content', () => {
