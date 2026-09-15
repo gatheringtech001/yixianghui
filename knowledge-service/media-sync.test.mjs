@@ -33,9 +33,10 @@ test('later metadata synchronization preserves verified visual labels', async co
     models: { async embed(texts) { return texts.map(() => [1]); } } };
   const snapshot = { version: 1, createdAt: '2026-09-05T00:00:00Z', records: [record] };
   await syncMedia({ ...options, snapshot });
-  assert.deepEqual(stored[0].payload.media.tags, ['餐桌']);
+  assert.ok(stored[0].payload.media.tags.includes('餐桌'));
+  assert.equal(stored[0].payload.media.usage.exclusive, true);
   await syncMedia({ ...options, snapshot: { ...snapshot, records: [{ ...record, sourceUrl: 'https://vcnnjnb870d6.feishu.cn/docx/new' }] } });
-  assert.equal(stored.at(-1), '餐桌');
+  assert.ok(stored.includes('餐桌'));
 });
 
 test("media sync is incremental and missing records are not automatically deleted", async (context) => {

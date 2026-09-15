@@ -4,6 +4,7 @@ import { chunkDocument, contentHash, pointId, sparseVector } from "./lib.mjs";
 import { AzureModels, QdrantStore } from "./service.mjs";
 import { loadRetiredSources } from "./retired-sources.mjs";
 import { readVisualTagRecord, enrichPayload } from './visual-tags.mjs';
+import { applyFileUsagePolicies, applyMediaUsagePolicy, readUsageReview } from './media-usage-policy.mjs';
 
 export function mediaPoints(record, createdAt) {
   if (!record || !/^[A-Za-z0-9:_-]{1,250}$/.test(record.id) || typeof record.text !== "string"
@@ -37,6 +38,9 @@ export async function syncMedia({ snapshot, store, models, manifestFile, visualT
   if (manifest.createdAt && snapshot.createdAt < manifest.createdAt) throw new Error("Stale media snapshot");
   const pending = [];
   const jobs = [];
+  const allPoints = snapshot.records.flatMap(record => mediaPoints(record, snapshot.createdAt));
+  const reviews = new Map(await Promise.all(allPoints.map(async point => [point.id, await readUsageReview(point)])));
+  const policies = new Map(applyFileUsagePolicies(allPoints, reviews).map(point => [point.id, point.payload.media.usage]));
   let payloadUpdates = 0;
   for (const record of snapshot.records) {
     const points = mediaPoints(record, snapshot.createdAt);
@@ -46,9 +50,11 @@ export async function syncMedia({ snapshot, store, models, manifestFile, visualT
         point.payload = enrichPayload(point.payload, labels);
         point.text = point.payload.content;
       }
+      point.payload = applyMediaUsagePolicy(point.payload, policies.get(point.id));
+      if (reviews.get(point.id)) point.payload.media.usageReview = reviews.get(point.id);
     }
     const textHash = contentHash(JSON.stringify(points.map((point) => point.text)));
-    const metadataHash = contentHash(JSON.stringify(record));
+    const metadataHash = contentHash(JSON.stringify({ record, usage: points.map(point => point.payload.media.usage) }));
     const saved = manifest.records[record.id];
     if (saved?.textHash === textHash && saved.metadataHash === metadataHash) continue;
     if (saved?.textHash === textHash) {

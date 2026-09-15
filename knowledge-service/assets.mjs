@@ -1,5 +1,6 @@
 import { AssetError, assetText, normalizeAsset, validateIdentity } from "./asset-schema.mjs";
 import { contentHash, pointId, sparseVector } from "./lib.mjs";
+import { applyMediaUsagePolicy } from './media-usage-policy.mjs';
 
 const sourceId = ({ source, id }) => `external:${source}:${id}`;
 export class AssetIndex {
@@ -41,6 +42,7 @@ export class AssetIndex {
       source_url: asset.url, permission_scope: "internal", snapshot_at: new Date().toISOString(),
       source_updated_at: asset.updatedAt, media: asset.media ?? null, asset, asset_hash: hash, text_hash: textHash,
     } };
+    point.payload = applyMediaUsagePolicy(point.payload);
     if (prior?.payload.text_hash === textHash) {
       await this.store.api(`/collections/${encodeURIComponent(this.store.config.collection)}/points/payload?wait=true`, {
         method: "POST", body: JSON.stringify({ points: [point.id], payload: point.payload }),
