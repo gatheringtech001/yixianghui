@@ -29,7 +29,7 @@ const reviews = new Map(await Promise.all(points.map(async point => [point.id, a
 const next = applyFileUsagePolicies(points, reviews);
 if (preserveTextBans) for (const point of next) {
   const original = points.find(item => item.id === point.id), review = reviews.get(point.id);
-  if (review?.scopePolicyVersion !== 2 || review.sourceHash !== usageSourceHash(original.payload)) throw Error(`Missing current scope review: ${point.id}`);
+  if (![2, 3].includes(review?.scopePolicyVersion) || review.sourceHash !== usageSourceHash(original.payload)) throw Error(`Missing current scope review: ${point.id}`);
   if ((point.payload.media.usage.hasVisibleText !== original.payload.media.usage?.hasVisibleText
     || point.payload.media.usage.usable !== original.payload.media.usage?.usable)
     && point.payload.media.usage.hasVisibleText !== true) throw Error(`Review weakened text status: ${point.id}`);
