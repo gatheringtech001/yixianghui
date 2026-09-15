@@ -106,6 +106,31 @@ class TalentCenterOperationsServiceTest
     }
 
     @Test
+    void customerOrderCountsDistinguishVerifiedZeroFromUnknownAndDeduplicate()
+    {
+        bind("talent-user", 101L, Collections.emptySet());
+        when(mapper.selectConsultantId(101L)).thenReturn(501L);
+        List<Map<String, Object>> customers = new ArrayList<>();
+        for (int id = 1; id <= 3; id++)
+        {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("sourceRecordId", "customer:" + id); row.put("orderCount", null); customers.add(row);
+        }
+        when(mapper.selectCustomers(101L, 501L, false)).thenReturn(customers);
+        Map<String, Object> linked = new LinkedHashMap<>(), zero = new LinkedHashMap<>();
+        linked.put("customerId", "customer:1"); linked.put("orderId", "order:139");
+        zero.put("customerId", "customer:2"); zero.put("orderId", null);
+        when(mapper.selectCustomerOrderLinks(101L, 501L, false)).thenReturn(Arrays.asList(linked, linked, zero));
+        service.snapshot("talent-user", "self");
+        assertEquals(1, customers.get(0).get("orderCount"));
+        assertEquals(Collections.singletonList("order:139"), customers.get(0).get("linkedOrderIds"));
+        assertEquals(0, customers.get(1).get("orderCount"));
+        assertEquals(Collections.emptyList(), customers.get(1).get("linkedOrderIds"));
+        assertEquals(null, customers.get(2).get("orderCount"));
+        assertTrue(!customers.get(2).containsKey("linkedOrderIds"));
+    }
+
+    @Test
     void commissionLedgerPaginatesAndKeepsAdministratorScope()
     {
         bind("talent-admin", 1L, setOf("*:*:*"));

@@ -14,6 +14,8 @@ public interface TalentCenterOperationsMapper
     List<Map<String, Object>> selectCommissionRecords(Map<String, Object> filters);
     List<Map<String, Object>> selectCustomers(@Param("actorUserId") Long actorUserId,
             @Param("consultantId") Long consultantId, @Param("admin") boolean admin);
+    List<Map<String, Object>> selectCustomerOrderLinks(@Param("actorUserId") Long actorUserId,
+            @Param("consultantId") Long consultantId, @Param("admin") boolean admin);
     List<Map<String, Object>> selectOrders(@Param("actorUserId") Long actorUserId,
             @Param("consultantId") Long consultantId, @Param("admin") boolean admin);
     Map<String, Object> selectOrder(@Param("id") Long id, @Param("actorUserId") Long actorUserId,

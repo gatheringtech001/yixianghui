@@ -94,6 +94,28 @@
         order by coalesce(c.update_time, c.create_time) desc, c.customer_id desc
     </select>
 
+    <select id="selectCustomerOrderLinks" resultType="java.util.LinkedHashMap">
+        select distinct concat('customer:', c.customer_id) customerId,
+               concat('order:', o.order_id) orderId
+        from app_customer c
+        join app_customer_feishu_source s on s.customer_id = c.customer_id
+          and binary s.source_table_id = binary 'tblXVuYCto8OOmAz'
+          and s.business_line = 'travel' and s.match_status in ('matched', 'created')
+        join app_travel_customer_profile p on binary p.source_table_id = binary s.source_table_id
+          and binary p.feishu_record_id = binary s.source_record_id
+          and p.canonical_table = 'app_customer' and p.canonical_id = c.customer_id and p.canonical_status = 'linked'
+        left join app_feishu_business_relation r on r.target_business_id = c.customer_id
+          and r.target_business_table = 'app_customer' and r.relation_status = 'resolved'
+          and binary r.target_source_table_id = binary s.source_table_id
+          and binary r.target_source_record_id = binary s.source_record_id
+          and binary r.source_table_id = binary 'tblZWWWFyzY1hAyb'
+          and binary r.source_field_id = binary 'fldioLyM1q'
+        left join app_goods_order o on binary o.feishu_record_id = binary r.source_record_id
+          and <include refid="orderReadScope" />
+        where c.del_flag = '0' and (#{admin} = true or (#{consultantId} is not null and c.consultant_id = #{consultantId}))
+        order by customerId, orderId
+    </select>
+
     <sql id="orderReadScope">
         (#{admin} = true or o.service_owner_user_id = #{actorUserId} or exists (
             select 1 from app_user_inviter i

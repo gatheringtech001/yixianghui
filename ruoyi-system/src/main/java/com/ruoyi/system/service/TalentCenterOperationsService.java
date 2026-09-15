@@ -39,11 +39,13 @@ public class TalentCenterOperationsService
         this.testView = testView;
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> snapshot(String actorId, String actorScope)
     {
         Access access = access(actorId, actorScope);
         List<Map<String, Object>> customers = mapper.selectCustomers(access.userId, access.consultantId, access.admin);
         for (Map<String, Object> customer : customers) customer.put("timeline", Collections.emptyList());
+        attachCustomerOrders(customers, access);
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("scope", access.admin ? "admin" : "self");
         payload.put("customers", customers);
@@ -53,6 +55,23 @@ public class TalentCenterOperationsService
         payload.put("fieldOptions", fieldOptions());
         payload.put("readAt", Instant.now().toString());
         return payload;
+    }
+
+    private void attachCustomerOrders(List<Map<String, Object>> customers, Access access)
+    {
+        Map<String, java.util.Set<String>> links = new LinkedHashMap<>();
+        for (Map<String, Object> row : mapper.selectCustomerOrderLinks(access.userId, access.consultantId, access.admin))
+        {
+            java.util.Set<String> ids = links.computeIfAbsent(String.valueOf(row.get("customerId")), key -> new java.util.LinkedHashSet<>());
+            if (row.get("orderId") != null) ids.add(String.valueOf(row.get("orderId")));
+        }
+        for (Map<String, Object> customer : customers)
+        {
+            java.util.Set<String> ids = links.get(String.valueOf(customer.get("sourceRecordId")));
+            if (ids == null) continue;
+            customer.put("linkedOrderIds", new java.util.ArrayList<>(ids));
+            customer.put("orderCount", ids.size());
+        }
     }
 
     public Map<String, Object> actorStatus(String actorId, String actorScope)
