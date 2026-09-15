@@ -11,7 +11,8 @@ import com.ruoyi.system.domain.talent.TalentCenterApiException;
 @RestControllerAdvice(assignableTypes = {
         TalentCenterAdminController.class,
         TalentCenterOperationsController.class,
-        TalentCenterWorkflowController.class
+        TalentCenterWorkflowController.class,
+        CrmController.class
 })
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class TalentCenterExceptionHandler

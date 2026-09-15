@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.CrmReadMapper">
+  <sql id="scope">c.del_flag = '0' and c.consultant_id = #{consultantId}
+    <if test="customerId != null">and c.customer_id = #{customerId}</if>
+  </sql>
+  <select id="customers" resultType="java.util.LinkedHashMap">
+    select concat('customer:', c.customer_id) id, c.customer_name name, c.customer_label status,
+      case when length(c.link_mobile) &gt;= 7 then concat(left(c.link_mobile,3),'****',right(c.link_mobile,4)) else null end phoneMasked,
+      c.customer_goods needs, c.acquisition_channel source,
+      c.return_visit_remark note,
+      (select date_format(max(e.occurred_at),'%Y-%m-%dT%H:%i:%s.000Z') from app_crm_event e
+       where e.customer_id=c.customer_id and e.kind='followup') lastFollowupAt
+    from app_customer c where <include refid="scope" /> order by c.customer_id
+  </select>
+  <select id="profile" resultType="java.util.LinkedHashMap">
+    select concat('customer:', c.customer_id) id, c.customer_name name, c.customer_label status,
+      c.link_mobile phone, c.sex, date_format(c.birthday,'%Y-%m-%d') birthday, c.age, c.live_address address,
+      date_format(date_sub(c.sign_time, interval 8 hour),'%Y-%m-%dT%H:%i:%s.000Z') registeredAt,
+      c.customer_goods needs, c.return_visit_remark note,
+      date_format(date_sub(c.update_time, interval 8 hour),'%Y-%m-%dT%H:%i:%s.000Z') updatedAt,
+      date_format(date_sub(c.return_visit_first, interval 8 hour),'%Y-%m-%dT%H:%i:%s.000Z') firstAt,
+      date_format(date_sub(c.return_visit_second, interval 8 hour),'%Y-%m-%dT%H:%i:%s.000Z') secondAt,
+      date_format(date_sub(c.return_visit_last, interval 8 hour),'%Y-%m-%dT%H:%i:%s.000Z') lastAt,
+      c.link1_name name1, c.link1_relation relation1, c.link1_mobile phone1,
+      c.link2_name name2, c.link2_relation relation2, c.link2_mobile phone2
+    from app_customer c where <include refid="scope" />
+  </select>
+  <sql id="originScope">
+    join app_customer_feishu_source s on binary s.source_table_id = binary p.source_table_id
+      and binary s.source_record_id = binary p.feishu_record_id and s.customer_id=p.canonical_id
+      and s.match_status in ('matched','created')
+    join app_customer c on c.customer_id=s.customer_id
+    where <include refid="scope" /> and p.canonical_table='app_customer' and p.canonical_status='linked'
+  </sql>
+  <select id="origins" resultType="java.util.LinkedHashMap">
+    select concat('customer:', c.customer_id) customerId, 'travel' businessLine,
+      p.fs_fldqgctoqi source, p.fs_fldgo90joi status, p.fs_fldlivquuw needs, p.fs_fldrbddvel note,
+      date_format(date_sub(p.fs_flds8m5nxa, interval 8 hour),'%Y-%m-%dT%H:%i:%s.000Z') updatedAt,
+      null name1, null relation1, null phone1, null name2, null relation2, null phone2,
+      null firstAt, null secondAt, null lastAt
+    from app_travel_customer_profile p <include refid="originScope" />
+      and binary s.source_table_id=binary 'tblXVuYCto8OOmAz' and s.business_line='travel'
+    union all
+    select concat('customer:', c.customer_id), 'eldercare', p.fs_fldzttzbcr, p.fs_fldjdf8dyq, p.fs_fldyh1qjlb, p.fs_fldwjfcdov,
+      date_format(date_sub(p.fs_fld0mg0zba, interval 8 hour),'%Y-%m-%dT%H:%i:%s.000Z'),
+      p.fs_fldkhlyxv9, p.fs_fldwlrdj5r, p.fs_fldj8jvvqz, p.fs_fld5cspahu, p.fs_fldy0igasd, p.fs_fld1v5kx5e,
+      date_format(date_sub(p.fs_fldcmilfhy, interval 8 hour),'%Y-%m-%dT%H:%i:%s.000Z'),
+      date_format(date_sub(p.fs_fld6je1obi, interval 8 hour),'%Y-%m-%dT%H:%i:%s.000Z'),
+      date_format(date_sub(p.fs_fldpzjxxhr, interval 8 hour),'%Y-%m-%dT%H:%i:%s.000Z')
+    from app_eldercare_customer_profile p <include refid="originScope" />
+      and binary s.source_table_id=binary 'tblHDwb0OdfcH1Ib' and s.business_line='eldercare'
+  </select>
+  <select id="tasks" resultType="java.util.LinkedHashMap">
+    select t.task_id id, concat('customer:',t.customer_id) customerId, t.title, t.status, t.version,
+      date_format(t.due_at,'%Y-%m-%dT%H:%i:%s.000Z') dueAt, date_format(t.updated_at,'%Y-%m-%dT%H:%i:%s.000Z') updatedAt
+    from app_crm_task t join app_customer c on c.customer_id=t.customer_id where <include refid="scope" />
+    <if test="customerId == null">and t.status='pending'</if> order by t.due_at, t.task_id
+  </select>
+  <select id="needs" resultType="java.util.LinkedHashMap">
+    select n.opportunity_id id, concat('customer:',n.customer_id) customerId, n.title, n.business_line businessLine,
+      n.stage, n.version, date_format(n.updated_at,'%Y-%m-%dT%H:%i:%s.000Z') updatedAt
+    from app_crm_opportunity n join app_customer c on c.customer_id=n.customer_id where <include refid="scope" />
+    order by n.updated_at desc, n.opportunity_id
+  </select>
+  <select id="events" resultType="java.util.LinkedHashMap">
+    select cast(e.event_id as char) id, e.kind, e.content, e.method, e.actor_name actorName,
+      date_format(e.occurred_at,'%Y-%m-%dT%H:%i:%s.000Z') occurredAt, date_format(e.created_at,'%Y-%m-%dT%H:%i:%s.000Z') createdAt
+    from app_crm_event e join app_customer c on c.customer_id=e.customer_id where <include refid="scope" />
+    <if test="before != null">and e.event_id &lt; #{before}</if> order by e.event_id desc limit 51
+  </select>
+  <select id="travel" resultType="java.util.LinkedHashMap">
+    select distinct concat('order:',o.order_id) id, 'travel' businessLine,
+      coalesce(o.feishu_order_no,o.order_no) code, o.travel_base_name title,
+      date_format(o.check_in_date,'%Y-%m-%d') occurredOn,
+      cast(round(coalesce(o.pay_money,o.money_payable)*100) as signed) amountCents,
+      case o.travel_status when '0' then '待确认' when '1' then '已确认' when '2' then '已取消'
+      when '3' then '已入住' when '4' then '已离店' when '5' then '已结算' when '6' then '退款中' when '7' then '已退款' else o.status end status,
+      case when exists (select 1 from app_feishu_business_relation bad
+        where binary bad.source_table_id=binary 'tblZWWWFyzY1hAyb' and binary bad.source_record_id=binary o.feishu_record_id
+        and binary bad.source_field_id=binary 'fldioLyM1q' and (bad.relation_status!='resolved' or bad.target_business_id is null or bad.target_business_table!='app_customer'))
+        then 'unresolved' when (select count(distinct r2.target_business_id) from app_feishu_business_relation r2
+        where binary r2.source_table_id=binary 'tblZWWWFyzY1hAyb' and binary r2.source_record_id=binary o.feishu_record_id
+        and binary r2.source_field_id=binary 'fldioLyM1q' and r2.relation_status='resolved' and r2.target_business_table='app_customer') &gt; 1
+        then 'shared' else 'single' end allocation,
+      case when o.travel_status in ('2','6','7') then 1 else 0 end excluded
+    from app_goods_order o
+    join app_feishu_business_relation r on binary r.source_record_id=binary o.feishu_record_id
+      and binary r.source_table_id=binary 'tblZWWWFyzY1hAyb' and binary r.source_field_id=binary 'fldioLyM1q'
+      and r.target_business_table='app_customer' and r.relation_status='resolved'
+    join app_customer c on c.customer_id=r.target_business_id
+    join app_customer_feishu_source s on s.customer_id=c.customer_id and s.business_line='travel'
+      and s.match_status in ('matched','created') and binary s.source_table_id=binary r.target_source_table_id
+      and binary s.source_record_id=binary r.target_source_record_id
+    join app_travel_customer_profile p on p.canonical_id=c.customer_id and p.canonical_table='app_customer' and p.canonical_status='linked'
+      and binary p.source_table_id=binary s.source_table_id and binary p.feishu_record_id=binary s.source_record_id
+    where <include refid="scope" /> and <include refid="com.ruoyi.system.mapper.TalentCenterOperationsMapper.orderReadScope" />
+    order by id limit 2001
+  </select>
+  <select id="eldercare" resultType="java.util.LinkedHashMap">
+    select distinct concat('income:',i.income_id) id, 'eldercare' businessLine, i.income_no code, i.product_name title,
+      date_format(i.trade_date,'%Y-%m-%d') occurredOn, cast(round(i.purchase_amount*100) as signed) amountCents,
+      null status,
+      case when links.unresolved &gt; 0 or (i.customer_id is not null and links.customerCount &gt; 0 and not exists (
+        select 1 from app_feishu_business_relation directLink where binary directLink.source_table_id=binary 'tblA33x9gGWM1b51'
+          and binary directLink.source_record_id=binary links.source_record_id and binary directLink.source_field_id=binary 'fldL0xSls8'
+          and directLink.relation_status='resolved' and directLink.target_business_table='app_customer' and directLink.target_business_id=i.customer_id
+      )) then 'unresolved' when links.customerCount &gt; 1 then 'shared' else 'single' end allocation,
+      0 excluded
+    from app_customer_income i
+    left join (
+      select source_record_id, count(distinct target_business_id) customerCount,
+        sum(case when relation_status='resolved' and target_business_table='app_customer' and target_business_id is not null then 0 else 1 end) unresolved
+      from app_feishu_business_relation where binary source_table_id=binary 'tblA33x9gGWM1b51'
+        and binary source_field_id=binary 'fldL0xSls8' group by source_record_id
+    ) links on binary i.income_no=binary concat('FS-',links.source_record_id)
+    join app_customer c on c.customer_id=#{customerId}
+    where <include refid="scope" />
+      and (i.customer_id=c.customer_id or exists (select 1 from app_feishu_business_relation r
+        where binary i.income_no=binary concat('FS-',r.source_record_id) and binary r.source_table_id=binary 'tblA33x9gGWM1b51'
+        and binary r.source_field_id=binary 'fldL0xSls8' and r.target_business_table='app_customer'
+        and r.target_business_id=c.customer_id and r.relation_status='resolved'))
+      and (i.consultant_id=#{consultantId} or (i.consultant_id is null and exists (
+        select 1 from app_feishu_business_relation r where binary i.income_no=binary concat('FS-',r.source_record_id)
+        and binary r.source_table_id=binary 'tblA33x9gGWM1b51' and binary r.source_field_id=binary 'fld26vaZVW'
+        group by r.source_record_id having count(distinct r.target_business_id) &gt; 1
+        and max(case when r.target_business_id=#{consultantId} then 1 else 0 end)=1
+        and sum(case when r.relation_status='resolved' and r.target_business_table='app_consultant' and r.target_business_id is not null then 0 else 1 end)=0
+      ))) order by id limit 2001
+  </select>
+</mapper>

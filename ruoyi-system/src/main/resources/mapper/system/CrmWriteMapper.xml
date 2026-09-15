@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.CrmWriteMapper">
+  <select id="lockCustomer" resultType="java.lang.Long">
+    select customer_id from app_customer where customer_id=#{customerId} and consultant_id=#{consultantId} and del_flag='0' for update
+  </select>
+  <select id="receipt" resultType="java.util.LinkedHashMap">
+    select actor_user_id actorUserId, customer_id customerId, payload_hash payloadHash
+    from app_crm_event where request_id=#{requestId} for update
+  </select>
+  <insert id="event">
+    insert into app_crm_event(request_id,customer_id,actor_user_id,actor_name,kind,content,method,occurred_at,created_at,payload_hash,payload_json)
+    values(#{requestId},#{customerId},#{auditUserId},#{actorName},#{kind},#{content},#{method},#{occurredAt},#{now},#{payloadHash},#{payloadJson})
+  </insert>
+  <insert id="createTask">
+    insert into app_crm_task(task_id,customer_id,created_by,title,due_at,status,version,created_at,updated_at)
+    values(#{entityId},#{customerId},#{auditUserId},#{title},#{dueAt},'pending',1,#{now},#{now})
+  </insert>
+  <update id="updateTask">
+    update app_crm_task set title=#{title},due_at=#{dueAt},status=#{status},version=version+1,updated_at=#{now}
+    where task_id=#{entityId} and customer_id=#{customerId} and version=#{version}
+  </update>
+  <update id="completeTask">
+    update app_crm_task set status='done',version=version+1,updated_at=#{now}
+    where task_id=#{completeTaskId} and customer_id=#{customerId} and version=#{taskVersion} and status='pending'
+  </update>
+  <insert id="createNeed">
+    insert into app_crm_opportunity(opportunity_id,customer_id,created_by,title,business_line,stage,version,created_at,updated_at)
+    values(#{entityId},#{customerId},#{auditUserId},#{title},#{businessLine},'new',1,#{now},#{now})
+  </insert>
+  <update id="updateNeed">
+    update app_crm_opportunity set title=#{title},stage=#{stage},version=version+1,updated_at=#{now}
+    where opportunity_id=#{entityId} and customer_id=#{customerId} and version=#{version}
+  </update>
+</mapper>

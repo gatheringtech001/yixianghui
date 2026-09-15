@@ -150,11 +150,11 @@ class TalentWorkflowMysqlTest {
         jdbc.update("INSERT INTO app_user_inviter(user_id,new_user_id,status) VALUES (2,99,'1')");
         try (SqlSession session = mapperFactory.openSession(true)) {
             TalentCenterOperationsMapper mapper = session.getMapper(TalentCenterOperationsMapper.class);
-            assertNotNull(mapper.selectOrder(id, 2L, false));
+            assertNotNull(mapper.selectOrder(id, 2L, null, false));
             assertEquals(0, mapper.updateOrderStatus(id, 2L, false, "1", "3"));
             assertEquals(1, mapper.updateOrderStatus(id, 3L, false, "1", "3"));
-            assertNull(mapper.selectOrder(id, 100L, false));
-            assertEquals("order:" + id, mapper.selectOrder(id, 1L, true).get("sourceRecordId"));
+            assertNull(mapper.selectOrder(id, 100L, null, false));
+            assertEquals("order:" + id, mapper.selectOrder(id, 1L, null, true).get("sourceRecordId"));
         }
     }
     @Test void unpaidNativeOrdersCannotBeManuallyConfirmedEvenByAnAdmin() {
