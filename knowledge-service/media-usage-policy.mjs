@@ -7,6 +7,12 @@ const TEXT = /文字|字幕|汉字|字样|水印|标语|题字|印字|二维码|
 const UNCERTAIN = /不确定|无法|不能|疑似|可能|不清|模糊/;
 const NO_TEXT = /^(?:无|没有|未见|未发现|未检测到|不含|未出现)(?:任何|明显|清晰|可见|可读|后期|原生|画面中|的|[、，\s]|文字|字幕|水印|标识)*[。.]?$/;
 export const usageSourceHash = payload => contentHash(payload.visual_tagging?.baseContent ?? payload.content ?? '');
+export const usageScopeEvidence = content => visualEvidence(String(content).replace(/^\d+(?:\.\d+)?秒\s+画面[:：]/gm, '画面:'));
+export function preserveUsageTextReview(payload, next, previous) {
+  const current = previous?.version === 1 && previous.sourceHash === usageSourceHash(payload);
+  // 专属性重审不覆盖相同素材已有的文字结论及独立抽帧证据。
+  return current ? { ...previous, ...next, hasVisibleText: previous.hasVisibleText } : next;
+}
 export async function readUsageReview(point, directory = '/var/lib/yixianghui-knowledge/media-usage-v1/reviews') {
   if (!/^[a-f0-9-]{36}$/.test(point.id)) return undefined;
   try { return JSON.parse(await fs.readFile(`${directory}/${point.id}.json`, 'utf8')); }

@@ -1,8 +1,7 @@
 import fs from 'node:fs/promises';
 import { QdrantStore } from './service.mjs';
 import { LunaReranker } from './luna.mjs';
-import { visualEvidence } from './visual-tags.mjs';
-import { usageSourceHash, readUsageReview } from './media-usage-policy.mjs';
+import { usageSourceHash, readUsageReview, preserveUsageTextReview, usageScopeEvidence } from './media-usage-policy.mjs';
 import { loadRetiredSources } from './retired-sources.mjs';
 
 const directory = '/var/lib/yixianghui-knowledge/media-usage-v1';
@@ -19,16 +18,17 @@ do {
     ] } }) });
   points.push(...result.points.filter(point => !retired.has(point.payload.source_id))); offset = result.next_page_offset;
 } while (offset);
-const selected = [];
+const selected = [], missingObservations = [];
 for (const point of points) {
   const saved = await readUsageReview(point);
   if (saved?.version === 1 && saved.scopePolicyVersion === 2 && saved.sourceHash === usageSourceHash(point.payload)) continue;
   const content = point.payload.visual_tagging?.baseContent ?? point.payload.content;
-  const observations = visualEvidence(content);
-  if (observations.length) selected.push({ point, input: { id: point.id, observations,
+  const observations = usageScopeEvidence(content);
+  if (!observations.length) missingObservations.push(point.id);
+  if (observations.length) selected.push({ point, saved, input: { id: point.id, observations,
     textEvidence: content.split('\n').filter(line => /^(?:图片文字|画面文字|文字|可见文字|OCR|不确定)[:：]/i.test(line)) } });
 }
-const report = { total: points.length, selected: selected.length, completed: 0, errors: [], startedAt: new Date().toISOString() };
+const report = { total: points.length, selected: selected.length, missingObservations, completed: 0, errors: [], startedAt: new Date().toISOString() };
 let cursor = 0, saving = Promise.resolve();
 async function checkpoint() {
   const snapshot = JSON.stringify(report, null, 2);
@@ -52,10 +52,10 @@ async function worker() {
         } } } }, 'media_usage_classification');
       const items = result.output.items;
       if (items.length !== batch.length || new Set(items.map(item => item.id)).size !== batch.length) throw Error('Incomplete classification');
-      for (const { point } of batch) {
+      for (const { point, saved } of batch) {
         const item = items.find(row => row.id === point.id);
         if (!item || typeof item.exclusive !== 'boolean' || ![true, false, null].includes(item.hasVisibleText) || !item.reason) throw Error('Invalid classification');
-        const review = { ...item, version: 1, scopePolicyVersion: 2, sourceHash: usageSourceHash(point.payload), model: result.model, reviewedAt: new Date().toISOString() };
+        const review = { ...preserveUsageTextReview(point.payload, item, saved), version: 1, scopePolicyVersion: 2, sourceHash: usageSourceHash(point.payload), model: result.model, reviewedAt: new Date().toISOString() };
         await fs.writeFile(`${directory}/reviews/${point.id}.json`, JSON.stringify(review), { mode: 0o600 });
         report.completed++;
       }

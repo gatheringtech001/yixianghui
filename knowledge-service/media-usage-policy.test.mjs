@@ -1,7 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyFileUsagePolicies, applyMediaUsagePolicy, mediaUsagePolicy, usageSourceHash } from './media-usage-policy.mjs';
+import { applyFileUsagePolicies, applyMediaUsagePolicy, mediaUsagePolicy, usageSourceHash, preserveUsageTextReview, usageScopeEvidence } from './media-usage-policy.mjs';
 const payload = content => ({ title: '昆明某基地', content, media: { kind: 'video', fileToken: 'source-token', startSeconds: 30, endSeconds: 60 } });
+test('scope review recognizes timestamped observations without treating source names as visual evidence', () => {
+  assert.deepEqual(usageScopeEvidence('来源: 昆明景点\n0秒 画面: 普通花草。\n33.5秒 画面: 树叶特写。'), ['普通花草', '树叶特写']);
+  assert.deepEqual(usageScopeEvidence('来源: 昆明景点\n语音转写: 普通花草'), []);
+});
+test('scope reclassification preserves existing text conclusions and independent review evidence', () => {
+  const p = payload('画面: 普通小泡池与植物。');
+  for (const hasVisibleText of [true, false, null]) {
+    const previous = { version: 1, sourceHash: usageSourceHash(p), exclusive: true, hasVisibleText, reviewEvidence: 'dense-frames' };
+    const next = preserveUsageTextReview(p, { exclusive: false, hasVisibleText: false, reason: '无地域标志的小泡池' }, previous);
+    assert.equal(next.hasVisibleText, hasVisibleText);
+    assert.equal(next.exclusive, false);
+    assert.equal(next.reviewEvidence, 'dense-frames');
+  }
+  assert.equal(preserveUsageTextReview(p, { hasVisibleText: null }, { version: 1, sourceHash: 'old', hasVisibleText: false }).hasVisibleText, null);
+});
 test('generic plants and bed closeups can be shared, landmarks and rooms cannot', () => {
   for (const text of ['画面: 树叶与花草特写。\n画面文字: 无', '画面: 床铺特写，白色床单和枕头。\n画面文字: 无']) {
     const p = payload(text);
