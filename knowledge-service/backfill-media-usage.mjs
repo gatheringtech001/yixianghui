@@ -11,7 +11,7 @@ const store = new QdrantStore({ url: process.env.QDRANT_URL || 'http://127.0.0.1
   collection: process.env.QDRANT_COLLECTION || 'yixianghui_travel_kb' });
 const route = `/collections/${encodeURIComponent(store.config.collection)}/points`;
 const apply = process.argv.includes('--apply');
-const scopeOnly = process.argv.includes('--scope-only');
+const preserveTextBans = process.argv.includes('--preserve-text-bans');
 const runDirectory = join(directory, 'runs', new Date().toISOString().replace(/[:.]/g, '-') + (apply ? '-apply' : '-plan'));
 await fs.mkdir(runDirectory, { recursive: true, mode: 0o700 });
 const retired = await loadRetiredSources();
@@ -27,14 +27,15 @@ do {
 } while (offset);
 const reviews = new Map(await Promise.all(points.map(async point => [point.id, await readUsageReview(point)])));
 const next = applyFileUsagePolicies(points, reviews);
-if (scopeOnly) for (const point of next) {
+if (preserveTextBans) for (const point of next) {
   const original = points.find(item => item.id === point.id), review = reviews.get(point.id);
   if (review?.scopePolicyVersion !== 2 || review.sourceHash !== usageSourceHash(original.payload)) throw Error(`Missing current scope review: ${point.id}`);
-  if (point.payload.media.usage.hasVisibleText !== original.payload.media.usage?.hasVisibleText
-    || point.payload.media.usage.usable !== original.payload.media.usage?.usable) throw Error(`Scope-only run changed text status: ${point.id}`);
+  if ((point.payload.media.usage.hasVisibleText !== original.payload.media.usage?.hasVisibleText
+    || point.payload.media.usage.usable !== original.payload.media.usage?.usable)
+    && point.payload.media.usage.hasVisibleText !== true) throw Error(`Review weakened text status: ${point.id}`);
 }
 const changes = next.filter(point => !isDeepStrictEqual(point.payload.media, points.find(item => item.id === point.id).payload.media));
-const report = { apply, scopeOnly, runDirectory, startedAt: new Date().toISOString(), total: next.length, changed: changes.length, written: 0,
+const report = { apply, preserveTextBans, runDirectory, startedAt: new Date().toISOString(), total: next.length, changed: changes.length, written: 0,
   exclusive: next.filter(point => point.payload.media.usage.exclusive).length,
   generic: next.filter(point => !point.payload.media.usage.exclusive).length,
   unusable: next.filter(point => point.payload.media.usage.usable === false).length,

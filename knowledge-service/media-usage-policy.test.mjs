@@ -36,6 +36,15 @@ test('subtitles, scene lettering and uncertain lettering cannot be labelled clea
   assert.notEqual(mediaUsagePolicy(payload('画面: 树叶特写，无文字。\n画面文字: 无')).hasVisibleText, true);
   assert.equal(mediaUsagePolicy(payload('画面: 花草。\n不确定: 疑似字幕，无法辨认')).hasVisibleText, null);
 });
+test('explicit unreadable text in uncertainty notes remains unusable even after a clean review', () => {
+  for (const note of ['桌面及其他物品上的文字无法清晰辨认', '床头柜上的小卡片和设备文字过小，无法清晰辨认']) {
+    const p = payload('画面: 普通双床客房。\n不确定: ' + note);
+    assert.equal(mediaUsagePolicy(p, { version: 1, sourceHash: usageSourceHash(p), hasVisibleText: false }).usable, false);
+  }
+  const p = payload('画面: 普通双床客房。\n不确定: 未观察到清晰可读文字；房间用途无法确认。');
+  assert.notEqual(mediaUsagePolicy(p).hasVisibleText, true);
+  assert.equal(mediaUsagePolicy(payload('画面: 客房。\n不确定: 是否有文字无法确认')).hasVisibleText, null);
+});
 test('policy labels preserve visual tags, identity and time range without changing retrieval content', () => {
   const p = payload('画面: 树叶特写。\n画面文字: 无'); p.media.tags = ['树叶'];
   p.media.usageReview = { version: 1, sourceHash: usageSourceHash(p), exclusive: false, reason: '树叶近景' };

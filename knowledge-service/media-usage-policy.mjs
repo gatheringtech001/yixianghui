@@ -24,7 +24,11 @@ export function mediaUsagePolicy(payload = {}, review = payload.media?.usageRevi
   const evidence = visualEvidence(content);
   const textLines = String(content).split('\n').filter(line => /^(?:图片文字|文字|画面文字|可见文字|文字识别|OCR)[:：]/i.test(line))
     .map(line => line.replace(/^[^:：]+[:：]\s*/, '').trim());
-  const textEvidence = [...evidence.filter(line => TEXT.test(line) && !NO_TEXT.test(line)), ...textLines.filter(line => line && !NO_TEXT.test(line)
+  // 无法读出字的内容，不等于没有字；保留观察中的明确文字存在证据。
+  const unreadableText = String(content).split('\n').filter(line => /^不确定[:：]/.test(line)).flatMap(line => line.split(/[。；]/))
+    .filter(line => !/未见|没有|未观察到|未发现|未出现|不含|看不到|是否|疑似|可能/.test(line)
+      && /(?:文字|字幕|印字|汉字|字样)[^。；]{0,32}(?:无法|不能|不清|模糊|过小|太小|辨认|识读|识别)/.test(line));
+  const textEvidence = [...unreadableText, ...evidence.filter(line => TEXT.test(line) && !NO_TEXT.test(line)), ...textLines.filter(line => line && !NO_TEXT.test(line)
     && (!UNCERTAIN.test(line) || /文字|印刷|字幕|汉字|字样|“|”/.test(line)))];
   const reviewed = review?.version === 1 && review.sourceHash === usageSourceHash(payload);
   const absent = /(?:没有看到|未看到|未观察到|未见|没有|不含)(?:任何|明显|清晰|可见|可读)*文字/.test(content);
