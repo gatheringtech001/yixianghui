@@ -1,6 +1,6 @@
 import { pathToFileURL } from 'node:url';
 import { backfillImages } from './backfill-image-index.mjs';
-import { prepareVideoIndex } from './video-index.mjs';
+import { prepareVideoIndex, releaseVideoSource } from './video-index.mjs';
 import { mediaInventory } from './enrich-media-tags.mjs';
 import { QdrantStore, AzureModels, FeishuSource } from './service.mjs';
 import { LunaReranker } from './luna.mjs';
@@ -12,6 +12,8 @@ export const backfillVideos = options => backfillImages({ ...options, kind: 'vid
     const siblings = options.points.filter(p => p.id !== point.id && p.payload.media?.fileToken === point.payload.media?.fileToken);
     const indexedSiblings = [];
     for (const sibling of siblings) indexedSiblings.push(await options.indexer(sibling));
+    // Annotations remain resumable; do not accumulate hundreds of original videos.
+    if (options.releaseFile) await options.releaseFile(point.payload);
     const [next] = applyFileUsagePolicies([prepared, ...indexedSiblings]);
     // Preserve file-level contamination in the shared writer's policy pass.
     return { ...next, fileUsage: next.payload.media.usage };
@@ -31,6 +33,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const points = (await mediaInventory(store)).filter(p => p.payload.media?.kind === 'video');
   const report = await backfillVideos({ store, models, points: points.slice(0, limit), apply: process.argv.includes('--apply'),
     indexer: point => prepareVideoIndex(point, { source, labeler }),
+    releaseFile: payload => releaseVideoSource(payload),
     directory: '/var/lib/yixianghui-knowledge/video-index/runs/' + new Date().toISOString().replaceAll(':', '-'),
   });
   console.log(JSON.stringify(report));

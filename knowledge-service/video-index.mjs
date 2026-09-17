@@ -11,6 +11,7 @@ import { visualEvidence } from './visual-tags.mjs';
 
 const exec = promisify(execFile);
 const textKinds = ['clean', 'natural', 'edited', 'uncertain'];
+const sourceIdentity = payload => contentHash(JSON.stringify([payload.media.fileToken, payload.media.sha256, payload.source_updated_at]));
 const baseContent = payload => payload.visual_tagging?.baseContent ?? payload.media?.videoIndex?.baseContent ?? payload.content;
 export const videoRevision = payload => contentHash(JSON.stringify([payload.media?.fileToken, payload.media?.sha256,
   payload.source_updated_at, payload.media?.startSeconds, payload.media?.endSeconds, baseContent(payload)]));
@@ -42,7 +43,7 @@ export function currentVideoIndex(payload) {
 export async function videoSourceFile(payload, { source, directory, open = openFeishuMedia }) {
   const descriptor = mediaDescriptor({ media: payload.media, sourceUrl: payload.source_url });
   if (!descriptor) throw new Error('Video source cannot be indexed');
-  const identity = contentHash(JSON.stringify([descriptor.token, payload.media.sha256, payload.source_updated_at]));
+  const identity = sourceIdentity(payload);
   await fs.mkdir(directory, { recursive: true, mode: 0o700 });
   const file = join(directory, identity + '.video');
   const hashFile = async () => {
@@ -72,6 +73,10 @@ export async function videoSourceFile(payload, { source, directory, open = openF
     await fs.rename(temporary, file);
     return { file, hash: actual };
   } finally { await fs.rm(temporary, { force: true }); }
+}
+
+export async function releaseVideoSource(payload, directory = '/var/lib/yixianghui-knowledge/video-index') {
+  await fs.rm(join(directory, 'sources', sourceIdentity(payload) + '.video'), { force: true });
 }
 
 export async function extractVideoFrames(payload, options) {
