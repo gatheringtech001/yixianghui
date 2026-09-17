@@ -32,8 +32,10 @@ export async function backfillImages({ store, models, points, indexer, directory
       await store.upsert([{ id: point.id, payload: prepared.payload, vector: { dense, lexical: sparseVector(prepared.payload.media.imageIndex.description) } }]);
       const saved = (await store.api(route, { method: 'POST', body: JSON.stringify({ ids: [point.id], with_payload: true, with_vector: true }) })).result?.[0];
       const actual = saved?.vector?.dense;
+      // This collection uses Cosine: Qdrant normalizes dense vectors on write.
+      const norm = Math.hypot(...dense);
       if (!isDeepStrictEqual(saved?.payload, prepared.payload) || !Array.isArray(actual) || actual.length !== dense.length
-        || actual.some((v, i) => !Number.isFinite(v) || Math.abs(v - dense[i]) > 1e-7 * Math.max(1, Math.abs(dense[i])))) throw new Error('Image index readback mismatch');
+        || actual.some((v, i) => !Number.isFinite(v) || Math.abs(v - dense[i] / norm) > 1e-7)) throw new Error('Image index readback mismatch');
       report.written.push(point.id);
     } catch (error) { report.failed.push({ id: point.id, reason: error.message }); }
     }));
