@@ -39,8 +39,25 @@ class CrmServiceTest
         assertNull(service.resolve("actor","self",false).get("actorUserId"));
         assertEquals(4L,service.resolve("actor","self",false).get("consultantId"));
         assertThrows(TalentCenterApiException.class,()->service.resolve("actor","self",true));
-        assertThrows(TalentCenterApiException.class,()->service.resolve("actor","admin",false));
+        assertEquals(false,service.resolve("actor","admin",false).get("admin"));
+        assertThrows(TalentCenterApiException.class,()->service.resolve("actor","admin",true));
         verifyNoInteractions(operations);
+    }
+    @Test void authenticatedAdminCanManageAcrossOwnersWithoutConsultantBinding() {
+        TalentCenterResourceMapper actors=mock(TalentCenterResourceMapper.class);
+        TalentCenterOperationsMapper operations=mock(TalentCenterOperationsMapper.class);
+        TalentCenterTestViewService test=mock(TalentCenterTestViewService.class);
+        SysUser actor=new SysUser(); actor.setUserId(108L); actor.setUserName("manager");
+        when(actors.selectEnabledActorByActorId("actor")).thenReturn(actor);
+        when(test.activeConsultantId("actor")).thenReturn(null);
+        when(operations.selectConsultantId(108L)).thenReturn(null);
+        CrmAccess service=new CrmAccess(actors,operations,test);
+        assertEquals(true,service.resolve("actor","admin",false).get("admin"));
+        assertEquals(true,service.resolve("actor","admin",true).get("admin"));
+        assertEquals(108L,service.resolve("actor","admin",true).get("auditUserId"));
+        assertThrows(TalentCenterApiException.class,()->service.resolve("actor","self",false));
+        assertThrows(TalentCenterApiException.class,()->service.resolve("unknown","admin",true));
+        assertThrows(TalentCenterApiException.class,()->service.resolve("actor","owner",true));
     }
     @Test void validatesWriteFieldsAndPairedValues() {
         Map<String,Object> input=CrmValues.map("requestId","cfd07cb2-4a18-4f41-afc1-e7065a45bfb7", "content","回访", "method","phone", "occurredAt","2026-09-15T08:00:00Z");

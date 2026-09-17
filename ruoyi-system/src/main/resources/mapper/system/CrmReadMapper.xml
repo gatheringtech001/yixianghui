@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ruoyi.system.mapper.CrmReadMapper">
-  <sql id="scope">c.del_flag = '0' and c.consultant_id = #{consultantId}
+  <sql id="scope">c.del_flag = '0' and (#{admin}=true or c.consultant_id = #{consultantId})
     <if test="customerId != null">and c.customer_id = #{customerId}</if>
   </sql>
   <select id="customers" resultType="java.util.LinkedHashMap">
@@ -120,7 +120,7 @@
         where binary i.income_no=binary concat('FS-',r.source_record_id) and binary r.source_table_id=binary 'tblA33x9gGWM1b51'
         and binary r.source_field_id=binary 'fldL0xSls8' and r.target_business_table='app_customer'
         and r.target_business_id=c.customer_id and r.relation_status='resolved'))
-      and (i.consultant_id=#{consultantId} or (i.consultant_id is null and exists (
+      and (#{admin}=true or i.consultant_id=#{consultantId} or (i.consultant_id is null and exists (
         select 1 from app_feishu_business_relation r where binary i.income_no=binary concat('FS-',r.source_record_id)
         and binary r.source_table_id=binary 'tblA33x9gGWM1b51' and binary r.source_field_id=binary 'fld26vaZVW'
         group by r.source_record_id having count(distinct r.target_business_id) &gt; 1

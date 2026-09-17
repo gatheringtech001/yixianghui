@@ -101,6 +101,16 @@ class CrmPersistenceTest
         assertEquals(12000L,amount.get("totalCents")); assertEquals(2,amount.get("recordCount")); assertEquals(1,amount.get("sharedCount"));
         assertEquals(1,((java.util.List<?>)reads.workspace("actor","self").get("customers")).size());
         assertThrows(TalentCenterApiException.class,()->reads.detail("actor","self","customer:2"));
+        when(access.resolve(eq("admin-actor"),eq("admin"),anyBoolean())).thenAnswer(invocation->map("consultantId",null,"actorUserId",109L,"auditUserId",109L,"actorName","administrator","admin",true,"readOnly",false));
+        assertEquals(2,((java.util.List<?>)reads.workspace("admin-actor","admin").get("customers")).size());
+        assertNotNull(reads.detail("admin-actor","admin","customer:2"));
+        Map<String,Object> adminDetail=reads.detail("admin-actor","admin","customer:1");
+        Map<?,?> adminAmount=(Map<?,?>)((Map<?,?>)adminDetail.get("consumption")).get("eldercare");
+        assertEquals(102000L,adminAmount.get("totalCents"));
+        Map<String,Object> adminInput=map("requestId",UUID.randomUUID().toString(),"content","管理员跨负责人跟进","method","phone","occurredAt","2026-09-17T08:00:00Z");
+        assertEquals(false,tx.execute(s->writes.save("admin-actor","admin","customer:2","followups",null,adminInput)).get("replayed"));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM app_crm_event WHERE customer_id=2 AND actor_user_id=109",Integer.class));
+        assertThrows(TalentCenterApiException.class,()->reads.detail("actor","self","customer:2"));
         new com.fasterxml.jackson.databind.ObjectMapper().writeValue(Paths.get("/tmp/crm-integration-readback.json").toFile(),map("detail",detail,"workspace",reads.workspace("actor","self")));
         System.out.println("CRM isolated database verified: "+database+"; synthetic fixtures retained for inspection.");
     }

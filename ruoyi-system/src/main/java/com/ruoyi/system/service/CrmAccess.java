@@ -18,14 +18,15 @@ public class CrmAccess
 
     public Map<String, Object> resolve(String actorId, String scope, boolean write)
     {
-        if (!"self".equals(scope)) throw new TalentCenterApiException(403, "客户服务仅支持本人范围");
+        if (!"self".equals(scope) && !"admin".equals(scope)) throw new TalentCenterApiException(403, "不支持的数据范围");
         SysUser actor = actors.selectEnabledActorByActorId(actorId);
         if (actor == null) throw new TalentCenterApiException(403, "后台身份尚未关联");
         Long testConsultant = testView.activeConsultantId(actorId);
         if (write && testConsultant != null) throw new TalentCenterApiException(403, "测试视角只读");
         Long consultantId = testConsultant == null ? operations.selectConsultantId(actor.getUserId()) : testConsultant;
-        if (consultantId == null) throw new TalentCenterApiException(403, "尚未关联管家身份");
+        boolean admin = "admin".equals(scope) && testConsultant == null;
+        if (!admin && consultantId == null) throw new TalentCenterApiException(403, "尚未关联管家身份");
         return CrmValues.map("consultantId", consultantId, "actorUserId", testConsultant == null ? actor.getUserId() : null,
-                "auditUserId", actor.getUserId(), "actorName", actor.getUserName(), "admin", false, "readOnly", testConsultant != null);
+                "auditUserId", actor.getUserId(), "actorName", actor.getUserName(), "admin", admin, "readOnly", testConsultant != null);
     }
 }
