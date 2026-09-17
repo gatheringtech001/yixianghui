@@ -119,9 +119,15 @@ export async function prepareVideoIndex(point, options = {}) {
             } } } },
         } } },
       }, 'video_ingestion');
-      const rows = result.output?.frames;
+      let rows = result.output?.frames;
       if (!Array.isArray(rows) || rows.length !== frames.length || rows.some((r, i) => r.time !== frames[i].time)) throw new Error('Incomplete video frame observations');
+      if (rows.some(row => typeof row.description !== 'string' || !Array.isArray(row.tags))) throw new Error('Invalid video frame fields');
+      // Unsupported extra tags must not poison retrieval or discard valid observations.
+      const rejectedTags = rows.flatMap(row => row.tags.filter(tag => typeof tag !== 'string' || !tag.trim() || !row.description.includes(tag))
+        .map(tag => ({ time: row.time, tag })));
+      rows = rows.map(row => ({ ...row, tags: [...new Set(row.tags.filter(tag => typeof tag === 'string' && tag.trim() && row.description.includes(tag)))].slice(0, 12) }));
       fields = { contentHash: hash, frames: rows, description: [...new Set(rows.map(r => r.description))].join('；'),
+        rejectedTags,
         text: rows.some(r => r.text === 'edited') ? 'edited' : rows.some(r => r.text === 'uncertain') ? 'uncertain' : rows.some(r => r.text === 'natural') ? 'natural' : 'clean',
         face: rows.some(r => r.face), evidenceSource: 'original-video-frames', model: result.model || labeler.config.model,
         coverage: 'every 2 seconds plus end frame; sampled evidence, brief events may be missed' };

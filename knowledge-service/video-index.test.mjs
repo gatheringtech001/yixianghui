@@ -77,6 +77,15 @@ test('incomplete or altered frame times cannot be cached as a valid index', asyn
   assert.deepEqual(await fs.readdir(options.directory), []);
 });
 
+test('unsupported model tags are recorded and removed without losing valid frame evidence', async t => {
+  const { options } = await fixture(t); const complete = options.labeler.complete;
+  options.labeler.complete = async body => { const r = await complete(body); r.output.frames[0].tags.push('双床', '麦田'); return r; };
+  const result = await prepareVideoIndex(point(), options);
+  assert.ok(currentVideoIndex(result.payload));
+  assert.deepEqual(result.payload.media.videoIndex.rejectedTags.map(r => r.tag), ['双床', '麦田']);
+  assert.ok(!result.payload.media.tags.includes('双床'));
+});
+
 test('real ffmpeg extraction verifies source bytes and uses private cached files', async t => {
   const { options } = await fixture(t);
   const file = join(options.directory, 'fixture.mp4');
