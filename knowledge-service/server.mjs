@@ -104,13 +104,10 @@ export function createServer(settings = config()) {
       if (request.method === "GET" && request.url === "/health") {
         return reply(response, 200, { ok: true, qdrant: await store.health() });
       }
-      if (request.method === 'POST' && request.url === '/images/retrieve') {
-        if (!authorized(request, settings.apiToken)) return reply(response, 401, { error: 'unauthorized' });
-        return reply(response, 200, await retrieveImages(service, await readBody(request)));
-      }
       if (request.method === "POST" && request.url === "/search") {
         if (!authorized(request, settings.apiToken)) return reply(response, 401, { error: "unauthorized" });
         const body = await readBody(request);
+        if (body.mode === 'images') return reply(response, 200, await retrieveImages(service, body));
         const results = await service.search(body.question, Number(body.limit ?? 8));
         return reply(response, 200, {
           question: body.question, rerankModel: settings.rerank.model, scoreType: "rank_only", results,

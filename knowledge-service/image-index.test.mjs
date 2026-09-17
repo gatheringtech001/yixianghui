@@ -39,3 +39,27 @@ test('query only embeds narration and restricts Qdrant to permitted tokens', asy
   assert.deepEqual(await retrieveImages(service, { queries: ['客房'], tokens: ['abcdefghijklmnop'] }), { rankings: [['abcdefghijklmnop']] });
   await assert.rejects(retrieveImages(service, { queries: ['客房'], tokens: [] }), /Invalid/);
 });
+
+test('image search uses the existing authenticated public search route without reranking', async context => {
+  const { createServer } = await import('./server.mjs');
+  const server = createServer({ models: { baseUrl: 'https://embedding.test' },
+    rerank: { url: 'https://luna.test/chat', model: 'test', apiKey: 'test' },
+    source: {}, qdrant: { url: 'https://qdrant.test', collection: 'test' }, apiToken: 'search-test' });
+  context.after(() => { server.closeAllConnections(); server.close(); });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const realFetch = globalThis.fetch;
+  context.mock.method(globalThis, 'fetch', async (url, options) => {
+    if (String(url).startsWith('http://127.0.0.1')) return realFetch(url, options);
+    if (String(url).includes('embeddings')) return Response.json({ data: [{ index: 0, embedding: [1] }] });
+    assert.match(String(url), /points\/query/);
+    return Response.json({ result: { points: [{ payload: { media: { fileToken: 'token12345' } } }] } });
+  });
+  const query = (body, token = 'search-test') => fetch('http://127.0.0.1:' + server.address().port + '/search', {
+    method: 'POST', headers: { authorization: 'Bearer ' + token }, body: JSON.stringify(body),
+  });
+  const body = { mode: 'images', queries: ['客房'], tokens: ['token12345'] };
+  assert.equal((await query(body, 'wrong')).status, 401);
+  assert.equal((await query({ ...body, tokens: [] })).status, 400);
+  const response = await query(body); assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { rankings: [['token12345']] });
+});
