@@ -58,3 +58,17 @@ test('backfill rejects a changed vector direction despite matching payload', asy
   assert.equal(result.written.length, 0);
   assert.match(result.failed[0].reason, /readback mismatch/);
 });
+
+test('offline backfill honors bounded rate-limit cooldown and never retries other errors', async t => {
+  const directory = await fs.mkdtemp(join(os.tmpdir(), 'image-backfill-'));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const delays = []; let attempts = 0;
+  const options = { apply: true, directory, points: [{ id: 'image1', payload: { media: { kind: 'image' } } }],
+    store: { config: { collection: 'test' } }, delay: async ms => delays.push(ms),
+    indexer: async () => { attempts++; throw Object.assign(new Error('rate limited'), { statusCode: 429, retryAfter: 61 }); } };
+  const result = await backfillImages(options);
+  assert.equal(attempts, 3); assert.deepEqual(delays, [61000, 61000]); assert.equal(result.failed.length, 1);
+  attempts = 0;
+  await backfillImages({ ...options, indexer: async () => { attempts++; throw new Error('invalid original'); } });
+  assert.equal(attempts, 1);
+});

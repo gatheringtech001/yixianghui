@@ -9,8 +9,9 @@ import { applyMediaUsagePolicy } from './media-usage-policy.mjs';
 import { sparseVector } from './lib.mjs';
 import { QdrantStore, AzureModels, FeishuSource } from './service.mjs';
 import { LunaReranker } from './luna.mjs';
+import { setTimeout as wait } from 'node:timers/promises';
 
-export async function backfillImages({ store, models, points, indexer, directory, apply = false, concurrency = 1 }) {
+export async function backfillImages({ store, models, points, indexer, directory, apply = false, concurrency = 1, delay = wait }) {
   if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 6) throw new Error('Invalid backfill concurrency');
   const pending = points.filter(p => p.payload.media?.kind === 'image' && !currentImageIndex(p.payload));
   const report = { total: points.length, pending: pending.length, written: [], failed: [] };
@@ -21,7 +22,17 @@ export async function backfillImages({ store, models, points, indexer, directory
     await Promise.all(pending.slice(offset, offset + concurrency).map(async point => {
     try {
       if (!/^[A-Za-z0-9_-]+$/.test(String(point.id))) throw new Error('Invalid image point identity');
-      const prepared = await indexer(point);
+      let prepared;
+      for (let attempt = 0; ; attempt++) {
+        try { prepared = await indexer(point); break; }
+        catch (error) {
+          const seconds = Number(error.retryAfter || 60);
+          if (error.statusCode !== 429 || attempt >= 2 || !Number.isFinite(seconds) || seconds < 1 || seconds > 120) throw error;
+          // Offline maintenance only; honor the provider cooldown without
+          // turning rate limits into repeated immediate requests.
+          await delay(seconds * 1000);
+        }
+      }
       if (!currentImageIndex(prepared.payload)) throw new Error('Image ingestion returned no current index');
       prepared.payload = applyMediaUsagePolicy(prepared.payload);
       const [dense] = await models.embed([prepared.payload.media.imageIndex.description]);
@@ -54,7 +65,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const labeler = new LunaReranker({ url: process.env.LUNA_RERANK_URL, apiKey: process.env.LUNA_RERANK_KEY, model: process.env.LUNA_RERANK_MODEL });
   const points = await mediaInventory(store);
   const report = await backfillImages({ store, models, points, apply: process.argv.includes('--apply'),
-    concurrency: 3,
+    concurrency: 1,
     indexer: point => prepareImageIndex(point, { source, labeler }),
     directory: '/var/lib/yixianghui-knowledge/image-index/runs/' + new Date().toISOString().replaceAll(':', '-'),
   });
