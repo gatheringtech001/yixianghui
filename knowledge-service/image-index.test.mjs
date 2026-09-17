@@ -15,7 +15,7 @@ test('versioned face evidence upgrades ambiguous legacy faces, not all indexed i
   assert.equal(needsImageIndex(legacy(false)), false);
   assert.equal(needsImageIndex(legacy(true)), true);
   const upgraded = await indexImage(legacy(true), options('natural'));
-  assert.equal(upgraded.media.imageIndex.facePolicyVersion, 1);
+  assert.equal(upgraded.media.imageIndex.facePolicyVersion, 2);
   assert.equal(upgraded.media.imageIndex.prominentFace, false);
   assert.equal(needsImageIndex(upgraded), false);
   const malformed = options('natural');
