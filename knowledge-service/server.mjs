@@ -8,6 +8,7 @@ import { AssetIndex } from "./assets.mjs";
 import { createAssetHandler } from "./assets-http.mjs";
 import { createDirectoryHandler } from "./directory.mjs";
 import { mediaDirectoryPage } from "./media-directory.mjs";
+import { retrieveImages } from './image-retrieval.mjs';
 import {
   AzureModels,
   FeishuSource,
@@ -103,6 +104,10 @@ export function createServer(settings = config()) {
       if (request.method === "GET" && request.url === "/health") {
         return reply(response, 200, { ok: true, qdrant: await store.health() });
       }
+      if (request.method === 'POST' && request.url === '/images/retrieve') {
+        if (!authorized(request, settings.apiToken)) return reply(response, 401, { error: 'unauthorized' });
+        return reply(response, 200, await retrieveImages(service, await readBody(request)));
+      }
       if (request.method === "POST" && request.url === "/search") {
         if (!authorized(request, settings.apiToken)) return reply(response, 401, { error: "unauthorized" });
         const body = await readBody(request);
@@ -126,7 +131,7 @@ export function createServer(settings = config()) {
       return reply(response, 404, { error: "not found" });
     } catch (error) {
       console.error(new Date().toISOString(), error.message);
-      if (error instanceof QuestionInputError || error instanceof SyntaxError) {
+      if (error.status === 400 || error instanceof QuestionInputError || error instanceof SyntaxError) {
         return reply(response, 400, { error: error.message });
       }
       if (error instanceof LunaRerankError) {

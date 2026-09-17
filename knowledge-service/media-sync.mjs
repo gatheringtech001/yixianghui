@@ -5,6 +5,10 @@ import { AzureModels, QdrantStore } from "./service.mjs";
 import { loadRetiredSources } from "./retired-sources.mjs";
 import { readVisualTagRecord, enrichPayload } from './visual-tags.mjs';
 import { applyFileUsagePolicies, applyMediaUsagePolicy, readUsageReview } from './media-usage-policy.mjs';
+import { prepareImageIndex } from './image-index.mjs';
+import { currentImageIndex } from './image-index.mjs';
+import { FeishuSource } from './service.mjs';
+import { LunaReranker } from './luna.mjs';
 
 export function mediaPoints(record, createdAt) {
   if (!record || !/^[A-Za-z0-9:_-]{1,250}$/.test(record.id) || typeof record.text !== "string"
@@ -24,7 +28,11 @@ export function mediaPoints(record, createdAt) {
   }));
 }
 
-export async function syncMedia({ snapshot, store, models, manifestFile, visualTagsDirectory }) {
+export async function syncMedia({ snapshot, store, models, manifestFile, visualTagsDirectory,
+  imageIndexer = point => prepareImageIndex(point, {
+    source: new FeishuSource({ appId: process.env.FEISHU_APP_ID, appSecret: process.env.FEISHU_APP_SECRET }),
+    labeler: new LunaReranker({ url: process.env.LUNA_RERANK_URL, apiKey: process.env.LUNA_RERANK_KEY, model: process.env.LUNA_RERANK_MODEL }),
+  }) }) {
   if (snapshot.version !== 1 || !Array.isArray(snapshot.records) || !Number.isFinite(Date.parse(snapshot.createdAt))) {
     throw new Error("Invalid media snapshot");
   }
@@ -52,9 +60,16 @@ export async function syncMedia({ snapshot, store, models, manifestFile, visualT
       }
       point.payload = applyMediaUsagePolicy(point.payload, policies.get(point.id));
       if (reviews.get(point.id)) point.payload.media.usageReview = reviews.get(point.id);
+      if (point.payload.media.kind === 'image') {
+        if (typeof imageIndexer !== 'function') throw new Error('Image ingestion indexer is required');
+        Object.assign(point, await imageIndexer(point));
+        if (!currentImageIndex(point.payload)) throw new Error('Image ingestion returned no current index');
+        point.text = point.payload.media.imageIndex.description;
+        point.payload = applyMediaUsagePolicy(point.payload);
+      }
     }
     const textHash = contentHash(JSON.stringify(points.map((point) => point.text)));
-    const metadataHash = contentHash(JSON.stringify({ record, usage: points.map(point => point.payload.media.usage) }));
+    const metadataHash = contentHash(JSON.stringify({ record, media: points.map(point => point.payload.media) }));
     const saved = manifest.records[record.id];
     if (saved?.textHash === textHash && saved.metadataHash === metadataHash) continue;
     if (saved?.textHash === textHash) {

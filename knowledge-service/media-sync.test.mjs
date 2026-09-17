@@ -6,10 +6,29 @@ import os from "node:os";
 import { mediaPoints, syncMedia } from "./media-sync.mjs";
 import { contentHash } from './lib.mjs';
 import { visualEvidence } from './visual-tags.mjs';
+import { imageRevision } from './image-index.mjs';
+const imageIndexer = async point => ({ ...point, payload: { ...point.payload, media: { ...point.payload.media,
+  imageIndex: { version: 1, sourceRevision: imageRevision(point.payload), contentHash: 'a'.repeat(64),
+    description: '餐桌和窗户', text: 'clean', face: false },
+} } });
 
 const record = { id: "base:image:hash", title: "基地餐厅", text: "画面中有餐桌和窗户。",
   sourceUrl: "https://vcnnjnb870d6.feishu.cn/docx/doc1", sourceUpdatedAt: "2026-09-05",
   media: { kind: "image", fileToken: "image-token" } };
+
+test('ingestion failure prevents vectors and manifest from being published', async context => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'image-ingestion-fail-'));
+  context.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const manifestFile = path.join(directory, 'manifest.json');
+  for (const imageIndexer of [null, async point => point, async () => { throw new Error('label service unavailable'); }]) {
+    await assert.rejects(syncMedia({ imageIndexer, manifestFile, visualTagsDirectory: directory,
+      snapshot: { version: 1, createdAt: '2026-09-05T00:00:00Z', records: [record] },
+      store: { ensureCollection() { assert.fail('must not publish'); } },
+      models: { embed() { assert.fail('must not embed incomplete labels'); } },
+    }));
+    await assert.rejects(fs.readFile(manifestFile), { code: 'ENOENT' });
+  }
+});
 
 test("media points keep file identity and video timestamps", () => {
   const point = mediaPoints({ ...record, media: { kind: "video", startSeconds: 30, endSeconds: 60 } }, "2026-09-05")[0];
@@ -27,7 +46,7 @@ test('later metadata synchronization preserves verified visual labels', async co
     tags: [{ name: '餐桌', category: 'objects', evidence: 0 }] };
   await fs.writeFile(path.join(directory, `${point.id}.json`), JSON.stringify(annotation));
   const stored = [];
-  const options = { visualTagsDirectory: directory, manifestFile: path.join(directory, 'manifest.json'),
+  const options = { imageIndexer, visualTagsDirectory: directory, manifestFile: path.join(directory, 'manifest.json'),
     store: { config: { collection: 'test' }, async ensureCollection() {}, async upsert(rows) { stored.push(...rows); },
       async deleteIds() {}, async api(route, request) { stored.push(...JSON.parse(request.body).payload.media.tags); } },
     models: { async embed(texts) { return texts.map(() => [1]); } } };
@@ -44,7 +63,7 @@ test("media sync is incremental and missing records are not automatically delete
   context.after(() => fs.rm(directory, { recursive: true, force: true }));
   const points = new Map([["existing-product", {}]]);
   let embeds = 0;
-  const options = { manifestFile: path.join(directory, "manifest.json"),
+  const options = { imageIndexer, manifestFile: path.join(directory, "manifest.json"),
     store: { config: { collection: "test" }, async ensureCollection() {},
       async upsert(rows) { for (const row of rows) points.set(row.id, row); },
       async deleteIds(ids) { for (const id of ids) points.delete(id); }, async api() {} },

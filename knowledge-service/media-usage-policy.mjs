@@ -1,8 +1,9 @@
 import { visualEvidence } from './visual-tags.mjs';
 import { contentHash } from './lib.mjs';
 import fs from 'node:fs/promises';
+import { currentImageIndex } from './image-index.mjs';
 
-const POLICY_TAGS = new Set(['专属', '非专属', '不可用', '无可见文字', '待文字复核']);
+const POLICY_TAGS = new Set(['专属', '非专属', '不可用', '无可见文字', '待文字复核', '现场文字', '无后期字幕', '待入库复核']);
 const TEXT = /文字|字幕|汉字|字样|水印|标语|题字|印字|二维码|文字标识|英文单词|大字|小字|中文|截图|界面|海报/;
 const UNCERTAIN = /不确定|无法|不能|疑似|可能|不清|模糊/;
 const NO_TEXT = /^(?:无|没有|未见|未发现|未检测到|不含|未出现)(?:任何|明显|清晰|可见|可读|后期|原生|画面中|的|[、，\s]|文字|字幕|水印|标识)*[。.]?$/;
@@ -35,20 +36,28 @@ export function mediaUsagePolicy(payload = {}, review = payload.media?.usageRevi
   const hasVisibleText = textEvidence.length || (reviewed && review.hasVisibleText === true) ? true
     : (textLines.some(line => NO_TEXT.test(line)) || absent || (reviewed && review.hasVisibleText === false)) ? false : null;
   const generic = reviewed && review.exclusive === false;
-  return { version: 1, exclusive: !generic, hasVisibleText, usable: hasVisibleText === true ? false : hasVisibleText === false ? true : null,
-    reason: reviewed ? review.reason : '专属性尚未确认，限制在原基地使用',
-    textReason: hasVisibleText === true ? textEvidence.slice(0, 3).join('；') : hasVisibleText === false ? '已有观察明确记录未见文字' : '缺少明确无字结论，出片前必须复核',
-    evidenceSource: 'existing-frame-observations', coverage: payload.media?.sampling || 'source observation only' };
+  const indexed = currentImageIndex(payload);
+  const positive = [...evidence, ...textLines].join('；').replace(/(?:无|没有|未见|不含)(?:任何|明显|后期|可见)*(?:字幕|水印|压字)/g, '');
+  const edited = /字幕|水印|后期压字|文字覆盖|后期贴纸/.test(positive);
+  const postproduction = indexed ? (indexed.text === 'uncertain' ? null : indexed.text === 'edited') : edited ? true : hasVisibleText === false ? false : null;
+  const previous = payload.media?.usage;
+  const manualBlock = (payload.media?.tags || []).includes('人工禁用') || payload.media?.status === 'rejected'
+    || (previous?.usable === false && /人工|版权|未授权|损坏/.test(previous.reason || ''));
+  return { version: 2, exclusive: !generic, hasVisibleText: indexed ? (indexed.text === 'uncertain' ? null : indexed.text !== 'clean') : hasVisibleText,
+    hasPostproductionText: postproduction, usable: manualBlock || postproduction === true ? false : postproduction === false ? true : null,
+    reason: manualBlock ? previous?.reason || '人工禁用' : reviewed ? review.reason : '专属性尚未确认，限制在原基地使用',
+    textReason: indexed ? indexed.text : postproduction === true ? '已有观察记录后期字幕或水印' : postproduction === false ? '已有观察明确记录未见文字' : '后期文字状态未知，待入库复核；不能仅因现场文字禁用',
+    evidenceSource: indexed ? 'ingested-image-v1' : 'existing-frame-observations', coverage: indexed ? 'original image' : payload.media?.sampling || 'source observation only' };
 }
 
 export function applyMediaUsagePolicy(payload, policy = mediaUsagePolicy(payload)) {
   if (!['image', 'video'].includes(payload.media?.kind)) return payload;
   const tags = [...new Set([...(payload.media.tags || payload.asset?.tags || []).filter(tag => !POLICY_TAGS.has(tag)),
-    policy.exclusive ? '专属' : '非专属', policy.usable === false ? '不可用' : policy.hasVisibleText === false ? '无可见文字' : '待文字复核'])];
+    policy.exclusive ? '专属' : '非专属', policy.usable === false ? '不可用' : policy.usable === null ? '待入库复核' : policy.hasVisibleText === false ? '无可见文字' : '现场文字'])];
   return { ...payload, media: { ...payload.media, tags, usage: policy } };
 }
 
-// 同一文件任何片段出现文字都禁用整份素材；混合场景不得当作纯通用空镜。
+// 同一文件的后期字幕污染不能被其他片段掩盖；现场文字不传播禁用。
 export function applyFileUsagePolicies(points, reviews = new Map()) {
   const groups = new Map();
   for (const point of points) {
@@ -58,10 +67,10 @@ export function applyFileUsagePolicies(points, reviews = new Map()) {
     const group = groups.get(key) || []; group.push({ point: reviewedPoint, policy: mediaUsagePolicy(point.payload, review) }); groups.set(key, group);
   }
   return [...groups.values()].flatMap(group => {
-    const text = group.find(item => item.policy.hasVisibleText === true)?.policy;
+    const text = group.find(item => item.policy.hasPostproductionText === true)?.policy;
     const exclusive = group.some(item => item.policy.exclusive);
     return group.map(({ point, policy }) => ({ ...point, payload: applyMediaUsagePolicy(point.payload,
       { ...policy, exclusive, ...(exclusive && !policy.exclusive ? { reason: '同一素材其他片段含专属环境或尚未确认专属性' } : {}),
-        ...(text ? { hasVisibleText: true, usable: false, textReason: text.textReason } : {}) }) }));
+        ...(text ? { hasVisibleText: true, hasPostproductionText: true, usable: false, textReason: text.textReason } : {}) }) }));
   });
 }

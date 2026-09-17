@@ -30,7 +30,8 @@ test('generic plants and bed closeups can be shared, landmarks and rooms cannot'
 test('subtitles, scene lettering and uncertain lettering cannot be labelled clean', () => {
   for (const content of ['画面: 树木，底部白色字幕。', '画面: 床铺。\n画面文字: 欢迎入住', '画面: 墙上有汉字。']) {
     const result = applyMediaUsagePolicy(payload(content));
-    assert.equal(result.media.usage.usable, false); assert.ok(result.media.tags.includes('不可用'));
+    assert.equal(result.media.usage.usable, content.includes('字幕') ? false : null);
+    assert.equal(result.media.tags.includes('不可用'), content.includes('字幕'));
   }
   assert.equal(mediaUsagePolicy(payload('画面: 花草。\n画面文字: 无')).hasVisibleText, false);
   assert.notEqual(mediaUsagePolicy(payload('画面: 树叶特写，无文字。\n画面文字: 无')).hasVisibleText, true);
@@ -39,7 +40,7 @@ test('subtitles, scene lettering and uncertain lettering cannot be labelled clea
 test('explicit unreadable text in uncertainty notes remains unusable even after a clean review', () => {
   for (const note of ['桌面及其他物品上的文字无法清晰辨认', '床头柜上的小卡片和设备文字过小，无法清晰辨认']) {
     const p = payload('画面: 普通双床客房。\n不确定: ' + note);
-    assert.equal(mediaUsagePolicy(p, { version: 1, sourceHash: usageSourceHash(p), hasVisibleText: false }).usable, false);
+    assert.equal(mediaUsagePolicy(p, { version: 1, sourceHash: usageSourceHash(p), hasVisibleText: false }).usable, null);
   }
   const p = payload('画面: 普通双床客房。\n不确定: 未观察到清晰可读文字；房间用途无法确认。');
   assert.notEqual(mediaUsagePolicy(p).hasVisibleText, true);
@@ -53,9 +54,12 @@ test('policy labels preserve visual tags, identity and time range without changi
   assert.ok(result.media.tags.includes('非专属')); assert.ok(result.media.tags.includes('树叶'));
   assert.deepEqual(applyMediaUsagePolicy(result), result);
 });
-test('image lettering and text in any sibling clip block the complete file', () => {
+test('natural lettering does not block siblings but edited subtitles do', () => {
   const p = payload('图片画面: 餐桌。\n图片文字: 标牌写着“温馨提示”，其余文字无法辨认');
   const other = payload('画面: 树木。\n画面文字: 无');
   const result = applyFileUsagePolicies([{ id: 'a', payload: p }, { id: 'b', payload: other }]);
-  assert.ok(result.every(point => point.payload.media.usage.usable === false));
+  assert.equal(result[0].payload.media.usage.usable, null);
+  assert.equal(result[1].payload.media.usage.usable, true);
+  const edited = applyFileUsagePolicies([{ id: 'a', payload: payload('画面: 客房，底部白色字幕。') }, { id: 'b', payload: other }]);
+  assert.ok(edited.every(point => point.payload.media.usage.usable === false));
 });
