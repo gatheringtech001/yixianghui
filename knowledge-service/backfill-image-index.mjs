@@ -10,14 +10,18 @@ import { sparseVector } from './lib.mjs';
 import { QdrantStore, AzureModels, FeishuSource } from './service.mjs';
 import { LunaReranker } from './luna.mjs';
 import { setTimeout as wait } from 'node:timers/promises';
+import { currentVideoIndex } from './video-index.mjs';
 
-export async function backfillImages({ store, models, points, indexer, directory, apply = false, concurrency = 1, delay = wait }) {
+export async function backfillImages({ store, models, points, indexer, directory, apply = false, concurrency = 1, delay = wait, kind = 'image' }) {
+  if (!['image', 'video'].includes(kind)) throw new Error('Invalid backfill kind');
+  const currentIndex = kind === 'video' ? currentVideoIndex : currentImageIndex;
   if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 6) throw new Error('Invalid backfill concurrency');
-  const pending = points.filter(p => p.payload.media?.kind === 'image' && !currentImageIndex(p.payload));
-  const report = { total: points.length, pending: pending.length, written: [], failed: [] };
+  const pending = points.filter(p => p.payload.media?.kind === kind && !currentIndex(p.payload));
+  const report = { total: points.length, pending: pending.length, written: [], failed: [], startedAt: new Date().toISOString() };
   if (!apply) return report;
   await fs.mkdir(directory, { recursive: true, mode: 0o700 });
   const route = '/collections/' + encodeURIComponent(store.config.collection) + '/points';
+  let consecutiveFailures = 0, unsafe = false;
   for (let offset = 0; offset < pending.length; offset += concurrency) {
     await Promise.all(pending.slice(offset, offset + concurrency).map(async point => {
     try {
@@ -27,20 +31,22 @@ export async function backfillImages({ store, models, points, indexer, directory
         try { prepared = await indexer(point); break; }
         catch (error) {
           const seconds = Number(error.retryAfter || 60);
-          if (error.statusCode !== 429 || attempt >= 2 || !Number.isFinite(seconds) || seconds < 1 || seconds > 120) throw error;
+          const status = error.statusCode ?? error.status;
+          if (![429, 502, 503, 504].includes(status) || attempt >= 2 || !Number.isFinite(seconds) || seconds < 1 || seconds > 120) throw error;
           // Offline maintenance only; honor the provider cooldown without
           // turning rate limits into repeated immediate requests.
-          await delay(seconds * 1000);
+          await delay(status === 429 ? seconds * 1000 : 5000 * (attempt + 1));
         }
       }
-      if (!currentImageIndex(prepared.payload)) throw new Error('Image ingestion returned no current index');
-      prepared.payload = applyMediaUsagePolicy(prepared.payload);
-      const [dense] = await models.embed([prepared.payload.media.imageIndex.description]);
+      const index = currentIndex(prepared.payload);
+      if (!index) throw new Error('Media ingestion returned no current index');
+      prepared.payload = applyMediaUsagePolicy(prepared.payload, prepared.fileUsage);
+      const [dense] = await models.embed([index.description]);
       if (!Array.isArray(dense) || dense.length !== store.config.dimensions || !dense.every(Number.isFinite) || !dense.some(v => v !== 0)) throw new Error('Invalid image embedding');
       const current = (await store.api(route, { method: 'POST', body: JSON.stringify({ ids: [point.id], with_payload: true, with_vector: true }) })).result?.[0];
       if (!current || !isDeepStrictEqual(current.payload, point.payload)) throw new Error('Concurrent image source change');
       await fs.writeFile(join(directory, point.id + '.json.gz'), gzipSync(JSON.stringify(current)), { flag: 'wx', mode: 0o600 });
-      await store.upsert([{ id: point.id, payload: prepared.payload, vector: { dense, lexical: sparseVector(prepared.payload.media.imageIndex.description) } }]);
+      await store.upsert([{ id: point.id, payload: prepared.payload, vector: { dense, lexical: sparseVector(index.description) } }]);
       const saved = (await store.api(route, { method: 'POST', body: JSON.stringify({ ids: [point.id], with_payload: true, with_vector: true }) })).result?.[0];
       const actual = saved?.vector?.dense;
       // This collection uses Cosine: Qdrant normalizes dense vectors on write.
@@ -48,11 +54,21 @@ export async function backfillImages({ store, models, points, indexer, directory
       if (!isDeepStrictEqual(saved?.payload, prepared.payload) || !Array.isArray(actual) || actual.length !== dense.length
         || actual.some((v, i) => !Number.isFinite(v) || Math.abs(v - dense[i] / norm) > 1e-7)) throw new Error('Image index readback mismatch');
       report.written.push(point.id);
-    } catch (error) { report.failed.push({ id: point.id, reason: error.message }); }
+      consecutiveFailures = 0;
+    } catch (error) {
+      report.failed.push({ id: point.id, reason: error.message }); consecutiveFailures++;
+      // Never continue after a source race or unverifiable write.
+      if (/Concurrent|readback mismatch|Invalid image embedding/.test(error.message)) unsafe = true;
+    }
     }));
-    await fs.writeFile(join(directory, 'report.json'), JSON.stringify(report), { mode: 0o600 });
-    if (report.failed.length >= 3) break;
+    report.updatedAt = new Date().toISOString();
+    report.stoppedReason = unsafe ? 'write-safety-check' : consecutiveFailures >= 10 ? '10-consecutive-failures' : null;
+    await fs.writeFile(join(directory, 'report.json.next'), JSON.stringify(report), { mode: 0o600 });
+    await fs.rename(join(directory, 'report.json.next'), join(directory, 'report.json'));
+    if (report.stoppedReason) break;
   }
+  report.finishedAt = new Date().toISOString();
+  await fs.writeFile(join(directory, 'report.json'), JSON.stringify(report), { mode: 0o600 });
   return report;
 }
 

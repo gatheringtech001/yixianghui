@@ -9,6 +9,7 @@ import { prepareImageIndex } from './image-index.mjs';
 import { currentImageIndex } from './image-index.mjs';
 import { FeishuSource } from './service.mjs';
 import { LunaReranker } from './luna.mjs';
+import { prepareVideoIndex, currentVideoIndex } from './video-index.mjs';
 
 export function mediaPoints(record, createdAt) {
   if (!record || !/^[A-Za-z0-9:_-]{1,250}$/.test(record.id) || typeof record.text !== "string"
@@ -29,6 +30,10 @@ export function mediaPoints(record, createdAt) {
 }
 
 export async function syncMedia({ snapshot, store, models, manifestFile, visualTagsDirectory,
+  videoIndexer = point => prepareVideoIndex(point, {
+    source: new FeishuSource({ appId: process.env.FEISHU_APP_ID, appSecret: process.env.FEISHU_APP_SECRET }),
+    labeler: new LunaReranker({ url: process.env.LUNA_RERANK_URL, apiKey: process.env.LUNA_RERANK_KEY, model: process.env.LUNA_RERANK_MODEL }),
+  }),
   imageIndexer = point => prepareImageIndex(point, {
     source: new FeishuSource({ appId: process.env.FEISHU_APP_ID, appSecret: process.env.FEISHU_APP_SECRET }),
     labeler: new LunaReranker({ url: process.env.LUNA_RERANK_URL, apiKey: process.env.LUNA_RERANK_KEY, model: process.env.LUNA_RERANK_MODEL }),
@@ -47,6 +52,15 @@ export async function syncMedia({ snapshot, store, models, manifestFile, visualT
   const pending = [];
   const jobs = [];
   const allPoints = snapshot.records.flatMap(record => mediaPoints(record, snapshot.createdAt));
+  const videoPoints = new Map();
+  for (const point of allPoints.filter(p => p.payload.media.kind === 'video')) {
+    if (typeof videoIndexer !== 'function') throw new Error('Video ingestion indexer is required');
+    const labels = await readVisualTagRecord(point.id, visualTagsDirectory);
+    if (labels?.sourceHash === contentHash(point.payload.content)) point.payload = enrichPayload(point.payload, labels);
+    const prepared = await videoIndexer(point);
+    if (!currentVideoIndex(prepared.payload)) throw new Error('Video ingestion returned no current index');
+    videoPoints.set(point.id, prepared);
+  }
   const reviews = new Map(await Promise.all(allPoints.map(async point => [point.id, await readUsageReview(point)])));
   const policies = new Map(applyFileUsagePolicies(allPoints, reviews).map(point => [point.id, point.payload.media.usage]));
   let payloadUpdates = 0;
@@ -66,6 +80,14 @@ export async function syncMedia({ snapshot, store, models, manifestFile, visualT
         if (!currentImageIndex(point.payload)) throw new Error('Image ingestion returned no current index');
         point.text = point.payload.media.imageIndex.description;
         point.payload = applyMediaUsagePolicy(point.payload);
+      }
+      if (point.payload.media.kind === 'video') {
+        const review = point.payload.media.usageReview;
+        Object.assign(point, videoPoints.get(point.id));
+        if (review) point.payload.media.usageReview = review;
+        point.text = point.payload.media.videoIndex.description;
+        const siblings = [...videoPoints.values()].filter(p => p.id !== point.id && p.payload.media?.fileToken === point.payload.media.fileToken);
+        point.payload = applyFileUsagePolicies([point, ...siblings], reviews)[0].payload;
       }
     }
     const textHash = contentHash(JSON.stringify(points.map((point) => point.text)));

@@ -28,7 +28,7 @@ test('backfill is dry by default and verifies float32 vectors after backup', asy
   assert.equal((await backfillImages({ ...options, points: [current], apply: true })).pending, 0);
 });
 
-test('backfill refuses concurrent changes and stops after three failures', async t => {
+test('backfill stops immediately on concurrent source changes', async t => {
   const directory = await fs.mkdtemp(join(os.tmpdir(), 'image-backfill-'));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   let calls = 0;
@@ -39,7 +39,7 @@ test('backfill refuses concurrent changes and stops after three failures', async
     indexer: async point => { calls++; return { ...point, payload: { ...point.payload, media: { ...point.payload.media, imageIndex: {
       version: 1, sourceRevision: imageRevision(point.payload), contentHash: 'a'.repeat(64), description: '客房', text: 'clean', face: false,
     } } } }; } });
-  assert.equal(calls, 3); assert.equal(result.failed.length, 3); assert.equal(result.written.length, 0);
+  assert.equal(calls, 1); assert.equal(result.failed.length, 1); assert.equal(result.written.length, 0);
   assert.match(result.failed[0].reason, /Concurrent/);
 });
 
@@ -59,7 +59,7 @@ test('backfill rejects a changed vector direction despite matching payload', asy
   assert.match(result.failed[0].reason, /readback mismatch/);
 });
 
-test('offline backfill honors bounded rate-limit cooldown and never retries other errors', async t => {
+test('offline backfill honors bounded rate-limit cooldown and never retries validation errors', async t => {
   const directory = await fs.mkdtemp(join(os.tmpdir(), 'image-backfill-'));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   const delays = []; let attempts = 0;
@@ -71,4 +71,27 @@ test('offline backfill honors bounded rate-limit cooldown and never retries othe
   attempts = 0;
   await backfillImages({ ...options, indexer: async () => { attempts++; throw new Error('invalid original'); } });
   assert.equal(attempts, 1);
+});
+
+test('isolated failures do not stop the library; persistent failures stop after ten items', async t => {
+  const directory = await fs.mkdtemp(join(os.tmpdir(), 'backfill-failures-'));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const points = Array.from({ length: 15 }, (_, i) => ({ id: String(i), payload: { media: { kind: 'image' } } }));
+  const stored = new Map(points.map(p => [p.id, p]));
+  const options = { directory, points, apply: true, models: { embed: async () => [[1]] },
+    store: { config: { collection: 'test', dimensions: 1 }, api: async (_, request) => ({ result: JSON.parse(request.body).ids.map(id => stored.get(id)) }),
+      upsert: async rows => rows.forEach(p => stored.set(p.id, p)) },
+    indexer: async p => {
+      if (Number(p.id) % 2 === 0) throw new Error('bad source');
+      return { ...p, payload: { ...p.payload, media: { ...p.payload.media, imageIndex: {
+        version: 1, sourceRevision: imageRevision(p.payload), contentHash: 'a'.repeat(64), description: '客房', text: 'natural', face: false,
+      } } } };
+    } };
+  const result = await backfillImages(options);
+  assert.equal(result.written.length, 7); assert.equal(result.failed.length, 8); assert.equal(result.stoppedReason, null);
+  let calls = 0; const delays = [];
+  const failed = await backfillImages({ ...options, delay: async ms => delays.push(ms),
+    indexer: async () => { calls++; throw Object.assign(new Error('timeout'), { statusCode: 502 }); } });
+  assert.equal(failed.failed.length, 10); assert.equal(calls, 30); assert.equal(failed.stoppedReason, '10-consecutive-failures');
+  assert.deepEqual(delays.slice(0, 2), [5000, 10000]);
 });

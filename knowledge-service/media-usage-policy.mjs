@@ -2,12 +2,13 @@ import { visualEvidence } from './visual-tags.mjs';
 import { contentHash } from './lib.mjs';
 import fs from 'node:fs/promises';
 import { currentImageIndex } from './image-index.mjs';
+import { currentVideoIndex } from './video-index.mjs';
 
 const POLICY_TAGS = new Set(['专属', '非专属', '不可用', '无可见文字', '待文字复核', '现场文字', '无后期字幕', '待入库复核']);
 const TEXT = /文字|字幕|汉字|字样|水印|标语|题字|印字|二维码|文字标识|英文单词|大字|小字|中文|截图|界面|海报/;
 const UNCERTAIN = /不确定|无法|不能|疑似|可能|不清|模糊/;
 const NO_TEXT = /^(?:无|没有|未见|未发现|未检测到|不含|未出现)(?:任何|明显|清晰|可见|可读|后期|原生|画面中|的|[、，\s]|文字|字幕|水印|标识)*[。.]?$/;
-export const usageSourceHash = payload => contentHash(payload.visual_tagging?.baseContent ?? payload.content ?? '');
+export const usageSourceHash = payload => contentHash(payload.visual_tagging?.baseContent ?? payload.media?.videoIndex?.baseContent ?? payload.content ?? '');
 export const usageScopeEvidence = content => visualEvidence(String(content).replace(/^\d+(?:\.\d+)?秒\s+画面[:：]/gm, '画面:'));
 export function preserveUsageTextReview(payload, next, previous) {
   const current = previous?.version === 1 && previous.sourceHash === usageSourceHash(payload);
@@ -36,7 +37,7 @@ export function mediaUsagePolicy(payload = {}, review = payload.media?.usageRevi
   const hasVisibleText = textEvidence.length || (reviewed && review.hasVisibleText === true) ? true
     : (textLines.some(line => NO_TEXT.test(line)) || absent || (reviewed && review.hasVisibleText === false)) ? false : null;
   const generic = reviewed && review.exclusive === false;
-  const indexed = currentImageIndex(payload);
+  const indexed = currentImageIndex(payload) || currentVideoIndex(payload);
   const positive = [...evidence, ...textLines].join('；').replace(/(?:无|没有|未见|不含)(?:任何|明显|后期|可见)*(?:字幕|水印|压字)/g, '');
   const edited = /字幕|水印|后期压字|文字覆盖|后期贴纸/.test(positive);
   const postproduction = indexed ? (indexed.text === 'uncertain' ? null : indexed.text === 'edited') : edited ? true : hasVisibleText === false ? false : null;
@@ -47,7 +48,8 @@ export function mediaUsagePolicy(payload = {}, review = payload.media?.usageRevi
     hasPostproductionText: postproduction, usable: manualBlock || postproduction === true ? false : postproduction === false ? true : null,
     reason: manualBlock ? previous?.reason || '人工禁用' : reviewed ? review.reason : '专属性尚未确认，限制在原基地使用',
     textReason: indexed ? indexed.text : postproduction === true ? '已有观察记录后期字幕或水印' : postproduction === false ? '已有观察明确记录未见文字' : '后期文字状态未知，待入库复核；不能仅因现场文字禁用',
-    evidenceSource: indexed ? 'ingested-image-v1' : 'existing-frame-observations', coverage: indexed ? 'original image' : payload.media?.sampling || 'source observation only' };
+    evidenceSource: indexed ? (payload.media.kind === 'video' ? indexed.evidenceSource : 'ingested-image-v1') : 'existing-frame-observations',
+    coverage: indexed ? (indexed.coverage || 'original image') : payload.media?.sampling || 'source observation only' };
 }
 
 export function applyMediaUsagePolicy(payload, policy = mediaUsagePolicy(payload)) {
