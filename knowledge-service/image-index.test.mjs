@@ -1,14 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { indexImage, currentImageIndex } from './image-index.mjs';
+import { indexImage, currentImageIndex, needsImageIndex } from './image-index.mjs';
 import { mediaUsagePolicy } from './media-usage-policy.mjs';
 import { retrieveImages } from './image-retrieval.mjs';
 const payload = { content: '图片画面: 客房和床头牌', source_url: 'https://vcnnjnb870d6.feishu.cn/docx/abc',
   media: { kind: 'image', fileToken: 'abcdefghijklmnop' } };
 const bytes = Buffer.from([255, 216, 0, 128]);
 const options = text => ({ open: async () => new Response(bytes, { headers: { 'content-type': 'image/jpeg' } }),
-  labeler: { config: { model: 'test' }, complete: async () => ({ output: { description: '客房双床与床头牌', text, face: false } }) } });
+  labeler: { config: { model: 'test' }, complete: async () => ({ output: { description: '客房双床与床头牌', text, face: false, prominentFace: false } }) } });
+test('versioned face evidence upgrades ambiguous legacy faces, not all indexed images', async () => {
+  const next = await indexImage(payload, options('natural'));
+  const legacy = face => ({ ...next, media: { ...next.media, imageIndex: { ...next.media.imageIndex, face, facePolicyVersion: undefined, prominentFace: undefined } } });
+  assert.equal(needsImageIndex(legacy(false)), false);
+  assert.equal(needsImageIndex(legacy(true)), true);
+  const upgraded = await indexImage(legacy(true), options('natural'));
+  assert.equal(upgraded.media.imageIndex.facePolicyVersion, 1);
+  assert.equal(upgraded.media.imageIndex.prominentFace, false);
+  assert.equal(needsImageIndex(upgraded), false);
+  const malformed = options('natural');
+  malformed.labeler.complete = async () => ({ output: { description: '人像', face: true, text: 'clean' } });
+  await assert.rejects(indexImage(payload, malformed), /face policy/);
+});
 test('ingestion binds binary hash, reuses unchanged labels and invalidates changed source', async () => {
   const next = await indexImage(payload, options('natural'));
   assert.equal(next.media.imageIndex.contentHash, createHash('sha256').update(bytes).digest('hex'));

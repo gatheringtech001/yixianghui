@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { isDeepStrictEqual } from 'node:util';
 import { pathToFileURL } from 'node:url';
-import { prepareImageIndex, currentImageIndex } from './image-index.mjs';
+import { prepareImageIndex, currentImageIndex, needsImageIndex } from './image-index.mjs';
 import { mediaInventory } from './enrich-media-tags.mjs';
 import { applyMediaUsagePolicy } from './media-usage-policy.mjs';
 import { sparseVector } from './lib.mjs';
@@ -16,7 +16,7 @@ export async function backfillImages({ store, models, points, indexer, directory
   if (!['image', 'video'].includes(kind)) throw new Error('Invalid backfill kind');
   const currentIndex = kind === 'video' ? currentVideoIndex : currentImageIndex;
   if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 6) throw new Error('Invalid backfill concurrency');
-  const pending = points.filter(p => p.payload.media?.kind === kind && !currentIndex(p.payload));
+  const pending = points.filter(p => p.payload.media?.kind === kind && (kind === 'image' ? needsImageIndex(p.payload) : !currentIndex(p.payload)));
   const report = { total: points.length, pending: pending.length, written: [], failed: [], startedAt: new Date().toISOString() };
   if (!apply) return report;
   await fs.mkdir(directory, { recursive: true, mode: 0o700 });
