@@ -6,19 +6,34 @@ import { QdrantStore, AzureModels, FeishuSource } from './service.mjs';
 import { LunaReranker } from './luna.mjs';
 import { applyFileUsagePolicies } from './media-usage-policy.mjs';
 
-export const backfillVideos = options => backfillImages({ ...options, kind: 'video', concurrency: 1,
+export const backfillVideos = options => {
+  // Each source is prepared once per maintenance run, not once per sibling.
+  const files = new Map();
+  const groups = new Map();
+  for (const point of options.points) {
+    const key = point.payload.media?.fileToken || point.id;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(point);
+  }
+  return backfillImages({ ...options, kind: 'video', concurrency: 1,
   indexer: async point => {
-    const prepared = await options.indexer(point);
-    const siblings = options.points.filter(p => p.id !== point.id && p.payload.media?.fileToken === point.payload.media?.fileToken);
-    const indexedSiblings = [];
-    for (const sibling of siblings) indexedSiblings.push(await options.indexer(sibling));
-    // Annotations remain resumable; do not accumulate hundreds of original videos.
-    if (options.releaseFile) await options.releaseFile(point.payload);
-    const [next] = applyFileUsagePolicies([prepared, ...indexedSiblings]);
+    const key = point.payload.media?.fileToken || point.id;
+    if (!files.has(key)) files.set(key, (async () => {
+      const prepared = [];
+      for (const sibling of groups.get(key)) prepared.push(await options.indexer(sibling));
+      if (options.releaseFile) await options.releaseFile(point.payload);
+      return new Map(applyFileUsagePolicies(prepared).map(item => [item.id, item]));
+    })().catch(error => {
+      // Allow bounded provider retries; deterministic corrupt sources are not retried for every sibling.
+      if ([429, 502, 503, 504].includes(error.statusCode ?? error.status)) files.delete(key);
+      throw error;
+    }));
+    const next = (await files.get(key)).get(point.id);
     // Preserve file-level contamination in the shared writer's policy pass.
     return { ...next, fileUsage: next.payload.media.usage };
   },
-});
+  });
+};
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const store = new QdrantStore({ url: process.env.QDRANT_URL || 'http://127.0.0.1:6333', apiKey: process.env.QDRANT_API_KEY,

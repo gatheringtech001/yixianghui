@@ -99,6 +99,24 @@ test('real ffmpeg extraction verifies source bytes and uses private cached files
   await assert.rejects(extractVideoFrames(p, { directory: join(options.directory, 'sources'), open: async () => new Response(bytes) }), /checksum/);
 });
 
+test('audio extending past the last video frame does not request nonexistent frames', async t => {
+  const { options } = await fixture(t);
+  const file = join(options.directory, 'audio-tail.mp4');
+  execFileSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'color=c=blue:s=64x64:d=1',
+    '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono', '-t', '2.2', '-c:v', 'libx264', '-c:a', 'aac', '-y', file]);
+  const bytes = await fs.readFile(file); const p = point();
+  p.payload.media.startSeconds = 0; p.payload.media.endSeconds = 2.2;
+  const extraction = { directory: join(options.directory, 'sources'), open: async () => new Response(bytes) };
+  const result = await extractVideoFrames(p.payload, extraction);
+  assert.ok(result.frames.every(frame => frame.time < 1));
+  assert.equal(result.sampleEndSeconds, 1);
+  const indexed = await prepareVideoIndex(p, { ...options, extract: async () => result });
+  assert.ok(currentVideoIndex(indexed.payload));
+  assert.equal(indexed.payload.media.videoIndex.sampleEndSeconds, 1);
+  p.payload.media.startSeconds = 1.5;
+  await assert.rejects(extractVideoFrames(p.payload, extraction), /no video frames/);
+});
+
 test('video backfill writes and verifies vectors then resumes without duplicate vision', async t => {
   const { options, calls } = await fixture(t); let stored = point();
   const store = { config: { collection: 'test', dimensions: 2 }, api: async () => ({ result: [structuredClone(stored)] }),
@@ -128,12 +146,15 @@ test('all sibling evidence is prepared before publication; a later subtitle bloc
   const first = point();
   const second = point('画面: 湖泊，底部白色字幕。'); second.id = 'test2'; second.payload.media.startSeconds = 8; second.payload.media.endSeconds = 10;
   const saved = new Map([first, second].map(p => [p.id, p]));
+  let preparations = 0, releases = 0;
   const report = await backfillVideos({ apply: true, directory: join(options.directory, 'run'), points: [first, second],
-    indexer: p => prepareVideoIndex(p, options), models: { embed: async () => [[1]] },
+    indexer: p => { preparations++; return prepareVideoIndex(p, options); }, releaseFile: async () => { releases++; }, models: { embed: async () => [[1]] },
     store: { config: { collection: 'test', dimensions: 1 }, api: async (_, r) => ({ result: JSON.parse(r.body).ids.map(id => saved.get(id)) }),
       upsert: async rows => rows.forEach(p => saved.set(p.id, p)) } });
   assert.deepEqual(report.failed, []); assert.equal(report.written.length, 2);
   assert.ok([...saved.values()].every(p => p.payload.media.usage.usable === false));
+  assert.equal(preparations, 2);
+  assert.equal(releases, 1);
 });
 
 test('new video synchronization publishes once and reuses persisted observations', async t => {
