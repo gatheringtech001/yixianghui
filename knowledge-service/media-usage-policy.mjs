@@ -38,6 +38,7 @@ export function mediaUsagePolicy(payload = {}, review = payload.media?.usageRevi
     : (textLines.some(line => NO_TEXT.test(line)) || absent || (reviewed && review.hasVisibleText === false)) ? false : null;
   const generic = reviewed && review.exclusive === false;
   const indexed = currentImageIndex(payload) || currentVideoIndex(payload);
+  const noFrames = indexed?.evidenceSource === 'video-stream-boundary';
   const positive = [...evidence, ...textLines].join('；').replace(/(?:无|没有|未见|不含)(?:任何|明显|后期|可见)*(?:字幕|水印|压字)/g, '');
   const edited = /字幕|水印|后期压字|文字覆盖|后期贴纸/.test(positive);
   const postproduction = indexed ? (indexed.text === 'uncertain' ? null : indexed.text === 'edited') : edited ? true : hasVisibleText === false ? false : null;
@@ -45,8 +46,8 @@ export function mediaUsagePolicy(payload = {}, review = payload.media?.usageRevi
   const manualBlock = (payload.media?.tags || []).includes('人工禁用') || payload.media?.status === 'rejected'
     || (previous?.usable === false && /人工|版权|未授权|损坏/.test(previous.reason || ''));
   return { version: 2, exclusive: !generic, hasVisibleText: indexed ? (indexed.text === 'uncertain' ? null : indexed.text !== 'clean') : hasVisibleText,
-    hasPostproductionText: postproduction, usable: manualBlock || postproduction === true ? false : postproduction === false ? true : null,
-    reason: manualBlock ? previous?.reason || '人工禁用' : reviewed ? review.reason : '专属性尚未确认，限制在原基地使用',
+    hasPostproductionText: postproduction, usable: manualBlock || noFrames || postproduction === true ? false : postproduction === false ? true : null,
+    reason: manualBlock ? previous?.reason || '人工禁用' : noFrames ? '片段无视频画面，不可用于混剪' : reviewed ? review.reason : '专属性尚未确认，限制在原基地使用',
     textReason: indexed ? indexed.text : postproduction === true ? '已有观察记录后期字幕或水印' : postproduction === false ? '已有观察明确记录未见文字' : '后期文字状态未知，待入库复核；不能仅因现场文字禁用',
     evidenceSource: indexed ? (payload.media.kind === 'video' ? indexed.evidenceSource : 'ingested-image-v1') : 'existing-frame-observations',
     coverage: indexed ? (indexed.coverage || 'original image') : payload.media?.sampling || 'source observation only' };

@@ -114,7 +114,38 @@ test('audio extending past the last video frame does not request nonexistent fra
   assert.ok(currentVideoIndex(indexed.payload));
   assert.equal(indexed.payload.media.videoIndex.sampleEndSeconds, 1);
   p.payload.media.startSeconds = 1.5;
-  await assert.rejects(extractVideoFrames(p.payload, extraction), /no video frames/);
+  const tail = await extractVideoFrames(p.payload, extraction);
+  assert.deepEqual(tail.frames, []);
+  assert.equal(tail.videoDurationSeconds, 1);
+  const blocked = await prepareVideoIndex(p, { ...options, extract: async () => tail });
+  assert.ok(currentVideoIndex(blocked.payload));
+  assert.equal(applyMediaUsagePolicy(blocked.payload).media.usage.usable, false);
+  assert.equal(applyMediaUsagePolicy(blocked.payload).media.usage.hasPostproductionText, null);
+  assert.deepEqual(blocked.payload.media.tags, []);
+  assert.equal(currentVideoIndex({ ...blocked.payload, media: { ...blocked.payload.media,
+    videoIndex: { ...blocked.payload.media.videoIndex, videoDurationSeconds: 2 } } }), null);
+});
+
+test('audio-only sibling is explicitly blocked without losing valid siblings or subtitle bans', async t => {
+  for (const subtitles of [false, true]) {
+    const { options, calls } = await fixture(t);
+    const first = point('画面: 湖泊，没有字幕。');
+    const tail = point(); tail.id = 'tail'; tail.payload.media.startSeconds = 10; tail.payload.media.endSeconds = 12;
+    const points = [first, tail];
+    if (subtitles) { const edited = point('画面: 湖泊，底部白色字幕。'); edited.id = 'edited'; points.push(edited); }
+    const extract = options.extract;
+    options.extract = async payload => payload.media.startSeconds === 10
+      ? { hash: 'a'.repeat(64), frames: [], videoDurationSeconds: 9 } : extract(payload);
+    const saved = new Map(points.map(p => [p.id, p]));
+    const report = await backfillVideos({ apply: true, directory: join(options.directory, 'run'), points,
+      indexer: p => prepareVideoIndex(p, options), models: { embed: async () => [[1]] },
+      store: { config: { collection: 'test', dimensions: 1 }, api: async (_, r) => ({ result: JSON.parse(r.body).ids.map(id => saved.get(id)) }),
+        upsert: async rows => rows.forEach(p => saved.set(p.id, p)) } });
+    assert.deepEqual(report.failed, []); assert.equal(report.written.length, points.length);
+    assert.equal(saved.get('test1').payload.media.usage.usable, !subtitles);
+    assert.equal(saved.get('tail').payload.media.usage.usable, false);
+    assert.equal(calls(), 1);
+  }
 });
 
 test('video backfill writes and verifies vectors then resumes without duplicate vision', async t => {
