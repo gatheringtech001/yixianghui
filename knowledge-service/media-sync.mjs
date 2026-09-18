@@ -48,48 +48,69 @@ export async function syncMedia({ snapshot, store, models, manifestFile, visualT
   let manifest = { version: 1, records: {} };
   try { manifest = JSON.parse(await fs.readFile(manifestFile, "utf8")); }
   catch (error) { if (error.code !== "ENOENT") throw error; }
+  manifest.failures = manifest.failures && typeof manifest.failures === 'object' ? manifest.failures : {};
   if (manifest.createdAt && snapshot.createdAt < manifest.createdAt) throw new Error("Stale media snapshot");
   const pending = [];
   const jobs = [];
+  const sourceHash = record => contentHash(JSON.stringify(record));
   const allPoints = snapshot.records.flatMap(record => mediaPoints(record, snapshot.createdAt));
+  const recordByPoint = new Map(snapshot.records.flatMap(record =>
+    mediaPoints(record, snapshot.createdAt).map(point => [point.id, record.id])));
+  const ingestionFailures = new Map();
+  const failRecord = (point, error) => {
+    const recordId = recordByPoint.get(point.id);
+    if (!recordId || ingestionFailures.has(recordId)) return;
+    ingestionFailures.set(recordId, error instanceof Error ? error.message : String(error));
+  };
   const videoPoints = new Map();
   for (const point of allPoints.filter(p => p.payload.media.kind === 'video')) {
-    if (typeof videoIndexer !== 'function') throw new Error('Video ingestion indexer is required');
-    const labels = await readVisualTagRecord(point.id, visualTagsDirectory);
-    if (labels?.sourceHash === contentHash(point.payload.content)) point.payload = enrichPayload(point.payload, labels);
-    const prepared = await videoIndexer(point);
-    if (!currentVideoIndex(prepared.payload)) throw new Error('Video ingestion returned no current index');
-    videoPoints.set(point.id, prepared);
+    try {
+      if (typeof videoIndexer !== 'function') throw new Error('Video ingestion indexer is required');
+      const labels = await readVisualTagRecord(point.id, visualTagsDirectory);
+      if (labels?.sourceHash === contentHash(point.payload.content)) point.payload = enrichPayload(point.payload, labels);
+      const prepared = await videoIndexer(point);
+      if (!currentVideoIndex(prepared.payload)) throw new Error('Video ingestion returned no current index');
+      videoPoints.set(point.id, prepared);
+    } catch (error) { failRecord(point, error); }
   }
-  const reviews = new Map(await Promise.all(allPoints.map(async point => [point.id, await readUsageReview(point)])));
+  const reviews = new Map(await Promise.all(allPoints.map(async point => {
+    try { return [point.id, await readUsageReview(point)]; }
+    catch (error) { failRecord(point, error); return [point.id, undefined]; }
+  })));
   const policies = new Map(applyFileUsagePolicies(allPoints, reviews).map(point => [point.id, point.payload.media.usage]));
   let payloadUpdates = 0;
   for (const record of snapshot.records) {
+    if (ingestionFailures.has(record.id)) continue;
     const points = mediaPoints(record, snapshot.createdAt);
-    for (const point of points) {
-      const labels = await readVisualTagRecord(point.id, visualTagsDirectory);
-      if (labels?.sourceHash === contentHash(point.payload.content)) {
-        point.payload = enrichPayload(point.payload, labels);
-        point.text = point.payload.content;
+    try {
+      for (const point of points) {
+        const labels = await readVisualTagRecord(point.id, visualTagsDirectory);
+        if (labels?.sourceHash === contentHash(point.payload.content)) {
+          point.payload = enrichPayload(point.payload, labels);
+          point.text = point.payload.content;
+        }
+        point.payload = applyMediaUsagePolicy(point.payload, policies.get(point.id));
+        if (reviews.get(point.id)) point.payload.media.usageReview = reviews.get(point.id);
+        if (point.payload.media.kind === 'image') {
+          if (typeof imageIndexer !== 'function') throw new Error('Image ingestion indexer is required');
+          Object.assign(point, await imageIndexer(point));
+          if (!currentImageIndex(point.payload)) throw new Error('Image ingestion returned no current index');
+          point.text = point.payload.media.imageIndex.description;
+          point.payload = applyMediaUsagePolicy(point.payload);
+        }
+        if (point.payload.media.kind === 'video') {
+          const review = point.payload.media.usageReview;
+          const indexed = videoPoints.get(point.id);
+          if (!indexed) throw new Error('Video ingestion index is unavailable');
+          Object.assign(point, indexed);
+          if (review) point.payload.media.usageReview = review;
+          point.text = point.payload.media.videoIndex.description;
+          const siblings = [...videoPoints.values()].filter(p => p.id !== point.id && p.payload.media?.fileToken === point.payload.media.fileToken);
+          point.payload = applyFileUsagePolicies([point, ...siblings], reviews)[0].payload;
+        }
       }
-      point.payload = applyMediaUsagePolicy(point.payload, policies.get(point.id));
-      if (reviews.get(point.id)) point.payload.media.usageReview = reviews.get(point.id);
-      if (point.payload.media.kind === 'image') {
-        if (typeof imageIndexer !== 'function') throw new Error('Image ingestion indexer is required');
-        Object.assign(point, await imageIndexer(point));
-        if (!currentImageIndex(point.payload)) throw new Error('Image ingestion returned no current index');
-        point.text = point.payload.media.imageIndex.description;
-        point.payload = applyMediaUsagePolicy(point.payload);
-      }
-      if (point.payload.media.kind === 'video') {
-        const review = point.payload.media.usageReview;
-        Object.assign(point, videoPoints.get(point.id));
-        if (review) point.payload.media.usageReview = review;
-        point.text = point.payload.media.videoIndex.description;
-        const siblings = [...videoPoints.values()].filter(p => p.id !== point.id && p.payload.media?.fileToken === point.payload.media.fileToken);
-        point.payload = applyFileUsagePolicies([point, ...siblings], reviews)[0].payload;
-      }
-    }
+    } catch (error) { failRecord(points[0], error); continue; }
+    delete manifest.failures[record.id];
     const textHash = contentHash(JSON.stringify(points.map((point) => point.text)));
     const metadataHash = contentHash(JSON.stringify({ record, media: points.map(point => point.payload.media) }));
     const saved = manifest.records[record.id];
@@ -98,12 +119,13 @@ export async function syncMedia({ snapshot, store, models, manifestFile, visualT
       for (const point of points) await store.api(`/collections/${store.config.collection}/points/payload?wait=true`, {
         method: "POST", body: JSON.stringify({ points: [point.id], payload: point.payload }),
       });
-      manifest.records[record.id] = { ...saved, metadataHash };
+      manifest.records[record.id] = { ...saved, sourceHash: sourceHash(record), metadataHash };
       payloadUpdates++;
       continue;
     }
     pending.push(...points);
-    jobs.push({ id: record.id, textHash, metadataHash, pointIds: points.map((point) => point.id), end: pending.length });
+    jobs.push({ id: record.id, sourceHash: sourceHash(record), textHash, metadataHash,
+      pointIds: points.map((point) => point.id), end: pending.length });
   }
   await store.ensureCollection();
   let completed = 0;
@@ -111,6 +133,12 @@ export async function syncMedia({ snapshot, store, models, manifestFile, visualT
     await fs.writeFile(`${manifestFile}.next`, JSON.stringify(manifest), { mode: 0o600 });
     await fs.rename(`${manifestFile}.next`, manifestFile);
   };
+  const failedAt = new Date().toISOString();
+  for (const [id, error] of ingestionFailures) {
+    const record = snapshot.records.find(item => item.id === id);
+    manifest.failures[id] = { error, failedAt, sourceHash: record ? sourceHash(record) : undefined };
+  }
+  if (ingestionFailures.size) await save();
   for (let offset = 0; offset < pending.length; offset += 16) {
     const batch = pending.slice(offset, offset + 16);
     const vectors = await models.embed(batch.map((point) => point.text));
@@ -121,7 +149,8 @@ export async function syncMedia({ snapshot, store, models, manifestFile, visualT
       const job = jobs[completed++];
       const prior = manifest.records[job.id]?.pointIds ?? [];
       await store.deleteIds(prior.filter((id) => !job.pointIds.includes(id)));
-      manifest.records[job.id] = { textHash: job.textHash, metadataHash: job.metadataHash, pointIds: job.pointIds };
+      manifest.records[job.id] = { sourceHash: job.sourceHash, textHash: job.textHash,
+        metadataHash: job.metadataHash, pointIds: job.pointIds };
     }
     await save();
   }
@@ -136,7 +165,13 @@ export async function syncMedia({ snapshot, store, models, manifestFile, visualT
   manifest.createdAt = snapshot.createdAt;
   await save();
   return { records: snapshot.records.length, indexedPoints: pending.length, changedRecords: completed,
-    payloadUpdates, retiredRecords, missingCandidates: missingCandidates.length, failures: snapshot.failures?.length ?? 0 };
+    payloadUpdates, retiredRecords, missingCandidates: missingCandidates.length,
+    failures: (snapshot.failures?.length ?? 0) + ingestionFailures.size, failedRecords: [...ingestionFailures.keys()] };
+}
+
+export function assertMediaIngestionComplete(result) {
+  if (result.failures) throw new Error(`Media ingestion incomplete: ${result.failures} record(s) failed`);
+  return result;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -149,4 +184,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       apiVersion: process.env.AZURE_OPENAI_API_VERSION, embeddingModel: process.env.AZURE_EMBEDDING_MODEL }),
   });
   console.log(JSON.stringify(result));
+  assertMediaIngestionComplete(result);
 }

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { mediaPoints, syncMedia } from "./media-sync.mjs";
+import { assertMediaIngestionComplete, mediaPoints, syncMedia } from "./media-sync.mjs";
 import { contentHash } from './lib.mjs';
 import { visualEvidence } from './visual-tags.mjs';
 import { imageRevision } from './image-index.mjs';
@@ -21,13 +21,48 @@ test('ingestion failure prevents vectors and manifest from being published', asy
   context.after(() => fs.rm(directory, { recursive: true, force: true }));
   const manifestFile = path.join(directory, 'manifest.json');
   for (const imageIndexer of [null, async point => point, async () => { throw new Error('label service unavailable'); }]) {
-    await assert.rejects(syncMedia({ imageIndexer, manifestFile, visualTagsDirectory: directory,
+    const result = await syncMedia({ imageIndexer, manifestFile, visualTagsDirectory: directory,
       snapshot: { version: 1, createdAt: '2026-09-05T00:00:00Z', records: [record] },
-      store: { ensureCollection() { assert.fail('must not publish'); } },
+      store: { async ensureCollection() {}, async deleteIds() {} },
       models: { embed() { assert.fail('must not embed incomplete labels'); } },
-    }));
-    await assert.rejects(fs.readFile(manifestFile), { code: 'ENOENT' });
+    });
+    assert.equal(result.failures, 1);
+    assert.deepEqual(result.failedRecords, [record.id]);
+    const manifest = JSON.parse(await fs.readFile(manifestFile, 'utf8'));
+    assert.match(manifest.failures[record.id].error, /indexer|required|unavailable|current index/i);
+    assert.equal(manifest.records[record.id], undefined);
   }
+});
+
+test('one failed new asset does not block other assets and succeeds on retry', async context => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'media-ingestion-retry-'));
+  context.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const manifestFile = path.join(directory, 'manifest.json');
+  const second = { ...record, id: 'base:image:second', title: '基地花园', media: { kind: 'image', fileToken: 'image-token-two' } };
+  const stored = []; let failFirst = true;
+  const options = { manifestFile, visualTagsDirectory: directory,
+    imageIndexer: async point => {
+      if (point.payload.source_id === `media:${record.id}` && failFirst) throw new Error('temporary label failure');
+      return imageIndexer(point);
+    },
+    store: { config: { collection: 'test' }, async ensureCollection() {}, async upsert(rows) { stored.push(...rows); },
+      async deleteIds() {}, async api() {} },
+    models: { async embed(texts) { return texts.map(() => [0.1]); } },
+  };
+  const first = await syncMedia({ ...options, snapshot: { version: 1, createdAt: '2026-09-05T00:00:00Z', records: [record, second] } });
+  assert.equal(first.failures, 1); assert.equal(first.changedRecords, 1);
+  assert.equal(stored[0].payload.source_id, `media:${second.id}`);
+  failFirst = false;
+  const retry = await syncMedia({ ...options, snapshot: { version: 1, createdAt: '2026-09-05T00:00:00Z', records: [record, second] } });
+  assert.equal(retry.failures, 0); assert.equal(retry.changedRecords, 1);
+  const manifest = JSON.parse(await fs.readFile(manifestFile, 'utf8'));
+  assert.equal(manifest.failures[record.id], undefined);
+  assert.ok(manifest.records[record.id]); assert.ok(manifest.records[second.id]);
+});
+
+test('production publication cannot report success while ingestion has failed records', () => {
+  assert.throws(() => assertMediaIngestionComplete({ failures: 1 }), /ingestion incomplete/i);
+  assert.deepEqual(assertMediaIngestionComplete({ failures: 0, changedRecords: 2 }), { failures: 0, changedRecords: 2 });
 });
 
 test("media points keep file identity and video timestamps", () => {
