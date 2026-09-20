@@ -107,7 +107,7 @@ export function createServer(settings = config()) {
       if (request.method === "POST" && request.url === "/search") {
         if (!authorized(request, settings.apiToken)) return reply(response, 401, { error: "unauthorized" });
         const body = await readBody(request);
-        if (body.mode === 'images') return reply(response, 200, await retrieveImages(service, body));
+        if (['images', 'media'].includes(body.mode)) return reply(response, 200, await retrieveImages(service, body));
         const results = await service.search(body.question, Number(body.limit ?? 8));
         return reply(response, 200, {
           question: body.question, rerankModel: settings.rerank.model, scoreType: "rank_only", results,
