@@ -1,5 +1,11 @@
 @import 'EducationConfirmOrder.scss';
 
+.form-guide { color: #766b60; font-size: 27rpx; line-height: 1.7; margin-top: 16rpx; }
+.free-label { color: #701018; font-size: 36rpx; font-weight: 600; }
+button.pay_button_view { margin: 0; padding: 0; line-height: normal; font-size: 30rpx; }
+button.pay_button_view::after { border: none; }
+button.pay_button_view[disabled] { opacity: .65; color: #fff; }
+
 .notice_text {
 	display: grid;
 	gap: 16rpx;

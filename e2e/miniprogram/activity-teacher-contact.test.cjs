@@ -85,13 +85,16 @@ test('failed confirmation cannot show a QR or consume the pending success prompt
 
 function signup(result, error) {
   const dialogs = [], navigations = [], notices = []
-  const {page} = loadPage('packagesMall/Activity/detail/index.vue', {
-    sharePageMixin: {}, AuthProfilePopup: {}, getActivityPhase: () => 'applying',
+  const {page} = loadPage('packagesMall/ConfirmOrder/ActivityConfirmOrder.vue', {
+    getActivityPhase: () => 'applying',
     addActivityOrder: async () => { if (error) throw error; return result },
     uni: {getStorageSync: () => ({}), showModal: o => dialogs.push(o),
-      navigateTo: o => navigations.push(o.url), showToast: o => notices.push(o.title)}
+      redirectTo: o => navigations.push(o.url), showToast: o => notices.push(o.title)}
   })
-  page.detailInfo = {activityId: 8, isFree: 1, maxCount: 10}
+  page.activityDetail = {activityId: 8, isFree: 1, maxCount: 10, status: '1'}
+  page.signName = '合成测试报名人'
+  page.signMobile = '13800138000'
+  page.agreedNotice = true
   page.activityId = 8
   page.getDetail = () => {}
   page.loadBookingState = () => {}
@@ -99,19 +102,15 @@ function signup(result, error) {
 }
 
 test('free signup navigates the returned reservation to the teacher success prompt', async () => {
-  const {page, dialogs, navigations} = signup({data: booking})
-  page.apply()
-  dialogs[0].success({confirm: true, content: '1'})
-  await flush()
+  const {page, navigations} = signup({code: 200, data: booking})
+  await page.submitOrder()
   assert.deepEqual(navigations, ['/packagesMember/MyActivity/detail/index?orderId=27&showTeacher=1'])
 })
 
 test('failed or malformed free signup never navigates to a successful reservation', async () => {
   for (const error of [undefined, Error('报名失败')]) {
-    const {page, dialogs, navigations, notices} = signup({data: {}}, error)
-    page.apply()
-    dialogs[0].success({confirm: true, content: '1'})
-    await flush()
+    const {page, navigations, notices} = signup({code: 200, data: {}}, error)
+    await page.submitOrder()
     assert.equal(navigations.length, 0)
     assert.ok(notices.length > 0)
   }

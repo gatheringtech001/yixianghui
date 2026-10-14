@@ -103,7 +103,7 @@
 </template>
 
 <script>
-	import { getActivityInfo, getActivityOrderList, addActivityOrder } from '@/api/activity/index'
+	import { getActivityInfo, getActivityOrderList } from '@/api/activity/index'
 	import { goodsCollect, deleteCollect, goodsCollectList } from '@/api/member/index'
 	import { parseInvitePageOptions } from '@/utils/invite'
 	import sharePageMixin from '@/utils/sharePageMixin'
@@ -313,51 +313,8 @@
 					}, 2000)
 					return
 				}
-				if (!this.isActivityFree(this.detailInfo)) {
-					uni.navigateTo({
-						url: `/packagesMall/ConfirmOrder/ActivityConfirmOrder?id=${this.detailInfo.activityId}`
-					})
-					return
-				}
-				let _this = this
-				uni.showModal({
-					title: '活动预约确认',
-					content: '',
-					placeholderText: '请输入报名人数',
-					editable: true,
-					confirmText: '确定报名',
-					cancelText: '取消',
-					success: res => {
-						if (res.confirm) {
-							const signCount = parseInt(res.content, 10)
-							if (!signCount || signCount < 1) {
-								uni.showToast({
-									icon: 'none',
-									title: '请输入有效报名人数'
-								})
-								return
-							}
-							let params = {
-								activityId: _this.detailInfo.activityId,
-								signCount: signCount
-							}
-							addActivityOrder(params).then(result => {
-								const order = result && result.data
-								if (!order || !order.orderId) throw new Error('报名结果缺少预约编号，请到我的预约查看')
-								_this.activeActivityOrder = order
-								_this.getDetail(_this.activityId)
-								_this.loadBookingState()
-								uni.navigateTo({
-									url: `/packagesMember/MyActivity/detail/index?orderId=${order.orderId}&showTeacher=1`
-								})
-							}).catch(err => {
-								uni.showToast({
-									icon: 'none',
-									title: (err && err.message) || '报名失败'
-								})
-							})
-						}
-					}
+				uni.navigateTo({
+					url: `/packagesMall/ConfirmOrder/ActivityConfirmOrder?id=${this.detailInfo.activityId}`
 				})
 			}
 		}

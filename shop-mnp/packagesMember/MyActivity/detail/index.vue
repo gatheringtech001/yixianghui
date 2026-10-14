@@ -29,11 +29,11 @@
 				<view class="sign-card">
 					<text class="card-title">预约详情</text>
 					<view class="sign-row" v-if="!isEdit">
-						<text class="sign-label">联系人</text>
+						<text class="sign-label">报名联系人</text>
 						<text class="sign-value">{{ signForm.signName || '-' }}</text>
 					</view>
 					<view class="sign-row" v-else>
-						<text class="sign-label">联系人</text>
+						<text class="sign-label">报名联系人</text>
 						<u-input class="sign-input" type="text" v-model="signForm.signName" border />
 					</view>
 					<view class="sign-row">

@@ -32,25 +32,28 @@
 						</view>
 						<view class="info-item">
 							<text class="info-label">剩余名额</text>
-							<text class="info-value">{{ remainCount }} / {{ activityDetail.maxCount || 0 }}</text>
+							<text class="info-value">{{ activityDetail.maxCount ? remainCount + ' / ' + activityDetail.maxCount : '不限人数' }}</text>
 						</view>
 					</view>
 				</view>
 
 				<view class="form-card">
 					<view class="card-title">报名信息</view>
+					<view class="form-guide">请填写实际联系人的姓名、手机号和参与人数，方便活动组织方确认报名。</view>
 					<view class="form-row">
-						<view class="row-label">联系人</view>
-						<u-input v-model="signName" type="text" border placeholder="请输入报名姓名" />
+						<view class="row-label">报名联系人（必填）</view>
+						<u-input v-model="signName" @input="contactEdited.name = true" type="text" maxlength="30" border placeholder="请输入实际联系人的姓名" />
+						<view class="row-hint">默认带入个人资料中的昵称，请核对或修改为实际联系人。</view>
 					</view>
 					<view class="form-row">
-						<view class="row-label">联系电话</view>
-						<u-input v-model="signMobile" type="number" maxlength="11" border placeholder="请输入手机号" />
+						<view class="row-label">联系电话（必填）</view>
+						<u-input v-model="signMobile" @input="contactEdited.mobile = true" type="number" maxlength="11" border placeholder="请输入11位手机号码" />
 						<view class="row-hint">方便活动组织方与您联系确认</view>
 					</view>
 					<view class="form-row">
-						<view class="row-label">参与人数</view>
+						<view class="row-label">参与人数（必填）</view>
 						<u-number-box v-model="signCount" :min="1" :max="maxSignCount" :step="1" />
+						<view class="row-hint">包含您本人；如替他人报名，请填写实际参与总人数。</view>
 					</view>
 					<view class="form-row">
 						<view class="row-label">备注</view>
@@ -67,7 +70,11 @@
 					</view>
 				</view>
 
-				<view class="price-card">
+				<view v-if="isFreeSignup" class="price-card">
+					<view class="card-title">免费报名</view>
+					<view class="form-guide">本次报名无需在小程序付款。如活动介绍另有行程费、定金等说明，请按介绍联系活动组织方确认。</view>
+				</view>
+				<view v-else class="price-card">
 					<view class="card-title">费用明细</view>
 					<view class="price-list">
 						<view class="price-item">
@@ -93,19 +100,25 @@
 
 		<view class="page_foot_view" v-if="activityDetail">
 			<view class="foot_price_view">
-				<view class="price_view">
+				<view v-if="isFreeSignup" class="free-label">免费报名</view>
+				<view v-else class="price_view">
 					￥<text>{{ payAmountText }}</text>
 				</view>
-				<view class="text_view">应付金额</view>
+				<view class="text_view">{{ isFreeSignup ? '无需小程序付款' : '应付金额' }}</view>
 			</view>
-			<view class="pay_button_view" @click="submitOrder">提交报名</view>
+			<button class="pay_button_view" :disabled="submitting || signupSubmitted" :loading="submitting" @click="submitOrder">{{ submitting ? '正在提交' : '确认报名' }}</button>
 		</view>
 
 		<u-popup v-model="noticePopup.show" @touchmove.stop.prevent mode="bottom" border-radius="20" :closeable="true">
 			<view class="notice_popup_view">
 				<view class="notice_title_view">活动报名须知</view>
 				<scroll-view scroll-y class="notice_content_view">
-					<view class="notice_text">
+					<view v-if="isFreeSignup" class="notice_text">
+						<text>1. 请确认报名联系人、联系电话和参与人数准确，以便活动组织方联系您。</text>
+						<text>2. 本次为免费报名，不进入小程序付款流程；活动介绍中另行说明的费用请联系活动组织方确认。</text>
+						<text>3. 报名成功后可在「我的预约」查看、修改或取消预约，并查看活动客服二维码。</text>
+					</view>
+					<view v-else class="notice_text">
 						<text>1. 提交报名后将生成待支付订单，请在规定时间内完成支付。</text>
 						<text>2. 报名成功后请保持手机畅通，活动组织方可能会与您联系确认。</text>
 						<text>3. 如需取消待支付订单，可在「我的活动」中操作。</text>
@@ -118,7 +131,8 @@
 </template>
 
 <script>
-	import { getActivityInfo, createActivityPendingOrder } from '@/api/activity/index'
+	import { getActivityInfo, addActivityOrder, createActivityPendingOrder } from '@/api/activity/index'
+	import { getInfo } from '@/api/public'
 	import { getActivityPhase } from '@/utils/activityPhase'
 
 	export default {
@@ -133,12 +147,18 @@
 				signCount: 1,
 				remark: '',
 				agreedNotice: false,
+				submitting: false,
+				signupSubmitted: false,
+				contactEdited: { name: false, mobile: false },
 				noticePopup: {
 					show: false
 				}
 			}
 		},
 		computed: {
+			isFreeSignup() {
+				return this.isActivityFree(this.activityDetail)
+			},
 			coverUrl() {
 				if (!this.activityDetail || !this.activityDetail.activityCover) {
 					return '/static/home-design/entry-stay.jpg'
@@ -148,6 +168,7 @@
 				return this.host + cover
 			},
 			unitPrice() {
+				if (this.isFreeSignup) return 0
 				if (!this.activityDetail) return 0
 				const vipPrice = Number(this.activityDetail.vipPrice)
 				const price = Number(this.activityDetail.price)
@@ -222,11 +243,21 @@
 					this.pageScrollHeight = windowInfo.windowHeight - footH
 				})
 			},
-			prefillContactInfo() {
-				const userInfo = uni.getStorageSync('userInfo')
-				if (!userInfo) return
-				this.signName = userInfo.nickName || ''
-				this.signMobile = userInfo.phonenumber || userInfo.mobile || ''
+			async prefillContactInfo() {
+				this.applyContactDefaults(uni.getStorageSync('userInfo'))
+				try {
+					const res = await getInfo()
+					if (res && res.code === 200 && !this.submitting && !this.signupSubmitted) this.applyContactDefaults(res.data)
+				} catch (_) {
+					// 获取失败仍可使用缓存或手动填写，不阻止报名。
+				}
+			},
+			applyContactDefaults(userInfo) {
+				if (!userInfo || typeof userInfo !== 'object') return
+				const name = String(userInfo.nickName || '').trim()
+				const mobile = String(userInfo.phonenumber || userInfo.mobile || '').trim()
+				if (!this.contactEdited.name && name && name !== '微信小程序用户') this.signName = name
+				if (!this.contactEdited.mobile && /^1[3-9]\d{9}$/.test(mobile)) this.signMobile = mobile
 			},
 			formatMoney(value) {
 				const num = Number(value)
@@ -241,18 +272,6 @@
 			loadActivityDetail(id) {
 				getActivityInfo(id).then(res => {
 					const data = res.data || {}
-					if (this.isActivityFree(data)) {
-						uni.showToast({
-							icon: 'none',
-							title: '免费活动请直接报名'
-						})
-						setTimeout(() => {
-							uni.redirectTo({
-								url: `/packagesMall/Activity/detail/index?id=${id}`
-							})
-						}, 1500)
-						return
-					}
 					this.activityDetail = data
 					this.$nextTick(() => {
 						this.setPageScrollHeight()
@@ -281,24 +300,28 @@
 				if (phase === 'closed') {
 					return '报名已截止'
 				}
-				if (!this.signName.trim()) {
-					return '请输入报名姓名'
+				if (!String(this.signName || '').trim()) {
+					return '请填写报名联系人姓名'
 				}
-				if (!/^1\d{10}$/.test(String(this.signMobile).trim())) {
-					return '请输入正确号码'
+				if (String(this.signName).trim().length > 30) return '联系人姓名不能超过30个字'
+				if (!/^1[3-9]\d{9}$/.test(String(this.signMobile).trim())) {
+					return '请填写正确的11位手机号码'
 				}
-				if (!this.signCount || this.signCount < 1) {
-					return '请填写报名人数'
+				if (!Number.isInteger(Number(this.signCount)) || Number(this.signCount) < 1) {
+					return '参与人数请填写大于0的整数'
 				}
+				if (this.activityDetail.maxCount && Number(this.remainCount) < Number(this.signCount)) return '剩余名额不足，请调整参与人数'
+				if (Number(this.signCount) > this.maxSignCount) return '参与人数超出本次可报名人数'
 				if (!this.agreedNotice) {
 					return '请阅读并同意活动报名须知'
 				}
-				if (this.payAmount <= 0) {
+				if (!this.isFreeSignup && this.payAmount <= 0) {
 					return '活动价格未配置'
 				}
 				return ''
 			},
-			submitOrder() {
+			async submitOrder() {
+				if (this.submitting || this.signupSubmitted) return
 				const errorText = this.validateForm()
 				if (errorText) {
 					uni.showToast({
@@ -307,39 +330,37 @@
 					})
 					return
 				}
-				this.$u.throttle(() => {
+				this.submitting = true
+				try {
 					const params = {
 						activityId: this.activityDetail.activityId,
 						signName: this.signName.trim(),
 						signMobile: String(this.signMobile).trim(),
-						signCount: this.signCount,
-						remark: this.remark.trim()
+						signCount: Number(this.signCount),
+						remark: String(this.remark || '').trim()
 					}
-					createActivityPendingOrder(params).then(res => {
-						const order = res.data || {}
-						if (!order.orderId) {
-							uni.showToast({
-								title: res.msg || '订单创建失败',
-								icon: 'none'
-							})
-							return
-						}
-						uni.showToast({
-							icon: 'none',
-							title: '报名订单创建成功'
+					const res = await (this.isFreeSignup ? addActivityOrder(params) : createActivityPendingOrder(params))
+					const order = (res && res.data) || {}
+					if (!res || res.code !== 200 || !order.orderId) throw new Error((res && res.msg) || '报名未成功，请到我的预约核对后重试')
+					this.signupSubmitted = true
+					if (this.isFreeSignup) {
+						uni.redirectTo({
+							url: `/packagesMember/MyActivity/detail/index?orderId=${order.orderId}&showTeacher=1`,
+							fail: () => uni.showToast({ icon: 'none', title: '报名成功，请到我的预约查看' })
 						})
-						setTimeout(() => {
-							uni.redirectTo({
-								url: `/packagesMall/CashierDesk/ActivityCashierDesk?orderAmount=${order.moneyPayable}&orderId=${order.orderId}&orderNo=${order.orderNo}`
-							})
-						}, 1200)
-					}).catch((err) => {
-						uni.showToast({
-							title: (err && err.message) || '订单创建失败',
-							icon: 'none'
+						return
+					}
+					uni.showToast({ icon: 'none', title: '报名订单创建成功' })
+					setTimeout(() => {
+						uni.redirectTo({
+							url: `/packagesMall/CashierDesk/ActivityCashierDesk?orderAmount=${order.moneyPayable}&orderId=${order.orderId}&orderNo=${order.orderNo}`
 						})
-					})
-				}, 500)
+					}, 1200)
+				} catch (err) {
+					uni.showToast({ title: (err && err.message) || '报名失败，请重试', icon: 'none' })
+				} finally {
+					this.submitting = false
+				}
 			}
 		}
 	}
