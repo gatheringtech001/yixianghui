@@ -35,3 +35,18 @@ test('brand color and key touch targets are consistent and readable', () => {
   assert.match(read('packagesMall/cart/cart.scss'), /min-width:\s*44px/)
   assert.match(read('packagesMall/cart/cart.scss'), /min-height:\s*44px/)
 })
+
+test('activity introduction stacks its heading above full-width rich text without changing metadata rows', () => {
+  const style = read('packagesMall/Activity/detail/index.scss')
+  const description = style.match(/\.activity-description\s*\{([^}]+)\}/)[1]
+  const content = style.match(/\.description-content\s*\{([^}]+)\}/)[1]
+  assert.match(style, /\.activity-progress-head,\s*\.activity-field\s*\{[^}]*grid-template-columns:\s*200rpx 1fr/)
+  assert.match(description, /grid-template-columns:\s*minmax\(0,\s*1fr\)/)
+  assert.match(content, /grid-column:\s*1\s*\/\s*-1/)
+  assert.match(content, /justify-self:\s*stretch/)
+  assert.match(content, /min-width:\s*0/)
+  assert.match(content, /(?:^|\s)width:\s*100%/)
+  assert.match(content, /max-width:\s*100%/)
+  assert.doesNotMatch(content, /grid-column:\s*2\s*;|justify-self:\s*end/)
+  assert.match(read('packagesMall/Activity/detail/index.vue'), /class="activity-field activity-description"[\s\S]*活动详情介绍[\s\S]*class="description-content"[\s\S]*<u-parse :html="detailInfo.content"/)
+})

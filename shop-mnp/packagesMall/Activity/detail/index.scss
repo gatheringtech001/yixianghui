@@ -207,13 +207,16 @@ $page-paper: #ffffff;
 }
 
 .activity-description {
+	grid-template-columns: minmax(0, 1fr);
 	align-items: start;
 }
 
 .description-content {
-	grid-column: 2;
-	justify-self: end;
+	grid-column: 1 / -1;
+	justify-self: stretch;
+	min-width: 0;
 	width: 100%;
+	max-width: 100%;
 	color: #444444;
 	font-size: 30rpx;
 	line-height: 1.65;
