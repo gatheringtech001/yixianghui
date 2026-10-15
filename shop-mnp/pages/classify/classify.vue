@@ -75,7 +75,10 @@
 			</scroll-view>
 			<scroll-view
 				class="body_goods_view"
+				:key="navbarSelect + ':' + goodsCatrgorySelect + ':' + searchKeyword"
 				scroll-y
+				@scrolltolower="loadMoreCards"
+				lower-threshold="200"
 				:show-scrollbar="false"
 				:style="scrollViewStyle"
 			>
@@ -85,8 +88,8 @@
 						<view class="hero-title">线下小班课程报名</view>
 						<text class="hero-desc">每门课程每周一次，一学期共10次课。线下授课，小班授课（≤18人）。招满10人开班，2026年9月开课。报名时间为2026年06月23日起至课程开课。</text>
 					</view>
-					<view class="stay-card" v-for="(item, index) in goodsList" :key="index" @click="goodsFn(item)">
-						<image :src="mediaUrl(item.image)" mode="aspectFill" />
+					<view class="stay-card" v-for="item in visibleGoodsList" :key="item.goodsId" @click="goodsFn(item)">
+						<image :src="mediaUrl(item.image)" mode="aspectFill" lazy-load @error="onCatalogImageError(item.image)" />
 						<view class="listing-body">
 							<view class="card-title">{{ item.goodsName }}</view>
 							<view class="meta" v-if="item.summary">{{ item.summary }}</view>
@@ -107,8 +110,8 @@
 					<view class="goods_empty_view" v-if="!loading && isListEmpty">
 						<text class="goods_empty_text">{{ emptyListText }}</text>
 					</view>
-					<view class="stay-card travel-card" v-for="(item, index) in goodsList" :key="index" @click="goodsFn(item)">
-						<image :src="mediaUrl(item.image)" mode="aspectFill" />
+					<view class="stay-card travel-card" v-for="item in visibleGoodsList" :key="item.goodsId" @click="goodsFn(item)">
+						<image :src="mediaUrl(item.image)" mode="aspectFill" lazy-load @error="onCatalogImageError(item.image)" />
 						<view class="listing-body">
 							<view class="card-title">{{ item.goodsName }}</view>
 							<view class="meta" v-if="item.listingSummary">{{ item.listingSummary }}</view>
@@ -126,10 +129,10 @@
 					<view class="goods_empty_view" v-if="!loading && isListEmpty">
 						<text class="goods_empty_text">{{ emptyListText }}</text>
 					</view>
-					<view class="listing-card" v-for="item in activityList" :key="item.activityId" @click.stop="activityDetailFn(item)">
+					<view class="listing-card" v-for="item in visibleActivityList" :key="item.activityId" @click.stop="activityDetailFn(item)">
 						<image
 							v-if="item.activityCover && !item._coverFailed"
-							:src="host + item.activityCover"
+							:src="mediaUrl(item.activityCover)"
 							mode="aspectFill"
 							lazy-load
 							@error="onActivityCoverError(item)"
@@ -198,13 +201,12 @@
 		loadAdImageUrl
 	} from '@/utils/adAsset'
 	import {
-		getGoodsCatrgorys,
-		getGoodsList
-	} from '@/api/shop/index'
-	import {
-		getActivityList,
-		getActivityCategoryList
-	} from '@/api/activity/index'
+		getCatalogCategories as getGoodsCatrgorys,
+		getCatalogGoods as getGoodsList,
+		getCatalogActivities as getActivityList,
+		getCatalogActivityCategories as getActivityCategoryList
+	} from '@/utils/catalogRequests'
+	import { catalogImageUrl, catalogImageKey } from '@/utils/catalogImage'
 	import { parseCourseMeta } from '@/utils/courseMeta'
 	import { compactListingText } from '@/utils/travelPresentation'
 	import {
@@ -219,6 +221,8 @@
 			AuthProfilePopup,
 		},
 		computed: {
+			visibleGoodsList() { return this.goodsList.slice(0, this.visibleCardCount) },
+			visibleActivityList() { return this.activityList.slice(0, this.visibleCardCount) },
 			currentNavbarItem() {
 				return this.navbarList.find(v => v.categoryId == this.navbarSelect) || null
 			},
@@ -236,7 +240,7 @@
 			},
 			isYunnanGoodsTab() {
 				const item = this.currentNavbarItem
-				return !!(item && String(item.categoryName || '').trim() === '云南好物')
+				return !!(item && ['云南好物', '云野好物'].includes(String(item.categoryName || '').trim()))
 			},
 			isYunnanPreparing() { return this.isYunnanGoodsTab },
 			isListEmpty() {
@@ -265,6 +269,9 @@
 		data() {
 			return {
 				host: this.$host,
+				visibleCardCount: 12,
+				failedCatalogImages: {},
+				contentRequestId: 0,
 				loading: false,
 				siteData: null,
 				navbarList: [],
@@ -314,7 +321,7 @@
 			if (requestedCategoryName) {
 				uni.removeStorageSync('currentClsName')
 				const requested = this.navbarList.find(item => (
-					String(item.categoryName || '').trim() === String(requestedCategoryName).trim()
+					String(item.categoryName || '').trim().replace('云野好物', '云南好物') === String(requestedCategoryName).trim()
 				))
 				if (requested) {
 					this.applyNavbarItem(requested)
@@ -397,13 +404,20 @@
 			}
 		},
 		methods: {
+			loadMoreCards() {
+				this.visibleCardCount = Math.max(12, Math.min(this.visibleCardCount + 12, Math.max(this.goodsList.length, this.activityList.length)))
+			},
+			onCatalogImageError(path) {
+				const key = catalogImageKey(path, this.host)
+				if (!this.failedCatalogImages[key]) this.$set(this.failedCatalogImages, key, true)
+			},
 			openCart() {
 				if (this.isYunnanPreparing) return
 				runWithAuth(this, ok => { if (ok) uni.navigateTo({url:'/packagesMall/cart/cart'}) })
 			},
 			mediaUrl(path) {
 				if (!path) return ''
-				return /^https?:\/\//.test(path) ? path : this.host + path
+				return catalogImageUrl(path, this.host, this.failedCatalogImages)
 			},
 			getShareConfig() {
 				const item = this.currentNavbarItem
@@ -505,6 +519,12 @@
 			},
 			onActivityCoverError(item) {
 				if (!item) return
+				const key = catalogImageKey(item.activityCover, this.host)
+				const originalUrl = /^https?:\/\//.test(item.activityCover) ? item.activityCover : this.host + item.activityCover
+				if (!this.failedCatalogImages[key] && this.mediaUrl(item.activityCover) !== originalUrl) {
+					this.onCatalogImageError(item.activityCover)
+					return
+				}
 				this.$set(item, '_coverFailed', true)
 			},
 			switchToTravel() {
@@ -548,7 +568,7 @@
 			},
 			switchToYunnanGoods() {
 				if (this.isYunnanGoodsTab) return
-				const item = this.navbarList.find(v => String(v.categoryName || '').trim() === '云南好物')
+				const item = this.navbarList.find(v => ['云南好物', '云野好物'].includes(String(v.categoryName || '').trim()))
 				if (item) this.applyNavbarItem(item)
 			},
 			async syncSiteDisplay() {
@@ -583,6 +603,10 @@
 				}
 			},
 			applyNavbarItem(item, keepSearch = false) {
+				this.contentRequestId += 1
+				this.visibleCardCount = 12
+				this.goodsList = []
+				this.activityList = []
 				this.navbarSelect = item.categoryId
 				this.goodsCatrgorySelect = 0
 				this.loading = false
@@ -612,6 +636,7 @@
 				this.applyNavbarItem(data)
 			},
 			async getGoodsCatrgoryFn(id) {
+				const requestId = this.contentRequestId
 				this.goodsCatrgoryList = []
 				if (this.isYunnanPreparing) { this.goodsList = []; this.loading = false; return }
 				try {
@@ -625,6 +650,7 @@
 							getGoodsList({ categoryId: id, ignoreSite: true })
 						])
 						: [await categoryRequest, null]
+					if (requestId !== this.contentRequestId || String(id) !== String(this.navbarSelect)) return
 					let categoryRows = categoryResponse.data || []
 					if (this.isTravelTab) {
 						this.travelGoodsRows = (goodsResponse.data || []).filter(isVisibleTravelGoods)
@@ -661,6 +687,7 @@
 					}
 					this.getGoodsListFn()
 				} catch (err) {
+					if (requestId !== this.contentRequestId) return
 					console.log('getGoodsCatrgorys', err)
 					this.goodsCatrgoryList = [{
 						categoryId: 0,
@@ -672,13 +699,16 @@
 				}
 			},
 			getActivityCategoryFn(parentId) {
+				const requestId = this.contentRequestId
 				this.goodsCatrgoryList = []
 				getActivityCategoryList({
 					parentId: parentId || 0
 				}).then(res => {
+					if (requestId !== this.contentRequestId) return
 					this.goodsCatrgoryList = this.buildActivitySideList(res.data)
 					this.getActivityListFn()
 				}).catch(err => {
+					if (requestId !== this.contentRequestId) return
 					console.log('getActivityCategoryList', err)
 					this.goodsCatrgoryList = this.buildActivitySideList([])
 					this.getActivityListFn()
@@ -696,6 +726,7 @@
 			getGoodsListFn() {
 				if (this.isYunnanPreparing) { this.goodsList = []; this.loading = false; return }
 				if (!this.navbarSelect) return
+				const requestId = ++this.contentRequestId
 				this.loading = true
 				const categoryId = this.goodsCatrgorySelect == 0
 					? this.navbarSelect
@@ -720,19 +751,23 @@
 					return
 				}
 				getGoodsList(params).then(res => {
+					if (requestId !== this.contentRequestId) return
 					this.goodsList = []
 					;(res.data || []).filter(isVisibleCatalogGoods).forEach((item) => {
 						this.goodsList.push(this.buildGoodsListItem(item))
 					})
 				}).catch(err => {
+					if (requestId !== this.contentRequestId) return
 					console.log('getGoodsList', err)
 					this.goodsList = []
 				}).finally(() => {
+					if (requestId !== this.contentRequestId) return
 					this.loading = false
 					this.setBodyScrollHeight()
 				})
 			},
 			getActivityListFn() {
+				const requestId = ++this.contentRequestId
 				this.loading = true
 				const params = {
 					status: 1
@@ -752,16 +787,20 @@
 				}
 				getActivityList(params)
 					.then(res => {
+						if (requestId !== this.contentRequestId) return
 						this.activityList = res.rows || []
 					}).catch(err => {
+						if (requestId !== this.contentRequestId) return
 						console.log('getActivityList', err)
 						this.activityList = []
 					}).finally(() => {
+						if (requestId !== this.contentRequestId) return
 						this.loading = false
 						this.setBodyScrollHeight()
 					})
 			},
 			menuFn(data) {
+				this.visibleCardCount = 12
 				this.searchKeyword = ''
 				this.goodsCatrgorySelect = data.categoryId
 				this.loadContentList()

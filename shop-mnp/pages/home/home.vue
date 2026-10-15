@@ -42,7 +42,7 @@
 				>
 					<swiper-item v-for="item in recommendations" :key="item.key">
 						<view class="recommendation-card" @click="openRecommendation(item)">
-							<image class="recommendation-image" :src="mediaUrl(item.image)" mode="aspectFill" />
+							<image class="recommendation-image" :src="mediaUrl(item.image)" mode="aspectFill" @error="onCatalogImageError(item.image)" />
 							<view class="recommendation-shade"></view>
 							<view class="recommendation-copy">
 								<text class="recommendation-section">{{ item.section }}</text>
@@ -119,7 +119,7 @@
 							:class="{ active: selectedCityIndex === index }"
 							@click="changeSiteHandle(item, index)"
 						>
-							<image class="city-image" :src="getCityImageUrl(item)" mode="aspectFill" />
+							<image class="city-image" :src="getCityImageUrl(item)" mode="aspectFill" lazy-load @error="onCatalogImageError(item.adImage)" />
 							<text class="city-name">{{ item.adName }}</text>
 						</view>
 					</swiper-item>
@@ -139,7 +139,7 @@
 							:data-goods-type="goods.goodsType || ''"
 							@tap.stop="goProdDetail"
 						>
-							<image class="product-cover" :src="host + goods.goodsCover" mode="aspectFill" />
+							<image class="product-cover" :src="mediaUrl(goods.goodsCover)" mode="aspectFill" lazy-load @error="onCatalogImageError(goods.goodsCover)" />
 							<view class="product-body">
 								<view class="product-title">{{ goods.goodsName }}</view>
 								<view class="product-tags" v-if="visibleGoodsTags(goods.tags).length">
@@ -248,15 +248,17 @@
 		loadAdImageUrl
 	} from '@/utils/adAsset'
 	import {
-		getGoodsCatrgorys,
-		getGoodsList
-	} from '@/api/shop/index'
+		getCatalogCategories as getGoodsCatrgorys,
+		getCatalogGoods as getGoodsList,
+		getCatalogActivities as getActivityList,
+		clearCatalogCache
+	} from '@/utils/catalogRequests'
+	import { catalogImageUrl, catalogImageKey } from '@/utils/catalogImage'
 	import {
 		buildHotCityCards,
 		isVisibleCatalogGoods,
 		isVisibleTravelGoods
 	} from '@/utils/travelCatalog'
-	import { getActivityList } from '@/api/activity/index'
 	import {
 		CUSTOMER_SERVICE_POSITION_ID,
 		HOUSEKEEPER_ROTATION_KEY,
@@ -271,6 +273,7 @@
 		data() {
 			return {
 				host: this.$host,
+				failedCatalogImages: {},
 				siteInfo: null,
 				recommendations: [],
 				hotCardList: [],
@@ -463,6 +466,7 @@
 				}
 			},
 			async refreshHomeData() {
+				clearCatalogCache()
 				const prevIndex = this.selectedCityIndex
 				const prevCategoryId = this.currentCategoryId
 				try {
@@ -587,19 +591,22 @@
 				this.loadCurrentGoodsList()
 			},
 			async loadCurrentGoodsList() {
+				const categoryId = this.currentCategoryId
 				if (!this.currentCategoryId) {
 					this.currentGoodsList = []
 					return
 				}
 				try {
 					const res = await getGoodsList({
-						categoryId: this.currentCategoryId,
+						categoryId,
 						ignoreSite: true
 					})
+					if (String(categoryId) !== String(this.currentCategoryId)) return
 					const list = res.data || []
 					this.currentGoodsList = list.filter(isVisibleTravelGoods)
 					this.hotGoods = this.currentGoodsList.filter(v => v.isHot == 1)
 				} catch (error) {
+					if (String(categoryId) !== String(this.currentCategoryId)) return
 					console.error('加载商品失败:', error)
 					this.currentGoodsList = []
 				}
@@ -612,7 +619,7 @@
 			},
 			async gethotCardList(skipInit = false) {
 				const categories = await this.getClsList(true)
-				await this.loadRecommendations(categories)
+				const recommendations = this.loadRecommendations(categories)
 				const travel = categories.find(item => (
 					String(item.categoryName || '').trim() === '全国旅居'
 				))
@@ -632,11 +639,15 @@
 				if (!skipInit) {
 					this.initCitySelection()
 				}
+				await recommendations
 				return this.hotCardList
 			},
 			mediaUrl(path) {
-				if (!path || String(path).startsWith('/static/')) return path || ''
-				return /^https?:\/\//.test(path) ? path : this.host + path
+				return catalogImageUrl(path, this.host, this.failedCatalogImages)
+			},
+			onCatalogImageError(path) {
+				const key = catalogImageKey(path, this.host)
+				if (!this.failedCatalogImages[key]) this.$set(this.failedCatalogImages, key, true)
 			},
 			pickRandom(rows) {
 				if (!rows || !rows.length) return null
@@ -700,8 +711,7 @@
 			},
 			getCityImageUrl(item) {
 				const image = String((item && item.adImage) || '').trim()
-				if (!image || image.startsWith('/static/') || image.startsWith('http')) return image
-				return this.host + image
+				return this.mediaUrl(image)
 			},
 			onHotCitySwiperChange(event) {
 				this.citySwiperIndex = Number(event && event.detail && event.detail.current) || 0
@@ -826,7 +836,7 @@
 			},
 			goClassify(categoryName) {
 				const navList = (uni.getStorageSync('cls') || []).filter(v => v.parentId == 0)
-				const matched = navList.find(v => v.categoryName === categoryName)
+				const matched = navList.find(v => String(v.categoryName || '').trim().replace('云野好物', '云南好物') === categoryName)
 					|| (categoryName === '聚会活动' ? navList.find(v => v.linkType === 'activity') : null)
 				if (matched && matched.categoryId) {
 					uni.setStorageSync('currentCls', matched.categoryId)
