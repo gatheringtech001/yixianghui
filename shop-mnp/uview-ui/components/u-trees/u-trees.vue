@@ -194,7 +194,9 @@
 			imgtap(e) {
 				var attrs = e.currentTarget.dataset.attrs;
 				if (!attrs.ignore) {
-					var preview = this.preview,
+					// Recursive trees do not receive the preview prop. Read the
+					// owning parser so images inside paragraphs/tables inherit it.
+					var preview = this.top.preview,
 						data = {
 							id: e.target.id,
 							src: attrs.src,

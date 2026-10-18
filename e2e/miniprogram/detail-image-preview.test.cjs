@@ -3,6 +3,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const vm = require('node:vm')
 const test = require('node:test')
+const loadPage = require('./vue-page-harness.cjs')
 const read = file => fs.readFileSync(path.resolve(__dirname, '../../shop-mnp', file), 'utf8')
 
 function loadPreview(uni = {}) {
@@ -55,4 +56,33 @@ test('travel, activity and education covers and rich-text images all opt into pr
   const travel = read('packagesMall/GoodsDetails/SojournGoodsDetails.vue')
   assert.match(travel, /previewDetailImages\(item, bannerImages\)/)
   assert.match(travel, /previewDetailImages\(resolveCoverUrl\(skuGroup.cover\)\)/)
+})
+
+test('nested paragraph and table images inherit the owning parser preview switch and can be cancelled', () => {
+  const calls = [], emitted = []
+  const {page} = loadPage('uview-ui/components/u-trees/u-trees.vue', {
+    cfg: {errorImg: ''}, uni: {previewImage: options => calls.push(options)}
+  })
+  // This child tree has no preview prop, exactly as in real nested paragraphs.
+  page.preview = false
+  page.top = {preview: true, imgList: ['a.jpg', 'b.jpg'], $emit: (event, data) => emitted.push({event, data})}
+  const tap = attrs => page.imgtap({currentTarget: {dataset: {attrs}}, target: {id: 'photo'}})
+  tap({src: 'b.jpg', i: '1'})
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].current, 1)
+  assert.deepEqual(Array.from(calls[0].urls), ['a.jpg', 'b.jpg'])
+  assert.equal(emitted[0].event, 'imgtap')
+  page.top.preview = false
+  tap({src: 'a.jpg', i: '0'})
+  assert.equal(calls.length, 1)
+  page.top.preview = true
+  page.top.$emit = (event, data) => data.ignore()
+  tap({src: 'a.jpg', i: '0'})
+  assert.equal(calls.length, 1)
+  page.top.$emit = () => {}
+  tap({src: 'a.jpg', i: '0', ignore: true})
+  assert.equal(calls.length, 1)
+  tap({src: 'new.jpg', i: '9'})
+  assert.equal(calls.length, 2)
+  assert.deepEqual(Array.from(calls[1].urls), ['new.jpg'])
 })
