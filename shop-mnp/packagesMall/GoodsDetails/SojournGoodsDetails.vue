@@ -22,7 +22,7 @@
 		<!-- 轮播图 -->
 		<swiper class="banner_swiper" indicator-dots="true" autoplay="true" interval="5000" duration="500">
 			<swiper-item v-for="(item, index) in bannerImages" :key="index">
-				<image :src="host + item" mode="aspectFill" class="banner-image"></image>
+				<image :src="resolveCoverUrl(item)" mode="aspectFill" class="banner-image" @tap.stop="previewDetailImages(item, bannerImages)"></image>
 			</swiper-item>
 		</swiper>
 		<view class="page_body_view">
@@ -57,7 +57,7 @@
       <view class="body_sku_view" id="id_skuList">
         <view class="sku_box_view" v-for="(skuGroup, groupIndex) in skuGroupList" :key="groupIndex">
           <view class="sku_info_view">
-            <image :src="resolveCoverUrl(skuGroup.cover)" mode="aspectFill" />
+            <image :src="resolveCoverUrl(skuGroup.cover)" mode="aspectFill" @tap.stop="previewDetailImages(resolveCoverUrl(skuGroup.cover))" />
             <view class="info_text_view">
               <view class="text_title_view">{{skuGroup.title}}</view>
               <view class="text_desc_view">{{ formatDescText(skuGroup.descOne) }}</view>
@@ -99,7 +99,7 @@
 						{{item.name}}
 					</view>
 					<view class="relateds_content_view">
-						<u-parse :html="item.content" />
+						<u-parse :html="item.content" :preview="true" />
 					</view>
 					<view class="relateds_button_view" v-if="item.showToggle">
 						<view v-if="item.isExpand" class="button_view" @click="expandFn(item)">
@@ -203,7 +203,7 @@
 		<view class="steps" v-if="customerServiceData.content[1]">
 			<view class="title"><text></text>第二步</view>
 			<view class="content else">
-				<image :src="getAdImageUrl(customerServiceData.content[1].adImage)" mode="widthFix" />
+				<image :src="getAdImageUrl(customerServiceData.content[1].adImage)" mode="widthFix" @tap.stop="previewDetailImages(getAdImageUrl(customerServiceData.content[1].adImage))" />
 			</view>
 		</view>
 		<view class="steps" v-if="!customerServiceData.content.length">
@@ -233,6 +233,7 @@
 	} from '@/utils/travelPresentation'
 	import { parseInvitePageOptions } from '@/utils/invite'
 	import sharePageMixin from '@/utils/sharePageMixin'
+		import { previewDetailImages } from '@/utils/detailImagePreview'
 
 	const DEFAULT_SKU_COVER = '/static/home-design/entry-stay.jpg'
 	import {
@@ -343,6 +344,9 @@
 			}
 		},
 		methods: {
+			previewDetailImages(current, images) {
+				return previewDetailImages.call(this, current, images)
+			},
 			getShareConfig() {
 				const cover = this.bannerImages && this.bannerImages[0]
 				return {

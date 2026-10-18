@@ -19,7 +19,7 @@
 		>
 			<view v-if="courseData">
 				<view class="course-detail-hero">
-					<image :src="resolveCoverUrl(courseData.cover)" mode="aspectFill" />
+					<image :src="resolveCoverUrl(courseData.cover)" mode="aspectFill" @tap.stop="previewDetailImages(resolveCoverUrl(courseData.cover))" />
 					<view class="course-detail-copy">
 						<text class="eyebrow">{{ labels.eyebrow }}</text>
 						<view class="course-title-row">
@@ -73,7 +73,7 @@
 				<view class="course-section" v-for="(section, index) in courseData.sections" :key="index">
 					<view class="section-title">{{ section.name }}</view>
 					<view class="section-content">
-						<u-parse :html="section.content" />
+						<u-parse :html="section.content" :preview="true" />
 					</view>
 				</view>
 			</view>
@@ -104,6 +104,7 @@
 	import AuthProfilePopup from '@/components/AuthProfilePopup/AuthProfilePopup.vue'
 	import { parseInvitePageOptions } from '@/utils/invite'
 	import sharePageMixin from '@/utils/sharePageMixin'
+	import { previewDetailImages } from '@/utils/detailImagePreview'
 
 	const DEFAULT_COVER = '/static/home-design/entry-stay.jpg'
 	const SECTION_CONTENT = '\u8bfe\u7a0b\u5185\u5bb9'
@@ -174,6 +175,9 @@
 			this.setPageScrollHeight()
 		},
 		methods: {
+			previewDetailImages(current, images) {
+				return previewDetailImages.call(this, current, images)
+			},
 			getShareConfig() {
 				const course = this.courseData || {}
 				return {

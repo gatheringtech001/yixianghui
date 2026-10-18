@@ -18,7 +18,7 @@
 			:show-scrollbar="false"
 		>
 			<view class="head" v-if="detailInfo">
-				<image :src="host + detailInfo.activityCover" mode="aspectFill"></image>
+				<image :src="activityCoverUrl" mode="aspectFill" @tap.stop="previewDetailImages(detailInfo.activityCover)"></image>
 				<view
 					class="collect-star"
 					:class="{ collected: !!collectId }"
@@ -76,10 +76,10 @@
 					<text class="field-value fee-free" v-if="isActivityFree(detailInfo)">免费</text>
 					<text class="field-value fee-paid" v-else>￥{{ getActivityPrice(detailInfo) }} / 人</text>
 				</view>
-				<view class="activity-field activity-description">
+				<view class="activity-description">
 					<text class="field-label">活动详情介绍</text>
 					<view class="description-content">
-						<u-parse :html="detailInfo.content" />
+						<u-parse :html="detailInfo.content" :preview="true" />
 					</view>
 				</view>
 			</view>
@@ -111,6 +111,7 @@
 	import { getActivityPhase, getActivityPhaseText } from '@/utils/activityPhase'
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
 	import { prepareRichTextHtml } from '@/utils/richText'
+	import { detailImageUrl, previewDetailImages } from '@/utils/detailImagePreview'
 	import { findActiveActivityOrder } from '@/utils/activityOrderState'
 	import AuthProfilePopup from '@/components/AuthProfilePopup/AuthProfilePopup.vue'
 	export default {
@@ -142,6 +143,9 @@
 			this.setPageScrollHeight()
 		},
 		computed: {
+			activityCoverUrl() {
+				return detailImageUrl(this.detailInfo && this.detailInfo.activityCover, this.host)
+			},
 			navTitle() {
 				return (this.detailInfo && this.detailInfo.activityName) || '活动详情'
 			},
@@ -175,6 +179,9 @@
 			}
 		},
 		methods: {
+			previewDetailImages(current, images) {
+				return previewDetailImages.call(this, current, images)
+			},
 			async loadBookingState() {
 				const token = uni.getStorageSync('token')
 				const userInfo = uni.getStorageSync('userInfo')

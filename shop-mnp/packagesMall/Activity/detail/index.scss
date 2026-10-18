@@ -207,8 +207,18 @@ $page-paper: #ffffff;
 }
 
 .activity-description {
-	grid-template-columns: minmax(0, 1fr);
-	align-items: start;
+	// This is a full-width content section, not a two-column metadata row.
+	display: block;
+	padding: 26rpx 0;
+	border-top: 1rpx solid $page-line;
+	min-width: 0;
+	width: 100%;
+	box-sizing: border-box;
+
+	> .field-label {
+		display: block;
+		margin-bottom: 20rpx;
+	}
 }
 
 .description-content {
