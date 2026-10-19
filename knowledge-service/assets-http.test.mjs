@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import http from "node:http";
+import fs from 'node:fs';
 import { createAssetHandler, parseWriterTokens } from "./assets-http.mjs";
 
 const token = "test-writer-" + "x".repeat(32);
+test('production asset proxy permits scoped index deletion', () => {
+  const nginx = fs.readFileSync(new URL('./nginx.conf', import.meta.url), 'utf8');
+  assert.match(nginx, /location \^~ \/knowledge\/assets\/ \{\s*limit_except GET PUT DELETE/);
+});
 async function fixture(t) {
   const calls = [];
   const index = { async get(id) { calls.push(id); return { status: "indexed" }; },
