@@ -9,6 +9,14 @@
 `limit` 范围 1–200，默认 100；首次省略 cursor，继续请求至 nextCursor 为 null。分页中目录改变返回 409，客户端应重新加载，不能把已收集的部分结果当成完整目录。
 此目录是知识库已索引文档，不等同于业务商品或可售房态。
 
+## 读取已选文档完整正文
+
+`GET https://gatheringtech.com/knowledge/documents?id=<目录中的文档ID>`
+
+沿用查询令牌。仅允许读取目录中存在的精确 ID，从飞书读取完整原文，保持原文顺序；不调用向量搜索、候选排序或摘要模型。
+返回 `complete: true` 和 `document`（`id`、`sourceId`、`sourceType`、`title`、`sourceUrl`、`updatedAt`、`text`）。`updatedAt` 为目录索引时间，正文为本次源站读取结果。
+未授权返回 401，非 GET 返回 405，非法 ID 返回 400，目录中无此文档返回 404；源站失败或正文为空返回 503，不以相似文档或搜索片段替代。
+
 ## 完整媒体目录与视觉标签
 
 `GET https://gatheringtech.com/knowledge/documents?type=media&kind=video&limit=200&cursor=...`

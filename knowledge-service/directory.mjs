@@ -25,14 +25,28 @@ export function directoryPage(manifest, params) {
     nextCursor: next < items.length ? Buffer.from(JSON.stringify({ snapshot, offset: next })).toString('base64url') : null };
 }
 
-export function createDirectoryHandler({ token, manifestFile, loadMedia, load = async () => JSON.parse(await readFile(manifestFile, 'utf8')) }) {
+export async function selectedDocument(manifest, id, readDocument) {
+  if (!id || id.length > 256 || !/^[A-Za-z0-9_-]+$/.test(id)) throw Object.assign(new Error('invalid document id'), { status: 400 });
+  const entry = Object.hasOwn(manifest?.documents || {}, id) && manifest.documents[id];
+  if (!entry?.title) throw Object.assign(new Error('document not found'), { status: 404 });
+  // Exact catalog identity, not semantic retrieval or model-generated excerpts.
+  const content = await readDocument(id);
+  if (typeof content !== 'string' || !content.trim()) throw new Error('document body unavailable');
+  return { complete: true, document: { id, sourceId: id, sourceType: 'feishu_docx', title: entry.title,
+    sourceUrl: `https://vcnnjnb870d6.feishu.cn/docx/${encodeURIComponent(id)}`,
+    updatedAt: String(entry.modifiedTime || ''), text: content } };
+}
+
+export function createDirectoryHandler({ token, manifestFile, loadMedia, readDocument, load = async () => JSON.parse(await readFile(manifestFile, 'utf8')) }) {
   return async (request, response) => {
     const url = new URL(request.url, 'http://knowledge.local');
     if (url.pathname !== '/documents') return false;
     const reply = (status, body) => { response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); response.end(JSON.stringify(body)); };
     if (request.headers.authorization !== `Bearer ${token}`) { reply(401, { error: 'unauthorized' }); return true; }
     if (request.method !== 'GET') { reply(405, { error: 'read_only' }); return true; }
-    try { reply(200, url.searchParams.get('type') === 'media' ? await loadMedia(url.searchParams) : directoryPage(await load(), url.searchParams)); }
+    try { reply(200, url.searchParams.has('id')
+      ? await selectedDocument(await load(), url.searchParams.get('id'), readDocument)
+      : url.searchParams.get('type') === 'media' ? await loadMedia(url.searchParams) : directoryPage(await load(), url.searchParams)); }
     catch (error) { reply(error.status || 503, { error: error.status ? error.message : 'knowledge_directory_unavailable' }); }
     return true;
   };

@@ -86,6 +86,7 @@ export function createServer(settings = config()) {
   });
   let syncing = null;
   const directoryHandler = createDirectoryHandler({ token: settings.apiToken, manifestFile: settings.manifestFile,
+    readDocument: id => service.source.readDocument(id),
     loadMedia: params => mediaDirectoryPage(store, params) });
   const assetHandler = createAssetHandler({ tokens: settings.writerTokens ?? "{}",
     forbiddenTokens: [settings.apiToken, settings.adminToken], index: new AssetIndex({ store, models: service.models }) });
