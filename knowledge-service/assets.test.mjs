@@ -14,6 +14,7 @@ function fixture() {
       return { result: body.ids.map((id) => points.get(id)).filter(Boolean) };
     },
     async upsert(batch) { calls.upsert++; for (const point of batch) points.set(point.id, structuredClone(point)); },
+    async deleteIds(ids) { ids.forEach(id => points.delete(id)); },
   };
   const models = { async embed() { calls.embed++; return [[0.1, 0.2, 0.3]]; } };
   return { index: new AssetIndex({ store, models }), points, calls, models, store };
@@ -45,6 +46,19 @@ test("upsert is idempotent and stores an isolated external source", async () => 
   const payload = [...points.values()][0].payload;
   assert.equal(payload.source_type, "external_asset"); assert.equal(payload.source_id, "external:external-materials:room-01");
   assert.deepEqual((await index.get(identity)).asset.tags, input.tags.slice().sort());
+});
+
+test('only approved workbook IDs can be deleted and concurrent edits are preserved', async () => {
+  const { index, points } = fixture();
+  const id = { ...identity, id: 'feishu-YDuMwOGKaifH5wkJBKZc8mp9n4c-' + 'a'.repeat(16) };
+  const created = await index.put(id, input); await index.put(identity, input);
+  await assert.rejects(index.remove(identity, { updatedAt: input.updatedAt }), { status: 403 });
+  await assert.rejects(index.remove(id, {}), { status: 400 });
+  await assert.rejects(index.remove(id, { updatedAt: '2026-09-04T01:00:00Z' }), { status: 409 });
+  assert.equal(points.size, 2);
+  assert.equal((await index.remove(id, { updatedAt: created.updatedAt })).status, 'deleted');
+  assert.equal((await index.remove(id, { updatedAt: created.updatedAt })).status, 'absent');
+  assert.equal(points.size, 1);
 });
 test("metadata changes reuse the vector, content changes replace the same point", async () => {
   const { index, calls, points } = fixture();

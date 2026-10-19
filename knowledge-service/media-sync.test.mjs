@@ -65,6 +65,37 @@ test('production publication cannot report success while ingestion has failed re
   assert.deepEqual(assertMediaIngestionComplete({ failures: 0, changedRecords: 2 }), { failures: 0, changedRecords: 2 });
 });
 
+test('replacement finalization checks all hashes and points before deleting only owned stale media', async t => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'media-replace-'));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const points = new Map([['unrelated-product', { id: 'unrelated-product', payload: { source_type: 'mysql_catalog' } }]]);
+  const manifestFile = path.join(root, 'manifest.json');
+  const options = { imageIndexer, manifestFile, visualTagsDirectory: root,
+    store: { config: { collection: 'test' }, async ensureCollection() {},
+      async upsert(rows) { rows.forEach(row => points.set(row.id, row)); },
+      async deleteIds(ids) { ids.forEach(id => points.delete(id)); },
+      async api(route, request) { return { result: JSON.parse(request.body).ids.map(id => points.get(id)).filter(Boolean) }; } },
+    models: { async embed(texts) { return texts.map(() => [0.1]); } },
+  };
+  const old = { ...record, id: 'old:image:hash' };
+  const base = { version: 1, createdAt: '2026-10-19T00:00:00Z', failures: [] };
+  await syncMedia({ ...options, snapshot: { ...base, partial: true, records: [old, record] } });
+  const final = { ...base, replacement: true, records: [], replacementRecords: [
+    { id: record.id, sourceHash: contentHash(JSON.stringify(record)) }] };
+  await assert.rejects(syncMedia({ ...options, snapshot: { ...final, partial: true } }), /incomplete/);
+  await assert.rejects(syncMedia({ ...options, snapshot: { ...final, replacementRecords: [{ id: record.id, sourceHash: 'f'.repeat(64) }] } }), /outdated/);
+  assert.equal(points.size, 3);
+  const id = mediaPoints(record, base.createdAt)[0].id, point = points.get(id);
+  points.delete(id);
+  await assert.rejects(syncMedia({ ...options, snapshot: final }), /readback incomplete/);
+  assert.ok(points.has(mediaPoints(old, base.createdAt)[0].id));
+  points.set(id, point);
+  const result = await syncMedia({ ...options, snapshot: final });
+  assert.equal(result.removedRecords, 1);
+  assert.ok(points.has('unrelated-product')); assert.ok(points.has(id)); assert.equal(points.size, 2);
+  assert.equal((await syncMedia({ ...options, snapshot: final })).removedRecords, 0);
+});
+
 test("media points keep file identity and video timestamps", () => {
   const point = mediaPoints({ ...record, media: { kind: "video", startSeconds: 30, endSeconds: 60 } }, "2026-09-05")[0];
   assert.equal(point.payload.media.startSeconds, 30);

@@ -42,6 +42,12 @@ export async function syncMedia({ snapshot, store, models, manifestFile, visualT
     throw new Error("Invalid media snapshot");
   }
   if (new Set(snapshot.records.map((record) => record.id)).size !== snapshot.records.length) throw new Error("Duplicate media IDs");
+  if (snapshot.replacement && (snapshot.partial || snapshot.failures?.length ||
+      !Array.isArray(snapshot.replacementRecords) || !snapshot.replacementRecords.length ||
+      snapshot.records.length || new Set(snapshot.replacementRecords.map(row => row.id)).size !== snapshot.replacementRecords.length ||
+      snapshot.replacementRecords.some(row => !/^[A-Za-z0-9:_-]{1,250}$/.test(row.id) || !/^[a-f0-9]{64}$/.test(row.sourceHash)))) {
+    throw new Error('Invalid or incomplete media replacement finalization');
+  }
   const retired = await loadRetiredSources();
   const retiredRecords = snapshot.records.filter(record => retired.has(`media:${record.id}`)).length;
   snapshot = { ...snapshot, records: snapshot.records.filter(record => !retired.has(`media:${record.id}`)) };
@@ -154,18 +160,44 @@ export async function syncMedia({ snapshot, store, models, manifestFile, visualT
     }
     await save();
   }
-  // Missing/deleted source candidates are reported, never automatically purged.
+  const expected = snapshot.replacementRecords?.filter(row => !retired.has(`media:${row.id}`));
+  if (snapshot.replacement) {
+    for (const row of expected) {
+      if (manifest.failures[row.id] || manifest.records[row.id]?.sourceHash !== row.sourceHash ||
+          !manifest.records[row.id]?.pointIds?.length) throw new Error('Media replacement batch is missing or outdated: ' + row.id);
+    }
+    // Confirm vectors really exist before retiring the previous generation.
+    const ids = expected.flatMap(row => manifest.records[row.id].pointIds);
+    for (let offset = 0; offset < ids.length; offset += 100) {
+      const batch = ids.slice(offset, offset + 100);
+      const result = await store.api(`/collections/${encodeURIComponent(store.config.collection)}/points`, {
+        method: 'POST', body: JSON.stringify({ ids: batch, with_payload: true, with_vector: false }),
+      });
+      if (!Array.isArray(result.result) || result.result.length !== batch.length ||
+          new Set(result.result.map(point => point.id)).size !== batch.length ||
+          result.result.some(point => !batch.includes(point.id) || point.payload?.source_type !== 'yuque_media')) {
+        throw new Error('Replacement point readback incomplete');
+      }
+    }
+  }
+  const current = new Set(snapshot.replacement ? expected.map(row => row.id) : snapshot.records.map(record => record.id));
+  const missingCandidates = snapshot.partial ? [] : Object.keys(manifest.records).filter(id => !current.has(id));
+  let removedRecords = 0;
   for (const [id, saved] of Object.entries(manifest.records)) {
-    if (!retired.has(`media:${id}`)) continue;
+    if (!retired.has(`media:${id}`) && !(snapshot.replacement && !current.has(id))) continue;
     await store.deleteIds(saved.pointIds);
     delete manifest.records[id];
+    delete manifest.failures[id];
+    removedRecords++;
   }
-  const current = new Set(snapshot.records.map((record) => record.id));
-  const missingCandidates = snapshot.partial ? [] : Object.keys(manifest.records).filter((id) => !current.has(id));
+  if (snapshot.replacement) {
+    for (const id of Object.keys(manifest.failures)) if (!current.has(id)) delete manifest.failures[id];
+    manifest.replacedAt = snapshot.createdAt;
+  }
   manifest.createdAt = snapshot.createdAt;
   await save();
   return { records: snapshot.records.length, indexedPoints: pending.length, changedRecords: completed,
-    payloadUpdates, retiredRecords, missingCandidates: missingCandidates.length,
+    payloadUpdates, retiredRecords, removedRecords, replacement: snapshot.replacement === true, missingCandidates: missingCandidates.length,
     failures: (snapshot.failures?.length ?? 0) + ingestionFailures.size, failedRecords: [...ingestionFailures.keys()] };
 }
 

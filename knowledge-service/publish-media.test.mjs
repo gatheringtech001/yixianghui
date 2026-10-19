@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { publishMedia } from './publish-media.mjs';
+
+test('full multi-batch publication finalizes only after every batch succeeds', async t => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'media-publication-'));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const file = path.join(root, 'snapshot.json');
+  const records = Array.from({ length: 4 }, (_, id) => ({ id: 'image:' + id, text: crypto.randomBytes(300_000).toString('base64') }));
+  await fs.writeFile(file, JSON.stringify({ version: 1, replacement: true, records, failures: [] }));
+  const calls = [];
+  await publishMedia(file, async batch => calls.push(batch));
+  assert.ok(calls.length > 2);
+  assert.ok(calls.slice(0, -1).every(batch => batch.partial && !batch.replacement));
+  assert.equal(calls[0].refreshText, true);
+  assert.ok(calls.slice(1).every(batch => !batch.refreshText));
+  const final = calls.at(-1);
+  assert.equal(final.replacement, true); assert.equal(final.partial, false);
+  assert.deepEqual(final.records, []);
+  assert.deepEqual(final.replacementRecords.map(row => row.id), records.map(row => row.id));
+  let attempts = 0;
+  await assert.rejects(publishMedia(file, async () => { if (++attempts === 2) throw new Error('transport failed'); }), /transport failed/);
+  assert.equal(attempts, 2);
+  await fs.writeFile(file, JSON.stringify({ version: 1, replacement: true, partial: true, records }));
+  await assert.rejects(publishMedia(file, () => assert.fail('must not publish incomplete data')), /incomplete/);
+});

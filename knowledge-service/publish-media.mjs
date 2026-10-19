@@ -3,11 +3,19 @@ import zlib from "node:zlib";
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
+import { fileURLToPath } from 'node:url';
 
 const COMMAND_URL = "https://management.azure.com/subscriptions/3475925c-a76c-4904-850e-8071a6bed970/resourceGroups/gatheringtech/providers/Microsoft.Compute/virtualMachines/gatheringtech/runCommands/yxh-media-sync?api-version=2024-11-01";
 
 function azure(args, input) {
-  const result = spawnSync("az", args, { input, encoding: "utf8", timeout: 90_000, maxBuffer: 1024 * 1024 });
+  let result = spawnSync("az", args, { input, encoding: "utf8", timeout: 90_000, maxBuffer: 1024 * 1024 });
+  if (result.error?.code === 'ENOENT') {
+    const value = flag => args[args.indexOf(flag) + 1];
+    result = spawnSync('python3', [fileURLToPath(new URL('./arm-command.py', import.meta.url))], {
+      input: JSON.stringify({ method: value('--method'), url: value('--url'), body: input, output: value('-o') }),
+      encoding: 'utf8', timeout: 90_000, maxBuffer: 1024 * 1024,
+    });
+  }
   if (result.status !== 0) throw new Error("Azure command failed; check login and VM access");
   return result.stdout;
 }
@@ -54,10 +62,13 @@ node --env-file=/etc/yixianghui-knowledge.env media-sync.mjs /var/lib/yixianghui
   throw new Error("Media publish did not finish within 30 minutes");
 }
 
-export async function publishMedia(file) {
+export async function publishMedia(file, publish = publishSnapshot) {
   const snapshot = JSON.parse(fs.readFileSync(file, "utf8"));
   if (!Array.isArray(snapshot.records) || new Set(snapshot.records.map((record) => record.id)).size !== snapshot.records.length) {
     throw new Error("Invalid or duplicate media records");
+  }
+  if (snapshot.replacement && (snapshot.partial || snapshot.failures?.length || !snapshot.records.length)) {
+    throw new Error("Refuse replacement from an incomplete or empty media snapshot");
   }
   const batches = [];
   const divide = (records) => {
@@ -69,9 +80,14 @@ export async function publishMedia(file) {
   };
   divide(snapshot.records);
   for (let index = 0; index < batches.length; index++) {
-    await publishSnapshot({ ...snapshot, records: batches[index], partial: batches.length > 1 || snapshot.partial === true,
+    await publish({ ...snapshot, replacement: false, records: batches[index], partial: true,
       refreshText: index === 0 });
   }
+  // A separate finalization receipt includes identities and hashes from ALL
+  // batches. Never infer full coverage from the last partial batch.
+  if (snapshot.replacement) await publish({ ...snapshot, records: [], partial: false, refreshText: false,
+    replacementRecords: snapshot.records.map(record => ({ id: record.id,
+      sourceHash: crypto.createHash('sha256').update(JSON.stringify(record)).digest('hex') })) });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await publishMedia(process.argv[2]);

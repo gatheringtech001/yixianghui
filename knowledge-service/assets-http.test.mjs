@@ -6,7 +6,10 @@ import { createAssetHandler, parseWriterTokens } from "./assets-http.mjs";
 const token = "test-writer-" + "x".repeat(32);
 async function fixture(t) {
   const calls = [];
-  const index = { async get(id) { calls.push(id); return { status: "indexed" }; }, async put(id, body) { calls.push({ id, body }); return { status: "created", ...id }; } };
+  const index = { async get(id) { calls.push(id); return { status: "indexed" }; },
+    async remove(id, body) { calls.push({ id, body }); return { status: 'deleted' }; },
+    async listWorkbook(id) { calls.push(id); return { items: [], total: 0 }; },
+    async put(id, body) { calls.push({ id, body }); return { status: "created", ...id }; } };
   const handler = createAssetHandler({ tokens: { "external-materials": token }, index });
   const server = http.createServer(async (req, res) => { if (!await handler(req, res)) { res.writeHead(404); res.end(); } });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -27,8 +30,10 @@ test("authenticated PUT and GET support index submission and readback only", asy
   const { request, calls } = await fixture(t); const headers = { authorization: "Bearer " + token, "content-type": "application/json" };
   assert.equal((await request("external-materials/a", { method: "PUT", headers, body: JSON.stringify({ title: "index" }) })).status, 201);
   assert.equal((await request("external-materials/a", { headers })).status, 200);
-  assert.equal((await request("external-materials/a", { method: "DELETE", headers })).status, 405);
-  assert.equal(calls.length, 2);
+  assert.equal((await request("external-materials/a", { method: "DELETE", headers, body: '{}' })).status, 200);
+  assert.equal((await request('external-materials/workbook-inventory', { headers })).status, 200);
+  assert.equal((await request('external-materials/workbook-inventory', { method: 'PUT', headers, body: '{}' })).status, 405);
+  assert.equal(calls.length, 4);
 });
 test("file uploads, oversized requests and broken JSON are rejected", async (t) => {
   const { request, calls } = await fixture(t);

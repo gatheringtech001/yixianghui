@@ -36,20 +36,25 @@ export function createAssetHandler(options) {
   return async (request, response) => {
     if (!request.url?.startsWith(PREFIX)) return false;
     try {
-      if (!["GET", "PUT"].includes(request.method)) throw new AssetError(405, "method_not_allowed", "只支持GET回读和PUT写入");
+      if (!["GET", "PUT", "DELETE"].includes(request.method)) throw new AssetError(405, "method_not_allowed", "只支持GET、PUT和指定货盘索引的DELETE");
       const parts = request.url.slice(PREFIX.length).split("/");
       if (parts.length !== 2 || parts.some((part) => !part)) throw new AssetError(404, "not_found", "请指定source和素材ID");
       const identity = validateIdentity({ source: parts[0], id: parts[1] });
       const expected = Object.hasOwn(tokens, identity.source) ? tokens[identity.source] : undefined;
       const authorization = request.headers.authorization ?? "";
       if (!expected || authorization.length > 300 || !timingSafeEqual(digest(authorization), digest("Bearer " + expected))) throw new AssetError(401, "unauthorized", "写入令牌缺失、错误或不属于此来源");
-      if (request.method === "GET") { reply(response, 200, await options.index.get(identity)); return true; }
+      if (identity.id === 'workbook-inventory' && request.method !== 'GET') throw new AssetError(405, 'read_only_inventory', '货盘目录只读');
+      if (request.method === "GET") {
+        reply(response, 200, identity.id === 'workbook-inventory' ? await options.index.listWorkbook(identity) : await options.index.get(identity));
+        return true;
+      }
       const window = windows.get(identity.source) ?? { start: Date.now(), count: 0 };
       if (Date.now() - window.start > 60000) { window.start = Date.now(); window.count = 0; }
       if (inFlight >= 4 || window.count >= 60) { response.setHeader("retry-after", "60"); throw new AssetError(429, "write_rate_limit", "写入繁忙，请稍后重试"); }
       window.count++; windows.set(identity.source, window); inFlight++;
       try {
-        const result = await options.index.put(identity, await readJson(request));
+        const body = await readJson(request);
+        const result = request.method === 'DELETE' ? await options.index.remove(identity, body) : await options.index.put(identity, body);
         console.log(JSON.stringify({ event: "asset_index_write", source: identity.source, id: identity.id, status: result.status }));
         reply(response, result.status === "created" ? 201 : 200, result);
       } finally { inFlight--; }

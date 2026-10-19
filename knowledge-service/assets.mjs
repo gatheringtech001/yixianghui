@@ -5,6 +5,32 @@ import { applyMediaUsagePolicy } from './media-usage-policy.mjs';
 const sourceId = ({ source, id }) => `external:${source}:${id}`;
 export class AssetIndex {
   constructor({ store, models }) { this.store = store; this.models = models; this.locks = new Set(); }
+  async listWorkbook({ source }) {
+    validateIdentity({ source, id: 'workbook-inventory' });
+    const items = [], seen = new Set(), cursors = new Set();
+    let offset;
+    do {
+      const result = await this.store.api(`/collections/${encodeURIComponent(this.store.config.collection)}/points/scroll`, {
+        method: 'POST', body: JSON.stringify({ limit: 200, offset, with_payload: true, with_vector: false,
+          filter: { must: [{ key: 'source_type', match: { value: 'external_asset' } },
+            { key: 'asset.source', match: { value: source } }] } }),
+      });
+      if (!Array.isArray(result.result?.points)) throw new Error('Invalid workbook inventory');
+      for (const point of result.result.points) {
+        if (seen.has(point.id)) throw new Error('Duplicate workbook inventory page');
+        seen.add(point.id);
+        const asset = point.payload?.asset;
+        if (asset?.source === source && /^feishu-YDuMwOGKaifH5wkJBKZc8mp9n4c-[a-f0-9]{16}$/.test(asset.id)) {
+          if (point.payload.source_id !== sourceId(asset)) throw new Error('Workbook identity mismatch');
+          items.push(asset);
+        }
+      }
+      offset = result.result.next_page_offset;
+      if (offset && (cursors.has(offset) || !result.result.points.length)) throw new Error('Workbook pagination stalled');
+      cursors.add(offset);
+    } while (offset);
+    return { items, total: items.length };
+  }
   async read(identity) {
     validateIdentity(identity);
     const id = pointId(sourceId(identity), 0);
@@ -29,6 +55,27 @@ export class AssetIndex {
     if (this.locks.has(key)) throw new AssetError(409, "write_in_progress", "此素材正在写入，请稍后原样重试");
     this.locks.add(key);
     try { return await this.save(asset); } finally { this.locks.delete(key); }
+  }
+  async remove(identity, input) {
+    validateIdentity(identity);
+    // This deletion is for the explicitly approved inventory workbook only,
+    // not a general delete capability for every external integration.
+    if (!/^feishu-YDuMwOGKaifH5wkJBKZc8mp9n4c-[a-f0-9]{16}$/.test(identity.id)) {
+      throw new AssetError(403, 'delete_scope', '只允许替换指定飞书货盘的旧工作表索引');
+    }
+    if (!input || Object.keys(input).length !== 1 || typeof input.updatedAt !== 'string' ||
+        !Number.isFinite(Date.parse(input.updatedAt))) throw new AssetError(400, 'revision_required', '删除需要旧版updatedAt');
+    const key = sourceId(identity);
+    if (this.locks.has(key)) throw new AssetError(409, 'write_in_progress', '此素材正在更新');
+    this.locks.add(key);
+    try {
+      const prior = await this.read(identity);
+      if (!prior) return { status: 'absent', ...identity };
+      if (prior.payload.asset.updatedAt !== input.updatedAt) throw new AssetError(409, 'stale_revision', '旧索引已被更新，未删除');
+      await this.store.deleteIds([prior.id]);
+      if (await this.read(identity)) throw new Error('Deleted asset still exists');
+      return { status: 'deleted', ...identity };
+    } finally { this.locks.delete(key); }
   }
   async save(asset) {
     const prior = await this.read(asset); const hash = contentHash(JSON.stringify(asset));
