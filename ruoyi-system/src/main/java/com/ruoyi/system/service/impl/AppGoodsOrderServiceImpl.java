@@ -471,13 +471,14 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         if (StringUtils.isEmpty(order.getContactPhone()) || !order.getContactPhone().matches("^1\\d{10}$")) {
             throw new ServiceException("请填写正确的手机号码");
         }
-        Long stock = goods.getStock();
-        if (stock == null || stock <= 0) {
-            throw new ServiceException("报名名额已满");
-        }
         AppGoodsEducationExt ext = goods.getEducationExt();
         if (ext == null) {
             ext = appGoodsEducationExtMapper.selectAppGoodsEducationExtByGoodsId(goods.getGoodsId());
+            goods.setEducationExt(ext);
+        }
+        Long stock = goods.getStock();
+        if (!EducationCapacityPolicy.isUnlimited(goods) && (stock == null || stock <= 0)) {
+            throw new ServiceException("报名名额已满");
         }
         if (ext != null) {
             LocalDate today = LocalDate.now();

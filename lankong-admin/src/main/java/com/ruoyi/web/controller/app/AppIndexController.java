@@ -255,6 +255,7 @@ public class AppIndexController extends BaseController {
     public AjaxResult goodsInfo(@PathVariable(name = "goodsId") Long goodsId)
     {
         AppGoods info = goodsService.selectAppGoodsByGoodsId(goodsId);
+        EducationCapacityPolicy.prepareLegacyAvailability(info);
         // C 端不返回停用规格，避免详情可见、下单才提示「已停用」
         if (info != null && info.getOptionList() != null && !info.getOptionList().isEmpty()) {
             List<AppGoodsSku> enabledSkus = new ArrayList<>();

@@ -220,21 +220,31 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </foreach>
     </delete>
 
+    <sql id="unlimitedEducationCapacity">
+        goods_type = 'education' and exists (
+            select 1 from app_goods_education_ext capacity_ext
+            where capacity_ext.goods_id = app_goods.goods_id
+              and capacity_ext.class_size_max = 0
+        )
+    </sql>
+
     <update id="reserveStock">
         update app_goods
-        set stock = stock - #{count},
+        set stock = case when <include refid="unlimitedEducationCapacity"/>
+                        then stock else stock - #{count} end,
             sale_count = IFNULL(sale_count, 0) + #{count},
-            update_time = sysdate()
+            update_time = CURRENT_TIMESTAMP
         where goods_id = #{goodsId}
-          and stock is not null
-          and stock >= #{count}
+          and ((<include refid="unlimitedEducationCapacity"/>)
+               or (stock is not null and stock >= #{count}))
     </update>
 
     <update id="releaseStock">
         update app_goods
-        set stock = IFNULL(stock, 0) + #{count},
+        set stock = case when <include refid="unlimitedEducationCapacity"/>
+                        then stock else IFNULL(stock, 0) + #{count} end,
             sale_count = GREATEST(IFNULL(sale_count, 0) - #{count}, 0),
-            update_time = sysdate()
+            update_time = CURRENT_TIMESTAMP
         where goods_id = #{goodsId}
     </update>
 </mapper>
