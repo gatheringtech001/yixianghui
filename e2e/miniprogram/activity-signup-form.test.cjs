@@ -16,7 +16,7 @@ function form(overrides = {}) {
     setTimeout: callback => callback(),
     ...overrides
   })
-  Object.assign(harness.page,{activityDetail:{...freeActivity},signName:' 测试联系人 ',signMobile:'13800138000',agreedNotice:true})
+  Object.assign(harness.page,{activityDetail:{...freeActivity},signName:' 测试联系人 ',signMobile:'13800138000'})
   harness.page.$nextTick = cb => cb()
   harness.page.setPageScrollHeight = () => {}
   return {...harness,calls,routes,toasts}
@@ -82,7 +82,7 @@ test('validation rejects blank contacts invalid mobiles noninteger and exhausted
   for (const [patch,expected] of [
     [{signName:' '},'报名联系人'], [{signMobile:''},'手机号码'], [{signMobile:'12345678901'},'手机号码'],
     [{signCount:0},'整数'], [{signCount:1.5},'整数'], [{signCount:'1abc'},'整数'],
-    [{agreedNotice:false},'须知'], [{signCount:100},'可报名人数']
+    [{signCount:100},'可报名人数']
   ]) {const {page}=form();Object.assign(page,patch);assert.ok(page.validateForm().includes(expected))}
   const {page}=form(); page.activityDetail={...freeActivity,maxCount:2,signCount:2}
   assert.match(page.validateForm(),/剩余名额不足/)

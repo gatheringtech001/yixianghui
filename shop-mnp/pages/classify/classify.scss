@@ -351,6 +351,14 @@ $rail-bg: #f6f3ed;
 		flex: 1;
 	}
 
+	.course-sales {
+		color: $muted;
+		font-size: 24rpx;
+		line-height: 1.4;
+		flex: 1;
+		text-align: center;
+	}
+
 	.price {
 		color: $accent;
 		font-size: 40rpx;

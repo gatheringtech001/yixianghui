@@ -48,26 +48,18 @@
 				<view class="form-card">
 					<view class="card-title">{{ labels.signupInfo }}</view>
 					<view class="form-row">
-						<view class="row-label">{{ labels.contactName }}</view>
+						<view class="row-label"><text class="required-mark">*</text>{{ labels.contactName }}（必填）</view>
 						<u-input v-model="contactName" type="text" border :placeholder="labels.contactNamePlaceholder" />
+						<view class="row-hint">请填写真实姓名；默认带入的昵称如非实名，请修改。</view>
 					</view>
 					<view class="form-row">
-						<view class="row-label">{{ labels.contactPhone }}</view>
+						<view class="row-label"><text class="required-mark">*</text>{{ labels.contactPhone }}（必填）</view>
 						<u-input v-model="contactPhone" type="number" maxlength="11" border :placeholder="labels.contactPhonePlaceholder" />
 						<view class="row-hint">{{ labels.contactHint }}</view>
 					</view>
 					<view class="form-row">
 						<view class="row-label">{{ labels.remark }}</view>
 						<u-input v-model="remark" type="textarea" border :placeholder="labels.remarkPlaceholder" />
-					</view>
-					<view class="agreement-row" @click="agreedNotice = !agreedNotice">
-						<view class="agreement-check" @click.stop>
-							<u-checkbox v-model="agreedNotice"></u-checkbox>
-						</view>
-						<view class="agreement-text">
-							{{ labels.agreementPrefix }}
-							<text class="agreement-link" @click.stop="openNoticePopup">{{ labels.signupNotice }}</text>
-						</view>
 					</view>
 				</view>
 
@@ -131,7 +123,6 @@
 				contactName: '',
 				contactPhone: '',
 				remark: '',
-				agreedNotice: false,
 				signupNoticeHtml: '',
 				currencySymbol: '\uFFE5',
 				noticePopup: {
@@ -150,13 +141,12 @@
 					signupRange: '\u62a5\u540d\u65f6\u95f4',
 					signupInfo: '\u62a5\u540d\u4fe1\u606f',
 					contactName: '\u8054\u7cfb\u59d3\u540d',
-					contactNamePlaceholder: '\u8bf7\u8f93\u5165\u62a5\u540d\u59d3\u540d',
+					contactNamePlaceholder: '请输入联系人的真实姓名',
 					contactPhone: '\u8054\u7cfb\u7535\u8bdd',
-					contactPhonePlaceholder: '\u8bf7\u8f93\u5165\u624b\u673a\u53f7',
-					contactHint: '\u65b9\u4fbf\u8001\u5e74\u5b66\u6821\u4e0e\u60a8\u8054\u7cfb\u786e\u8ba4\u62a5\u540d\u4fe1\u606f',
+					contactPhonePlaceholder: '请输入11位手机号码',
+					contactHint: '请核对并填写正确的11位手机号，确保课程组织方能联系到您。',
 					remark: '\u7559\u8a00',
 					remarkPlaceholder: '\u9009\u586b\uff0c\u5982\u6709\u7279\u6b8a\u60c5\u51b5\u53ef\u7559\u8a00',
-					agreementPrefix: '\u6211\u5df2\u9605\u8bfb',
 					signupNotice: '\u300a\u62a5\u540d\u987b\u77e5\u300b',
 					priceDetail: '\u8d39\u7528\u660e\u7ec6',
 					listPrice: '\u8bfe\u7a0b\u5b66\u8d39',
@@ -316,11 +306,8 @@
 				if (!this.contactName.trim()) {
 					return this.labels.contactNamePlaceholder
 				}
-				if (!/^1\d{10}$/.test(String(this.contactPhone).trim())) {
-					return '\u8bf7\u8f93\u5165\u6b63\u786e\u53f7\u7801'
-				}
-				if (!this.agreedNotice) {
-					return '\u8bf7\u9605\u8bfb\u5e76\u540c\u610f\u62a5\u540d\u987b\u77e5'
+				if (!/^1[3-9]\d{9}$/.test(String(this.contactPhone).trim())) {
+					return '请填写正确的11位手机号码'
 				}
 				return ''
 			},

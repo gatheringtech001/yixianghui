@@ -110,39 +110,16 @@ $soft: #f7f7f5;
 		font-weight: 700;
 	}
 
+	.required-mark {
+		color: $accent;
+		margin-right: 8rpx;
+	}
+
 	.row-hint {
 		margin-top: 8rpx;
 		color: $muted;
 		font-size: 22rpx;
 		line-height: 1.45;
-	}
-}
-
-.agreement-row {
-	display: flex;
-	align-items: flex-start;
-	gap: 4rpx;
-	margin-top: 20rpx;
-	padding: 12rpx 0;
-	color: #555555;
-	font-size: 24rpx;
-	line-height: 1.5;
-	box-sizing: border-box;
-
-	.agreement-check {
-		display: inline-flex;
-		align-items: center;
-		padding: 4rpx 8rpx 4rpx 0;
-	}
-
-	.agreement-text {
-		flex: 1;
-		min-width: 0;
-		padding: 4rpx 0;
-	}
-
-	.agreement-link {
-		color: $accent;
 	}
 }
 

@@ -34,6 +34,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="weight"    column="weight"    />
         <result property="viewCount"    column="view_count"    />
         <result property="saleCount"    column="sale_count"    />
+        <result property="paidSignupCount" column="paid_signup_count" />
         <result property="createTime"    column="create_time"    />
         <result property="updateTime"    column="update_time"    />
         <result property="status"    column="status"    />
@@ -46,6 +47,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <sql id="selectAppGoodsListVo">
         select g.goods_id, g.category_id, g.category_ids, g.dept_id, g.goods_name, g.goods_cover, g.goods_images, g.description, g.tags, g.price, g.vip_price, g.unit, g.specifications, g.stock, g.goods_type, g.is_top, g.is_hot, g.attr_ids, g.attr_values, g.is_sku, g.award_type, g.award_parent_ratio, g.award_grand_parent_ratio, g.award_golden, g.content, g.express_fee, g.weight, g.view_count, g.sale_count, g.create_time, g.update_time, g.status, d.dept_name
+        , case when g.goods_type = 'education' then (
+            select IFNULL(sum(signup.goods_count), 0)
+            from app_goods_order signup
+            where signup.goods_id = g.goods_id
+              and signup.pay_status = '1'
+              and signup.status in ('1', '3')
+        ) else null end as paid_signup_count
         from app_goods g
         left join sys_dept d on g.dept_id = d.dept_id
     </sql>

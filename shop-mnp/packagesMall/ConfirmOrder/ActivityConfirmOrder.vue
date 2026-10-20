@@ -41,14 +41,14 @@
 					<view class="card-title">报名信息</view>
 					<view class="form-guide">请填写实际联系人的姓名、手机号和参与人数，方便活动组织方确认报名。</view>
 					<view class="form-row">
-						<view class="row-label">报名联系人（必填）</view>
-						<u-input v-model="signName" @input="contactEdited.name = true" type="text" maxlength="30" border placeholder="请输入实际联系人的姓名" />
-						<view class="row-hint">默认带入个人资料中的昵称，请核对或修改为实际联系人。</view>
+						<view class="row-label"><text class="required-mark">*</text>报名联系人（必填）</view>
+						<u-input v-model="signName" @input="contactEdited.name = true" type="text" maxlength="30" border placeholder="请输入联系人的真实姓名" />
+						<view class="row-hint">请填写真实姓名；默认带入的昵称如非实名，请修改。</view>
 					</view>
 					<view class="form-row">
-						<view class="row-label">联系电话（必填）</view>
+						<view class="row-label"><text class="required-mark">*</text>联系电话（必填）</view>
 						<u-input v-model="signMobile" @input="contactEdited.mobile = true" type="number" maxlength="11" border placeholder="请输入11位手机号码" />
-						<view class="row-hint">方便活动组织方与您联系确认</view>
+						<view class="row-hint">请核对并填写正确的11位手机号，确保活动组织方能联系到您。</view>
 					</view>
 					<view class="form-row">
 						<view class="row-label">参与人数（必填）</view>
@@ -58,15 +58,6 @@
 					<view class="form-row">
 						<view class="row-label">备注</view>
 						<u-input v-model="remark" type="textarea" border placeholder="选填，如有特殊情况可留言" />
-					</view>
-					<view class="agreement-row" @click="agreedNotice = !agreedNotice">
-						<view class="agreement-check" @click.stop>
-							<u-checkbox v-model="agreedNotice"></u-checkbox>
-						</view>
-						<view class="agreement-text">
-							我已阅读
-							<text class="agreement-link" @click.stop="openNoticePopup">《活动报名须知》</text>
-						</view>
 					</view>
 				</view>
 
@@ -146,7 +137,6 @@
 				signMobile: '',
 				signCount: 1,
 				remark: '',
-				agreedNotice: false,
 				submitting: false,
 				signupSubmitted: false,
 				contactEdited: { name: false, mobile: false },
@@ -312,9 +302,6 @@
 				}
 				if (this.activityDetail.maxCount && Number(this.remainCount) < Number(this.signCount)) return '剩余名额不足，请调整参与人数'
 				if (Number(this.signCount) > this.maxSignCount) return '参与人数超出本次可报名人数'
-				if (!this.agreedNotice) {
-					return '请阅读并同意活动报名须知'
-				}
 				if (!this.isFreeSignup && this.payAmount <= 0) {
 					return '活动价格未配置'
 				}

@@ -137,6 +137,13 @@ public class AppGoods extends BaseEntity
     @Excel(name = "销量")
     private Long saleCount;
 
+    /** 已付款且仍有效的课程报名人次（只读统计，不含未付款占位）。 */
+    private Long paidSignupCount;
+
+    public Long getPaidSignupCount() { return paidSignupCount; }
+
+    public void setPaidSignupCount(Long paidSignupCount) { this.paidSignupCount = paidSignupCount; }
+
     /** 商品状态 */
     @Excel(name = "商品状态")
     private String status;

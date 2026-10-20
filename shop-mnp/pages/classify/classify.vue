@@ -98,6 +98,7 @@
 							</view>
 							<view class="price-row">
 								<text class="price">{{ currencySymbol }}{{ item.price }}</text>
+								<text class="course-sales" v-if="item.paidSignupCount !== null">已售 {{ item.paidSignupCount }} 人</text>
 								<view class="btn-primary">{{ labels.viewCourse }}</view>
 							</view>
 						</view>
@@ -470,6 +471,8 @@
 					tagList,
 					image,
 					price: item.vipPrice || item.price,
+					paidSignupCount: item.paidSignupCount != null && Number.isFinite(Number(item.paidSignupCount))
+						? Math.max(0, Math.floor(Number(item.paidSignupCount))) : null,
 					unit: item.unit,
 					goodsType: item.goodsType,
 					description: item.description,
