@@ -50,7 +50,8 @@
 						:key="item.id"
 						@tap.stop="openResult(item)"
 					>
-						<image v-if="item.image" :src="imageUrl(item.image)" mode="aspectFill" />
+						<image v-if="item.image && !failedOriginalImages[imageKey(item.image)]" :src="imageUrl(item.image)" mode="aspectFill" lazy-load @error="onImageError(item.image)" />
+						<view v-else class="result-cover-placeholder">暂无封面</view>
 						<view class="item_content_view">
 							<view class="result-type" v-if="item.type !== 'yunnan'">{{ group.label }}</view>
 							<view class="content_title_view">{{ item.title }}</view>
@@ -90,6 +91,7 @@
 <script>
 	import { getGoodsList } from '@/api/shop/index'
 	import { getActivityList } from '@/api/activity/index'
+	import { catalogImageUrl, catalogImageKey } from '@/utils/catalogImage'
 
 	export default {
 		data() {
@@ -103,6 +105,8 @@
 				emptySearchKeyword: '',
 				searchError: '',
 				resultGroups: [],
+				failedCatalogImages: {},
+				failedOriginalImages: {},
 				pageScrollHeight: 0
 			};
 		},
@@ -130,8 +134,17 @@
 				return String(tags || '').split(/[,|，]/).map(v => v.trim()).filter(Boolean)
 			},
 			imageUrl(path) {
-				if (!path || /^https?:\/\//.test(path)) return path
-				return this.host + path
+				return catalogImageUrl(path, this.host, this.failedCatalogImages)
+			},
+			imageKey(path) { return catalogImageKey(path, this.host) },
+			onImageError(path) {
+				const key = this.imageKey(path)
+				const original = catalogImageUrl(path, this.host, { [key]: true })
+				if (this.imageUrl(path) !== original) {
+					this.$set(this.failedCatalogImages, key, true)
+				} else {
+					this.$set(this.failedOriginalImages, key, true)
+				}
 			},
 			searchScore(item, keyword) {
 				const value = keyword.toLowerCase()

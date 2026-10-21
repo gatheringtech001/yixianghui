@@ -123,7 +123,7 @@ test('travel and education detail footers expose native share before contact', a
     assert.equal(shareButton, referenceButton, item.page)
     assert.ok(footer.indexOf('open-type="share"') < footer.indexOf(item.contactText), item.page)
     assert.match(style, item.columns, item.style)
-    assert.match(style, /\.share-btn\s*\{[\s\S]*?min-height:\s*76rpx;[\s\S]*?border-radius:\s*12rpx;[\s\S]*?flex-direction:\s*column;/, item.style)
+    assert.match(style, /\.share-btn\s*\{[\s\S]*?min-height:\s*44px;[\s\S]*?border-radius:\s*12rpx;[\s\S]*?flex-direction:\s*column;/, item.style)
     assert.match(style, /\.btn-label\s*\{[\s\S]*?font-size:\s*24rpx;[\s\S]*?font-weight:\s*700;/, item.style)
     assert.match(style, /&::after\s*\{[\s\S]*?display:\s*none;/, item.style)
   }

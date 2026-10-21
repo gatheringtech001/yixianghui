@@ -28,7 +28,7 @@ export default {
   "/profile/upload/2026/08/13/travel-catalog-v2/hup1sfop9waagpdp-003.jpg": "/profile/upload/catalog-thumbs-v1/537afb7f08f6e45a5053fff5e477ebacf0fd7d7c1cd83db0a435a6b2c30c05b3.jpg",
   "/profile/upload/2026/08/13/travel-catalog-v2/hwil8zfmzgosy5rp-001.jpg": "/profile/upload/catalog-thumbs-v1/dbfabe7450e16fc85ace8a58f002dc6286dcd9cda9b9f7b6d73f8852a6a3dc3e.jpg",
   "/profile/upload/2026/08/13/travel-catalog-v2/iwowhw8u1078siuc-001.jpg": "/profile/upload/catalog-thumbs-v1/7c7da1a5ff346ed1d934ff3cb96635bb74d388e20a35b98f186bb4bbedf01b89.jpg",
-  "/profile/upload/2026/08/13/travel-catalog-v2/khxvp6stsgdux73g-009.jpg": "/profile/upload/catalog-thumbs-v1/2954dc5d57305f715824c1f55a6a7b31d1bd06abbb5b514807acb57bb0c9d25f.jpg",
+  "/profile/upload/2026/08/13/travel-catalog-v2/khxvp6stsgdux73g-009.jpg": "/profile/upload/catalog-thumbs-v1/fb045156ebbb6542df53e998e9f2dded7fce3303de16d1e668fc8606457c352d.jpg",
   "/profile/upload/2026/08/13/travel-catalog-v2/ldg9wbk6gghnxhwc-001.jpg": "/profile/upload/catalog-thumbs-v1/1096aa1928676ccbda745033457a90347fd0bef27c237fc0a6381f5c28c6dc0b.jpg",
   "/profile/upload/2026/08/13/travel-catalog-v2/lf7elqkx7obav66y-002.jpg": "/profile/upload/catalog-thumbs-v1/e23a19d7c534065ea591b21d4d3d1929204310f0216b314f68dbc0ee99507510.jpg",
   "/profile/upload/2026/08/13/travel-catalog-v2/lx8hkclidsm5hvbx-004.jpg": "/profile/upload/catalog-thumbs-v1/dda203f48cf06daba0c4138a47090fbb8a3554bd1df6a221d9b6ec07278e5805.jpg",
@@ -99,5 +99,8 @@ export default {
   "/profile/upload/2026/09/10/travel-display/ycehkcp5ifdi83r7-1.jpg": "/profile/upload/catalog-thumbs-v1/f5427810695aee7767815b0c130c6c809d9eb7b1ac578ed2a793ec0098972807.jpg",
   "/profile/upload/2026/09/10/travel-display/ypvhpntpknqkys2l-1.jpg": "/profile/upload/catalog-thumbs-v1/d39989bc6a1bc3b12e36cd500318bae40f616d4daa4ae31aa78f359a5995c9ac.jpg",
   "/profile/upload/2026/09/14/city-fuxian-lake-20260914.jpg": "/profile/upload/catalog-thumbs-v1/344d1b44be44cf4c225114c0cbf21f16498a4282fb8a89789e7850eeeab53d46.jpg",
-  "/profile/upload/2026/10/14/activity-xishuangbanna-poster/banna-poster.jpg": "/profile/upload/catalog-thumbs-v1/dd53a4622967d455f7f742c37e88e0a1f59daf63d2a7a42466818bae40f21dd6.jpg"
+  "/profile/upload/2026/10/14/activity-xishuangbanna-poster/banna-poster.jpg": "/profile/upload/catalog-thumbs-v1/dd53a4622967d455f7f742c37e88e0a1f59daf63d2a7a42466818bae40f21dd6.jpg",
+  "/profile/upload/2026/10/15/yoga-liuxiaoyan-b7c88dc2fd68.jpg": "/profile/upload/catalog-thumbs-v1/0b85bec14cf2adc73ea5e0c99f3e3db6b3ed668ffc7a6cd8ab80f45ce36a8d75.jpg",
+  "/profile/upload/2026/10/20/african-drum-oct23-1b86dde5f600.jpg": "/profile/upload/catalog-thumbs-v1/797746f64ed2f51e3320326f6013a0b287e4b3d0759c2e2ac40bf6276cf4ee81.jpg",
+  "/profile/upload/2026/10/20/yoga-experience-oct27-a63aba76de7a.jpg": "/profile/upload/catalog-thumbs-v1/40ba561a1f5114d69fe20a22843e3f1eb09b7d5b44f1a6d5a84a9a7b920b0f08.jpg"
 }

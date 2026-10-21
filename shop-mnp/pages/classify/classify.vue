@@ -82,6 +82,11 @@
 				:show-scrollbar="false"
 				:style="scrollViewStyle"
 			>
+				<view v-if="loading && isListEmpty" class="goods_empty_view" aria-live="polite">加载中…</view>
+				<view v-if="contentError" class="content-error" aria-live="polite">
+					<text>{{ contentError }}</text>
+					<button class="retry-button" @click="loadContentList" :disabled="loading">重新加载</button>
+				</view>
 				<block v-if="isEducationTab">
 					<view class="course-hero" v-if="showEducationHero">
 						<text class="eyebrow">张庙街道老年学校 · 2026秋季</text>
@@ -103,12 +108,12 @@
 							</view>
 						</view>
 					</view>
-					<view class="goods_empty_view" v-if="!loading && isListEmpty">
+					<view class="goods_empty_view" v-if="!loading && !contentError && isListEmpty">
 						<text class="goods_empty_text">{{ emptyListText }}</text>
 					</view>
 				</block>
 				<block v-else-if="!isActivityTab">
-					<view class="goods_empty_view" v-if="!loading && isListEmpty">
+					<view class="goods_empty_view" v-if="!loading && !contentError && isListEmpty">
 						<text class="goods_empty_text">{{ emptyListText }}</text>
 					</view>
 					<view class="stay-card travel-card" v-for="item in visibleGoodsList" :key="item.goodsId" @click="goodsFn(item)">
@@ -127,7 +132,7 @@
 					</view>
 				</block>
 				<block v-else>
-					<view class="goods_empty_view" v-if="!loading && isListEmpty">
+					<view class="goods_empty_view" v-if="!loading && !contentError && isListEmpty">
 						<text class="goods_empty_text">{{ emptyListText }}</text>
 					</view>
 					<view class="listing-card" v-for="item in visibleActivityList" :key="item.activityId" @click.stop="activityDetailFn(item)">
@@ -274,6 +279,7 @@
 				failedCatalogImages: {},
 				contentRequestId: 0,
 				loading: false,
+				contentError: '',
 				siteData: null,
 				navbarList: [],
 				navbarSelect: 0,
@@ -393,6 +399,7 @@
 				}
 			}
 
+			if (this.loading) return
 			if (!this.goodsCatrgoryList.length) {
 				if (this.isActivityTab) {
 					const item = this.navbarList.find(v => v.categoryId == this.navbarSelect)
@@ -400,7 +407,7 @@
 				} else {
 					this.getGoodsCatrgoryFn(this.navbarSelect)
 				}
-			} else if (this.isListEmpty && !this.loading) {
+			} else if (!this.loading && (this.isListEmpty || this.isActivityTab || this.isEducationTab)) {
 				this.loadContentList()
 			}
 		},
@@ -618,6 +625,7 @@
 				this.navbarSelect = item.categoryId
 				this.goodsCatrgorySelect = 0
 				this.loading = false
+				this.contentError = ''
 				this.travelGoodsRows = []
 				this.travelGoodsLoaded = false
 				if (!keepSearch) {
@@ -648,6 +656,8 @@
 				this.goodsCatrgoryList = []
 				if (this.isYunnanPreparing) { this.goodsList = []; this.loading = false; return }
 				try {
+					this.loading = true
+					this.contentError = ''
 					const categoryRequest = getGoodsCatrgorys({
 						parentId: id,
 						status: 1
@@ -709,6 +719,8 @@
 			getActivityCategoryFn(parentId) {
 				const requestId = this.contentRequestId
 				this.goodsCatrgoryList = []
+				this.loading = true
+				this.contentError = ''
 				getActivityCategoryList({
 					parentId: parentId || 0
 				}).then(res => {
@@ -726,9 +738,9 @@
 			},
 			loadContentList() {
 				if (this.isActivityTab) {
-					this.getActivityListFn()
+					return this.getActivityListFn()
 				} else {
-					this.getGoodsListFn()
+					return this.getGoodsListFn()
 				}
 			},
 			getGoodsListFn() {
@@ -736,6 +748,7 @@
 				if (!this.navbarSelect) return
 				const requestId = ++this.contentRequestId
 				this.loading = true
+				this.contentError = ''
 				const categoryId = this.goodsCatrgorySelect == 0
 					? this.navbarSelect
 					: this.goodsCatrgorySelect
@@ -758,7 +771,7 @@
 					this.setBodyScrollHeight()
 					return
 				}
-				getGoodsList(params).then(res => {
+				return getGoodsList(params, { refresh: this.isEducationTab }).then(res => {
 					if (requestId !== this.contentRequestId) return
 					this.goodsList = []
 					;(res.data || []).filter(isVisibleCatalogGoods).forEach((item) => {
@@ -767,7 +780,7 @@
 				}).catch(err => {
 					if (requestId !== this.contentRequestId) return
 					console.log('getGoodsList', err)
-					this.goodsList = []
+					this.contentError = this.isListEmpty ? '加载失败，请检查网络后重试' : '刷新失败，当前显示上次内容'
 				}).finally(() => {
 					if (requestId !== this.contentRequestId) return
 					this.loading = false
@@ -777,6 +790,7 @@
 			getActivityListFn() {
 				const requestId = ++this.contentRequestId
 				this.loading = true
+				this.contentError = ''
 				const params = {
 					status: 1
 				}
@@ -793,14 +807,14 @@
 				if (keyword) {
 					params.activityName = keyword
 				}
-				getActivityList(params)
+				return getActivityList(params, { refresh: true })
 					.then(res => {
 						if (requestId !== this.contentRequestId) return
 						this.activityList = res.rows || []
 					}).catch(err => {
 						if (requestId !== this.contentRequestId) return
 						console.log('getActivityList', err)
-						this.activityList = []
+						this.contentError = this.isListEmpty ? '加载失败，请检查网络后重试' : '刷新失败，当前显示上次内容'
 					}).finally(() => {
 						if (requestId !== this.contentRequestId) return
 						this.loading = false
@@ -811,6 +825,8 @@
 				this.visibleCardCount = 12
 				this.searchKeyword = ''
 				this.goodsCatrgorySelect = data.categoryId
+				this.goodsList = []
+				this.activityList = []
 				this.loadContentList()
 				this.$nextTick(() => {
 					this.setBodyScrollHeight()

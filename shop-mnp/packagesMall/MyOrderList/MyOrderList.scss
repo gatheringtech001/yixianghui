@@ -142,6 +142,7 @@
 				}
 				.item{
 					flex: 1;
+					min-width: 0;
 					display: flex;
 					flex-direction: column;
 					justify-content: center;
@@ -150,9 +151,6 @@
 						display: flex;
 						align-items: flex-start;
 						width: 100%;
-					}
-					&.education-item{
-						min-height: 200rpx;
 					}
 					.goods-name{
 						flex: 1;
@@ -185,6 +183,10 @@
 						color: #666666;
 						font-size: 22rpx;
 						line-height: 1.5;
+						display: -webkit-box;
+						-webkit-line-clamp: 2;
+						-webkit-box-orient: vertical;
+						overflow: hidden;
 						text{
 							color: #999999;
 						}

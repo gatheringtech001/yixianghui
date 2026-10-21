@@ -443,6 +443,7 @@ $page-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 
 .page_foot_view {
 	height: calc(128rpx + env(safe-area-inset-bottom));
+	min-height: calc(44px + 40rpx + env(safe-area-inset-bottom));
 	width: 100%;
 	background-color: $page-paper;
 	position: fixed;
@@ -460,7 +461,7 @@ $page-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 	box-sizing: border-box;
 	
 	.foot_secondary_view {
-		min-height: 76rpx;
+		min-height: 44px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -478,7 +479,7 @@ $page-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 	}
 
 	.share-btn {
-		min-height: 76rpx;
+		min-height: 44px;
 		background: $page-paper;
 		padding: 0;
 		margin: 0;
@@ -504,7 +505,7 @@ $page-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 	}
 	
 	.foot_primary_view {
-		min-height: 76rpx;
+		min-height: 44px;
 		display: flex;
 		align-items: center;
 		justify-content: center;

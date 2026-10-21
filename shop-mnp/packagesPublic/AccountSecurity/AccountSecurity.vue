@@ -21,6 +21,7 @@
 </template>
 
 <script>
+	import { clearAuthStorage } from '@/utils/sessionStorage'
 	export default {
 		data() {
 			return {
@@ -34,12 +35,7 @@
 		},
 		methods: {
 			clearAuthStorage() {
-				uni.removeStorageSync('token')
-				uni.removeStorageSync('userInfo')
-				uni.removeStorageSync('userData')
-				uni.removeStorageSync('userCard')
-				uni.removeStorageSync('consultant')
-				uni.removeStorageSync('setTokenTime')
+				clearAuthStorage()
 			},
 			switchAccount() {
 				this.$refs.DialogBox.confirm({

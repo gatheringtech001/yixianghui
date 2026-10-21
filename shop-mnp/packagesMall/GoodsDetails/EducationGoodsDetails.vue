@@ -125,7 +125,7 @@
 				collectId: null,
 				labels: {
 					pageTitle: '\u8bfe\u7a0b\u8be6\u60c5',
-					eyebrow: '\u8001\u5e74\u6559\u80b2',
+					eyebrow: '芳华学院',
 					courseTime: '\u4e0a\u8bfe\u65f6\u95f4',
 					coursePlace: '\u6388\u8bfe\u5730\u70b9',
 					courseTeacher: '\u6388\u8bfe\u8001\u5e08',
@@ -341,24 +341,11 @@
 					})
 					return
 				}
-				const userInfo = uni.getStorageSync('userInfo')
-				if (!userInfo || userInfo === '' || userInfo === undefined) {
-					uni.showToast({
-						icon: 'none',
-						title: '\u62a5\u540d\u8bf7\u5148\u767b\u5f55'
+				runWithAuth(this, (ok) => {
+					if (!ok || !this.canApply || !this.courseData || !this.courseData.id) return
+					uni.navigateTo({
+						url: `/packagesMall/ConfirmOrder/EducationConfirmOrder?id=${this.courseData.id}`
 					})
-					setTimeout(() => {
-						uni.removeStorageSync('token')
-						uni.removeStorageSync('userInfo')
-						uni.navigateTo({
-							url: '/packagesPublic/login/login'
-						})
-					}, 1500)
-					return
-				}
-				if (!this.courseData || !this.courseData.id) return
-				uni.navigateTo({
-					url: `/packagesMall/ConfirmOrder/EducationConfirmOrder?id=${this.courseData.id}`
 				})
 			}
 		}

@@ -99,10 +99,19 @@ $page-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 		background: $page-paper;
 		box-shadow: $page-shadow;
 
-		image {
+		image, .result-cover-placeholder {
 			width: 100%;
 			height: 300rpx;
 			display: block;
+		}
+
+		.result-cover-placeholder {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: #EFEBDF;
+			color: $page-accent;
+			font-size: 26rpx;
 		}
 
 		.item_content_view {

@@ -70,26 +70,16 @@
 										<text class="max">{{ getGoodsLinePrice(item, goods) }}</text>
 										<text class="unit">元</text>
 									</view>
-									<view class="goods-counts">× {{goods.orderQuantity || item.goodsCount}}</view>
+									<view class="goods-counts">{{ goods.goodsType === 'education' || goods.goodsType === 'activity' ? '报名 ' + (goods.orderQuantity || item.goodsCount) + ' 人' : '× ' + (goods.orderQuantity || item.goodsCount) }}</view>
 								</view>
 							</view>
 							<view class="course-meta" v-if="goods.goodsType === 'education'">
 								<view v-if="getEducationExt(goods).courseTime">
 									<text>{{ labels.courseTime }}</text>{{ getEducationExt(goods).courseTime }}
 								</view>
-								<view v-if="getEducationExt(goods).coursePlace">
-									<text>{{ labels.coursePlace }}</text>{{ getEducationExt(goods).coursePlace }}
-								</view>
-								<view v-if="getEducationExt(goods).teacherName">
-									<text>{{ labels.courseTeacher }}</text>{{ getEducationExt(goods).teacherName }}
-								</view>
 							</view>
 							<view class="course-meta" v-if="goods.goodsType === 'activity'">
 								<view v-if="goods.activityTime"><text>活动时间：</text>{{ goods.activityTime }}</view>
-								<view v-if="goods.address"><text>活动地点：</text>{{ goods.address }}</view>
-							</view>
-							<view class="signup-contact" v-if="goods.goodsType === 'education' && (item.contactName || item.contactPhone)">
-								<text>{{ labels.signupContact }}</text>{{ item.contactName || '' }} {{ item.contactPhone || '' }}
 							</view>
 						</view>
 						
@@ -175,6 +165,8 @@
 				return getOrderProductName(order, goods, this.productNameMap)
 			},
 			getProductSpec(order, goods) {
+				// Course specifications contain the full enrollment description; keep it in detail only.
+				if (goods && goods.goodsType === 'education') return ''
 				return getOrderProductSpec(order, goods, this.productNameMap)
 			},
 			formatDate(value) {

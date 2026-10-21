@@ -22,7 +22,7 @@
 				<view class="settings-section">
 					<view class="section-heading">
 						<text class="section-title">账户与服务</text>
-						<text class="section-caption">管理您的常用信息与权益</text>
+						<text class="section-caption">管理您的常用信息与服务</text>
 					</view>
 					<view class="settings-card">
 						<view class="settings-row" @click="onAddress">
@@ -45,13 +45,13 @@
 							</view>
 							<u-icon name="arrow-right" color="#a49c93" size="26" />
 						</view>
-						<view class="settings-row" @click="onSetting('vip')">
+						<view class="settings-row" @click="onSetting('service')">
 							<view class="settings-icon">
-								<image src="/static/settings-icons/membership.png" mode="aspectFit" />
+								<u-icon name="server-man" color="#701018" size="44" />
 							</view>
 							<view class="row-copy">
-								<text class="row-title">逸享荟会员</text>
-								<text class="row-description">查看会员权益与专属服务</text>
+								<text class="row-title">客服中心</text>
+								<text class="row-description">联系逸享荟客服</text>
 							</view>
 							<u-icon name="arrow-right" color="#a49c93" size="26" />
 						</view>
@@ -92,6 +92,7 @@
 <script>
 	import AuthProfilePopup from '@/components/AuthProfilePopup/AuthProfilePopup.vue'
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
+	import { clearAuthStorage } from '@/utils/sessionStorage'
 	export default {
 		components: {
 			AuthProfilePopup
@@ -157,7 +158,7 @@
 							url: '/packagesPublic/InvoiceList/InvoiceList'
 						})
 						break;
-					case 'vip':
+					case 'service':
 						uni.switchTab({
 							url: '/pages/MembersOpened/MembersOpened'
 						})
@@ -187,8 +188,7 @@
 					DialogType: 'inquiry',
 					animation: 0
 				}).then(() => {
-					uni.removeStorageSync('token')
-					uni.removeStorageSync('userInfo')
+					clearAuthStorage()
 					uni.navigateBack()
 				})
 			}

@@ -4,6 +4,7 @@ export function createCatalogCache({ ttl = 60000, maxEntries = 64, now = Date.no
 	const clone = value => JSON.parse(JSON.stringify(value))
 	return {
 		clear() { entries.clear() },
+		invalidate(key) { entries.delete(key) },
 		async get(key, loader) {
 			const hit = entries.get(key)
 			if (hit && hit.pending) return clone(await hit.pending)

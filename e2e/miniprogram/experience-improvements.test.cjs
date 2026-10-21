@@ -165,7 +165,7 @@ test('talent center entry verifies application before opening the deployed regis
 test('settings page uses the profile design system and keeps every existing destination', async () => {
   const source = await read('shop-mnp/packagesPublic/Setting/Setting.vue')
   const style = await read('shop-mnp/packagesPublic/Setting/Setting.scss')
-  const settingIcons = ['address', 'security', 'membership', 'about']
+  const settingIcons = ['address', 'security', 'about']
 
   assert.match(source, /class="settings-hero"/)
   assert.match(source, /class="hero-background"/)
@@ -176,7 +176,10 @@ test('settings page uses the profile design system and keeps every existing dest
   assert.match(source, /class="logout-button"/)
   assert.match(source, /onAddress\(\)/)
   assert.match(source, /onSetting\('account'\)/)
-  assert.match(source, /onSetting\('vip'\)/)
+  assert.match(source, /onSetting\('service'\)/)
+  assert.match(source, /客服中心/)
+  assert.match(source, /name="server-man"/)
+  assert.doesNotMatch(source, /逸享荟会员|查看会员权益/)
   assert.match(source, /onSetting\('about'\)/)
   assert.match(style, /\$accent:\s*#701018/)
   assert.match(style, /\$soft:\s*#f7f7f5/)

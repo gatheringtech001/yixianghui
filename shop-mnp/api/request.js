@@ -1,5 +1,6 @@
 // 引入配置文件
 import BaseUrl from "./baseUrl.js";
+import { clearAuthStorage } from '@/utils/sessionStorage'
 
 function sanitizeRequestError(msg) {
 	const text = String(msg || '')
@@ -31,12 +32,13 @@ export default function request(url, method, data) {
 	if (typeof data === 'string') {
 		url = url + '/' + data
 	}
+	const requestToken = uni.getStorageSync('token') || ''
 	const baseConfig = {
 		url: buildUrl(url),
 		data: data,
 		method: method,
 		header: {
-			'Authorization': uni.getStorageSync('token') ? ('Bearer ' + uni.getStorageSync('token')) : '',
+			'Authorization': requestToken ? ('Bearer ' + requestToken) : '',
 			'X-Requested-With': 'XMLHttpRequest',
 			"Accept": "application/json",
 			'Content-Type': 'application/json; charset=UTF-8'
@@ -48,15 +50,20 @@ export default function request(url, method, data) {
 			...baseConfig,
 			timeout: 30000,
 			success(res) {
-				if (res.statusCode !== 200) {
-					const msg = (res.data && (res.data.msg || res.data.message || res.data.error)) || ('请求失败(' + res.statusCode + ')')
-					reject(new Error(msg))
+				if (res.statusCode === 401 || (res.data && Number(res.data.code) === 401)) {
+					// A late response from an old session must not log out a newly signed-in user.
+					if (requestToken && uni.getStorageSync('token') === requestToken) {
+						clearAuthStorage()
+						uni.showToast({ title: '登录已过期，请重新登录', icon: 'none', duration: 2500 })
+					}
+					const error = new Error('登录已过期，请重新登录')
+					error.code = 401
+					reject(error)
 					return
 				}
-				if (res.data && res.data.code == 401) {
-					uni.removeStorageSync('token')
-					uni.removeStorageSync('userInfo')
-					reject(new Error('登录已过期'))
+				if (res.statusCode !== 200) {
+					const msg = sanitizeRequestError((res.data && (res.data.msg || res.data.message || res.data.error)) || ('请求失败(' + res.statusCode + ')'))
+					reject(new Error(msg))
 					return
 				}
 				if (res.data && res.data.code && res.data.code !== 200) {
