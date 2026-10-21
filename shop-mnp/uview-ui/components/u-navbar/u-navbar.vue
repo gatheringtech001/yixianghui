@@ -35,6 +35,7 @@
 
 <script>
 	import { safeBack } from '@/utils/safeBack'
+	import { navbarTitleGeometry } from '@/utils/navbarGeometry'
 
 	// 获取系统状态栏的高度
 	let systemInfo = uni.getSystemInfoSync();
@@ -201,11 +202,13 @@
 				style.right = (systemInfo.windowWidth - uni.upx2px(this.titleWidth)) / 2 + 'px';
 				// #endif
 				// #ifdef MP
-				// 此处是为了让标题显示区域即使在小程序有右侧胶囊的情况下也能处于屏幕的中间，是通过绝对定位实现的
-				let rightButtonWidth = systemInfo.windowWidth - menuButtonInfo.left;
-				style.left = (systemInfo.windowWidth - uni.upx2px(this.titleWidth)) / 2 + 'px';
-				style.right = rightButtonWidth - (systemInfo.windowWidth - uni.upx2px(this.titleWidth)) / 2 + rightButtonWidth +
-					'px';
+				// Clamp to the actual capsule edge; an explicit width + left + right
+				// over-constrains absolute positioning and lets long titles run underneath it.
+				const capsuleLeft = Number(menuButtonInfo.left) > 0
+					? Number(menuButtonInfo.left) : Math.max(0, systemInfo.windowWidth - 96);
+				const backWidth = this.isBack
+					? Math.max(44, uni.upx2px(Number(this.backIconSize) + 38 + Array.from(this.backText || '').length * 30)) : 8;
+				return navbarTitleGeometry(systemInfo.windowWidth, uni.upx2px(this.titleWidth), capsuleLeft, backWidth);
 				// #endif
 				style.width = uni.upx2px(this.titleWidth) + 'px';
 				return style;
@@ -290,6 +293,8 @@
 		height: 60rpx;
 		text-align: center;
 		flex-shrink: 0;
+		min-width: 0;
+		overflow: hidden;
 	}
 
 	.u-navbar-centent-slot {
@@ -297,6 +302,8 @@
 	}
 
 	.u-title {
+		min-width: 0;
+		width: 100%;
 		line-height: 60rpx;
 		font-size: 32rpx;
 		flex: 1;
