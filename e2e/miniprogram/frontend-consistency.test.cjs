@@ -50,6 +50,6 @@ test('activity introduction stacks its heading above full-width rich text withou
   assert.match(content, /max-width:\s*100%/)
   assert.doesNotMatch(content, /grid-column:\s*2\s*;|justify-self:\s*end/)
   const page = read('packagesMall/Activity/detail/index.vue')
-  assert.match(page, /class="activity-description"[\s\S]*活动详情介绍[\s\S]*class="description-content"[\s\S]*<u-parse :html="detailInfo.content"/)
+  assert.match(page, /class="activity-description"[\s\S]*活动详情介绍[\s\S]*class="description-content"[\s\S]*<u-parse :html="displayRichText\(detailInfo.content\)"/)
   assert.doesNotMatch(page, /class="activity-field activity-description"/)
 })

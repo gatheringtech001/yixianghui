@@ -19,7 +19,7 @@
 			:style="[getStyle]"
 			:value="defaultValue"
 			:placeholder="placeholder"
-			:placeholderStyle="placeholderStyle"
+			:placeholderStyle="isSeniorMode ? 'color:#666;font-size:18px;' : placeholderStyle"
 			:disabled="disabled"
 			:fixed="fixed"
 			:focus="focus"
@@ -44,7 +44,7 @@
 			:value="defaultValue"
 			:password="type == 'password' && !showPassword"
 			:placeholder="placeholder"
-			:placeholderStyle="placeholderStyle"
+			:placeholderStyle="isSeniorMode ? 'color:#666;font-size:18px;' : placeholderStyle"
 			:disabled="disabled || type === 'select'"
 			:focus="focus"
 			:confirmType="confirmType"
@@ -327,6 +327,11 @@ export default {
 				? this.textareaHeight + "rpx"
 				: this.inputHeight + "rpx";
 			style = Object.assign(style, this.customStyle);
+			if (this.isSeniorMode) {
+				style.fontSize = '18px';
+				style.minHeight = this.type === 'textarea' ? '96px' : '48px';
+				style.color = '#222222';
+			}
 			return style;
 		},
 		//

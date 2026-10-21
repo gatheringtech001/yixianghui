@@ -1,5 +1,5 @@
 <template>
-	<view class="page_view">
+	<view :class="displayModeClass" class="page_view">
 		<view v-if="orderError" class="order-error" @click="syncOrderAmount">{{ orderError }}，点击重新加载</view>
 		<view class="page_price_card">
 			<text class="price_label_view">支付金额</text>

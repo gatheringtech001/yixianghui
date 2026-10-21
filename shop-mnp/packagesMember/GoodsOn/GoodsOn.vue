@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view :class="displayModeClass" class="page">
 		<u-navbar
 			class="weapp-nav-box detail-nav"
 			:is-back="true"

@@ -1,6 +1,6 @@
 <!-- 步进器 -->
 <template>
-	<view class="u-numberbox">
+	<view class="u-numberbox" :class="displayModeClass">
 		<view
 			class="u-icon-minus"
 			@touchstart.prevent="btnTouchStart('minus')"
@@ -473,4 +473,6 @@ export default {
 	top: 0rpx;
 }
 /* #endif */
+.senior-mode .u-icon-minus, .senior-mode .u-icon-plus,
+.senior-mode .u-number-input { min-width: 48px !important; min-height: 48px !important; font-size: 18px !important; }
 </style>

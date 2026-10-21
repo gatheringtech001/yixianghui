@@ -1,5 +1,5 @@
 <template>
-	<view class="page_container">
+	<view :class="displayModeClass" class="page_container">
 		<u-navbar
 			class="weapp-nav-box detail-nav"
 			:is-back="true"
@@ -79,7 +79,7 @@
 				<view class="activity-description">
 					<text class="field-label">活动详情介绍</text>
 					<view class="description-content">
-						<u-parse :html="detailInfo.content" :preview="true" />
+						<u-parse :html="displayRichText(detailInfo.content)" :preview="true" />
 					</view>
 				</view>
 			</view>

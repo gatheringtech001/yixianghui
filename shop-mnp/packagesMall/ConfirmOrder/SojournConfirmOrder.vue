@@ -1,5 +1,5 @@
 <template>
-	<view class="page_view">
+	<view :class="displayModeClass" class="page_view">
 		<view class="page_head_view">
 		</view>
 		<view class="page_body_view">

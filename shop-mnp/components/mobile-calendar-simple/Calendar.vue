@@ -1,7 +1,8 @@
 <template>
 	<transition :name="transition">
-		<div class="calendar-tz" v-if="isShow" :class="isFixed&&'fixed'">
+		<div class="calendar-tz" v-if="isShow" :class="[displayModeClass, isFixed&&'fixed']">
 			<slot name="header"></slot>
+			<view v-if="isSeniorMode && price" class="senior-calendar-price">每日参考价：{{ price }}</view>
 			<div class="week-number">
 				<span v-for="(item,index) in weekList" :style="{color:(index==0||index==weekList.length-1)&&themeColor}"
 					:key="index">{{item}}</span>
@@ -668,4 +669,13 @@
 		-webkit-transform: translateX(100%);
 		transform: translateX(100%);
 	}
+.calendar-tz.senior-mode {
+	.senior-calendar-price { padding: 12px; font-size: 18px; line-height: 1.6; color: #701018; }
+	.week-number span { font-size: 16px !important; }
+	.each-month .each-day { height: 80px !important; }
+	.each-month .each-day .day { font-size: 18px !important; }
+	.each-month .each-day .price { display: none; }
+	.each-month .each-day .day-tip, .each-month .each-day .recent,
+	.each-month .each-day .day-tip i, .each-month .each-day .recent i { font-size: 16px !important; min-height: 22px; }
+}
 </style>

@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view class="page" :class="displayModeClass">
 		<scroll-view class="settings-scroll" scroll-y :show-scrollbar="false">
 			<view class="settings-shell">
 				<view class="settings-hero" @click="onUserInfo">
@@ -7,12 +7,12 @@
 					<image class="hero-brand" src="/static/home-design/brand-logo-transparent.png" mode="aspectFit" />
 					<view class="hero-topline">
 						<text class="hero-eyebrow">逸享荟账户中心</text>
-						<text class="status-pill">已登录</text>
+						<text class="status-pill">{{ userInfo ? '已登录' : '未登录' }}</text>
 					</view>
 					<view class="hero-profile">
 						<image class="hero-avatar" :src="avatarDisplay" mode="aspectFill" />
 						<view class="hero-copy">
-							<text class="hero-name">{{ userInfo && userInfo.nickName || '逸享荟用户' }}</text>
+							<text class="hero-name">{{ userInfo && userInfo.nickName || '登录 / 注册' }}</text>
 							<text class="hero-description">查看并完善个人资料</text>
 						</view>
 						<u-icon name="arrow-right" color="rgba(255,255,255,0.76)" size="30" />
@@ -25,9 +25,17 @@
 						<text class="section-caption">管理您的常用信息与服务</text>
 					</view>
 					<view class="settings-card">
+						<view class="settings-row" @click="showDisplayMode = true">
+							<view class="settings-icon"><u-icon name="eye" color="#701018" size="44" /></view>
+							<view class="row-copy">
+								<text class="row-title">显示模式</text>
+								<text class="row-description">{{ displayModeLabel }}，点击切换</text>
+							</view>
+							<u-icon name="arrow-right" color="#766b60" size="26" />
+						</view>
 						<view class="settings-row" @click="onAddress">
 							<view class="settings-icon">
-								<image src="/static/settings-icons/address.png" mode="aspectFit" />
+								<u-icon name="map" color="#701018" size="44" />
 							</view>
 							<view class="row-copy">
 								<text class="row-title">地址管理</text>
@@ -37,7 +45,7 @@
 						</view>
 						<view class="settings-row" @click="onSetting('account')">
 							<view class="settings-icon">
-								<image src="/static/settings-icons/security.png" mode="aspectFit" />
+								<u-icon name="lock" color="#701018" size="44" />
 							</view>
 							<view class="row-copy">
 								<text class="row-title">账户安全</text>
@@ -66,7 +74,7 @@
 					<view class="settings-card">
 						<view class="settings-row" @click="onSetting('about')">
 							<view class="settings-icon">
-								<image src="/static/settings-icons/about.png" mode="aspectFit" />
+								<u-icon name="info-circle" color="#701018" size="44" />
 							</view>
 							<view class="row-copy">
 								<text class="row-title">关于我们</text>
@@ -77,7 +85,7 @@
 					</view>
 				</view>
 
-				<view class="logout-button" @click="onQuitLogin">退出登录</view>
+				<view v-if="userInfo" class="logout-button" @click="onQuitLogin">退出登录</view>
 				<view class="brand-footer">
 					<image src="/static/home-design/brand-logo-transparent.png" mode="aspectFit" />
 					<text>逸享荟 · 让康养旅居更安心</text>
@@ -85,6 +93,7 @@
 			</view>
 		</scroll-view>
 		<DialogBox ref="DialogBox"></DialogBox>
+		<DisplayModePicker :visible="showDisplayMode" @close="showDisplayMode = false" />
 		<AuthProfilePopup ref="authProfilePopup" />
 	</view>
 </template>
@@ -100,7 +109,8 @@
 		data() {
 			return {
 				host: this.$host,
-				userInfo: null
+				userInfo: null,
+				showDisplayMode: false
 			}
 		},
 		computed: {
@@ -133,8 +143,8 @@
 			 * 地址点击
 			 */
 			onAddress() {
-				uni.navigateTo({
-					url: '/packagesPublic/AddressList/AddressList',
+				runWithAuth(this, ok => {
+					if (ok) uni.navigateTo({ url: '/packagesPublic/AddressList/AddressList' })
 				})
 			},
 			/**
@@ -144,8 +154,8 @@
 			onSetting(type) {
 				switch (type) {
 					case 'account':
-						uni.navigateTo({
-							url: '/packagesPublic/AccountSecurity/AccountSecurity'
+						runWithAuth(this, ok => {
+							if (ok) uni.navigateTo({ url: '/packagesPublic/AccountSecurity/AccountSecurity' })
 						})
 						break;
 					case 'pay':

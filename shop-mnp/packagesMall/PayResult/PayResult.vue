@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view :class="displayModeClass" class="page">
 		<view class="pay-price">
 			<view class="icon">
 				<image src="/static/pay_success.png" mode=""></image>

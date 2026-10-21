@@ -1,7 +1,9 @@
 <template>
-	<view v-if="visible" class="auth-mask" @touchmove.stop.prevent>
-		<view class="auth-profile-popup" @tap.stop>
-			<view class="auth-topbar">
+	<view v-if="visible" class="auth-mask" :class="displayModeClass" @touchmove.stop.prevent>
+		<DisplayModePicker :visible="!displayModeChosen" first-choice />
+		<scroll-view class="auth-profile-popup" scroll-y :show-scrollbar="false" @tap.stop>
+		<view class="auth-profile-content">
+			<view class="auth-topbar" :style="'padding-top:' + authTopInset + 'px'">
 				<view class="back-action" :class="{ hidden: step === 1 }" @tap="onBackStep">
 					<u-icon name="arrow-left" color="#222222" size="34" />
 				</view>
@@ -87,6 +89,7 @@
 				</view>
 			</view>
 		</view>
+		</scroll-view>
 	</view>
 </template>
 
@@ -115,6 +118,10 @@
 			}
 		},
 		computed: {
+			authTopInset() {
+				const info = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync()
+				return (info.statusBarHeight || 20) + 44
+			},
 			topbarTitle() {
 				return ['登录', '头像与昵称', '授权手机'][this.step - 1] || ''
 			},
@@ -302,10 +309,26 @@
 </script>
 
 <style scoped lang="scss">
+	@import '@/style/senior-tokens.scss';
 	$accent: #701018;
 	$ink: #17130f;
 	$muted: #77716a;
 	$line: #e9e2d8;
+
+	.senior-mode {
+		.title { font-size: $senior-title !important; line-height: 1.5 !important; }
+		.desc, .nickname-row .label, .nickname-input { font-size: $senior-body !important; line-height: 1.6 !important; }
+		.brand-subtitle, .phone-subtitle, .agreement-copy, .avatar-tip, .step-text { font-size: $senior-note !important; color: $senior-muted !important; line-height: 1.6 !important; }
+		.primary-btn, .one-tap-btn, .skip-btn, .close-action, .back-action { min-height: $senior-touch !important; font-size: $senior-body !important; line-height: 1.5 !important; }
+		.nickname-input { min-height: $senior-touch !important; }
+		.agreement-row { padding: 12px 0 !important; }
+		.agreement-checkbox { min-width: 28px; min-height: 28px; margin: 8px; }
+		.policy-link { display: inline-block; padding: 8px 0; }
+		.login-desc { white-space: normal !important; }
+		.login-hero { height: 150px !important; flex-shrink: 0; }
+		.login-copy { margin-top: 16px !important; }
+		.auth-step { flex-shrink: 0; }
+	}
 
 	.auth-mask {
 		position: fixed;
@@ -321,6 +344,10 @@
 	.auth-profile-popup {
 		width: 100%;
 		height: 100%;
+		background: #fff;
+	}
+	.auth-profile-content {
+		min-height: 100vh;
 		display: flex;
 		flex-direction: column;
 		box-sizing: border-box;

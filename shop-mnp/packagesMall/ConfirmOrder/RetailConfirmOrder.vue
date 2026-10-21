@@ -1,5 +1,5 @@
 <template>
-	<view class="retail-confirm">
+	<view :class="displayModeClass" class="retail-confirm">
 		<view class="card address" @click="chooseAddress">
 			<view><text class="title">收货地址</text><u-icon name="arrow-right" color="#777" size="26" /></view>
 			<template v-if="address">

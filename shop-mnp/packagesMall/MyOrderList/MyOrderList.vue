@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view :class="displayModeClass" class="page">
 		
 		<!-- 订单tab -->
 		<scroll-view class="order-tab" scroll-x :show-scrollbar="false">

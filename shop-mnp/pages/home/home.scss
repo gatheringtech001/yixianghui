@@ -18,6 +18,24 @@ $header: #EFEBDF;
 	width: 100%;
 }
 
+.display-mode-entry {
+	margin: 0 0 0 12rpx;
+	padding: 0 18rpx;
+	min-height: 44px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	border: 1rpx solid #701018;
+	border-radius: 999rpx;
+	background: #fff;
+	color: #701018;
+	font-size: 16px;
+	font-weight: 650;
+	line-height: 1.4;
+	&::after { border: 0; }
+}
+
 .home-refresher {
 	display: flex;
 	align-items: center;

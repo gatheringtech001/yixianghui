@@ -1,5 +1,5 @@
 <template>
-	<view class="page_view" :class="{ 'activity-mode': isActivityTab, 'education-mode': isEducationTab }">
+	<view class="page_view" :class="[displayModeClass, { 'activity-mode': isActivityTab, 'education-mode': isEducationTab }]">
 		<u-navbar class="weapp-nav-box service-nav" :class="{ 'activity-mode': isActivityTab }" :is-back="false" :background="{ background: '#ffffff' }" :border-bottom="false">
 			<view class="slot-wrap home-brand">
 				<image v-if="brandLogoDisplay" class="brand-logo" :src="brandLogoDisplay" mode="aspectFit" />
@@ -59,9 +59,10 @@
 			<block v-else>
 			<scroll-view
 				class="category-rail"
-				scroll-y
+				:scroll-y="!isSeniorMode"
+				:scroll-x="isSeniorMode"
 				:show-scrollbar="false"
-				:style="scrollViewStyle"
+				:style="categoryScrollStyle"
 			>
 				<view
 					class="category-item"
@@ -80,7 +81,7 @@
 				@scrolltolower="loadMoreCards"
 				lower-threshold="200"
 				:show-scrollbar="false"
-				:style="scrollViewStyle"
+				:style="goodsScrollStyle"
 			>
 				<view v-if="loading && isListEmpty" class="goods_empty_view" aria-live="polite">加载中…</view>
 				<view v-if="contentError" class="content-error" aria-live="polite">
@@ -267,6 +268,12 @@
 				const height = Number(this.bodyScrollHeight)
 				const safeHeight = Number.isFinite(height) && height > 0 ? height : 400
 				return { height: safeHeight + 'px' }
+			},
+			categoryScrollStyle() {
+				return 'height:' + (this.isSeniorMode ? '56px' : this.scrollViewStyle.height)
+			},
+			goodsScrollStyle() {
+				return 'height:' + (this.isSeniorMode ? Math.max(120, this.bodyScrollHeight - 56) + 'px' : this.scrollViewStyle.height)
 			},
 			brandLogoDisplay() {
 				return this.brandLogoUrl || AD_FALLBACK.BRAND_LOGO
@@ -504,7 +511,8 @@
 						const bodyRect = res && res[0]
 						const windowInfo = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync()
 						const windowHeight = Number(windowInfo.windowHeight) || 0
-						const tabBarH = uni.upx2px(118)
+						const inset = (windowInfo.safeAreaInsets && windowInfo.safeAreaInsets.bottom) || 0
+						const tabBarH = this.isSeniorMode ? 80 + inset : uni.upx2px(118)
 						let available = 0
 						if (bodyRect && Number.isFinite(bodyRect.top)) {
 							available = windowHeight - bodyRect.top - tabBarH

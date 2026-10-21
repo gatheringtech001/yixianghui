@@ -1,7 +1,9 @@
 <template>
-	<view class="page_view">
+	<view :class="displayModeClass" class="page_view">
 		<scroll-view
 			class="page_scroll"
+			:scroll-into-view="formErrorTarget"
+			scroll-with-animation
 			:style="{ height: pageScrollHeight + 'px' }"
 			scroll-y
 			:show-scrollbar="false"
@@ -47,14 +49,16 @@
 
 				<view class="form-card">
 					<view class="card-title">{{ labels.signupInfo }}</view>
-					<view class="form-row">
+					<view class="form-row" id="signup-name">
 						<view class="row-label"><text class="required-mark">*</text>{{ labels.contactName }}（必填）</view>
 						<u-input v-model="contactName" type="text" border :placeholder="labels.contactNamePlaceholder" />
+						<view v-if="formAttempted && nameError" class="field-error" role="alert">{{ nameError }}</view>
 						<view class="row-hint">请填写真实姓名；默认带入的昵称如非实名，请修改。</view>
 					</view>
-					<view class="form-row">
+					<view class="form-row" id="signup-phone">
 						<view class="row-label"><text class="required-mark">*</text>{{ labels.contactPhone }}（必填）</view>
 						<u-input v-model="contactPhone" type="number" maxlength="11" border :placeholder="labels.contactPhonePlaceholder" />
+						<view v-if="formAttempted && phoneError" class="field-error" role="alert">{{ phoneError }}</view>
 						<view class="row-hint">{{ labels.contactHint }}</view>
 					</view>
 					<view class="form-row">
@@ -121,6 +125,8 @@
 				educationExt: {},
 				courseSummary: '',
 				contactName: '',
+				formAttempted: false,
+				formErrorTarget: '',
 				contactPhone: '',
 				remark: '',
 				signupNoticeHtml: '',
@@ -157,6 +163,8 @@
 			}
 		},
 		computed: {
+			nameError() { return String(this.contactName || '').trim() ? '' : '请填写联系人的真实姓名' },
+			phoneError() { return /^1[3-9]\d{9}$/.test(String(this.contactPhone || '').trim()) ? '' : '请填写正确的11位手机号码' },
 			coverUrl() {
 				if (!this.goodsDetail) return ''
 				const cover = this.goodsDetail.goodsCover
@@ -231,8 +239,10 @@
 			setPageScrollHeight() {
 				this.$nextTick(() => {
 					const windowInfo = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync()
-					const footH = uni.upx2px(160) + (windowInfo.safeAreaInsets ? windowInfo.safeAreaInsets.bottom : 0)
-					this.pageScrollHeight = windowInfo.windowHeight - footH
+					uni.createSelectorQuery().in(this).select('.page_foot_view').boundingClientRect(rect => {
+						const footH = (rect && rect.height) || uni.upx2px(160) + (windowInfo.safeAreaInsets ? windowInfo.safeAreaInsets.bottom : 0)
+						this.pageScrollHeight = Math.max(0, windowInfo.windowHeight - footH)
+					}).exec()
 				})
 			},
 			prefillContactInfo() {
@@ -312,8 +322,13 @@
 				return ''
 			},
 			submitOrder() {
+				this.formAttempted = true
+				this.formErrorTarget = ''
 				const errorText = this.validateForm()
 				if (errorText) {
+					if (this.$nextTick) this.$nextTick(() => {
+						this.formErrorTarget = this.nameError ? 'signup-name' : this.phoneError ? 'signup-phone' : ''
+					})
 					uni.showToast({
 						title: errorText,
 						icon: 'none'

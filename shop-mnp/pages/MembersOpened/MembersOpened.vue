@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view :class="displayModeClass" class="page">
 <!-- 		<view class="vip-card" v-if="defaultCard">
 			<view class="card-bg">
 				<image :src="host + defaultCard.cardImage" mode="" />

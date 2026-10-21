@@ -1,5 +1,5 @@
 <template>
-	<view class="page article" v-if="detailInfo">
+	<view :class="displayModeClass" class="page article" v-if="detailInfo">
 		<scroll-view class="page-scroll" scroll-y :show-scrollbar="false">
 			<view class="head">
 				<image :src="coverUrl" mode="aspectFill" />

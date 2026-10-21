@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view :class="displayModeClass" class="page">
 		<!-- 地址列表 -->
 		<view class="address-list" v-if="addressList.length > 0">
 			<view class="list" v-for="(item, index) in addressList" :key="index" @click="chooseAddress(item)" @longpress="onAddressLongPress(item)">

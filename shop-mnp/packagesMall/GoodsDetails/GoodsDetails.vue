@@ -1,5 +1,5 @@
 <template>
-	<view class="goods-detail-page">
+	<view :class="displayModeClass" class="goods-detail-page">
 		<view class="goods-head" v-if="PageScrollTop > 200"
 			:style="'background:rgba(255,255,255,' + PageScrollTop / 100 + ')'">
 			<!-- tab切换 -->
@@ -80,7 +80,7 @@
 			<view class="content">
 				<u-parse
 					v-if="goodsDetail.content"
-					:html="goodsDetail.content"
+					:html="displayRichText(goodsDetail.content)"
 					:domain="host"
 					:lazy-load="false"
 					:show-with-animation="false"

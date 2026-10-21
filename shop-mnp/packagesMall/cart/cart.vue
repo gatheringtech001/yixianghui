@@ -1,5 +1,5 @@
 <template>
-	<view class="cart-page">
+	<view :class="displayModeClass" class="cart-page">
 		<view class="cart-head">
 			<text class="title">购物车</text>
 			<text v-if="items.length" class="clear" @click="confirmClear">清空</text>

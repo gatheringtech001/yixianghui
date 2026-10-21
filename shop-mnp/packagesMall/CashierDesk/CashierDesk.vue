@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view :class="displayModeClass" class="page">
 		<view class="price-count-down">
 			<view class="price">
 				<text class="min">￥</text>

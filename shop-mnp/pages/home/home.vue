@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view class="page" :class="displayModeClass">
 		<u-navbar class="weapp-nav-box home-nav" :is-back="false" :background="{ background: '#EFEBDF' }" :border-bottom="false">
 			<view class="slot-wrap home-brand">
 				<image v-if="brandLogoDisplay" class="brand-logo" :src="brandLogoDisplay" mode="aspectFit" />
@@ -12,6 +12,7 @@
 					<u-icon name="search" color="#8a8a8a" size="32" />
 					<text class="search-text">搜索热门商品</text>
 				</view>
+				<button class="display-mode-entry" @tap="showDisplayMode = true">{{ isSeniorMode ? '长辈模式' : '大字模式' }}</button>
 			</view>
 		</view>
 
@@ -36,7 +37,7 @@
 					class="recommendation-swiper"
 					indicator-dots
 					circular
-					autoplay
+					:autoplay="!isSeniorMode"
 					interval="4200"
 					duration="500"
 				>
@@ -102,9 +103,9 @@
 				<swiper
 					v-if="hotCardList.length"
 					class="city-swiper"
-					:autoplay="hotCardList.length > 5"
+					:autoplay="!isSeniorMode && hotCardList.length > 5"
 					:circular="hotCardList.length > 5"
-					:display-multiple-items="Math.min(5, hotCardList.length)"
+					:display-multiple-items="Math.min(isSeniorMode ? 3 : 5, hotCardList.length)"
 					interval="2500"
 					duration="600"
 					@change="onHotCitySwiperChange"
@@ -219,6 +220,7 @@
 				</view>
 			</view>
 		</u-popup>
+		<DisplayModePicker :visible="showDisplayMode" @close="showDisplayMode = false" />
 		<AuthProfilePopup ref="authProfilePopup" />
 
 		<!-- tabbar -->
@@ -283,6 +285,7 @@
 				hotGoods: [],
 				classifyShow: 0,
 				showContact: false,
+				showDisplayMode: false,
 				contact: [],
 				selectedContact: null,
 				selectedCityIndex: -1,

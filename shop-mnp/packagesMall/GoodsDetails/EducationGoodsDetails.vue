@@ -1,5 +1,5 @@
 <template>
-	<view class="page_container">
+	<view :class="displayModeClass" class="page_container">
 		<u-navbar
 			class="weapp-nav-box detail-nav"
 			:is-back="true"
@@ -73,7 +73,7 @@
 				<view class="course-section" v-for="(section, index) in courseData.sections" :key="index">
 					<view class="section-title">{{ section.name }}</view>
 					<view class="section-content">
-						<u-parse :html="section.content" :preview="true" />
+						<u-parse :html="displayRichText(section.content)" :preview="true" />
 					</view>
 				</view>
 			</view>

@@ -44,6 +44,8 @@ img{
 <style lang="scss">
 	/* 注意要写在第一行，同时给style标签加入lang="scss"属性 */
 	@import "uview-ui/index.scss";
+	@import "style/senior-mode.scss";
+	.field-error { color: #701018; font-size: 28rpx; line-height: 1.6; margin-top: 12rpx; }
 	.weapp-nav-box{
 		.u-slot-content {
 			width: 100%;

@@ -1,5 +1,5 @@
 <template>
-	<view class="talent-gate">
+	<view :class="displayModeClass" class="talent-gate">
 		<web-view v-if="talentCenterUrl" :src="talentCenterUrl" />
 		<view v-else>
 			<text>{{ error || '正在打开达人中心…' }}</text>

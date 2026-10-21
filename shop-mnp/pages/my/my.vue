@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view :class="displayModeClass" class="page">
 		<scroll-view class="profile-scroll" scroll-y :show-scrollbar="false">
 			<view class="profile-head" :style="profileHeadPadding">
 				<view class="profile-top">
@@ -373,15 +373,9 @@
 				}
 			},
 			onSetting() {
-				runWithAuth(this, (ok) => {
-					if (!ok) return
-					this.userInfo = uni.getStorageSync('userInfo')
-					uni.navigateTo({
-						url: '/packagesPublic/Setting/Setting',
-						fail: () => {
-							uni.showToast({ title: '跳转失败，请重试', icon: 'none' })
-						}
-					})
+				uni.navigateTo({
+					url: '/packagesPublic/Setting/Setting',
+					fail: () => uni.showToast({ title: '跳转失败，请重试', icon: 'none' })
 				})
 			},
 			onUserInfo() {

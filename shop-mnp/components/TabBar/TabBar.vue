@@ -1,5 +1,5 @@
 <template>
-	<view class="page-total">
+	<view class="page-total" :class="displayModeClass">
 		<view class="tab-list">
 			<view
 				class="tab-item"
@@ -81,4 +81,11 @@
 
 <style scoped lang="scss">
 	@import 'TabBar.scss';
+	.senior-mode {
+		.tab-list { min-height: 64px; }
+		.tab-item { min-height: 64px; }
+		.tab-icon { width: 26px; height: 26px; opacity: 1; }
+		.tab-label { font-size: 16px; color: #555; line-height: 1.4; }
+		.tab-item.active .tab-label { color: #701018; }
+	}
 </style>

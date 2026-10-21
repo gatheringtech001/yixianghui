@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view :class="displayModeClass" class="page">
 		<!-- 优惠券tab -->
 		<view class="coupon-tab">
 			<view class="tab" :class="{'action':TabShow===0}" @click="onCouponTab(0)">

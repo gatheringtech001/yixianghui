@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view :class="displayModeClass" class="page">
 		<scroll-view class="information-scroll" scroll-y :show-scrollbar="false">
 			<view class="information-shell">
 				<view class="profile-summary">

@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view :class="displayModeClass" class="page">
 		<!-- 地址 -->
 		<view class="address-data" v-if="goodsDetail && goodsDetail.goodsType == 'online'">
 			<view class="address-list" v-if="address" @click="onSkip('address')">

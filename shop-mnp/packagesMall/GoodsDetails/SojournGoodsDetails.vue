@@ -1,5 +1,5 @@
 <template>
-	<view class="page_container">
+	<view :class="displayModeClass" class="page_container">
 	<u-navbar
 		class="weapp-nav-box detail-nav"
 		:is-back="true"
@@ -20,7 +20,7 @@
 		scroll-with-animation
 	>
 		<!-- 轮播图 -->
-		<swiper class="banner_swiper" indicator-dots="true" autoplay="true" interval="5000" duration="500">
+		<swiper class="banner_swiper" indicator-dots="true" :autoplay="!isSeniorMode" interval="5000" duration="500">
 			<swiper-item v-for="(item, index) in bannerImages" :key="index">
 				<image :src="resolveCoverUrl(item)" mode="aspectFill" class="banner-image" @tap.stop="previewDetailImages(item, bannerImages)"></image>
 			</swiper-item>
@@ -99,7 +99,7 @@
 						{{item.name}}
 					</view>
 					<view class="relateds_content_view">
-						<u-parse :html="item.content" :preview="true" />
+						<u-parse :html="displayRichText(item.content)" :preview="true" />
 					</view>
 					<view class="relateds_button_view" v-if="item.showToggle">
 						<view v-if="item.isExpand" class="button_view" @click="expandFn(item)">
@@ -156,7 +156,7 @@
 			<scroll-view scroll-y="true" class="popup_calendar_view" :show-scrollbar="false">
 				<Calendar ref="CalendarRef" :is-show="true" :isFixed="false" :price="calendarPriceText"
 					:startDate="popupDate.checkInDate" :endDate="popupDate.checkOutDate"
-					:fixedEnd="true" :mode="2" themeColor="#FF7906" @callback="calendarCallBackFn"
+					:fixedEnd="true" :mode="2" themeColor="#701018" @callback="calendarCallBackFn"
 					@calendarClick="calendarClickFn" />
 			</scroll-view>
 			<view class="popup_footer_view">

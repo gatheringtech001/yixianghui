@@ -1,7 +1,9 @@
 <template>
-	<view class="page_view">
+	<view :class="displayModeClass" class="page_view">
 		<scroll-view
 			class="page_scroll"
+			:scroll-into-view="formErrorTarget"
+			scroll-with-animation
 			:style="{ height: pageScrollHeight + 'px' }"
 			scroll-y
 			:show-scrollbar="false"
@@ -40,19 +42,21 @@
 				<view class="form-card">
 					<view class="card-title">报名信息</view>
 					<view class="form-guide">请填写实际联系人的姓名、手机号和参与人数，方便活动组织方确认报名。</view>
-					<view class="form-row">
+					<view class="form-row" id="signup-name">
 						<view class="row-label"><text class="required-mark">*</text>报名联系人（必填）</view>
 						<u-input v-model="signName" @input="contactEdited.name = true" type="text" maxlength="30" border placeholder="请输入联系人的真实姓名" />
+						<view v-if="formAttempted && nameError" class="field-error" role="alert">{{ nameError }}</view>
 						<view class="row-hint">请填写真实姓名；默认带入的昵称如非实名，请修改。</view>
 					</view>
-					<view class="form-row">
+					<view class="form-row" id="signup-phone">
 						<view class="row-label"><text class="required-mark">*</text>联系电话（必填）</view>
 						<u-input v-model="signMobile" @input="contactEdited.mobile = true" type="number" maxlength="11" border placeholder="请输入11位手机号码" />
+						<view v-if="formAttempted && phoneError" class="field-error" role="alert">{{ phoneError }}</view>
 						<view class="row-hint">请核对并填写正确的11位手机号，确保活动组织方能联系到您。</view>
 					</view>
 					<view class="form-row">
 						<view class="row-label">参与人数（必填）</view>
-						<u-number-box v-model="signCount" :min="1" :max="maxSignCount" :step="1" />
+						<u-number-box v-model="signCount" :min="1" :max="maxSignCount" :step="1" :input-height="isSeniorMode ? 112 : 50" :input-width="isSeniorMode ? 112 : 80" :size="isSeniorMode ? 42 : 26" />
 						<view class="row-hint">包含您本人；如替他人报名，请填写实际参与总人数。</view>
 					</view>
 					<view class="form-row">
@@ -131,6 +135,8 @@
 			return {
 				host: this.$host,
 				pageScrollHeight: 0,
+				formAttempted: false,
+				formErrorTarget: '',
 				activityId: null,
 				activityDetail: null,
 				signName: '',
@@ -146,6 +152,13 @@
 			}
 		},
 		computed: {
+			nameError() {
+				const name = String(this.signName || '').trim()
+				return !name ? '请填写报名联系人的真实姓名' : name.length > 30 ? '联系人姓名不能超过30个字' : ''
+			},
+			phoneError() {
+				return /^1[3-9]\d{9}$/.test(String(this.signMobile || '').trim()) ? '' : '请填写正确的11位手机号码'
+			},
 			isFreeSignup() {
 				return this.isActivityFree(this.activityDetail)
 			},
@@ -233,8 +246,10 @@
 			setPageScrollHeight() {
 				this.$nextTick(() => {
 					const windowInfo = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync()
-					const footH = uni.upx2px(160) + (windowInfo.safeAreaInsets ? windowInfo.safeAreaInsets.bottom : 0)
-					this.pageScrollHeight = windowInfo.windowHeight - footH
+					uni.createSelectorQuery().in(this).select('.page_foot_view').boundingClientRect(rect => {
+						const footH = (rect && rect.height) || uni.upx2px(160) + (windowInfo.safeAreaInsets ? windowInfo.safeAreaInsets.bottom : 0)
+						this.pageScrollHeight = Math.max(0, windowInfo.windowHeight - footH)
+					}).exec()
 				})
 			},
 			async prefillContactInfo() {
@@ -313,8 +328,13 @@
 			},
 			async submitOrder() {
 				if (this.submitting || this.signupSubmitted) return
+				this.formAttempted = true
+				this.formErrorTarget = ''
 				const errorText = this.validateForm()
 				if (errorText) {
+					if (this.$nextTick) this.$nextTick(() => {
+						this.formErrorTarget = this.nameError ? 'signup-name' : this.phoneError ? 'signup-phone' : ''
+					})
 					uni.showToast({
 						title: errorText,
 						icon: 'none'

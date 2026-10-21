@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view :class="displayModeClass" class="page">
 		<view class="acticity-list" v-if="activityList.length > 0">
 			<view class="list" v-for="(item, index) in activityList" :key="index" @click.stop="activityOrderDetail(item)">
 				<view class="thumb">

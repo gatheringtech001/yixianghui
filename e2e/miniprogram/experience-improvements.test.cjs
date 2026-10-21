@@ -165,7 +165,7 @@ test('talent center entry verifies application before opening the deployed regis
 test('settings page uses the profile design system and keeps every existing destination', async () => {
   const source = await read('shop-mnp/packagesPublic/Setting/Setting.vue')
   const style = await read('shop-mnp/packagesPublic/Setting/Setting.scss')
-  const settingIcons = ['address', 'security', 'about']
+  const settingIcons = ['eye', 'map', 'lock', 'info-circle', 'server-man']
 
   assert.match(source, /class="settings-hero"/)
   assert.match(source, /class="hero-background"/)
@@ -188,21 +188,9 @@ test('settings page uses the profile design system and keeps every existing dest
   assert.doesNotMatch(style, /position:\s*fixed/)
 
   for (const icon of settingIcons) {
-    assert.match(source, new RegExp(`/static/settings-icons/${icon}\\.png`))
-    const image = await fs.readFile(path.join(
-      projectRoot,
-      `shop-mnp/static/settings-icons/${icon}.png`
-    ))
-    assert.equal(image.readUInt32BE(16), 128, `${icon} width`)
-    assert.equal(image.readUInt32BE(20), 128, `${icon} height`)
-    assert.equal(getTopLeftPaletteAlpha(image), 0, `${icon} background should be transparent`)
-    assert.deepEqual(
-      getPaletteAlphaBounds(image),
-      { x: 16, y: 16, width: 96, height: 96 },
-      `${icon} should share one centered visible footprint`
-    )
-    assert.ok(image.length < 10000, `${icon} should stay package-friendly`)
+    assert.match(source, new RegExp(`name="${icon}" color="#701018" size="44"`))
   }
+  assert.doesNotMatch(source, /\/static\/settings-icons\//)
 })
 
 test('profile identity sits lower and personal information follows the current account design', async () => {

@@ -1,0 +1,163 @@
+// Shared reading scale. Only deliberate semantic selectors are enlarged: never zoom
+// the whole page or change image/icon glyph font sizes indiscriminately.
+@import 'senior-tokens.scss';
+
+.senior-mode {
+	font-size: $senior-body;
+	line-height: 1.6;
+	color: $senior-ink;
+
+	.one-omit, .two-omit, .product-title, .card-title, .course-name, .activity-name {
+		white-space: normal !important;
+		-webkit-line-clamp: unset !important;
+		overflow: visible !important;
+		word-break: break-word;
+	}
+	.title, .section-title, .card-title, .course-name, .activity-name, .product-title,
+	.card-title-view, .base_title_view, .row-title, .hero-name, .profile-name {
+		font-size: $senior-title !important;
+		line-height: 1.5 !important;
+	}
+	.meta, .course-desc, .course-summary, .product-spec, .field-value, .info-value,
+	.row-label, .price-item, .row-title, .nav-address, .base_value_view, .text_view,
+	.label_view, .value_view, .sign-row, .order-label, .stat-label, .row-left,
+	.nickname-input, .nickname-row .label, .desc, .search-input, .goods-name {
+		font-size: $senior-body !important;
+		line-height: 1.6 !important;
+	}
+	.meta, .course-desc, .course-summary, .info-label, .field-label, .row-hint,
+	.form-guide, .row-description, .section-caption, .slogan, .text_view,
+	.course-sales, .search-text, .section-more, .base_label_view, .product-spec,
+	.order-state, .goods_empty_view, .empty, .brand-footer, .depreciate,
+	.agreement-copy, .avatar-tip, .status-tag, .order-type-tag {
+		font-size: $senior-note !important;
+		color: $senior-muted !important;
+		line-height: 1.6 !important;
+	}
+	.outline-chip, .product-tag, .status-pill, .btn-label, .eyebrow {
+		font-size: $senior-note !important;
+		line-height: 1.5 !important;
+	}
+	.price, .price_view, .price_view text, .product-price, .pay_price_view,
+	.stat-value, .total .value {
+		font-size: 26px !important;
+		line-height: 1.4 !important;
+	}
+	.btn, .btn-primary, .btn-secondary, .product-btn, .apply-btn, .pay_button_view,
+	.pay_btn, .share-btn, .btn-collect, .collect-star, .housekeeper-btn,
+	.nav-btn, .search-action, .retry-button, .logout-button, .primary-btn,
+	.one-tap-btn, .skip-btn, .close-action, .back-action, .settings,
+	.display-mode-entry, .combo_item_view, .counter button {
+		min-height: $senior-touch !important;
+		font-size: $senior-body !important;
+		line-height: 1.5 !important;
+		box-sizing: border-box;
+	}
+	.btn, .apply-btn, .pay_button_view, .share-btn, .housekeeper-btn,
+	.btn-primary, .primary-btn, .one-tap-btn, .search-action {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.search { min-height: $senior-touch !important; }
+	.search-input, .nickname-input { min-height: $senior-touch !important; }
+	.form-row { margin-bottom: 24px !important; }
+	.row-label { margin-bottom: 8px !important; }
+	.row-hint { margin-top: 8px !important; }
+	.field-error { color: #701018; font-size: $senior-note; line-height: 1.6; margin-top: 8px; }
+	.info-grid, .course-info-grid { grid-template-columns: minmax(0, 1fr) !important; gap: 18px !important; }
+	.course-title-row, .activity-title-row { flex-wrap: wrap !important; gap: 12px !important; }
+	.course-title-row .course-name { flex: 1 1 100% !important; order: -1; }
+	.btn-collect { width: 112px !important; min-width: 112px; }
+	.collect-star { min-width: $senior-touch; }
+	.activity-progress-head, .price-row, .product-price-row { flex-wrap: wrap; gap: 8px; }
+	.listing-body .meta { display: block; -webkit-line-clamp: unset; max-height: none; }
+	.price-row .btn-primary, .product-btn { margin-left: auto; padding: 10px 16px !important; }
+	.stay-card, .product-card { height: auto !important; }
+	.course-card { flex-wrap: wrap; }
+	.course-card .course-body { flex-basis: 100%; }
+	.settings-row { min-height: 88px; padding-top: 16px; padding-bottom: 16px; }
+	.settings-icon { flex-shrink: 0; }
+	.row-copy { min-width: 0; }
+	.section-heading { flex-wrap: wrap; gap: 8px; }
+	.service-row { min-height: 64px !important; }
+	.stat-item, .order-item { min-height: 72px; }
+	.profile-info { min-width: 0; }
+	.stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 16px !important; }
+	.stat-label { font-size: $senior-note !important; }
+	.profile-housekeeper { grid-template-columns: minmax(0, 1fr) !important; padding-left: 100px !important; }
+	.profile-housekeeper .housekeeper-copy { min-width: 0 !important; }
+	.profile-housekeeper .housekeeper-btn { justify-self: start; margin-left: 0 !important; white-space: nowrap; }
+	.profile-scroll { height: calc(100vh - 80px - env(safe-area-inset-bottom)) !important; padding-bottom: 16px !important; }
+	.order-grid { gap: 12px; }
+	.order-tab { height: auto !important; min-height: 56px; }
+	.order-tab .tab { height: auto !important; min-height: 56px; font-size: $senior-body !important; }
+	.order-tab .tab text { line-height: 56px !important; }
+	.order-list .title-status { flex-wrap: wrap; gap: 8px; }
+	.order-list .goods { flex-wrap: wrap; }
+	.order-list .item { min-width: 0; }
+	.goods-price { font-size: 22px !important; }
+	.bottom-action, .page_foot_view, .bottom { height: auto !important; min-height: 72px; }
+	.bottom-action { flex-wrap: wrap; gap: 8px !important; }
+	.bottom-action .share-btn { flex: 0 0 68px; }
+	.bottom-action .btn { flex: 1; min-width: 88px; padding: 8px !important; }
+	.page_foot_view .pay_button_view { padding: 10px 18px !important; }
+	.home-scroll-inner { padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important; }
+	.recommendation-swiper { height: 192px !important; }
+	.recommendation-card { height: 184px !important; }
+	.recommendation-title { font-size: $senior-title !important; line-height: 1.4 !important; }
+	.recommendation-section, .recommendation-action { font-size: $senior-note !important; }
+	.housekeeper, .profile-housekeeper { flex-wrap: wrap !important; gap: 12px !important; }
+	.housekeeper-copy { min-width: 180px !important; flex: 1 !important; }
+	.housekeeper-btn { padding: 8px 16px !important; margin-left: auto; }
+	.entry-title { font-size: 20px !important; line-height: 1.5 !important; }
+	.secondary-entry-grid .entry-copy { left: 0 !important; right: 0 !important; padding: 4px !important; align-items: center; }
+	.secondary-entry-grid .entry-title { font-size: 18px !important; }
+	.secondary-entry-grid .entry-desc { display: none !important; } // Decorative tagline only; all four entries stay.
+	.travel-entry-card { height: 160px !important; }
+	.travel-entry-card .entry-desc { font-size: $senior-note !important; line-height: 1.6 !important; }
+	.city-swiper { height: 120px !important; }
+	.city-name { font-size: $senior-note !important; }
+	.city-card { min-height: 96px; }
+	.switcher { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+	.switcher-item { min-height: 52px !important; font-size: $senior-body !important; padding: 6px; }
+	.switcher-icon { width: 26px !important; height: 26px !important; }
+	.page_body_view { flex-direction: column !important; }
+	.category-rail { flex: 0 0 56px !important; width: 100% !important; min-width: 0 !important; height: 56px !important; white-space: nowrap; border-right: 0; }
+	.category-item { display: inline-flex !important; width: auto !important; min-height: 48px !important; padding: 8px 14px !important; font-size: $senior-body !important; }
+	.body_goods_view { width: 100% !important; flex: 0 0 auto !important; min-height: 0; padding-left: 0 !important; }
+	.hero-description { font-size: $senior-note !important; line-height: 1.6 !important; }
+	.agreement-row { align-items: flex-start; padding: 12px 0; }
+	.agreement-checkbox { min-width: 28px; min-height: 28px; margin: 8px; }
+	.policy-link { display: inline-block; padding: 8px 0; }
+	.login-desc { white-space: normal !important; }
+	.login-hero { height: 150px !important; flex-shrink: 0; }
+	.login-copy { margin-top: 16px !important; }
+	.auth-profile-popup { overflow-y: auto; }
+	.pay-submit .submit, .pay-submit .jump { min-height: 52px; font-size: $senior-body !important; }
+	.pay-submit .jump { color: $senior-muted !important; }
+	.pay-way .pay-type text { font-size: $senior-body !important; }
+	.price-count-down { height: auto !important; padding: 24px 0 !important; }
+	.count-down { flex-wrap: wrap; gap: 8px; height: auto !important; margin-top: 12px; }
+	.count-down .time, .count-down .dot { font-size: $senior-body !important; }
+	.base_name_view, .text_title_view, .relateds_title_view, .title_text_view, .brief-title { font-size: $senior-title !important; line-height: 1.5 !important; }
+	.base_desc_view, .text_desc_view, .text_label_view, .date_view, .day_view,
+	.combo_row_view, .combo_item_view, .option_view, .related_view, .title_view,
+	.brief-row, .button_view, .button_clear_view, .button_confirm_view { font-size: $senior-body !important; line-height: 1.6 !important; }
+	.price_average_view, .tag_view, .combo_text_view, .combo_desc_view,
+	.combo_hint_view, .base_type_view, .expired-tip, .order_error_view { font-size: $senior-note !important; line-height: 1.6 !important; }
+	.base_title_row, .sku_item_view, .combo_title_view { flex-wrap: wrap !important; gap: 12px !important; }
+	.base_name_view { flex: 1 1 100% !important; }
+	.sku_item_view .item_title_view { flex: 1 1 100% !important; font-size: $senior-body !important; }
+	.item_button_view, .foot_primary_view, .foot_secondary_view, .button_view,
+	.text_button_view, .button_clear_view, .button_confirm_view, .related_view,
+	.option_view, .tag_customize_view { min-height: $senior-touch !important; min-width: $senior-touch; font-size: $senior-body !important; line-height: 1.5 !important; display: flex; align-items: center; justify-content: center; padding: 8px !important; box-sizing: border-box; }
+	.combo_row_view { height: auto !important; min-height: 56px; flex-wrap: wrap; gap: 8px; }
+	.combo_title_view .title_text_view { width: 100% !important; }
+	.page-footer { height: auto !important; min-height: 72px; }
+	.page-footer .list, .footer-btn .btn { min-height: $senior-touch; font-size: $senior-body !important; }
+}
+
+// Tab-bar reserve includes the larger controls and the device safe area.
+.page.senior-mode, .page_view.senior-mode { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+.page_view.senior-mode > .page_body_view { min-height: 0; }

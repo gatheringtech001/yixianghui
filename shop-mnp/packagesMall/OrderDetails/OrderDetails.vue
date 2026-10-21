@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view :class="displayModeClass" class="page">
 		<!-- 订单状态 -->
 		<view class="order-status" :class="{ 'is-pending': isPendingPayment }" v-if="orderDetail">
 			<view class="status" v-if="!isPendingPayment">
