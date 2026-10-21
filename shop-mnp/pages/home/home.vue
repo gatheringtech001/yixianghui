@@ -12,7 +12,11 @@
 					<u-icon name="search" color="#8a8a8a" size="32" />
 					<text class="search-text">搜索热门商品</text>
 				</view>
-				<button class="display-mode-entry" @tap="showDisplayMode = true">{{ isSeniorMode ? '长辈模式' : '大字模式' }}</button>
+				<button class="display-mode-entry" :aria-label="'当前' + displayModeLabel + '，点击切换显示模式'" @tap="showDisplayMode = true">
+					<u-icon name="eye" color="#701018" size="36" />
+					<text class="display-mode-label">{{ displayModeLabel }}</text>
+					<u-icon name="arrow-down" color="#701018" size="22" />
+				</button>
 			</view>
 		</view>
 
@@ -58,7 +62,7 @@
 					<image class="housekeeper-avatar" :src="housekeeperAvatarDisplay" mode="aspectFill" />
 					<view class="housekeeper-copy">
 						<view class="title">添加逸享荟小管家</view>
-						<view class="slogan">全程管家式服务，为您的生活保驾护航</view>
+						<view class="slogan"><text class="housekeeper-line">全程管家式服务<text v-if="!isSeniorMode">，</text></text><text class="housekeeper-line">为您的生活保驾护航</text></view>
 					</view>
 					<view class="housekeeper-btn" @click.stop="openHousekeeper">添加管家</view>
 				</view>
@@ -68,7 +72,7 @@
 						<image class="entry-bg" src="/static/home-design/entry-stay-wide.jpg" mode="aspectFill" />
 						<view class="entry-copy">
 							<text class="entry-title">全国旅居</text>
-							<text class="entry-desc">精选目的地<text>管家陪同 · 适老友好</text></text>
+							<text class="entry-desc">精选目的地<text v-if="isSeniorMode">管家陪同<text>适老友好</text></text><text v-else>管家陪同 · 适老友好</text></text>
 						</view>
 					</view>
 					<view class="secondary-entry-grid">

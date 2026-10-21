@@ -118,6 +118,18 @@ test('both modes retain the same homepage sections and senior mode stops automat
   assert.doesNotMatch(style,/transform:\s*scale|zoom:/)
 })
 
+test('home mode entry names the current mode and housekeeper grid can shrink safely', () => {
+  const home = read('pages/home/home.vue')
+  assert.match(home, /class="display-mode-label">\{\{ displayModeLabel \}\}/)
+  assert.doesNotMatch(home, /大字模式/)
+  assert.match(home, /当前.*displayModeLabel.*点击切换显示模式/)
+  const style = read('style/senior-mode.scss')
+  assert.match(style, /\.housekeeper \{ grid-template-columns: 48px minmax\(0, 1fr\)/)
+  assert.match(style, /\.housekeeper \.housekeeper-btn \{ grid-column: 2/)
+  assert.doesNotMatch(style, /\.housekeeper-copy\s*\{[^}]*min-width:\s*180px/)
+  assert.match(read('pages/home/home.scss'), /grid-template-columns: 100rpx minmax\(0, 1fr\) auto/)
+})
+
 test('service scroll styles are native CSS strings with a bounded senior catalog height', () => {
   const {page} = loadPage('pages/classify/classify.vue', {TabBar:{},AuthProfilePopup:{},sharePageMixin:{}})
   page.bodyScrollHeight=514

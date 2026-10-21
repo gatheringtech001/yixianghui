@@ -19,20 +19,23 @@ $header: #EFEBDF;
 }
 
 .display-mode-entry {
-	margin: 0 0 0 12rpx;
+	margin: 0 0 0 16rpx;
 	padding: 0 18rpx;
-	min-height: 44px;
+	min-height: 48px;
+	box-sizing: border-box;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	gap: 8rpx;
 	flex-shrink: 0;
-	border: 1rpx solid #701018;
-	border-radius: 999rpx;
-	background: #fff;
+	border: 1rpx solid #d9c7be;
+	border-radius: 24rpx;
+	background: #faf6ef;
 	color: #701018;
 	font-size: 16px;
 	font-weight: 650;
 	line-height: 1.4;
+	white-space: nowrap;
 	&::after { border: 0; }
 }
 
@@ -134,7 +137,7 @@ $header: #EFEBDF;
 
 .housekeeper {
 	display: grid;
-	grid-template-columns: 100rpx 1fr auto;
+	grid-template-columns: 100rpx minmax(0, 1fr) auto;
 	align-items: center;
 	gap: 20rpx;
 	min-height: 124rpx;
@@ -143,6 +146,7 @@ $header: #EFEBDF;
 	border: 1rpx solid $line;
 	border-radius: 20rpx;
 	background: $paper;
+	box-sizing: border-box;
 
 	.housekeeper-avatar {
 		width: 100rpx;
@@ -184,6 +188,7 @@ $header: #EFEBDF;
 		font-weight: 760;
 		white-space: nowrap;
 		flex-shrink: 0;
+		box-sizing: border-box;
 	}
 }
 

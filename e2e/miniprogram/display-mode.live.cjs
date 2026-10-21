@@ -38,13 +38,36 @@ async function run() {
     assert.equal(found,true,'Visible display picker not found')
     await delay(350)
   }
+  async function assertContained(page, parentSelector, childSelector) {
+    const parent = await page.$(parentSelector)
+    const child = await page.$(childSelector)
+    assert.ok(parent && child, `${parentSelector} and ${childSelector} must be visible`)
+    const [p, ps, c, cs] = await Promise.all([parent.offset(), parent.size(), child.offset(), child.size()])
+    assert.ok(c.left >= p.left - 1 && c.left + cs.width <= p.left + ps.width + 1,
+      `${childSelector} overflows ${parentSelector}: ${JSON.stringify({p,ps,c,cs})}`)
+    assert.ok(c.top >= p.top - 1 && c.top + cs.height <= p.top + ps.height + 1,
+      `${childSelector} vertically overflows ${parentSelector}`)
+  }
+  async function assertHomeLayout(page, mode) {
+    assert.equal(await (await page.$('.display-mode-label')).text(), mode === 'senior' ? '长辈模式' : '标准模式')
+    for (const selector of ['.housekeeper-avatar','.housekeeper-copy','.housekeeper-btn']) {
+      await assertContained(page, '.housekeeper', selector)
+    }
+    for (const selector of ['.search','.display-mode-entry']) await assertContained(page, '.head-search', selector)
+    const search = await page.$('.search')
+    const entry = await page.$('.display-mode-entry')
+    assert.ok((await search.offset()).left + (await search.size()).width <= (await entry.offset()).left)
+    if (mode === 'senior') assert.ok((await (await page.$('.housekeeper-btn')).size()).height >= 48)
+    console.log(`PASS ${mode} home: correct mode label, non-overlapping header, contained housekeeper content`)
+  }
   try {
     let page = await route('/pages/home/home','home-standard')
     await (await page.$('.display-mode-entry')).tap()
     await choose('senior')
     assert.equal((await state()).senior,true)
     assert.equal((await state()).chosen,true)
-    await route('/pages/home/home','home-senior',true)
+    page = await route('/pages/home/home','home-senior',true)
+    await assertHomeLayout(page, 'senior')
     assert.equal((await state()).senior,true)
     console.log('PASS home mode picker, shared state and saved preference')
 
@@ -120,7 +143,8 @@ async function run() {
     })
     assert.deepEqual(repeated,{authVisible:true,exists:true,pickerVisible:false})
     await mini.evaluate(() => getCurrentPages().slice(-1)[0].$vm.$refs.authProfilePopup.onCancel())
-    await route('/pages/home/home','home-standard-final',true)
+    page = await route('/pages/home/home','home-standard-final',true)
+    await assertHomeLayout(page, 'standard')
     assert.equal((await state()).senior,false)
     const finalAuth = await mini.evaluate(() => JSON.stringify([wx.getStorageSync('token'), wx.getStorageSync('userInfo')]))
     assert.equal(finalAuth,originalAuth, 'Display mode must not mutate the account session')
