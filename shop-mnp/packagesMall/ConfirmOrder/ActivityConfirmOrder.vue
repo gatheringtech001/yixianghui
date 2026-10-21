@@ -32,7 +32,7 @@
 						</view>
 						<view class="info-item">
 							<text class="info-label">剩余名额</text>
-							<text class="info-value">{{ activityDetail.maxCount ? remainCount + ' / ' + activityDetail.maxCount : '不限人数' }}</text>
+							<text class="info-value">{{ activityMaxCount ? remainCount + ' / ' + activityMaxCount : '不限人数' }}</text>
 						</view>
 					</view>
 				</view>
@@ -189,16 +189,20 @@
 			payAmountText() {
 				return this.formatMoney(this.payAmount)
 			},
+			activityMaxCount() {
+				const max = Number(this.activityDetail && this.activityDetail.maxCount)
+				return Number.isFinite(max) && max > 0 ? max : 0
+			},
 			remainCount() {
 				if (!this.activityDetail) return 0
-				const maxCount = Number(this.activityDetail.maxCount) || 0
+				const maxCount = this.activityMaxCount
 				const signCount = Number(this.activityDetail.signCount || this.activityDetail.signcount) || 0
 				if (!maxCount) return '不限'
 				return Math.max(maxCount - signCount, 0)
 			},
 			maxSignCount() {
-				if (!this.activityDetail || !this.activityDetail.maxCount) return 99
-				const maxCount = Number(this.activityDetail.maxCount) || 0
+				if (!this.activityMaxCount) return 99
+				const maxCount = this.activityMaxCount
 				const signCount = Number(this.activityDetail.signCount || this.activityDetail.signcount) || 0
 				return Math.max(maxCount - signCount, 1)
 			}
@@ -300,7 +304,7 @@
 				if (!Number.isInteger(Number(this.signCount)) || Number(this.signCount) < 1) {
 					return '参与人数请填写大于0的整数'
 				}
-				if (this.activityDetail.maxCount && Number(this.remainCount) < Number(this.signCount)) return '剩余名额不足，请调整参与人数'
+				if (this.activityMaxCount && Number(this.remainCount) < Number(this.signCount)) return '剩余名额不足，请调整参与人数'
 				if (Number(this.signCount) > this.maxSignCount) return '参与人数超出本次可报名人数'
 				if (!this.isFreeSignup && this.payAmount <= 0) {
 					return '活动价格未配置'

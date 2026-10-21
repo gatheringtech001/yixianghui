@@ -39,10 +39,10 @@
 				</view>
 				<view class="activity-progress-block">
 					<view class="activity-progress-head">
-						<text class="field-label">报名人数</text>
-						<text class="field-value">{{ activitySignCount }} / {{ detailInfo.maxCount || 0 }}</text>
+						<text class="field-label">已报人数</text>
+						<text class="field-value">{{ activitySignCount }}{{ activityMaxCount ? ' / ' + activityMaxCount + ' 人' : ' 人 · 不限人数' }}</text>
 					</view>
-					<view class="progress">
+					<view class="progress" v-if="activityMaxCount">
 						<view class="progress-bar" :style="{ width: enrollRatio }"></view>
 					</view>
 				</view>
@@ -93,9 +93,9 @@
 			<view
 				v-else-if="activityPhase === 'applying'"
 				class="apply-btn"
-				:class="{ disabled: detailInfo && activitySignCount == detailInfo.maxCount }"
+				:class="{ disabled: activityFull }"
 				@click="apply"
-			>{{ detailInfo && activitySignCount == detailInfo.maxCount ? '名额已满' : applyBtnText }}</view>
+			>{{ activityFull ? '名额已满' : applyBtnText }}</view>
 			<view v-else class="apply-btn disabled">{{ statusText }}</view>
 		</view>
 		<AuthProfilePopup ref="authProfilePopup" />
@@ -163,14 +163,20 @@
 				return 'ended'
 			},
 			enrollRatio() {
-				if (!this.detailInfo || !this.detailInfo.maxCount) return '0%'
-				const signCount = this.detailInfo.signCount || this.detailInfo.signcount || 0
-				const ratio = (signCount / this.detailInfo.maxCount) * 100
+				if (!this.activityMaxCount) return '0%'
+				const ratio = (this.activitySignCount / this.activityMaxCount) * 100
 				return `${Math.min(ratio, 100)}%`
+			},
+			activityMaxCount() {
+				const max = Number(this.detailInfo && this.detailInfo.maxCount)
+				return Number.isFinite(max) && max > 0 ? max : 0
+			},
+			activityFull() {
+				return this.activityMaxCount > 0 && this.activitySignCount >= this.activityMaxCount
 			},
 			activitySignCount() {
 				if (!this.detailInfo) return 0
-				return this.detailInfo.signCount || this.detailInfo.signcount || 0
+				return Number(this.detailInfo.signCount || this.detailInfo.signcount) || 0
 			},
 			applyBtnText() {
 				if (!this.detailInfo) return '立即报名'
@@ -306,7 +312,7 @@
 					return
 				}
 				if (this.activityPhase !== 'applying') return
-				if (this.activitySignCount == this.detailInfo.maxCount) return
+				if (this.activityFull) return
 				let userInfo = uni.getStorageSync('userInfo')
 				if (!userInfo || userInfo == '' || userInfo == undefined) {
 					uni.showToast({

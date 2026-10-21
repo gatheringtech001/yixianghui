@@ -159,9 +159,9 @@
 								<view class="activity-meta-row">
 									<view class="activity-label">
 										<u-icon name="account" color="#701018" size="24" />
-										<text>报名人数</text>
+										<text>已报人数</text>
 									</view>
-									<text class="activity-value accent">{{ item.signcount || item.signCount || 0 }} / {{ item.maxCount || 0 }}</text>
+									<text class="activity-value accent">{{ activitySignupText(item) }}</text>
 								</view>
 							</view>
 							<view class="price-row">
@@ -405,6 +405,11 @@
 			}
 		},
 		methods: {
+			activitySignupText(item) {
+				const count = Number(item.signCount || item.signcount) || 0
+				const max = Number(item.maxCount)
+				return Number.isFinite(max) && max > 0 ? `${count} / ${max} 人` : `${count} 人 · 不限人数`
+			},
 			loadMoreCards() {
 				this.visibleCardCount = Math.max(12, Math.min(this.visibleCardCount + 12, Math.max(this.goodsList.length, this.activityList.length)))
 			},
