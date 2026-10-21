@@ -94,6 +94,11 @@
     "quickapp" : {},
     "mp-weixin" : {
         "appid" : "wx233d832646ee4aea",
+        "packOptions" : {
+            "ignore" : [
+                { "type" : "folder", "value" : "static/settings-icons" }
+            ]
+        },
         "setting" : {
             "urlCheck" : false,
             "es6" : true,
