@@ -12,11 +12,6 @@
 					<u-icon name="search" color="#8a8a8a" size="32" />
 					<text class="search-text">搜索热门商品</text>
 				</view>
-				<button class="display-mode-entry" :aria-label="'当前' + displayModeLabel + '，点击切换显示模式'" @tap="showDisplayMode = true">
-					<u-icon name="eye" color="#701018" size="36" />
-					<text class="display-mode-label">{{ displayModeLabel }}</text>
-					<u-icon name="arrow-down" color="#701018" size="22" />
-				</button>
 			</view>
 		</view>
 
@@ -60,10 +55,8 @@
 
 				<view class="housekeeper">
 					<image class="housekeeper-avatar" :src="housekeeperAvatarDisplay" mode="aspectFill" />
-					<view class="housekeeper-copy">
-						<view class="title">添加逸享荟小管家</view>
-						<view class="slogan"><text class="housekeeper-line">全程管家式服务<text v-if="!isSeniorMode">，</text></text><text class="housekeeper-line">为您的生活保驾护航</text></view>
-					</view>
+					<view class="housekeeper-title title">添加逸享荟小管家</view>
+					<view class="housekeeper-slogan slogan"><text class="housekeeper-line">全程管家式服务<text v-if="!isSeniorMode">，</text></text><text class="housekeeper-line">{{ isSeniorMode ? '为您保驾护航' : '为您的生活保驾护航' }}</text></view>
 					<view class="housekeeper-btn" @click.stop="openHousekeeper">添加管家</view>
 				</view>
 
@@ -154,13 +147,13 @@
 										:key="j"
 									>{{ tag }}</text>
 								</view>
-								<view class="product-price-row">
-									<view class="product-price">
-										<text class="price">¥{{ goods.price }}</text>
-									</view>
-									<view class="product-btn">
-										<text>{{ goods.goodsType == 'online' || goods.goodsType == 'o2o' ? '购买' : '预订' }}</text>
-									</view>
+							</view>
+							<view class="product-price-row">
+								<view class="product-price">
+									<text class="price">¥{{ goods.price }}</text>
+								</view>
+								<view class="product-btn">
+									<text>{{ goods.goodsType == 'online' || goods.goodsType == 'o2o' ? '购买' : '预订' }}</text>
 								</view>
 							</view>
 						</view>
@@ -224,7 +217,6 @@
 				</view>
 			</view>
 		</u-popup>
-		<DisplayModePicker :visible="showDisplayMode" @close="showDisplayMode = false" />
 		<AuthProfilePopup ref="authProfilePopup" />
 
 		<!-- tabbar -->
@@ -289,7 +281,6 @@
 				hotGoods: [],
 				classifyShow: 0,
 				showContact: false,
-				showDisplayMode: false,
 				contact: [],
 				selectedContact: null,
 				selectedCityIndex: -1,

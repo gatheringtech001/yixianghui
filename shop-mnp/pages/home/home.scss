@@ -18,27 +18,6 @@ $header: #EFEBDF;
 	width: 100%;
 }
 
-.display-mode-entry {
-	margin: 0 0 0 16rpx;
-	padding: 0 18rpx;
-	min-height: 48px;
-	box-sizing: border-box;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 8rpx;
-	flex-shrink: 0;
-	border: 1rpx solid #d9c7be;
-	border-radius: 24rpx;
-	background: #faf6ef;
-	color: #701018;
-	font-size: 16px;
-	font-weight: 650;
-	line-height: 1.4;
-	white-space: nowrap;
-	&::after { border: 0; }
-}
-
 .home-refresher {
 	display: flex;
 	align-items: center;
@@ -139,7 +118,7 @@ $header: #EFEBDF;
 	display: grid;
 	grid-template-columns: 100rpx minmax(0, 1fr) auto;
 	align-items: center;
-	gap: 20rpx;
+	gap: 0 20rpx;
 	min-height: 124rpx;
 	margin-top: 12rpx;
 	padding: 12rpx 16rpx 12rpx 24rpx;
@@ -149,6 +128,8 @@ $header: #EFEBDF;
 	box-sizing: border-box;
 
 	.housekeeper-avatar {
+		grid-column: 1;
+		grid-row: 1 / 3;
 		width: 100rpx;
 		height: 100rpx;
 		border-radius: 50%;
@@ -156,25 +137,30 @@ $header: #EFEBDF;
 		flex-shrink: 0;
 	}
 
-	.housekeeper-copy {
+	.housekeeper-title {
+		grid-column: 2;
+		grid-row: 1;
+		align-self: end;
 		min-width: 0;
-
-		.title {
-			font-size: 30rpx;
-			font-weight: 700;
-			color: $ink;
-			line-height: 1.3;
-		}
-
-		.slogan {
-			margin-top: 6rpx;
-			font-size: 22rpx;
-			color: $muted;
-			line-height: 1.45;
-		}
+		font-size: 30rpx;
+		font-weight: 700;
+		color: $ink;
+		line-height: 1.3;
+	}
+	.housekeeper-slogan {
+		grid-column: 2;
+		grid-row: 2;
+		align-self: start;
+		min-width: 0;
+		margin-top: 6rpx;
+		font-size: 22rpx;
+		color: $muted;
+		line-height: 1.45;
 	}
 
 	.housekeeper-btn {
+		grid-column: 3;
+		grid-row: 1 / 3;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -368,8 +354,8 @@ $header: #EFEBDF;
 
 .product-card {
 	display: grid;
-	grid-template-columns: 296rpx 1fr;
-	gap: 18rpx;
+	grid-template-columns: 296rpx minmax(0, 1fr);
+	gap: 6rpx 18rpx;
 	align-items: center;
 	min-height: 188rpx;
 	padding: 8rpx 10rpx 8rpx 8rpx;
@@ -379,12 +365,17 @@ $header: #EFEBDF;
 	box-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 
 	.product-cover {
+		grid-column: 1;
+		grid-row: 1 / 3;
 		width: 296rpx;
 		height: 172rpx;
 		border-radius: 16rpx;
 	}
 
 	.product-body {
+		grid-column: 2;
+		grid-row: 1;
+		align-self: end;
 		min-width: 0;
 		padding-right: 8rpx;
 	}
@@ -422,6 +413,8 @@ $header: #EFEBDF;
 	}
 
 	.product-price-row {
+		grid-column: 2;
+		grid-row: 2;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -454,6 +447,36 @@ $header: #EFEBDF;
 		color: #fff;
 		font-size: 24rpx;
 		font-weight: 760;
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
+}
+
+// Reflow the card, not just its font: header above, supporting text and action below.
+.page.senior-mode {
+	.housekeeper {
+		grid-template-columns: 44px minmax(0, 1fr) auto;
+		gap: 12px;
+		padding: 14px;
+		.housekeeper-avatar { grid-row: 1; width: 44px; height: 44px; }
+		.housekeeper-title { grid-column: 2 / 4; grid-row: 1; align-self: center; }
+		.housekeeper-slogan { grid-column: 1 / 3; grid-row: 2; margin-top: 0; align-self: center; }
+		.housekeeper-line { display: block; }
+		.housekeeper-btn { grid-column: 3; grid-row: 2; margin: 0; min-width: 96px; white-space: nowrap; }
+	}
+	.product-card {
+		grid-template-columns: 96px minmax(0, 1fr);
+		gap: 12px;
+		padding: 12px;
+		box-sizing: border-box;
+		align-items: start;
+		.product-cover { grid-row: 1; width: 96px; height: 96px; }
+		.product-body { align-self: start; padding-right: 0; }
+		.product-tags { max-height: none; overflow: visible; gap: 6px; margin-top: 8px; }
+		.product-tag { min-height: 28px; padding: 0 8px; box-sizing: border-box; }
+		.product-price-row { grid-column: 1 / -1; margin-top: 0; flex-wrap: nowrap; gap: 12px; }
+		.product-btn { width: auto; min-width: 88px; margin: 0; flex: 0 0 auto; white-space: nowrap; }
+		.product-btn text { white-space: nowrap; }
 	}
 }
 

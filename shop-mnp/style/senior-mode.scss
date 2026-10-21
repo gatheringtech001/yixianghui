@@ -47,7 +47,7 @@
 	.pay_btn, .share-btn, .btn-collect, .collect-star, .housekeeper-btn,
 	.nav-btn, .search-action, .retry-button, .logout-button, .primary-btn,
 	.one-tap-btn, .skip-btn, .close-action, .back-action, .settings,
-	.display-mode-entry, .combo_item_view, .counter button {
+	.combo_item_view, .counter button {
 		min-height: $senior-touch !important;
 		font-size: $senior-body !important;
 		line-height: 1.5 !important;
@@ -107,13 +107,9 @@
 	.recommendation-card { height: 184px !important; }
 	.recommendation-title { font-size: $senior-title !important; line-height: 1.4 !important; }
 	.recommendation-section, .recommendation-action { font-size: $senior-note !important; }
-	.housekeeper, .profile-housekeeper { gap: 12px !important; }
-	.housekeeper { grid-template-columns: 48px minmax(0, 1fr) !important; padding: 16px !important; }
-	.housekeeper .housekeeper-avatar { width: 48px !important; height: 48px !important; align-self: start; }
+	.profile-housekeeper { gap: 12px !important; }
 	.housekeeper-copy { min-width: 0 !important; }
-	.housekeeper .housekeeper-line { display: block; }
 	.housekeeper-btn { padding: 8px 16px !important; margin-left: auto; }
-	.housekeeper .housekeeper-btn { grid-column: 2; justify-self: start; margin-left: 0; max-width: 100%; }
 	.entry-title { font-size: 20px !important; line-height: 1.5 !important; }
 	.secondary-entry-grid .entry-copy { left: 0 !important; right: 0 !important; padding: 4px !important; align-items: center; }
 	.secondary-entry-grid .entry-title { font-size: 18px !important; }

@@ -83,12 +83,11 @@ test('guest settings are accessible while private profile and address actions re
   assert.equal(navigations[1],'/packagesPublic/AddressList/AddressList')
 })
 
-test('first-choice prompt belongs to auth only; home and settings open it explicitly', () => {
+test('display choice is offered only at first login and in settings, never on home', () => {
   assert.match(read('components/AuthProfilePopup/AuthProfilePopup.vue'),/:visible="!displayModeChosen" first-choice/)
-  for(const file of ['pages/home/home.vue','packagesPublic/Setting/Setting.vue']) {
-    assert.match(read(file),/:visible="showDisplayMode"/)
-    assert.match(read(file),/showDisplayMode: false/)
-  }
+  assert.match(read('packagesPublic/Setting/Setting.vue'),/:visible="showDisplayMode"/)
+  assert.match(read('packagesPublic/Setting/Setting.vue'),/showDisplayMode: false/)
+  assert.doesNotMatch(read('pages/home/home.vue'),/display-mode-entry|showDisplayMode|DisplayModePicker/)
   assert.doesNotMatch(read('components/DisplayModePicker/DisplayModePicker.vue'),/coupon|token|userInfo|request\(/i)
 })
 
@@ -118,16 +117,17 @@ test('both modes retain the same homepage sections and senior mode stops automat
   assert.doesNotMatch(style,/transform:\s*scale|zoom:/)
 })
 
-test('home mode entry names the current mode and housekeeper grid can shrink safely', () => {
+test('senior home cards reflow actions into full-width or balanced footer rows', () => {
   const home = read('pages/home/home.vue')
-  assert.match(home, /class="display-mode-label">\{\{ displayModeLabel \}\}/)
-  assert.doesNotMatch(home, /大字模式/)
-  assert.match(home, /当前.*displayModeLabel.*点击切换显示模式/)
-  const style = read('style/senior-mode.scss')
-  assert.match(style, /\.housekeeper \{ grid-template-columns: 48px minmax\(0, 1fr\)/)
-  assert.match(style, /\.housekeeper \.housekeeper-btn \{ grid-column: 2/)
-  assert.doesNotMatch(style, /\.housekeeper-copy\s*\{[^}]*min-width:\s*180px/)
-  assert.match(read('pages/home/home.scss'), /grid-template-columns: 100rpx minmax\(0, 1fr\) auto/)
+  assert.match(home, /class="housekeeper-title title"/)
+  const style = read('pages/home/home.scss')
+  assert.match(style, /\.housekeeper-title \{ grid-column: 2 \/ 4; grid-row: 1/)
+  assert.match(style, /\.housekeeper-slogan \{ grid-column: 1 \/ 3; grid-row: 2/)
+  assert.match(style, /\.housekeeper-btn \{ grid-column: 3; grid-row: 2/)
+  assert.match(style, /grid-template-columns: 96px minmax\(0, 1fr\)/)
+  assert.match(style, /\.product-price-row \{ grid-column: 1 \/ -1;[^}]*flex-wrap: nowrap/)
+  assert.match(style, /\.product-btn \{ width: auto; min-width: 88px;[^}]*flex: 0 0 auto; white-space: nowrap/)
+  assert.match(style, /\.product-tags \{ max-height: none/)
 })
 
 test('service scroll styles are native CSS strings with a bounded senior catalog height', () => {

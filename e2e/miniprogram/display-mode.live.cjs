@@ -49,27 +49,54 @@ async function run() {
       `${childSelector} vertically overflows ${parentSelector}`)
   }
   async function assertHomeLayout(page, mode) {
-    assert.equal(await (await page.$('.display-mode-label')).text(), mode === 'senior' ? '长辈模式' : '标准模式')
-    for (const selector of ['.housekeeper-avatar','.housekeeper-copy','.housekeeper-btn']) {
+    assert.equal(await page.$('.display-mode-entry'), null, 'Home must not offer a mode switch')
+    for (const selector of ['.housekeeper-avatar','.housekeeper-title','.housekeeper-slogan','.housekeeper-btn']) {
       await assertContained(page, '.housekeeper', selector)
     }
-    for (const selector of ['.search','.display-mode-entry']) await assertContained(page, '.head-search', selector)
+    await assertContained(page, '.head-search', '.search')
     const search = await page.$('.search')
-    const entry = await page.$('.display-mode-entry')
-    assert.ok((await search.offset()).left + (await search.size()).width <= (await entry.offset()).left)
+    const head = await page.$('.head-search')
+    assert.ok((await search.size()).width >= (await head.size()).width - 2, 'Search uses the full header')
     if (mode === 'senior') assert.ok((await (await page.$('.housekeeper-btn')).size()).height >= 48)
-    console.log(`PASS ${mode} home: correct mode label, non-overlapping header, contained housekeeper content`)
+    const cards = await page.$$('.product-card')
+    assert.ok(cards.length > 0, 'Production home must contain real product cards')
+    for (const card of cards.slice(0, 3)) {
+      const row = await card.$('.product-price-row')
+      const btn = await card.$('.product-btn')
+      const label = await btn.$('text')
+      const [ro, rs, bo, bs, ls] = await Promise.all([row.offset(), row.size(), btn.offset(), btn.size(), label.size()])
+      assert.ok(bo.left >= ro.left - 1 && bo.left + bs.width <= ro.left + rs.width + 1)
+      assert.ok(ls.width <= bs.width && ls.height < 35, 'Action label must fit on one line')
+      if (mode === 'senior') {
+        const body = await card.$('.product-body')
+        const image = await card.$('.product-cover')
+        const [co, cs, io, is, to, ts] = await Promise.all([card.offset(), card.size(), image.offset(), image.size(), body.offset(), body.size()])
+        assert.ok(rs.width >= cs.width - 30, 'Senior product footer uses the full card width')
+        assert.ok(ro.top >= Math.max(io.top + is.height, to.top + ts.height) - 1, 'Footer must be below image and copy')
+        assert.ok(bo.top + bs.height <= co.top + cs.height + 1)
+        assert.ok(bs.width >= 88 && bs.height >= 48)
+      }
+    }
+    if (process.env.DISPLAY_MODE_SCREENSHOTS) {
+      const scroll = await page.$('.home-scroll')
+      const first = await cards[0].offset()
+      await scroll.scrollTo(0, Math.max(0, first.top - (await scroll.offset()).top))
+      await delay(400)
+      await mini.screenshot({path:process.env.DISPLAY_MODE_SCREENSHOTS+`/home-products-${mode}.png`})
+      await scroll.scrollTo(0, 0)
+    }
+    console.log(`PASS ${mode} home: no mode switch, balanced housekeeper card, horizontal product actions`)
   }
   try {
-    let page = await route('/pages/home/home','home-standard')
-    await (await page.$('.display-mode-entry')).tap()
+    let page = await route('/packagesPublic/Setting/Setting','settings')
+    await (await page.$('.settings-row')).tap()
     await choose('senior')
     assert.equal((await state()).senior,true)
     assert.equal((await state()).chosen,true)
     page = await route('/pages/home/home','home-senior',true)
     await assertHomeLayout(page, 'senior')
     assert.equal((await state()).senior,true)
-    console.log('PASS home mode picker, shared state and saved preference')
+    console.log('PASS settings mode picker, shared state and saved preference')
 
     page = await route('/pages/classify/classify?cls=58','service-senior',true)
     const box = await (await page.$('.body_goods_view')).size()
