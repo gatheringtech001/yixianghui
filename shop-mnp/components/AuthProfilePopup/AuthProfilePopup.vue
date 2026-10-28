@@ -43,8 +43,8 @@
 
 			<view v-else-if="step === 2" class="auth-step profile-step">
 				<view class="step-heading">
-					<view class="title">申请获取您的头像、昵称</view>
-					<view class="desc center">微信要求头像和昵称分别确认一次，完成后自动进入下一步。</view>
+					<view class="title">完善个人资料</view>
+					<view class="desc center">请填写您的称呼，头像可稍后在个人资料中设置。</view>
 				</view>
 				<view class="profile-form">
 					<button class="avatar-btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
@@ -53,16 +53,16 @@
 							<u-icon name="camera-fill" color="#ffffff" size="28" />
 						</view>
 					</button>
-					<text class="avatar-tip">点击头像选择微信头像</text>
+					<text class="avatar-tip">设置头像（选填）</text>
 					<view class="nickname-row">
-						<text class="label">昵称</text>
+						<text class="label">称呼（必填）</text>
 						<input
 							class="nickname-input"
 							type="nickname"
 							v-model="nickName"
 							maxlength="30"
 							confirm-type="done"
-							placeholder="请输入微信昵称"
+							placeholder="请输入您的称呼"
 							placeholder-class="nickname-placeholder"
 							@blur="onNicknameBlur"
 						/>
@@ -123,11 +123,11 @@
 				return (info.statusBarHeight || 20) + 44
 			},
 			topbarTitle() {
-				return ['登录', '头像与昵称', '授权手机'][this.step - 1] || ''
+				return ['登录', '个人资料', '授权手机'][this.step - 1] || ''
 			},
 			profileReady() {
 				const nickName = (this.nickName || '').trim()
-				return !this.avatarUploading && !!this.avatarUrl && !!nickName && nickName.length <= 30
+				return !this.avatarUploading && !!nickName && nickName !== '微信小程序用户' && nickName.length <= 30
 			},
 			avatarPreview() {
 				if (this.avatarLocalPreview) return this.avatarLocalPreview
@@ -219,17 +219,19 @@
 				if (!tempPath) {
 					const errMsg = detail.errMsg || ''
 					uni.showToast({
-						title: errMsg.indexOf('deny') !== -1 ? '需要授权头像才能继续' : '头像获取失败，请重试',
+						title: errMsg.indexOf('deny') !== -1 ? '未设置头像，仍可继续' : '头像获取失败，可稍后设置',
 						icon: 'none'
 					})
 					return
 				}
+				if (this.avatarUploading) return
+				const previousAvatar = this.avatarUrl
 				this.avatarLocalPreview = tempPath
 				this.avatarUploading = true
 				uploadUserAvatar(tempPath).then((serverAvatar) => {
 					this.avatarUrl = serverAvatar
 				}).catch((error) => {
-					this.avatarUrl = ''
+					this.avatarUrl = previousAvatar
 					this.avatarLocalPreview = ''
 					uni.showToast({
 						title: (error && error.message) || '头像上传失败',
@@ -237,15 +239,11 @@
 					})
 				}).finally(() => {
 					this.avatarUploading = false
-					this.maybeAdvanceProfile()
 				})
 			},
 			onNicknameBlur(e) {
 				const value = (e.detail && e.detail.value) || ''
-				if (value) {
-					this.nickName = value.trim()
-				}
-				this.maybeAdvanceProfile()
+				this.nickName = value.trim()
 			},
 			maybeAdvanceProfile() {
 				if (!this.profileReady) return false
@@ -260,16 +258,12 @@
 					return
 				}
 				const nickName = (this.nickName || '').trim()
-				if (!this.avatarUrl) {
-					uni.showToast({ title: '请先设置头像', icon: 'none' })
-					return
-				}
-				if (!nickName) {
-					uni.showToast({ title: '请先填写昵称', icon: 'none' })
+				if (!nickName || nickName === '微信小程序用户') {
+					uni.showToast({ title: '请先填写称呼', icon: 'none' })
 					return
 				}
 				if (nickName.length > 30) {
-					uni.showToast({ title: '昵称不能超过30个字符', icon: 'none' })
+					uni.showToast({ title: '称呼不能超过30个字符', icon: 'none' })
 					return
 				}
 				this.nickName = nickName
@@ -530,15 +524,16 @@
 	}
 
 	.label {
-		width: 88rpx;
+		flex-shrink: 0;
+		margin-right: 24rpx;
 		font-size: 28rpx;
 		font-weight: 700;
 		color: $ink;
-		flex-shrink: 0;
 	}
 
 	.nickname-input {
 		flex: 1;
+		min-width: 0;
 		height: 96rpx;
 		font-size: 28rpx;
 		color: $ink;
