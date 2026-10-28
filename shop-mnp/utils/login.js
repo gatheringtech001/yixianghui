@@ -8,8 +8,9 @@ const DEFAULT_NICKNAME = '微信小程序用户'
 
 export function isProfileComplete(userInfo) {
 	if (!userInfo || typeof userInfo !== 'object') return false
-	const nick = String(userInfo.nickName || '').trim()
-	return !!(nick && nick !== DEFAULT_NICKNAME && nick.length <= 30)
+	const nick = userInfo.nickName
+	const avatar = userInfo.avatar
+	return !!(nick && nick !== DEFAULT_NICKNAME && avatar)
 }
 
 function isSessionValid() {
@@ -145,25 +146,29 @@ function isLocalAvatar(path) {
 }
 
 async function saveProfile(profile) {
-	const nickName = String((profile && profile.nickName) || '').trim()
-	if (!nickName || nickName === DEFAULT_NICKNAME) {
-		throw new Error('请填写称呼')
-	}
-	if (nickName.length > 30) {
-		throw new Error('称呼不能超过30个字符')
+	if (!profile || !profile.nickName || !profile.avatar) {
+		throw new Error('请完善头像和昵称')
 	}
 	if (!isSessionValid()) {
 		await wxSilentLogin()
 	}
 
-	const updates = { nickName }
-	if (profile.avatar) {
-		updates.avatar = isLocalAvatar(profile.avatar)
-			? await uploadUserAvatar(profile.avatar)
-			: normalizeAvatarPath(profile.avatar)
+	let avatar = profile.avatar
+	if (isLocalAvatar(avatar)) {
+		avatar = await uploadUserAvatar(avatar)
+	} else {
+		avatar = normalizeAvatarPath(avatar)
 	}
 
-	const updateRes = await updateInfo(updates)
+	const nickName = String(profile.nickName || '').trim()
+	if (nickName.length > 30) {
+		throw new Error('昵称不能超过30个字符')
+	}
+
+	const updateRes = await updateInfo({
+		nickName,
+		avatar
+	})
 	if (updateRes && updateRes.code && updateRes.code !== 200) {
 		throw new Error(updateRes.msg || '资料保存失败')
 	}
