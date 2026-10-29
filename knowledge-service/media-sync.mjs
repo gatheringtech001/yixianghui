@@ -49,6 +49,8 @@ export async function syncMedia({ snapshot, store, models, manifestFile, visualT
     throw new Error('Invalid or incomplete media replacement finalization');
   }
   const retired = await loadRetiredSources();
+  const retiredSourceIds = (snapshot.replacement ? snapshot.replacementRecords : snapshot.records)
+    .map(row => 'media:' + row.id).filter(id => retired.has(id));
   const retiredRecords = snapshot.records.filter(record => retired.has(`media:${record.id}`)).length;
   snapshot = { ...snapshot, records: snapshot.records.filter(record => !retired.has(`media:${record.id}`)) };
   let manifest = { version: 1, records: {} };
@@ -198,7 +200,8 @@ export async function syncMedia({ snapshot, store, models, manifestFile, visualT
   await save();
   return { records: snapshot.records.length, indexedPoints: pending.length, changedRecords: completed,
     payloadUpdates, retiredRecords, removedRecords, replacement: snapshot.replacement === true, missingCandidates: missingCandidates.length,
-    failures: (snapshot.failures?.length ?? 0) + ingestionFailures.size, failedRecords: [...ingestionFailures.keys()] };
+    failures: (snapshot.failures?.length ?? 0) + ingestionFailures.size, failedRecords: [...ingestionFailures.keys()],
+    failureDetails: [...ingestionFailures].slice(0, 5).map(([id, error]) => ({ id, error })), retiredSourceIds };
 }
 
 export function assertMediaIngestionComplete(result) {
@@ -207,7 +210,8 @@ export function assertMediaIngestionComplete(result) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const snapshot = JSON.parse(await fs.readFile(process.argv[2], "utf8"));
+  const bytes = await fs.readFile(process.argv[2], "utf8");
+  const snapshot = JSON.parse(bytes);
   const result = await syncMedia({ snapshot,
     manifestFile: "/var/lib/yixianghui-knowledge/media-manifest.json",
     store: new QdrantStore({ url: process.env.QDRANT_URL, apiKey: process.env.QDRANT_API_KEY,
@@ -215,6 +219,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     models: new AzureModels({ baseUrl: process.env.AZURE_OPENAI_BASE_URL, apiKey: process.env.AZURE_OPENAI_KEY,
       apiVersion: process.env.AZURE_OPENAI_API_VERSION, embeddingModel: process.env.AZURE_EMBEDDING_MODEL }),
   });
-  console.log(JSON.stringify(result));
+  console.log(JSON.stringify({ ...result, publicationHash: contentHash(bytes) }));
   assertMediaIngestionComplete(result);
 }

@@ -5,7 +5,7 @@ import os from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { prepareVideoIndex, currentVideoIndex, videoFrameTimes, extractVideoFrames } from './video-index.mjs';
+import { prepareVideoIndex, currentVideoIndex, videoFrameTimes, extractVideoFrames, observeVideoFrames } from './video-index.mjs';
 import { applyMediaUsagePolicy } from './media-usage-policy.mjs';
 import { backfillVideos } from './backfill-video-index.mjs';
 import { syncMedia } from './media-sync.mjs';
@@ -75,6 +75,31 @@ test('incomplete or altered frame times cannot be cached as a valid index', asyn
   options.labeler.complete = async () => ({ output: { frames: [{ time: 0 }] } });
   await assert.rejects(prepareVideoIndex(point(), options), /Incomplete/);
   assert.deepEqual(await fs.readdir(options.directory), []);
+});
+
+test('frame observations are bounded, reordered by exact time, and only missing evidence is retried', async () => {
+  const frames = Array.from({ length: 10 }, (_, time) => ({ time, url: 'data:image/jpeg;base64,eA==' }));
+  const requests = []; let dropped = false;
+  const labeler = { config: { model: 'test' }, complete: async body => {
+    const times = body.messages[1].content.filter(row => row.type === 'text').map(row => JSON.parse(row.text).time);
+    requests.push(times); assert.ok(times.length <= 4);
+    const rows = times.filter(time => { if (!dropped && time === 1) { dropped = true; return false; } return true; })
+      .map(time => ({ time, description: '房间窗户', tags: ['窗户'], text: 'clean', face: false })).reverse();
+    return { output: { frames: rows } };
+  } };
+  const result = await observeVideoFrames(frames, labeler);
+  assert.deepEqual(result.rows.map(row => row.time), frames.map(frame => frame.time));
+  assert.deepEqual(requests.at(-1), [1]); assert.equal(requests.length, 4);
+});
+
+test('duplicate/malformed frame evidence is not silently accepted and network errors are not hammered', async () => {
+  let calls = 0;
+  const frames = [{ time: 4, url: 'data:image/jpeg;base64,eA==' }];
+  const row = { time: 4, description: '房间', tags: [], text: 'clean', face: false };
+  const labeler = { config: { model: 'test' }, complete: async () => { calls++; return { output: { frames: [row, row] } }; } };
+  await assert.rejects(observeVideoFrames(frames, labeler), /missing times: 4/); assert.equal(calls, 3);
+  labeler.complete = async () => { calls++; throw new Error('rate limit'); };
+  await assert.rejects(observeVideoFrames(frames, labeler), /rate limit/); assert.equal(calls, 4);
 });
 
 test('unsupported model tags are recorded and removed without losing valid frame evidence', async t => {

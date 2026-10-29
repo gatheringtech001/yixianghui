@@ -96,6 +96,21 @@ test('replacement finalization checks all hashes and points before deleting only
   assert.equal((await syncMedia({ ...options, snapshot: final })).removedRecords, 0);
 });
 
+test('finalization names exact previously retired identities rather than pretending they were published', async t => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'media-retired-receipt-'));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const registry = path.join(root, 'retired.json');
+  await fs.writeFile(registry, JSON.stringify({ version: 1, sourceIds: ['media:' + record.id] }));
+  const previous = process.env.KNOWLEDGE_RETIRED_SOURCES_FILE;
+  process.env.KNOWLEDGE_RETIRED_SOURCES_FILE = registry;
+  t.after(() => { if (previous === undefined) delete process.env.KNOWLEDGE_RETIRED_SOURCES_FILE; else process.env.KNOWLEDGE_RETIRED_SOURCES_FILE = previous; });
+  const result = await syncMedia({ manifestFile: path.join(root, 'manifest.json'),
+    snapshot: { version: 1, createdAt: '2026-10-29T00:00:00Z', records: [], replacement: true,
+      replacementRecords: [{ id: record.id, sourceHash: contentHash(JSON.stringify(record)) }] },
+    store: { ensureCollection: async () => {} }, models: {} });
+  assert.deepEqual(result.retiredSourceIds, ['media:' + record.id]); assert.equal(result.replacement, true);
+});
+
 test("media points keep file identity and video timestamps", () => {
   const point = mediaPoints({ ...record, media: { kind: "video", startSeconds: 30, endSeconds: 60 } }, "2026-09-05")[0];
   assert.equal(point.payload.media.startSeconds, 30);

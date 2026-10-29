@@ -7,6 +7,7 @@ import json
 import re
 import sys
 import urllib.parse
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -49,5 +50,6 @@ if __name__ == '__main__':
     try:
         main()
     except Exception as error:
-        print('Knowledge ARM transport failed: ' + type(error).__name__, file=sys.stderr)
+        detail = ' HTTP ' + str(error.code) if isinstance(error, urllib.error.HTTPError) else ''
+        print('Knowledge ARM transport failed: ' + type(error).__name__ + detail, file=sys.stderr)
         sys.exit(1)
