@@ -24,21 +24,23 @@
 					<view class="date_view">{{reserveData.checkOutDate}}</view>
 				</view>
 			</view>
+			<view class="combo_text_view">{{ selectedTravelPolicyText }}</view>
+			<view v-if="selectionError" class="combo_text_view" style="color: #701018">{{ selectionError }}</view>
 			<view class="body_combo_view">
 				<view class="combo_title_view">
 					<view class="title_text_view">
 						选择供餐套餐
 					</view>
 					<view class="title_price_view">
-						<text>￥<text>{{comboList[comboIndex].price}}</text></text>/人/天
+						<text>￥<text>{{currentCombo.price}}</text></text>/人/天
 					</view>
 				</view>
 				<view class="combo_list_view">
 					<view class="combo_item_view" :class="comboIndex == index ? 'combo_select' : ''"
-						v-for="(item, index) in comboList" :key="index" @click="comboIndex = index">
+						v-for="(item, index) in availableCombos" :key="index" @click="comboIndex = index">
 						{{item.name}}
 					</view>
-					<view class="combo_hint_view" v-if="comboList.length === 1">
+					<view class="combo_hint_view" v-if="availableCombos.length === 1">
 						默认供餐方案，无需额外选择
 					</view>
 				</view>
@@ -46,9 +48,7 @@
 					供餐地址：<text>基地餐厅</text>
 				</view>
 				<view class="combo_text_view">
-					共{{reserveData.day*reserveData.peopleNumber}}份早餐，
-					{{comboIndex==2?reserveData.day*reserveData.peopleNumber:0}}份中餐，
-					{{comboIndex!=0?reserveData.day*reserveData.peopleNumber:0}}份晚餐。
+					{{ mealDescription }}
 				</view>
 			</view>
 			<view class="body_combo_view">
@@ -57,6 +57,7 @@
 						预定信息
 					</view>
 				</view>
+				<view class="combo_text_view">每间套餐￥{{ skuPrice }}，最多{{ roomCapacity }}人/间；人数不足仍按整间计价。</view>
 				<view class="combo_row_view">
 					订几间房：<u-number-box v-model="reserveData.roomNumber" :min="1" disabled-input :input-width="200"
 						:input-height="60" @change="onRoomNumberChange"></u-number-box>
@@ -77,7 +78,7 @@
 					<text>逸享荟管家方便联系到您</text>
 				</view>
 				<view class="combo_text_view">
-					<text>不占床位人员不记人数，1间房最多入住2人。</text>
+					<text>不占床位人员不记人数，1间房最多入住{{ roomCapacity }}人。</text>
 				</view>
 			</view>
 			<view class="body_agreement_view" @click="isReadingAgreement = !isReadingAgreement">
@@ -119,7 +120,8 @@
 						themeColor="#701018" @callback="calendarCallBackFn" @calendarClick="calendarClickFn" />
 				</scroll-view>
 				<view class="popup_button_view">
-					<view class="button_confirm_view" @click="popupDate.show = false">
+					<view v-if="selectionError" style="color: #701018">{{ selectionError }}</view>
+					<view class="button_confirm_view" @click="confirmFn">
 						确认{{`${reserveData.day+1}天${reserveData.day}晚`}}
 					</view>
 				</view>
@@ -172,6 +174,7 @@
 		getNoticeInfo
 	} from '@/api/system/notice'
 	import { formatCalendarPrice, resolveCalendarUnitPrice } from '@/utils/travelPresentation'
+	import { readTravelPackage, supportsCustomNights, travelCapacity, travelPolicyText, validateTravelSelection } from '@/utils/travelPolicy'
 	export default {
 		components: {
 			Calendar
@@ -215,31 +218,8 @@
 					}
 				], // 套餐数据集合
 				comboIndex: 0, // 套餐选中的下标
-				skuList: [{
-					    skuId: null,
-						skuSeqNo: null,
-						day: 3,
-						price: 312
-					},
-					{
-						skuId: null,
-						skuSeqNo: null,
-						day: 6,
-						price: 600
-					},
-					{
-						skuId: null,
-						skuSeqNo: null,
-						day: 14,
-						price: 1386
-					},
-					{
-						skuId: null,
-						skuSeqNo: null,
-						day: 29,
-						price: 2581
-					}
-				], // sku数据集合
+				skuList: [],
+				goodsLoaded: false,
 				skuPrice: 0, // sku选中的价格（整段住宿房价，未乘房间数）
 				nightPrice: 0, // 自选晚数：每晚单价
 				selSkuId: undefined,
@@ -263,8 +243,34 @@
 			}
 		},
 		computed: {
+			selectedTravelPackage() {
+				return this.skuList.find(item => Number(item.skuId) === Number(this.selSkuId)
+					&& Number(item.skuSeqNo) === Number(this.selSkuSeqNo)) || {}
+			},
+			includedMeals() {
+				return (this.selectedTravelPackage.travelPolicy || {}).includedMeals || ''
+			},
+			availableCombos() {
+				return this.includedMeals ? [{ comboId: null, name: this.includedMeals, price: 0 }] : this.comboList
+			},
 			currentCombo() {
-				return this.comboList[this.comboIndex] || this.comboList[0] || { price: 0 }
+				return this.availableCombos[this.comboIndex] || this.availableCombos[0] || { price: 0 }
+			},
+			roomCapacity() {
+				return travelCapacity(this.selectedTravelPackage.travelPolicy)
+			},
+			selectedTravelPolicyText() {
+				return travelPolicyText(this.selectedTravelPackage.travelPolicy)
+			},
+			selectionError() {
+				if (!this.goodsLoaded) return '正在加载套餐，请稍候'
+				if (!this.selSkuId) return this.customNight ? '该房型不支持自选晚数，请返回重新选择' : '未匹配到有效套餐，请返回重新选择'
+				return validateTravelSelection({ ...this.selectedTravelPackage, ...this.reserveData, nights: this.reserveData.day })
+			},
+			mealDescription() {
+				const count = this.reserveData.day * this.reserveData.peopleNumber
+				if (this.includedMeals) return `套餐供餐：${this.includedMeals}（不另收餐费）。`
+				return `共${count}份早餐，${this.comboIndex === 2 ? count : 0}份中餐，${this.comboIndex !== 0 ? count : 0}份晚餐。`
 			},
 			calendarPriceText() {
 				const unitPrice = resolveCalendarUnitPrice({
@@ -277,7 +283,7 @@
 				return formatCalendarPrice(unitPrice, selected && selected.priceUnit)
 			},
 			mealUnitPrice() {
-				return Number(this.currentCombo.price) || 0
+				return this.includedMeals ? 0 : Number(this.currentCombo.price) || 0
 			},
 			roomFee() {
 				const unit = Number(this.skuPrice) || 0
@@ -303,7 +309,7 @@
 			},
 			maxPeopleNumber() {
 				const rooms = Number(this.reserveData.roomNumber) || 1
-				return Math.max(rooms * 2, 1)
+				return Math.max(rooms * this.roomCapacity, 1)
 			}
 		},
 		onLoad(e) {
@@ -334,21 +340,7 @@
 					this.reserveData.peopleNumber = maxPeople
 				}
 			},
-			parseStayNights(skudays, skuName, optionValueUnit) {
-				const name = skuName || ''
-				if (name.indexOf('半月') !== -1) return 14
-				if (name.indexOf('周') !== -1) return 6
-				if (name.indexOf('月') !== -1) return 29
-				const total = parseInt(skudays) || 0
-				const unit = optionValueUnit || ''
-				if (total > 0) {
-					if (unit.indexOf('晚') !== -1 && unit.indexOf('天') === -1) {
-						return total
-					}
-					return Math.max(total - 1, 0)
-				}
-				return 0
-			},
+
 			isSkuEnabled(sku) {
 				if (!sku) return false
 				const s = String(sku.status == null ? '' : sku.status).trim()
@@ -366,20 +358,20 @@
 				this.syncSkuSelection()
 			},
 			syncSkuSelection() {
-				const targetDay = parseInt(this.reserveData.day)
+				const targetDay = Number(this.reserveData.day)
 				// 自选晚数：标准房型售价 × 晚数
 				if (this.customNight) {
 					const enabledList = this.standardSkuList.filter(item => this.isSkuEnabled(item))
-					const pool = enabledList.length ? enabledList : this.standardSkuList
+					const pool = enabledList
 					let std = null
 					if (this.routeSkuId) {
 						std = pool.find(item => Number(item.skuId) === Number(this.routeSkuId))
 					}
-					if (!std && pool.length === 1) {
+					if (!std && !this.routeSkuId && pool.length === 1) {
 						std = pool[0]
 					}
 					const perNight = std ? Number(std.price) : 0
-					if (!std || !std.skuId || !Number.isFinite(perNight) || perNight <= 0 || !(targetDay > 0)) {
+					if (!supportsCustomNights(std) || !Number.isSafeInteger(targetDay) || targetDay < 7) {
 						this.skuPrice = 0
 						this.nightPrice = 0
 						this.selSkuId = undefined
@@ -400,16 +392,16 @@
 						parseInt(item.day) === targetDay
 					)
 				}
-				if (!matched && this.routeSkuId) {
+				if (!matched && this.routeSkuId && this.routeSkuSeqNo === null) {
 					matched = this.skuList.find(item =>
 						Number(item.skuId) === Number(this.routeSkuId) &&
 						parseInt(item.day) === targetDay
 					)
 				}
-				if (!matched) {
+				if (!matched && !this.routeSkuId) {
 					matched = this.skuList.find(item => parseInt(item.day) === targetDay)
 				}
-				if (matched) {
+				if (matched && Number.isFinite(Number(matched.price)) && Number(matched.price) > 0) {
 					this.skuPrice = matched.price
 					this.nightPrice = 0
 					this.selSkuId = matched.skuId
@@ -428,7 +420,7 @@
 					this.hotelData.id = res.data.goodsId
 					this.hotelData.name = res.data.goodsName
 					this.hotelData.desc = res.data.description
-					this.hotelData.goodsImages = res.data.goodsImages.split(',')
+					this.hotelData.goodsImages = String(res.data.goodsImages || '').split(',').filter(Boolean)
 					this.comboList = []
 					if(res.data.goodsImages){
 						this.hotelData.goodsImages = res.data.goodsImages.split(",");
@@ -451,18 +443,15 @@
 					    }))
 					  const filteredOptionList = res.data.optionList.filter(
 					    option => option.skuType === '202' && this.isSkuEnabled(option)
+					      && this.standardSkuList.some(room => Number(room.skuId) === Number(option.parSkuId))
 					  );
 					  this.skuList = filteredOptionList.flatMap(option => {
 					   const groupedBySeqNo = {};
-					   let skudays = '0';
-					   let skudaysUnit = '';
+					   const packagePolicy = readTravelPackage(option);
 					   if (option.options) {
 					     option.options.forEach(item => {
 					       if (item.skuSeqNo == 0) {
-					         if (item.optionType == '303' && item.optionValue) {
-					           skudays = item.optionValue;
-					           skudaysUnit = item.optionValueUnit || '';
-					         }
+					         // Public 303 is parsed by readTravelPackage.
 					       } else {
 					         const seqNo = item.skuSeqNo;
 					         if (!groupedBySeqNo[seqNo]) {
@@ -472,27 +461,27 @@
 					       }
 					     });
 					   }
-					   const day = this.parseStayNights(skudays, option.skuName, skudaysUnit);
+
 					   return Object.keys(groupedBySeqNo).map(seqNo => {
 					     const items = groupedBySeqNo[seqNo];
 					     const priceItem = items.find(item => item.optionType == '302');
 					     return {
 					       skuId: option.skuId,
 					       skuSeqNo: parseInt(seqNo) || 0,
-					       day,
-					       price: priceItem ? parseFloat(priceItem.optionValue) || 0 : 0,
+					       ...packagePolicy,
+					       price: priceItem ? Number(priceItem.optionValue) : 0,
 					       priceUnit: priceItem ? priceItem.optionValueUnit : '人'
 					     };
 					   });
 					  });
 					  this.syncSkuSelection();
-					  if (this.reserveData.checkInDate) {
-					    this.$nextTick(() => this.syncStayCalendar())
-					  }
+					  this.reserveData.peopleNumber = this.roomCapacity
 					  const filteredSelfOptionList = res.data.optionList.filter(
 					    option => option.skuType === '201' && this.isSkuEnabled(option)
 					  );
-					  if(filteredSelfOptionList && filteredSelfOptionList.length>0){
+					  if (this.includedMeals) {
+					    this.comboList = [{ comboId: null, name: this.includedMeals, price: 0 }]
+					  } else if(filteredSelfOptionList && filteredSelfOptionList.length>0){
 					    this.comboList = filteredSelfOptionList.map(option => {
 					      return {
 					        comboId: option.skuId,
@@ -508,11 +497,12 @@
 					      price: 0,
 					    }];
 					  }
-					  if (this.comboList.length === 1) {
+					  if (this.availableCombos.length === 1) {
 					    this.comboIndex = 0
 					  }
 						  
 					}
+					this.goodsLoaded = true
 				}).catch(err => {
 					console.log('getGoodsInfo', err)
 				})
@@ -561,6 +551,10 @@
 			},
 			// 确认日期方法
 			confirmFn() {
+				if (this.selectionError) {
+					uni.showToast({ icon: 'none', title: this.selectionError })
+					return
+				}
 				this.popupDate.show = false
 			},
 			async openNotice() {
@@ -594,6 +588,11 @@
 			},
 			// 创建订单方法
 			createOrderFn() {
+				this.syncSkuSelection()
+				if (this.selectionError) {
+					uni.showToast({ icon: 'none', title: this.selectionError })
+					return
+				}
 				if(!this.reserveData.name) {
 					uni.showToast({
 						icon: 'none',
@@ -653,7 +652,7 @@
 					})
 					return
 				}
-				const combo = this.comboList[this.comboIndex] || this.comboList[0]
+				const combo = this.currentCombo
 				if (!combo) {
 					uni.showToast({
 						icon: 'none',
@@ -662,6 +661,10 @@
 					return
 				}
 				this.$u.throttle(() => {
+					if (this.selectionError) {
+						uni.showToast({ icon: 'none', title: this.selectionError })
+						return
+					}
 					const selfSkuId = combo.comboId || null
 					let params = {
 						addressId: 0,

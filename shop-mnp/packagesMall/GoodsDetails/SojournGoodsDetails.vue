@@ -78,8 +78,9 @@
               </view>
               <view class="item_price_view">
                 <view class="price_view">
-                  <text><text>￥ </text>{{ item.price }}</text> /{{ item.priceUnit }}/起
+                  <text><text>￥ </text>{{ item.price }}</text> /{{ item.priceUnit }}/套餐起
                 </view>
+                <view class="price_average_view" v-if="item.priceLabel">{{ item.priceLabel }}</view>
                 <view class="price_average_view" v-if="item.average">
                   均￥{{ item.average }}/{{ item.priceUnit }}/晚起
                 </view>
@@ -142,7 +143,7 @@
 						v-for="(item, index) in popupSkuDataList" :key="index" @click="selectDayFn(index)">
 						{{item.name}}
 					</view>
-					<view class="tag_customize_view" :class="popupDate.skuSelect == 'customize' ? 'tag_select':''"
+					<view v-if="canCustomizeNights" class="tag_customize_view" :class="popupDate.skuSelect == 'customize' ? 'tag_select':''"
 						@click="selectDayFn('customize')">自选晚数</view>
 				</view>
 				<view class="popup_customize_view" v-if="popupDate.skuSelect == 'customize'">
@@ -151,6 +152,8 @@
 						:input-height="60" @change="onCustomDayChange"></u-number-box>
 					晚
 				</view>
+				<view>{{ selectedTravelPolicyText }}</view>
+				<view v-if="selectionError" style="color: #701018">{{ selectionError }}</view>
 			</view>
 			<!-- 小程序 view 的 overflow 滚动不稳定，用 scroll-view 保证可滚 -->
 			<scroll-view scroll-y="true" class="popup_calendar_view" :show-scrollbar="false">
@@ -225,6 +228,7 @@
 	import { goodsCollect, deleteCollect, goodsCollectList } from '@/api/member/index'
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
 	import { prepareRichTextHtml } from '@/utils/richText'
+	import { readTravelPackage, supportsCustomNights, travelPolicyText, validateTravelSelection } from '@/utils/travelPolicy'
 	import {
 		formatCalendarPrice,
 		travelPriceUnit,
@@ -316,6 +320,26 @@
 			this.clearAnchorTimers()
 		},
 		computed: {
+			canCustomizeNights() {
+				return supportsCustomNights(this.getPopupSkuGroup())
+			},
+			selectedTravelPackage() {
+				if (this.popupDate.customNight) return {}
+				return this.popupSkuDataList[this.popupDate.skuSelect] || {}
+			},
+			selectedTravelPolicyText() {
+				return travelPolicyText(this.selectedTravelPackage.travelPolicy)
+			},
+			selectionError() {
+				if (this.popupDate.customNight && !this.canCustomizeNights) return '该房型不支持自选晚数'
+				if (!this.popupDate.customNight) {
+					const selected = this.selectedTravelPackage
+					const combination = (selected.combinationList || []).find(item => Number(item.skuSeqNo) === Number(this.popupDate.skuSeqNo))
+					if (!selected.skuId || selected.skuId !== this.popupDate.skuId || Number(selected.day) !== Number(this.popupDate.day)
+						|| !combination || !Number.isFinite(Number(combination.price)) || Number(combination.price) <= 0) return '未匹配到有效套餐，请重新选择'
+				}
+				return validateTravelSelection({ ...this.selectedTravelPackage, nights: this.popupDate.day, ...this.popupDate })
+			},
 			stayDurationLabel() {
 				const nights = Number(this.popupDate.day) || 0
 				return `${nights + 1}天${nights}晚`
@@ -384,22 +408,6 @@
 			},
 			getStickyOffset() {
 				return this.stickyOffset > 0 ? this.stickyOffset : 180
-			},
-			parseStayNights(skudays, skuName, optionValueUnit) {
-				const name = skuName || ''
-				// 名称含周/半月/月时优先按套餐语义（半月必须在「月」之前），避免错误 303 把半月算成约 30 晚
-				if (name.indexOf('半月') !== -1) return 14
-				if (name.indexOf('周') !== -1) return 6
-				if (name.indexOf('月') !== -1) return 29
-				const total = parseInt(skudays) || 0
-				const unit = optionValueUnit || ''
-				if (total > 0) {
-					if (unit.indexOf('晚') !== -1 && unit.indexOf('天') === -1) {
-						return total
-					}
-					return Math.max(total - 1, 0)
-				}
-				return 0
 			},
 			isSkuEnabled(sku) {
 				if (!sku) return false
@@ -649,16 +657,12 @@
                 if (groupSkuOptions && groupSkuOptions.length > 0) {
                   const skuDataList = groupSkuOptions.map(option => {
                     const groupedBySeqNo = {};
-                    let skudays = '0';
-                    let skudaysUnit = '';
+                    const packagePolicy = readTravelPackage(option);
 
                     if (option.options) {
                       option.options.forEach(item => {
                         if (item.skuSeqNo == 0) {
-                          if (item.optionType == '303' && item.optionValue) {
-                            skudays = item.optionValue;
-                            skudaysUnit = item.optionValueUnit || '';
-                          }
+                          // Public 303 is parsed by readTravelPackage, not as a price combination.
                         } else {
                           const seqNo = item.skuSeqNo;
                           if (!groupedBySeqNo[seqNo]) {
@@ -691,7 +695,10 @@
                         name: optionAttrName || '',
                         price: optionTotPrice || 0,
                         priceUnit: optionPriceUnit,
-                        average: optionAvgPrice || 0,
+                        priceLabel: optionPriceUnit === '间' && packagePolicy.travelPolicy && packagePolicy.travelPolicy.capacity
+                          ? `含${packagePolicy.travelPolicy.capacity}人/间` : '',
+                        average: optionPriceUnit === '间' && packagePolicy.day > 0
+                          ? Math.round(Number(optionTotPrice) / packagePolicy.day * 100) / 100 : optionAvgPrice || 0,
                         skuSeqNo: parseInt(seqNo) || 0
                       };
                     });
@@ -699,7 +706,7 @@
                     return {
                       skuId: option.skuId,
                       name: option.skuName || '',
-                      day: this.parseStayNights(skudays, option.skuName, skudaysUnit),
+                      ...packagePolicy,
                       combinationList: thecombinationList
                     };
                   });
@@ -957,6 +964,10 @@
 				}
 			},
 			confirmFn() {
+				if (this.selectionError) {
+					uni.showToast({ icon: 'none', title: this.selectionError })
+					return
+				}
 				if (!this.popupDate.checkInDate || !this.popupDate.checkOutDate) {
 					uni.showToast({
 						icon: 'none',
@@ -991,6 +1002,10 @@
 				}
 				runWithAuth(this, (ok) => {
 					if (!ok) return
+					if (this.selectionError) {
+						uni.showToast({ icon: 'none', title: this.selectionError })
+						return
+					}
 					this.popupDate.show = false
 					const query = [
 						`id=${this.hotelData.id}`,

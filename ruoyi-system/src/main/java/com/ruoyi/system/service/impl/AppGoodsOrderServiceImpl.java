@@ -228,11 +228,30 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             if (!isSkuEnabled(sku)) {
                 throw new ServiceException("所选房型或套餐已停用，请返回重新选择");
             }
+            if ("202".equals(sku.getSkuType())) {
+                Long parentId;
+                try {
+                    parentId = Long.valueOf(sku.getParSkuId());
+                } catch (RuntimeException ex) {
+                    throw new ServiceException("套餐父房型配置无效");
+                }
+                if (parentId <= 0) {
+                    throw new ServiceException("套餐父房型配置无效");
+                }
+                AppGoodsSku parent = appGoodsSkuMapper.selectAppGoodsSkuBySkuId(parentId);
+                NewGoodsOrderPolicy.requireOwnedSku(goods, parent);
+                if (!"200".equals(parent.getSkuType()) || !isSkuEnabled(parent)) {
+                    throw new ServiceException("套餐所属房型无效或已停用");
+                }
+            }
             if (order.getSelfSkuId() != null && order.getSelfSkuId() > 0) {
                 if (selsku == null) {
                     throw new ServiceException("未找到供餐方案，请返回重新选择");
                 }
                 NewGoodsOrderPolicy.requireOwnedSku(goods, selsku);
+                if (!"201".equals(selsku.getSkuType())) {
+                    throw new ServiceException("请选择有效的供餐方案");
+                }
                 if (!isSkuEnabled(selsku)) {
                     throw new ServiceException("供餐方案已停用");
                 }
@@ -262,6 +281,12 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             } else {
                 List<AppGoodsSkuOption> scopedOptions = loadSkuOptions(order.getSkuId(), order.getSkuSeqNo());
                 List<AppGoodsSkuOption> allOptions = loadSkuOptions(order.getSkuId(), null);
+                TravelPackagePolicy packagePolicy = TravelPackagePolicy.fromOptions(allOptions);
+                packagePolicy.validate(order);
+                if (packagePolicy.hasIncludedMeals() && selsku != null
+                        && selsku.getPrice() != null && selsku.getPrice() > 0) {
+                    throw new ServiceException("套餐供餐已确定，请返回重新选择");
+                }
                 List<AppGoodsSkuOption> priceOptions = (scopedOptions != null && !scopedOptions.isEmpty())
                         ? scopedOptions : allOptions;
 
@@ -1078,10 +1103,27 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     }
 
     /**
-     * 解析套餐晚数：名称含周/半月/月优先；否则用公共属性 skuSeqNo=0 的 303。
+     * 解析套餐晚数：公共 303 明确的「晚」优先，再兼容名称和以天计的历史定义。
      * 组合序号上的 303「数量」不参与晚数计算。
      */
     private Integer resolvePackageNights(List<AppGoodsSkuOption> optionList, String skuName) {
+        if (optionList != null) {
+            for (AppGoodsSkuOption opt : optionList) {
+                if (opt == null || !"303".equals(opt.getOptionType())
+                        || (opt.getSkuSeqNo() != null && opt.getSkuSeqNo() > 0)) {
+                    continue;
+                }
+                String unit = StringUtils.trimToEmpty(opt.getOptionValueUnit());
+                if (unit.contains("晚") && !unit.contains("天")) {
+                    try {
+                        int value = Integer.parseInt(StringUtils.trimToEmpty(opt.getOptionValue()));
+                        if (value > 0) return value;
+                    } catch (NumberFormatException ignored) {
+                        // Retain legacy fallbacks for historical rows without a usable night count.
+                    }
+                }
+            }
+        }
         String name = skuName == null ? "" : skuName;
         if (name.contains("半月")) {
             return 14;
