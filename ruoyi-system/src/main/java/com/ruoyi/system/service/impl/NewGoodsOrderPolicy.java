@@ -64,6 +64,11 @@ final class NewGoodsOrderPolicy {
         order.setSelfSkuId(input.getSelfSkuId());
         order.setSelfGoodsCount(input.getSelfGoodsCount());
         order.setSelComboIndex(input.getSelComboIndex());
+        // Only this Boolean declaration is purchase intent; never copy arbitrary request params.
+        Object confirmation = input.getParams().get("travelEligibilityConfirmed");
+        if (confirmation instanceof Boolean) {
+            order.getParams().put("travelEligibilityConfirmed", confirmation);
+        }
     }
 
     static void requireOwnedSku(AppGoods goods, AppGoodsSku sku) {

@@ -82,6 +82,18 @@
 					<text>不占床位人员不记人数，1间房最多入住{{ roomCapacity }}人。</text>
 				</view>
 			</view>
+			<view v-if="eligibilityNotice" class="body_combo_view">
+				<view class="combo_title_view">
+					<view class="title_text_view">入住资格（自我声明）</view>
+				</view>
+				<view class="combo_text_view">{{ eligibilityNotice }}</view>
+				<view class="body_agreement_view" @click="travelEligibilityConfirmed = !travelEligibilityConfirmed">
+					<view class="agreement-check" @click.stop>
+						<u-checkbox v-model="travelEligibilityConfirmed"></u-checkbox>
+					</view>
+					<text class="agreement-text" style="flex: 1">我确认本次入住符合上述资格条件（自我声明，非年龄核验）</text>
+				</view>
+			</view>
 			<view class="body_agreement_view" @click="isReadingAgreement = !isReadingAgreement">
 				<view class="agreement-check" @click.stop>
 					<u-checkbox v-model="isReadingAgreement"></u-checkbox>
@@ -231,6 +243,7 @@
 				customNight: false, // 自选晚数下单
 				standardSkuList: [], // skuType=200 标准房型
 				isReadingAgreement: false, // 是否阅读协议
+				travelEligibilityConfirmed: false, // 独立的入住资格自我声明，不代表年龄核验
 				popupPrice: {
 					show: false,
 				},
@@ -250,6 +263,12 @@
 			},
 			includedMeals() {
 				return (this.selectedTravelPackage.travelPolicy || {}).includedMeals || ''
+			},
+			eligibilityNotice() {
+				return (this.selectedTravelPackage.travelPolicy || {}).eligibilityNotice || ''
+			},
+			eligibilityConfirmationError() {
+				return this.eligibilityNotice && this.travelEligibilityConfirmed !== true ? '请确认入住资格自我声明' : ''
 			},
 			availableCombos() {
 				return this.includedMeals ? [{ comboId: null, name: this.includedMeals, price: 0 }] : this.comboList
@@ -590,8 +609,9 @@
 			// 创建订单方法
 			createOrderFn() {
 				this.syncSkuSelection()
-				if (this.selectionError) {
-					uni.showToast({ icon: 'none', title: this.selectionError })
+				const error = this.selectionError || this.eligibilityConfirmationError
+				if (error) {
+					uni.showToast({ icon: 'none', title: error })
 					return
 				}
 				if(!this.reserveData.name) {
@@ -662,8 +682,9 @@
 					return
 				}
 				this.$u.throttle(() => {
-					if (this.selectionError) {
-						uni.showToast({ icon: 'none', title: this.selectionError })
+					const error = this.selectionError || this.eligibilityConfirmationError
+					if (error) {
+						uni.showToast({ icon: 'none', title: error })
 						return
 					}
 					const selfSkuId = combo.comboId || null
@@ -681,6 +702,9 @@
 						interCount: this.reserveData.day,
 						contactName: this.reserveData.name,
 						contactPhone: this.reserveData.phone
+					}
+					if (this.eligibilityNotice) {
+						params.params = { travelEligibilityConfirmed: true }
 					}
 					// 固定套餐传组合序号；自选晚数不传，后端按标准房型每晚单价计算
 					if (!this.customNight && this.selSkuSeqNo !== null && this.selSkuSeqNo !== undefined) {

@@ -29,6 +29,7 @@ final class TravelPackagePolicy {
             .withResolverStyle(ResolverStyle.STRICT);
     private Integer capacity;
     private boolean includedMealsDeclared;
+    private String eligibilityNotice;
     private LocalDate stayStart;
     private LocalDate stayEnd;
     private final List<LocalDate[]> excluded = new ArrayList<>();
@@ -60,7 +61,7 @@ final class TravelPackagePolicy {
             if (found || "0".equals(status) || "停用".equals(status)) throw invalid();
             found = true;
             JsonNode policy = root.get("travelPolicy");
-            requireKeys(policy, "version", "capacity", "includedMeals", "stayStart", "stayEnd", "excludedStayRanges");
+            requireKeys(policy, "version", "capacity", "includedMeals", "stayStart", "stayEnd", "excludedStayRanges", "eligibilityNotice");
             if (!policy.has("version") || !policy.get("version").isIntegralNumber()
                     || !policy.get("version").canConvertToInt() || policy.get("version").intValue() != 1) throw invalid();
             if (policy.has("capacity")) {
@@ -73,6 +74,13 @@ final class TravelPackagePolicy {
                 if (!value.isTextual() || value.textValue().trim().isEmpty()) throw invalid();
                 // Authoritative description, including "不含餐"; never interpret it as a free add-on.
                 result.includedMealsDeclared = true;
+            }
+            if (policy.has("eligibilityNotice")) {
+                JsonNode value = policy.get("eligibilityNotice");
+                if (!value.isTextual() || value.textValue().length() > 100) throw invalid();
+                String notice = value.textValue().trim();
+                if (notice.isEmpty()) throw invalid();
+                result.eligibilityNotice = notice;
             }
             if (policy.has("stayStart")) result.stayStart = date(policy.get("stayStart"));
             if (policy.has("stayEnd")) result.stayEnd = date(policy.get("stayEnd"));
@@ -97,6 +105,10 @@ final class TravelPackagePolicy {
     void validate(AppGoodsOrder order) {
         if (order == null || order.getCheckInDate() == null || order.getCheckOutDate() == null) {
             throw new ServiceException("请选择入住和退房日期");
+        }
+        // User declaration only: no age collection or verification, and no truthy coercion.
+        if (eligibilityNotice != null && !Boolean.TRUE.equals(order.getParams().get("travelEligibilityConfirmed"))) {
+            throw new ServiceException("请确认入住资格");
         }
         // Same local-date semantics as NewGoodsOrderPolicy; never trust a client-supplied night count.
         ZoneId zone = ZoneId.systemDefault();

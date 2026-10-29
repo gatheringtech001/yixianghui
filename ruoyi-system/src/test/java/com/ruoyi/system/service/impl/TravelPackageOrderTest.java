@@ -3,6 +3,8 @@ package com.ruoyi.system.service.impl;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.Arrays;
+import java.util.Collections;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.system.domain.*;
 import com.ruoyi.system.mapper.*;
@@ -91,6 +93,53 @@ class TravelPackageOrderTest {
         assertEquals(Integer.valueOf(7), created.getInterCount());
         assertEquals(request.getCheckInDate(), created.getOrderDetailList().get(0).getOrderStartDate());
         assertEquals(request.getCheckOutDate(), created.getOrderDetailList().get(0).getOrderEndDate());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"null", "{}", "{\"travelEligibilityConfirmed\":false}",
+            "{\"travelEligibilityConfirmed\":\"true\"}", "{\"travelEligibilityConfirmed\":1}",
+            "{\"travelEligibilityConfirmed\":null}"})
+    void jacksonRequestWithoutStrictEligibilityConfirmationCannotWriteOrders(String params) throws Exception {
+        metadata.setOptionParam("{\"travelPolicy\":{\"version\":1,\"eligibilityNotice\":\"请确认符合入住资格\"}}");
+        request = jacksonOrder(params);
+        reject("确认入住资格");
+    }
+
+    @Test
+    void jacksonBooleanTrueEligibilityDeclarationAllowsNormalOrderWrites() throws Exception {
+        metadata.setOptionParam("{\"travelPolicy\":{\"version\":1,\"eligibilityNotice\":\"请确认符合入住资格\"}}");
+        request = jacksonOrder("{\"travelEligibilityConfirmed\":true,\"dataScope\":\"untrusted\",\"tenantId\":999}");
+        assertSame(Boolean.TRUE, request.getParams().get("travelEligibilityConfirmed"));
+        AppGoodsOrder created = service.insertAppGoodsOrder(request);
+        assertEquals(new BigDecimal("1000.00"), created.getMoneyPayable());
+        assertEquals(Collections.singletonMap("travelEligibilityConfirmed", Boolean.TRUE), created.getParams());
+        assertNotSame(request.getParams(), created.getParams());
+        verify(orders).insertAppGoodsOrder(any());
+        verify(orders).updateAppGoodsOrder(any());
+        verify(details).insertAppGoodsOrderDetail(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"null", "{}", "{\"travelEligibilityConfirmed\":false}",
+            "{\"travelEligibilityConfirmed\":true,\"dataScope\":\"untrusted\"}",
+            "{\"travelEligibilityConfirmed\":\"true\"}", "{\"travelEligibilityConfirmed\":1}",
+            "{\"travelEligibilityConfirmed\":null}"})
+    void noEligibilityNoticeKeepsLegacyOrderWritesWithoutConfirmation(String params) throws Exception {
+        request = jacksonOrder(params);
+        Object confirmation = request.getParams().get("travelEligibilityConfirmed");
+        AppGoodsOrder created = service.insertAppGoodsOrder(request);
+        assertEquals(new BigDecimal("1000.00"), created.getMoneyPayable());
+        assertEquals(confirmation instanceof Boolean
+                ? Collections.singletonMap("travelEligibilityConfirmed", confirmation)
+                : Collections.emptyMap(), created.getParams());
+        verify(orders).insertAppGoodsOrder(any());
+        verify(details).insertAppGoodsOrderDetail(any());
+    }
+
+    private AppGoodsOrder jacksonOrder(String params) throws Exception {
+        return new ObjectMapper().readValue("{\"goodsId\":31,\"userId\":7,\"skuId\":101,\"skuSeqNo\":1,"
+                + "\"checkInDate\":\"2026-01-01\",\"checkOutDate\":\"2026-01-08\","
+                + "\"goodsCount\":1,\"selfGoodsCount\":1,\"interCount\":7,\"params\":" + params + "}", AppGoodsOrder.class);
     }
 
     @Test

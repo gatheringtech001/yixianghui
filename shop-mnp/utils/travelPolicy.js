@@ -37,6 +37,9 @@ export function parseTravelPolicy(param) {
 	if (own(policy, 'includedMeals') && (typeof policy.includedMeals !== 'string' || !policy.includedMeals.trim())) {
 		throw new Error('includedMeals 必须为非空字符串')
 	}
+	if (own(policy, 'eligibilityNotice') && (typeof policy.eligibilityNotice !== 'string' || !policy.eligibilityNotice.trim() || policy.eligibilityNotice.length > 100)) {
+		throw new Error('eligibilityNotice 必须为非空且不超过100字符的字符串')
+	}
 	for (const key of ['stayStart', 'stayEnd']) {
 		if (own(policy, key) && !Number.isFinite(dateDay(policy[key]))) throw new Error(`${key} 必须为有效 YYYY-MM-DD 日期`)
 	}
@@ -76,6 +79,7 @@ export function travelPolicyText(policy) {
 	if (policy.includedMeals) text.push(`供餐：${policy.includedMeals}，套餐不另收餐费`)
 	if (policy.stayStart || policy.stayEnd) text.push(`每个入住夜须在${policy.stayStart || '不限'}至${policy.stayEnd || '不限'}内`)
 	if (policy.excludedStayRanges && policy.excludedStayRanges.length) text.push(`不可入住：${policy.excludedStayRanges.map(range => `${range.start}至${range.end}（含首尾）`).join('、')}`)
+	if (policy.eligibilityNotice) text.push(`入住资格（自我声明）：${policy.eligibilityNotice}`)
 	return text.join('；')
 }
 

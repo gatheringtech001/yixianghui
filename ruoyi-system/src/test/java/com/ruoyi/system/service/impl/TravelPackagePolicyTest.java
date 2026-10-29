@@ -3,6 +3,7 @@ package com.ruoyi.system.service.impl;
 import java.sql.Date;
 import java.util.Arrays;
 import java.util.Collections;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.system.domain.AppGoodsOrder;
 import com.ruoyi.system.domain.AppGoodsSkuOption;
@@ -21,6 +22,76 @@ class TravelPackagePolicyTest {
             assertFalse(policy.hasIncludedMeals());
         }
         assertDoesNotThrow(() -> TravelPackagePolicy.fromOptions(null));
+    }
+
+    @Test
+    void eligibilityNoticeRequiresStrictBooleanConfirmationAfterJacksonDeserialization() throws Exception {
+        TravelPackagePolicy policy = parse("{\"travelPolicy\":{\"version\":1,\"eligibilityNotice\":\"请确认符合入住资格\"}}");
+        ObjectMapper json = new ObjectMapper();
+        for (String value : Arrays.asList("true", "false", "\"true\"", "1", "null")) {
+            AppGoodsOrder request = json.readValue("{\"params\":{\"travelEligibilityConfirmed\":" + value + "}}", AppGoodsOrder.class);
+            request.setCheckInDate(Date.valueOf("2026-01-01"));
+            request.setCheckOutDate(Date.valueOf("2026-01-08"));
+            request.setInterCount(7);
+            assertTrue(request.getParams().containsKey("travelEligibilityConfirmed"), "Jackson must retain BaseEntity.params");
+            Object confirmation = request.getParams().get("travelEligibilityConfirmed");
+            if ("true".equals(value) || "false".equals(value)) {
+                assertEquals(Boolean.class, confirmation.getClass());
+            } else if ("\"true\"".equals(value)) {
+                assertEquals(String.class, confirmation.getClass());
+            } else if ("1".equals(value)) {
+                assertEquals(Integer.class, confirmation.getClass());
+            } else {
+                assertNull(confirmation);
+            }
+            if ("true".equals(value)) {
+                assertDoesNotThrow(() -> policy.validate(request));
+            } else {
+                assertTrue(assertThrows(ServiceException.class, () -> policy.validate(request))
+                        .getMessage().contains("确认入住资格"));
+            }
+        }
+        for (String payload : Arrays.asList("{}", "{\"params\":null}", "{\"params\":{}}")) {
+            AppGoodsOrder request = json.readValue(payload, AppGoodsOrder.class);
+            request.setCheckInDate(Date.valueOf("2026-01-01"));
+            request.setCheckOutDate(Date.valueOf("2026-01-08"));
+            request.setInterCount(7);
+            assertTrue(assertThrows(ServiceException.class, () -> policy.validate(request))
+                    .getMessage().contains("确认入住资格"));
+        }
+    }
+
+    @Test
+    void acceptsEligibilityNoticeWithRawLengthAtMost100AndNonblankTrimmedText() {
+        String hundred = String.join("", Collections.nCopies(100, "资"));
+        for (String text : Arrays.asList("资格声明", "  资格声明  ", hundred, " " + hundred.substring(1))) {
+            TravelPackagePolicy policy = parse("{\"travelPolicy\":{\"version\":1,\"eligibilityNotice\":\"" + text + "\"}}");
+            AppGoodsOrder request = order("2026-01-01", "2026-01-08", 1, 1);
+            request.getParams().put("travelEligibilityConfirmed", Boolean.TRUE);
+            assertDoesNotThrow(() -> policy.validate(request));
+        }
+        for (String text : Arrays.asList(hundred + "资", " " + hundred, hundred + " ", "  " + hundred + "  ")) {
+            assertThrows(ServiceException.class, () -> parse("{\"travelPolicy\":{\"version\":1,\"eligibilityNotice\":\"" + text + "\"}}"));
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"null", "false", "1", "[]", "{}", "\"\"", "\"   \"", "\"\\t\\n\""})
+    void rejectsNontextOrBlankEligibilityNotice(String value) {
+        assertThrows(ServiceException.class, () -> parse("{\"travelPolicy\":{\"version\":1,\"eligibilityNotice\":" + value + "}}"));
+    }
+
+    @Test
+    void absentNoticeDoesNotRequireOrInterpretConfirmation() {
+        for (String metadata : Arrays.asList(null, "{}", "{\"travelPolicy\":{\"version\":1,\"capacity\":2}}")) {
+            TravelPackagePolicy policy = parse(metadata);
+            AppGoodsOrder request = order("2026-01-01", "2026-01-08", 1, 1);
+            assertDoesNotThrow(() -> policy.validate(request));
+            for (Object value : Arrays.asList(null, Boolean.FALSE, "true", 1)) {
+                request.getParams().put("travelEligibilityConfirmed", value);
+                assertDoesNotThrow(() -> policy.validate(request));
+            }
+        }
     }
 
     @ParameterizedTest

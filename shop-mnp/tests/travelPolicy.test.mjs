@@ -13,6 +13,7 @@ const travelPolicy = {
 }
 const metadata = value => JSON.stringify({ travelPolicy: value })
 const longPackageDescription = '三餐；整间总价，最多2人；2026-10-30至2026-12-31住宿夜'
+const eligibilityNotice = '入住同行需有一人年满50岁；75岁以上需要有家人陪同方可入住'
 const stay = overrides => ({ travelPolicy, nights: 6, checkInDate: '2026-10-29', checkOutDate: '2026-11-04', ...overrides })
 const catalog = (value = travelPolicy) => ({
 	goodsId: 77, goodsName: '测试基地', goodsImages: '',
@@ -369,4 +370,115 @@ test('metadata popup tabs show only duration while retaining full policy, prices
 	page.getGoodsDetailFn(77)
 	await new Promise(resolve => setImmediate(resolve))
 	assert.equal(page.popupSkuDataList[0].popupLabel, '传统周套餐（原名称）')
+})
+
+test('optional eligibilityNotice preserves source text and strictly rejects invalid or overlong values', () => {
+	for (const value of [eligibilityNotice, '住'.repeat(100)]) {
+		const parsed = policy.parseTravelPolicy(metadata({ version: 1, eligibilityNotice: value }))
+		assert.equal(parsed.eligibilityNotice, value)
+		assert.ok(policy.travelPolicyText(parsed).includes(`入住资格（自我声明）：${value}`))
+	}
+	assert.equal(policy.parseTravelPolicy(metadata({ version: 1 })).eligibilityNotice, undefined)
+	for (const value of [undefined, null, '', ' \t\n', true, 50, [], {}, '住'.repeat(101)]) {
+		assert.throws(() => policy.parseTravelPolicy({ travelPolicy: { version: 1, eligibilityNotice: value } }), /eligibilityNotice/)
+	}
+})
+
+test('actual detail and confirmation pages display exact eligibility policy without claiming age verification', async () => {
+	const data = catalog({ ...travelPolicy, eligibilityNotice })
+	data.goodsId = 278
+	const detail = pageHarness('GoodsDetails/SojournGoodsDetails', data)
+	detail.page.loadCollectState = () => {}
+	detail.page.getGoodsDetailFn(278)
+	await new Promise(resolve => setImmediate(resolve))
+	const sku = detail.page.skuGroupList[0].skuDataList[0]
+	detail.page.reserveFn(sku, sku.combinationList[0], 0)
+	assert.ok(detail.page.selectedTravelPolicyText.includes(eligibilityNotice))
+	const { page } = await confirmation(data, { id: '278', travelEligibilityConfirmed: 'true' })
+	assert.equal(page.eligibilityNotice, eligibilityNotice)
+	assert.ok(page.selectedTravelPolicyText.includes(eligibilityNotice))
+	assert.equal(page.travelEligibilityConfirmed, false)
+	assert.equal(page.isReadingAgreement, false)
+	const source = readFileSync(new URL('../packagesMall/ConfirmOrder/SojournConfirmOrder.vue', import.meta.url), 'utf8')
+	assert.match(source, /v-if="eligibilityNotice"/)
+	assert.match(source, /<u-checkbox v-model="travelEligibilityConfirmed"><\/u-checkbox>/)
+	assert.match(source, /\{\{ eligibilityNotice \}\}/)
+	assert.match(source, /自我声明，非年龄核验/)
+})
+
+test('eligibility confirmation requires boolean true independently of booking agreement (stub orders only)', async () => {
+	const { page, events } = await confirmation(catalog({ ...travelPolicy, eligibilityNotice }))
+	page.reserveData.name = '合成测试'
+	page.reserveData.phone = '13800000000'
+	page.isReadingAgreement = true
+	for (const value of [false, undefined, null, 0, 1, 'true', 'false', {}, []]) {
+		page.travelEligibilityConfirmed = value
+		page.createOrderFn()
+		assert.equal(events.requests.length, 0)
+		assert.match(events.toasts.at(-1).title, /入住资格自我声明/)
+	}
+	page.travelEligibilityConfirmed = true
+	page.isReadingAgreement = false
+	page.createOrderFn()
+	assert.equal(events.requests.length, 0)
+	assert.match(events.toasts.at(-1).title, /预订及入住须知/)
+	page.isReadingAgreement = true
+	page.createOrderFn()
+	assert.equal(events.requests.length, 1)
+	const request = JSON.parse(JSON.stringify(events.requests[0]))
+	assert.deepEqual(request.params, { travelEligibilityConfirmed: true })
+	assert.equal(Object.hasOwn(request, 'travelEligibilityConfirmed'), false)
+	assert.deepEqual(Object.keys(page.reserveData).sort(), ['checkInDate', 'checkOutDate', 'day', 'name', 'peopleNumber', 'phone', 'roomNumber'].sort())
+	// Recheck at the delayed submission boundary, not just on the initial click.
+	let submit
+	page.$u.throttle = callback => { submit = callback }
+	page.createOrderFn()
+	page.travelEligibilityConfirmed = false
+	submit()
+	assert.equal(events.requests.length, 1)
+	assert.match(events.toasts.at(-1).title, /入住资格自我声明/)
+})
+
+test('746 without eligibilityNotice retains prior submission rules and payload', async () => {
+	for (const value of [travelPolicy, null]) {
+		const data = catalog(value)
+		data.optionList[1].skuId = 746
+		if (value === null) delete data.optionList[1].options[0].optionParam
+		const { page, events } = await confirmation(data, { skuId: '746' })
+		assert.equal(page.eligibilityNotice, '')
+		assert.equal(page.eligibilityConfirmationError, '')
+		assert.equal(page.travelEligibilityConfirmed, false)
+		page.reserveData.name = '合成测试'
+		page.reserveData.phone = '13800000000'
+		page.isReadingAgreement = true
+		page.createOrderFn()
+		assert.equal(events.requests.length, 1)
+		assert.equal(events.requests[0].skuId, 746)
+		assert.equal(Object.hasOwn(events.requests[0], 'params'), false)
+	}
+})
+
+test('invalid eligibility metadata blocks real page navigation and submission even when checked', async () => {
+	for (const value of ['', 50, '住'.repeat(101)]) {
+		const data = catalog({ ...travelPolicy, eligibilityNotice: value })
+		const detail = pageHarness('GoodsDetails/SojournGoodsDetails', data)
+		detail.page.loadCollectState = () => {}
+		detail.page.getGoodsDetailFn(278)
+		await new Promise(resolve => setImmediate(resolve))
+		const sku = detail.page.skuGroupList[0].skuDataList[0]
+		detail.page.reserveFn(sku, sku.combinationList[0], 0)
+		detail.page.popupDate.checkInDate = '2026-10-29'
+		detail.page.popupDate.checkOutDate = '2026-11-05'
+		detail.page.confirmFn()
+		assert.match(detail.page.selectionError, /eligibilityNotice/)
+		assert.equal(detail.events.navigations.length, 0)
+		const { page, events } = await confirmation(data)
+		page.reserveData.name = '合成测试'
+		page.reserveData.phone = '13800000000'
+		page.isReadingAgreement = true
+		page.travelEligibilityConfirmed = true
+		page.createOrderFn()
+		assert.match(page.selectionError, /eligibilityNotice/)
+		assert.equal(events.requests.length, 0)
+	}
 })
