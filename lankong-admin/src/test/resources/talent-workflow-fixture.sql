@@ -19,6 +19,7 @@ CREATE TABLE app_goods_order (
 ) ENGINE=InnoDB;
 CREATE TABLE app_user_inviter (user_id bigint,new_user_id bigint,status char(1)) ENGINE=InnoDB;
 CREATE TABLE app_goods_order_after (
+  business_type char(1) NOT NULL DEFAULT '2', booking_adjustment_id bigint,
   after_id bigint PRIMARY KEY, order_id bigint, goods_id bigint, out_order_no varchar(50), status char(1),
   app_refund_money decimal(10,2), refund_money decimal(10,2), reason_description varchar(255), remark varchar(255),
   after_type char(1),user_id bigint,goods_money decimal(10,2),back_express_name varchar(100),back_express_no varchar(100)

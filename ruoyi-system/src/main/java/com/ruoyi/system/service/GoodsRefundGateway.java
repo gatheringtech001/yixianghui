@@ -37,6 +37,15 @@ public class GoodsRefundGateway {
         QueryByOutRefundNoRequest request = new QueryByOutRefundNoRequest(); request.setOutRefundNo(reference);
         return service.queryByOutRefundNo(request);
     }
+    /** Split the one approved after-sales refund across its actual original payment receipts. */
+    public Refund createAllocation(java.util.Map<String,Object> item) {
+        CreateRequest request=new CreateRequest();
+        request.setOutTradeNo(String.valueOf(item.get("out_trade_no"))); request.setOutRefundNo(String.valueOf(item.get("out_refund_no")));
+        request.setReason("管理员批准售后退款"); request.setNotifyUrl(notifyUrl);
+        AmountReq amount=new AmountReq(); amount.setCurrency("CNY");
+        amount.setTotal(GoodsRefundSnapshot.integral(item.get("total_fen"))); amount.setRefund(GoodsRefundSnapshot.integral(item.get("refund_fen")));
+        request.setAmount(amount); return service.create(request);
+    }
     static Refund evidence(RefundNotification notification) {
         Refund refund = new Refund(); refund.setOutRefundNo(notification.getOutRefundNo());
         refund.setOutTradeNo(notification.getOutTradeNo()); refund.setRefundId(notification.getRefundId());

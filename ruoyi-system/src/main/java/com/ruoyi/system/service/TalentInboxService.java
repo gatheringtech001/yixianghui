@@ -78,13 +78,13 @@ public class TalentInboxService {
     }
     private Query refunds(TalentWorkflowAccess.Scope scope, String view) {
         return new Query("SELECT a.after_id numericId,CONCAT('refund:',a.after_id) id,'refunds' category,"
-            + "CONCAT(CASE WHEN g.goods_type IN ('hotel','travel') THEN '旅居' WHEN g.goods_type='education' THEN '课程' ELSE '商品' END,"
+            + "CONCAT(CASE WHEN a.business_type='3' THEN '活动' WHEN a.business_type='1' THEN '会员卡' WHEN g.goods_type IN ('hotel','travel') THEN '旅居' WHEN g.goods_type='education' THEN '课程' ELSE '商品' END,"
             + "'售后退款 · ',LEFT(COALESCE(g.goods_name,a.out_order_no,'未填写'),250)) title,"
             + "CONCAT(CASE WHEN a.app_refund_money IS NULL AND a.refund_money IS NULL THEN '金额待核对' "
             + "ELSE CONCAT('申请退款 ¥',COALESCE(a.app_refund_money,a.refund_money)) END,CASE WHEN a.status='0' THEN '；核对后可直接审核' ELSE '；请核对并同步退款结果' END) description,"
             + "CASE WHEN a.status='0' THEN '待审核' WHEN a.status='5' THEN '退款异常' ELSE '结果待核对' END status,'view-refund' action,CAST(a.after_id AS CHAR) targetId,NULL applicantId,NULL dueDate,0 overdue,NULL ownerName "
             + "FROM app_goods_order_after a LEFT JOIN app_goods g ON g.goods_id=a.goods_id "
-            + "WHERE (a.status IN ('0','5') OR (a.status='1' AND EXISTS (SELECT 1 FROM app_pay_refund_log r WHERE r.agent_refund_no=CONCAT('YXHAF',a.after_id) AND r.status='0' AND COALESCE(r.pay_no,'')=''))) AND ?=1 AND ?<>'unassigned'", scope.admin ? 1 : 0, view);
+            + "WHERE (a.status IN ('0','5') OR (a.status='1' AND (a.business_type IN ('1','3') OR EXISTS (SELECT 1 FROM app_pay_refund_log r WHERE r.agent_refund_no=CONCAT('YXHAF',a.after_id) AND r.status='0' AND COALESCE(r.pay_no,'')='')))) AND ?=1 AND ?<>'unassigned'", scope.admin ? 1 : 0, view);
     }
     private Query travel(TalentWorkflowAccess.Scope scope, String view) {
         String owner = "all".equals(view) ? "1=1" : "unassigned".equals(view) ? ORDER_UNASSIGNED : "o.service_owner_user_id=?";

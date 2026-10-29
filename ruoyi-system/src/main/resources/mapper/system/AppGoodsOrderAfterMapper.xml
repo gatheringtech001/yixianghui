@@ -6,6 +6,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     
     <resultMap type="AppGoodsOrderAfter" id="AppGoodsOrderAfterResult">
         <result property="afterId"    column="after_id"    />
+        <result property="businessType" column="business_type" />
+        <result property="bookingAdjustmentId" column="booking_adjustment_id" />
+        <result property="goodsName" column="goods_name" />
         <result property="afterType"    column="after_type"    />
         <result property="userId"    column="user_id"    />
         <result property="orderId"    column="order_id"    />
@@ -28,13 +31,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectAppGoodsOrderAfterVo">
-        select after_id, after_type, user_id, order_id, out_order_no, order_money, goods_id, goods_count, goods_money, express_money, refund_money, back_express_name, back_express_no, resend_express_name,
-               resend_express_no, remark, status,refund_reason,reason_description,app_refund_money from app_goods_order_after
+        select after_id, business_type, booking_adjustment_id, after_type, user_id, order_id, out_order_no, order_money, goods_id, goods_count, goods_money, express_money, refund_money, back_express_name, back_express_no, resend_express_name,
+               resend_express_no, remark, status,refund_reason,reason_description,app_refund_money,
+               CASE WHEN business_type='3' THEN (SELECT activity_name FROM app_activity WHERE activity_id=(SELECT activity_id FROM app_booking_adjustment WHERE adjustment_id=booking_adjustment_id))
+                    WHEN business_type='1' THEN '会员卡' ELSE NULL END goods_name from app_goods_order_after
     </sql>
 
     <select id="selectAppGoodsOrderAfterList" parameterType="AppGoodsOrderAfter" resultMap="AppGoodsOrderAfterResult">
         <include refid="selectAppGoodsOrderAfterVo"/>
         <where>  
+            <if test="businessType != null and businessType != ''"> and business_type = #{businessType}</if>
             <if test="afterType != null  and afterType != ''"> and after_type = #{afterType}</if>
             <if test="userId != null "> and user_id = #{userId}</if>
             <if test="orderId != null "> and order_id = #{orderId}</if>

@@ -18,13 +18,18 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class GoodsRefundStore {
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transaction;
-    public GoodsRefundStore(JdbcTemplate jdbc, PlatformTransactionManager manager) {
+    private final com.ruoyi.system.service.impl.BookingAdjustmentService bookings;
+    public GoodsRefundStore(JdbcTemplate jdbc, PlatformTransactionManager manager, com.ruoyi.system.service.impl.BookingAdjustmentService bookings) {
+        this.bookings=bookings;
         this.jdbc = jdbc; transaction = new TransactionTemplate(manager);
         transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        transaction.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
         transaction.setTimeout(10);
     }
     public GoodsRefundSnapshot read(long id) { return read(id, false); }
     private GoodsRefundSnapshot read(long id, boolean lock) {
+        Map<String,Object> business=one("SELECT business_type,booking_adjustment_id FROM app_goods_order_after WHERE after_id=?",id);
+        if(!"2".equals(business.get("business_type"))) return readBooking(id,business,lock);
         if (lock) {
             Map<String, Object> after = one("SELECT order_id FROM app_goods_order_after WHERE after_id=?", id);
             one("SELECT order_id FROM app_goods_order WHERE order_id=? FOR UPDATE", after.get("order_id"));
@@ -43,6 +48,26 @@ public class GoodsRefundStore {
             + "FROM app_pay_refund_log WHERE order_id=? AND order_type='2' ORDER BY log_id", row.get("order_id"));
         return new GoodsRefundSnapshot(row, logs);
     }
+    private GoodsRefundSnapshot readBooking(long id,Map<String,Object> business,boolean lock) {
+        long changeId=TalentWorkflowAccess.id(business.get("booking_adjustment_id"));
+        Map<String,Object> context=bookings.refundContext(changeId,lock);
+        Map<String,Object> row=one("SELECT * FROM app_goods_order_after WHERE after_id=?"+(lock?" FOR UPDATE":""),id);
+        if(!Objects.equals(row.get("business_type"),context.get("business_type"))
+            || !Objects.equals(String.valueOf(row.get("booking_adjustment_id")),String.valueOf(context.get("adjustment_id")))
+            || !Objects.equals(String.valueOf(row.get("order_id")),String.valueOf(context.get("order_id")))
+            || !Objects.equals(String.valueOf(row.get("user_id")),String.valueOf(context.get("user_id"))))
+            throw new TalentCenterApiException(409,"售后申请与原报名关联不一致，请核对");
+        row.put("booking_state",context.get("state")); row.put("booking_amount_fen",context.get("amount_fen"));
+        row.put("booking_available_fen",context.get("available_fen")); row.put("booking_receipt_error",context.get("receipt_error"));
+        row.put("booking_original_status",context.get("original_status")); row.put("booking_original_count",context.get("original_count"));
+        row.put("booking_from_count",context.get("from_count")); row.put("booking_to_count",context.get("to_count"));
+        row.put("order_no",context.get("original_order_no")); row.put("order_user_id",context.get("original_user_id"));
+        row.put("pay_status",context.get("original_pay_status")); row.put("payment_fen",context.get("paid_fen"));
+        row.put("payment_receipts",context.get("receipts"));
+        row.put("goods_name","3".equals(row.get("business_type"))?"活动报名":"会员卡");
+        List<Map<String,Object>> logs=jdbc.queryForList("SELECT r.log_id,r.agent_refund_no,r.pay_no,r.refund_money,r.status FROM app_booking_adjustment_refund i JOIN app_pay_refund_log r ON r.log_id=i.refund_log_id WHERE i.adjustment_id=? ORDER BY r.log_id",changeId);
+        return new GoodsRefundSnapshot(row,logs);
+    }
     public Prepared prepare(GoodsRefundRequest request) {
         return Objects.requireNonNull(transaction.execute(tx -> {
             GoodsRefundSnapshot snapshot = read(request.afterId, true);
@@ -60,6 +85,7 @@ public class GoodsRefundStore {
             if ("approve".equals(request.decision)) reserve(snapshot, request);
             if ("reject".equals(request.decision)) {
                 requireOne(jdbc.update("UPDATE app_goods_order_after SET status='2',remark=? WHERE after_id=? AND status='0'", request.note, request.afterId));
+                if(snapshot.isBooking()) bookings.rejectAfterSaleRefund(snapshot.bookingId());
                 restoreOrder(snapshot);
             }
             saveResult(request.operationId, read(request.afterId).result());
@@ -67,6 +93,12 @@ public class GoodsRefundStore {
         }));
     }
     private void reserve(GoodsRefundSnapshot snapshot, GoodsRefundRequest request) {
+        if(snapshot.isBooking()) {
+            requireOne(jdbc.update("UPDATE app_goods_order_after SET status='1',refund_money=?,remark=? WHERE after_id=? AND status='0'",
+                BigDecimal.valueOf(Objects.requireNonNull(request.refundFen),2),request.note,snapshot.afterId()));
+            bookings.reserveAfterSaleRefund(snapshot.bookingId(),request.refundFen);
+            return;
+        }
         requireOne(jdbc.update("INSERT INTO app_pay_refund_log(user_id,order_id,order_type,pay_method,agent_name,agent_refund_no,refund_money,status,create_time) VALUES (?,?,'2','wxpay','微信支付',?,?,'0',NOW())",
             snapshot.row.get("user_id"), snapshot.orderId(), snapshot.reference(), BigDecimal.valueOf(Objects.requireNonNull(request.refundFen))));
         requireOne(jdbc.update("UPDATE app_goods_order_after SET status='1',refund_money=?,remark=? WHERE after_id=? AND status='0'",
@@ -114,6 +146,7 @@ public class GoodsRefundStore {
         log.setRefundMoney(BigDecimal.valueOf(evidence.getAmount().getRefund())); return log;
     }
     private void restoreOrder(GoodsRefundSnapshot snapshot) {
+        if(snapshot.isBooking()) return;
         jdbc.update("UPDATE app_goods_order SET status='1',travel_status=CASE WHEN travel_status=? THEN COALESCE(travel_status_before_refund,?) ELSE travel_status END,update_time=NOW() WHERE order_id=? AND status='3'",
             TravelOrderStatusPolicy.REFUNDING, TravelOrderStatusPolicy.CONFIRMED, snapshot.orderId());
     }

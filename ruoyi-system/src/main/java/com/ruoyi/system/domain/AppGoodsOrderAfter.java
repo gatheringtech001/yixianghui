@@ -21,6 +21,15 @@ public class AppGoodsOrderAfter extends BaseEntity
     private Boolean returnReceived;
     public Boolean getReturnReceived() { return returnReceived; }
     public void setReturnReceived(Boolean value) { returnReceived = value; }
+    private String businessType;
+    private Long bookingAdjustmentId;
+    private String refundAction;
+    public String getBusinessType() { return businessType; }
+    public void setBusinessType(String value) { businessType = value; }
+    public Long getBookingAdjustmentId() { return bookingAdjustmentId; }
+    public void setBookingAdjustmentId(Long value) { bookingAdjustmentId = value; }
+    public String getRefundAction() { return refundAction; }
+    public void setRefundAction(String value) { refundAction = value; }
     private static final long serialVersionUID = 1L;
 
     /** 退换id */

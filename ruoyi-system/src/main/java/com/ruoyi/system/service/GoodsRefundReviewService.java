@@ -17,8 +17,9 @@ public class GoodsRefundReviewService {
     private final GoodsRefundStore store;
     private final GoodsRefundGateway gateway;
     private final IAppGoodsOrderService orders;
-    public GoodsRefundReviewService(GoodsRefundStore store, GoodsRefundGateway gateway, @Lazy IAppGoodsOrderService orders) {
-        this.store = store; this.gateway = gateway; this.orders = orders;
+    private final com.ruoyi.system.service.impl.BookingAdjustmentService bookings;
+    public GoodsRefundReviewService(GoodsRefundStore store, GoodsRefundGateway gateway, @Lazy IAppGoodsOrderService orders, com.ruoyi.system.service.impl.BookingAdjustmentService bookings) {
+        this.store = store; this.gateway = gateway; this.orders = orders; this.bookings=bookings;
     }
     public GoodsRefundSnapshot detail(long id) { return store.read(id); }
     public Map<String, Object> preview(GoodsRefundRequest request) {
@@ -33,6 +34,11 @@ public class GoodsRefundReviewService {
         Map<String, Object> result;
         // Reservation commits before external IO. A timeout cannot roll back the payment intent.
         try {
+            if(prepared.snapshot.isBooking()) {
+                bookings.dispatchApprovedRefunds(prepared.snapshot.bookingId(),"sync".equals(request.decision));
+                result=store.read(request.afterId).result();
+                store.saveResult(request.operationId,result); return result;
+            }
             Refund evidence = "sync".equals(request.decision) ? gateway.query(prepared.snapshot.reference())
                 : gateway.create(prepared.snapshot, request);
             if (evidence == null) throw new TalentCenterApiException(502, "微信未返回退款凭证");
@@ -50,21 +56,30 @@ public class GoodsRefundReviewService {
         return result;
     }
     public void notification(RefundNotification notification) {
+        if(notification.getOutRefundNo()!=null && notification.getOutRefundNo().startsWith("YXHBR")) {
+            bookings.notification(notification); return;
+        }
         store.record(GoodsRefundGateway.evidence(notification), orders::completeReviewedRefund);
     }
     public Map<String, Object> refresh(long afterId) {
         GoodsRefundSnapshot snapshot = store.read(afterId);
+        if(snapshot.isBooking()) {
+            bookings.dispatchApprovedRefunds(snapshot.bookingId(),true); return store.read(afterId).result();
+        }
         return store.record(gateway.query(snapshot.reference()), orders::completeReviewedRefund);
     }
     public AjaxResult nativeReview(AppGoodsOrderAfter after) {
         if (after == null || after.getAfterId() == null) return AjaxResult.error("售后单无效");
-        if (!Arrays.asList("1", "2").contains(after.getStatus())) return AjaxResult.error("审核结果无效");
+        boolean recovery=Arrays.asList("sync","retry").contains(after.getRefundAction());
+        if (!recovery && !Arrays.asList("1", "2").contains(after.getStatus())) return AjaxResult.error("审核结果无效");
         try {
             Map<String, Object> input = new LinkedHashMap<>();
-            input.put("kind", "review-refund"); input.put("afterId", after.getAfterId().toString());
-            input.put("decision", "1".equals(after.getStatus()) ? "approve" : "reject");
-            input.put("refundAmount", "1".equals(after.getStatus()) ? GoodsRefundSnapshot.money(after.getRefundMoney()) : null);
-            input.put("returnReceived", Boolean.TRUE.equals(after.getReturnReceived()));
+            input.put("kind", recovery?after.getRefundAction()+"-refund":"review-refund"); input.put("afterId", after.getAfterId().toString());
+            if(!recovery) {
+                input.put("decision", "1".equals(after.getStatus()) ? "approve" : "reject");
+                input.put("refundAmount", "1".equals(after.getStatus()) ? GoodsRefundSnapshot.money(after.getRefundMoney()) : null);
+                input.put("returnReceived", Boolean.TRUE.equals(after.getReturnReceived()));
+            }
             input.put("note", after.getRemark() == null || after.getRemark().trim().isEmpty() ? "管理员核对通过" : after.getRemark());
             if ("2".equals(after.getStatus()) && (after.getRemark() == null || after.getRemark().trim().isEmpty())) return AjaxResult.error("请填写拒绝原因");
             GoodsRefundRequest command = GoodsRefundRequest.from("backend:" + after.getUpdateBy(), input);

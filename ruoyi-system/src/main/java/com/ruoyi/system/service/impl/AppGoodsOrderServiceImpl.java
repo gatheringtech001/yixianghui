@@ -1255,12 +1255,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             RefundNotification refundNotification = parser.parse(requestParam, RefundNotification.class);
             log.info("退款回调验签成功 outRefundNo={}", refundNotification.getOutRefundNo());
 
-            if (refundNotification.getOutRefundNo() != null && refundNotification.getOutRefundNo().startsWith("YXHBR")) {
-                bookingAdjustments.notification(refundNotification);
-                return "{\"code\":\"SUCCESS\",\"message\":\"成功\"}";
-            }
-
-            if (refundNotification.getOutRefundNo() != null && refundNotification.getOutRefundNo().startsWith("YXHAF")) {
+            if (refundNotification.getOutRefundNo() != null && (refundNotification.getOutRefundNo().startsWith("YXHAF") || refundNotification.getOutRefundNo().startsWith("YXHBR"))) {
                 refundReviews.notification(refundNotification);
                 return "{\"code\":\"SUCCESS\",\"message\":\"成功\"}";
             }
@@ -1508,6 +1503,7 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
         if (orderId != null) {
             AppGoodsOrderAfter query = new AppGoodsOrderAfter();
             query.setOrderId(orderId);
+            query.setBusinessType("2");
             List<AppGoodsOrderAfter> list = appGoodsOrderAfterMapper.selectAppGoodsOrderAfterList(query);
             if (list != null && !list.isEmpty()) {
                 AppGoodsOrderAfter preferred = null;

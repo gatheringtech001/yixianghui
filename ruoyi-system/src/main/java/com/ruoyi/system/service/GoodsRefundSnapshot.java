@@ -12,6 +12,8 @@ public final class GoodsRefundSnapshot {
     public long afterId() { return TalentWorkflowAccess.id(row.get("after_id")); }
     public long orderId() { return TalentWorkflowAccess.id(row.get("order_id")); }
     public String text(String key) { return Objects.toString(row.get(key), ""); }
+    public boolean isBooking() { return Arrays.asList("1","3").contains(text("business_type")); }
+    public long bookingId() { return TalentWorkflowAccess.id(row.get("booking_adjustment_id")); }
     public String reference() { return "YXHAF" + afterId(); }
     public String fingerprint() {
         Map<String, Object> data = new TreeMap<>(row);
@@ -21,6 +23,7 @@ public final class GoodsRefundSnapshot {
         return GoodsRefundRequest.hash(JSON.toJSONString(data));
     }
     Map<String, Object> ownLog() {
+        if(isBooking()) return logs.isEmpty()?null:logs.get(0);
         for (Map<String, Object> log : logs) if (reference().equals(log.get("agent_refund_no"))) return log;
         return null;
     }
@@ -33,6 +36,16 @@ public final class GoodsRefundSnapshot {
     public String approvalBlockedReason() {
         String blocked = reviewBlockedReason();
         if (blocked != null) return blocked;
+        if(isBooking()) {
+            if(!"REVIEW".equals(text("booking_state")) || !logs.isEmpty()) return "原报名变更已处理，请同步结果";
+            if(!"1".equals(text("booking_original_status")) || !"1".equals(text("pay_status"))
+                || !text("user_id").equals(text("order_user_id")) || !text("booking_original_count").equals(text("booking_from_count"))
+                || text("order_no").isEmpty() || !text("out_order_no").equals(text("order_no"))) return "原订单、人数或支付凭证已变化，请核对";
+            if(!text("booking_receipt_error").isEmpty()) return text("booking_receipt_error");
+            if(!"2".equals(text("after_type")) || refundableFen()<integral(row.get("booking_amount_fen")) || refundableFen()<=0)
+                return "已付流水或剩余可退金额不足，请核对历史退款";
+            return null;
+        }
         if (ownLog() != null) return "此申请已有退款记录，请同步结果，不能重复发起";
         if (!Arrays.asList("1", "2").contains(text("after_type"))) return "此单不是退款申请，不能发起退款";
         if (!"1".equals(text("payment_status")) || !"1".equals(text("pay_status"))) return "缺少已支付凭证，不能退款";
@@ -46,6 +59,7 @@ public final class GoodsRefundSnapshot {
     }
     long paidFen() { return integral(row.get("payment_fen")); }
     long refundableFen() {
+        if(isBooking()) return Math.max(0,Math.min(99_999_999L,Math.min(moneyFen(row.get("app_refund_money")),Math.min(integral(row.get("booking_amount_fen")),integral(row.get("booking_available_fen"))))));
         long requested = moneyFen(row.get("app_refund_money")), goods = moneyFen(row.get("goods_money"));
         if (requested <= 0 || goods <= 0 || paidFen() <= 0) return 0;
         long reserved = 0;
@@ -73,10 +87,14 @@ public final class GoodsRefundSnapshot {
         if (!"approve".equals(request.decision)) return;
         if (request.refundFen == null || request.refundFen > refundableFen())
             throw new TalentCenterApiException(400, "退款金额不能超过申请金额、商品金额及剩余实付金额");
+        if(isBooking() && request.refundFen != integral(row.get("booking_amount_fen")))
+            throw new TalentCenterApiException(400,"人数调整须按本次申请的完整差价退款；不同意请拒绝申请，不能部分退款后减少全部人数");
         if ("1".equals(text("after_type")) && !request.returnReceived)
             throw new TalentCenterApiException(400, "退货退款须先确认已收货并核验无误");
     }
     private boolean canRetry() {
+        if(isBooking()) return "1".equals(text("status")) && "PROCESSING".equals(text("booking_state"))
+            && logs.stream().anyMatch(log -> "0".equals(String.valueOf(log.get("status"))) && Objects.toString(log.get("pay_no"),"").isEmpty());
         Map<String, Object> log = ownLog();
         return "1".equals(text("status")) && log != null && "0".equals(log.get("status"))
             && Objects.toString(log.get("pay_no"), "").isEmpty() && "1".equals(text("payment_status"))
@@ -102,6 +120,11 @@ public final class GoodsRefundSnapshot {
     public String state() {
         if ("2".equals(text("status"))) return "rejected";
         if ("6".equals(text("status"))) return "succeeded";
+        if(isBooking() && !logs.isEmpty()) {
+            if(logs.stream().anyMatch(log -> Arrays.asList("2","3").contains(String.valueOf(log.get("status"))))) return "failed";
+            if(logs.stream().anyMatch(log -> "0".equals(String.valueOf(log.get("status"))) && Objects.toString(log.get("pay_no"),"").isEmpty())) return "uncertain";
+            return "processing";
+        }
         Map<String, Object> log = ownLog();
         if (log != null) {
             if (Arrays.asList("2", "3").contains(String.valueOf(log.get("status")))) return "failed";
@@ -133,7 +156,10 @@ public final class GoodsRefundSnapshot {
         changes.add(change("订单编号", text("order_no"), text("order_no")));
         changes.add(change("商品", text("goods_name"), text("goods_name")));
         changes.add(change("处理结果", stateLabel(), "approve".equals(request.decision) ? "通过并发起微信退款" : "reject".equals(request.decision) ? "拒绝申请，不退款" : "retry".equals(request.decision) ? "继续原退款单，不更改金额" : "查询微信并同步真实退款状态"));
-        if ("retry".equals(request.decision)) changes.add(change("原退款金额", GoodsRefundRequest.yuan(integral(Objects.requireNonNull(ownLog()).get("refund_money"))) + " 元", GoodsRefundRequest.yuan(integral(ownLog().get("refund_money"))) + " 元"));
+        if ("retry".equals(request.decision)) {
+            long amount = isBooking() ? moneyFen(row.get("refund_money")) : integral(Objects.requireNonNull(ownLog()).get("refund_money"));
+            changes.add(change("原退款金额", GoodsRefundRequest.yuan(amount) + " 元", GoodsRefundRequest.yuan(amount) + " 元"));
+        }
         if (request.refundFen != null) changes.add(change("退款金额", money(row.get("app_refund_money")) + " 元（申请）", GoodsRefundRequest.yuan(request.refundFen) + " 元"));
         if ("1".equals(text("after_type")) && "approve".equals(request.decision)) changes.add(change("退货核验", "待核对", "已收货并核验无误"));
         return changes;

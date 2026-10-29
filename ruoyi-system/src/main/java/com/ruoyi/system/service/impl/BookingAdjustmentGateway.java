@@ -10,8 +10,6 @@ import com.wechat.pay.java.service.payments.jsapi.JsapiService;
 import com.wechat.pay.java.service.payments.jsapi.model.*;
 import com.wechat.pay.java.service.payments.jsapi.model.Amount;
 import com.wechat.pay.java.service.payments.model.Transaction;
-import com.wechat.pay.java.service.refund.RefundService;
-import com.wechat.pay.java.service.refund.model.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -19,19 +17,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class BookingAdjustmentGateway {
     private final JsapiService payments;
-    private final RefundService refunds;
     private final WechatPrepayService prepay;
     private final IAppUserInfoService users;
     @Value("${wx.pay.appId}") private String appId;
     @Value("${wx.pay.merchantId}") private String merchantId;
     @Value("${wx.pay.payNotifyUrl}") private String notifyUrl;
-    @Value("${wx.pay.refundNotifyUrl}") private String refundNotifyUrl;
 
     public BookingAdjustmentGateway(Config config, WechatPrepayService prepay, IAppUserInfoService users) {
         this.prepay = prepay; this.users = users;
         com.wechat.pay.java.core.http.HttpClient client = new com.wechat.pay.java.core.http.DefaultHttpClientBuilder().config(config)
             .connectTimeoutMs(3000).readTimeoutMs(6000).writeTimeoutMs(3000).disableRetryOnConnectionFailure().build();
-        this.refunds = new RefundService.Builder().httpClient(client).build();
         this.payments = new JsapiService.Builder().httpClient(client).build();
     }
 
@@ -60,21 +55,6 @@ public class BookingAdjustmentGateway {
     public void closePayment(String number) {
         CloseOrderRequest request = new CloseOrderRequest(); request.setMchid(merchantId); request.setOutTradeNo(number);
         payments.closeOrder(request);
-    }
-
-    public Refund refund(Map<String, Object> item) {
-        CreateRequest request = new CreateRequest();
-        request.setOutTradeNo(String.valueOf(item.get("out_trade_no")));
-        request.setOutRefundNo(String.valueOf(item.get("out_refund_no")));
-        request.setReason("管理员批准报名退款"); request.setNotifyUrl(refundNotifyUrl);
-        AmountReq amount = new AmountReq(); amount.setCurrency("CNY");
-        amount.setTotal(number(item, "total_fen")); amount.setRefund(number(item, "refund_fen")); request.setAmount(amount);
-        return refunds.create(request);
-    }
-
-    public Refund queryRefund(String number) {
-        QueryByOutRefundNoRequest request = new QueryByOutRefundNoRequest(); request.setOutRefundNo(number);
-        return refunds.queryByOutRefundNo(request);
     }
 
     public void validatePayment(Map<String, Object> change, Transaction result) {

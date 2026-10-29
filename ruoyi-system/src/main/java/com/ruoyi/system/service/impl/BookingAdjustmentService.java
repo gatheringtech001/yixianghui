@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.system.domain.AppGoldBizType;
 import com.ruoyi.system.service.IAppGoldService;
+import com.ruoyi.system.service.GoodsRefundGateway;
 import com.wechat.pay.java.service.payments.model.Transaction;
 import com.wechat.pay.java.service.refund.model.Refund;
 import com.wechat.pay.java.service.refund.model.RefundNotification;
@@ -28,11 +29,12 @@ public class BookingAdjustmentService {
     private final TransactionTemplate joined;
     private final BookingAdjustmentGateway gateway;
     private final IAppGoldService gold;
+    private final GoodsRefundGateway refunds;
     private static final String ACTIVE = "('PAYMENT','REVIEW','PROCESSING')";
 
     public BookingAdjustmentService(JdbcTemplate db, PlatformTransactionManager manager,
-                                    BookingAdjustmentGateway gateway, IAppGoldService gold) {
-        this.db = db; this.gateway = gateway; this.gold = gold;
+                                    BookingAdjustmentGateway gateway, IAppGoldService gold, GoodsRefundGateway refunds) {
+        this.db = db; this.gateway = gateway; this.gold = gold; this.refunds = refunds;
         tx = new TransactionTemplate(manager); tx.setTimeout(15);
         tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         tx.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
@@ -42,9 +44,10 @@ public class BookingAdjustmentService {
 
     @javax.annotation.PostConstruct
     public void verifyTransactionalSchema() {
-        List<Map<String, Object>> tables = db.queryForList("SELECT table_name,engine FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name IN ('app_activity','app_activity_order','app_user_card','app_user_gold_log','app_user_info','app_pay_log','app_pay_refund_log','app_booking_adjustment','app_booking_adjustment_refund')");
-        require(tables.size() == 9 && tables.stream().allMatch(table -> "InnoDB".equalsIgnoreCase(String.valueOf(table.get("engine")))),
+        List<Map<String, Object>> tables = db.queryForList("SELECT table_name,engine FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name IN ('app_activity','app_activity_order','app_user_card','app_user_gold_log','app_user_info','app_pay_log','app_pay_refund_log','app_booking_adjustment','app_booking_adjustment_refund','app_goods_order_after','talent_center_workflow_audit')");
+        require(tables.size() == 11 && tables.stream().allMatch(table -> "InnoDB".equalsIgnoreCase(String.valueOf(table.get("engine")))),
             "报名变更上线前须先完成已批准的建表和InnoDB迁移；未通过安全检查，服务拒绝启动");
+        db.queryForList("SELECT business_type,booking_adjustment_id FROM app_goods_order_after LIMIT 0");
     }
 
     public Map<String, Object> submitActivity(long orderId, long user, int target) {
@@ -78,6 +81,7 @@ public class BookingAdjustmentService {
                 orderId, user, order.get("activity_id"), current, target, amount,
                 target > current ? "PAYMENT" : "REVIEW", target > current ? expires : null);
             if (target > current) db.update("UPDATE app_booking_adjustment SET pay_no=? WHERE adjustment_id=?", MerchantOrderNumbers.create("40", id), id);
+            else createAfterSale(read(id), order, String.valueOf(order.get("order_no")));
             return view(read(id));
         });
     }
@@ -92,6 +96,7 @@ public class BookingAdjustmentService {
             require(payments.size() == 1, "支付记录不唯一或缺失，请联系客服核对");
             long amount = available(payments.get(0)); require(amount > 0, "没有可申请退款的已付金额");
             long id = insert("INSERT INTO app_booking_adjustment(business_type,order_id,user_id,from_count,to_count,amount_fen,state) VALUES ('1',?,?,1,0,?,'REVIEW')", recordId, user, amount);
+            createAfterSale(read(id), card, String.valueOf(payments.get(0).get("pay_no")));
             return view(read(id));
         });
     }
@@ -102,11 +107,13 @@ public class BookingAdjustmentService {
         return rows.isEmpty() ? null : view(rows.get(0));
     }
 
-    public List<Map<String, Object>> list(String state) {
-        List<Map<String, Object>> rows = state == null || state.isEmpty()
-            ? db.queryForList("SELECT * FROM app_booking_adjustment ORDER BY adjustment_id DESC LIMIT 200")
-            : db.queryForList("SELECT * FROM app_booking_adjustment WHERE state=? ORDER BY adjustment_id DESC LIMIT 200", state);
-        List<Map<String, Object>> result = new ArrayList<>(); rows.forEach(row -> result.add(view(row))); return result;
+    private void createAfterSale(Map<String, Object> change, Map<String, Object> original, String paymentNo) {
+        BigDecimal amount = BigDecimal.valueOf(n(change, "amount_fen"), 2);
+        insert("INSERT INTO app_goods_order_after(business_type,booking_adjustment_id,after_type,user_id,order_id,out_order_no,order_money,goods_id,goods_count,goods_money,express_money,app_refund_money,status,reason_description) VALUES (?,?,'2',?,?,?,?,0,?,?,0,?,'0',?)",
+            change.get("business_type"), change.get("adjustment_id"), change.get("user_id"), change.get("order_id"), paymentNo,
+            "3".equals(change.get("business_type")) ? original.get("pay_money") : amount,
+            n(change,"from_count")-n(change,"to_count"), amount, amount,
+            "3".equals(change.get("business_type")) ? "活动报名人数调整："+n(change,"from_count")+"人 → "+n(change,"to_count")+"人" : "会员卡退款申请");
     }
 
     public Object prepay(long id, long user) {
@@ -196,27 +203,42 @@ public class BookingAdjustmentService {
         });
     }
 
-    /** Only the permission-protected admin controller calls this method. No user request can approve itself. */
-    public Map<String, Object> review(long id, long reviewer, String decision, String note) {
-        require(reviewer > 0, "管理员身份无效"); require(note != null && !note.trim().isEmpty() && note.length() <= 500, "请填写500字以内的审核说明");
-        require(Arrays.asList("approve", "reject", "sync", "retry").contains(decision), "审核操作无效");
-        atomic(() -> {
-            Map<String, Object> initial = read(id); Map<String, Object> order = lockOrder(String.valueOf(initial.get("business_type")), n(initial, "order_id"));
-            Map<String, Object> row = locked(id);
-            if ("approve".equals(decision) || "reject".equals(decision)) {
-                require("REVIEW".equals(row.get("state")), "申请已处理，请刷新");
-                if ("approve".equals(decision)) {
-                    require("1".equals(order.get("status")), "原订单状态已变化");
-                    if ("3".equals(row.get("business_type"))) require("1".equals(order.get("pay_status")) && n(order, "sign_count") == n(row, "from_count"), "原报名人数或付款状态已变化");
-                    allocateRefund(row);
-                }
-                requireOne(db.update("UPDATE app_booking_adjustment SET state=?,reviewer_id=?,review_note=?,reviewed_at=NOW(),update_time=NOW() WHERE adjustment_id=? AND state='REVIEW'",
-                    "approve".equals(decision) ? "PROCESSING" : "REJECTED", reviewer, note.trim(), id));
-            } else require("PROCESSING".equals(row.get("state")) && row.get("reviewer_id") != null, "只有管理员已批准的退款可以同步或重试");
-            return null;
-        });
-        if (!"reject".equals(decision)) dispatchRefunds(id, "sync".equals(decision));
-        return view(read(id));
+    /** Business adapter for the EXISTING after-sales reviewer. No independent approval API or audit. */
+    public Map<String, Object> refundContext(long id, boolean lock) {
+        Map<String, Object> initial = read(id);
+        Map<String, Object> original = lock ? lockOrder(String.valueOf(initial.get("business_type")), n(initial,"order_id"))
+            : order(String.valueOf(initial.get("business_type")), n(initial,"order_id"), false);
+        Map<String, Object> row = lock ? locked(id) : initial;
+        Map<String, Object> context = new LinkedHashMap<>(row);
+        context.put("original_user_id",original.get("user_id"));
+        context.put("original_status",original.get("status"));
+        context.put("original_pay_status","3".equals(row.get("business_type")) ? original.get("pay_status") : "1");
+        context.put("original_count","3".equals(row.get("business_type")) ? original.get("sign_count") : 1);
+        context.put("original_order_no",original.get("order_no"));
+        try {
+            List<Map<String,Object>> receipts=payments(String.valueOf(row.get("business_type")),n(row,"order_id"));
+            long total=0,available=0;
+            for(Map<String,Object> receipt:receipts){total=Math.addExact(total,n(receipt,"pay_money"));available=Math.addExact(available,available(receipt));}
+            context.put("receipts",receipts); context.put("paid_fen",total); context.put("available_fen",available);
+            if("1".equals(row.get("business_type")) && receipts.size()==1) context.put("original_order_no",receipts.get(0).get("pay_no"));
+        } catch(ServiceException invalid) { context.put("receipt_error",invalid.getMessage()); }
+        return context;
+    }
+
+    public void reserveAfterSaleRefund(long id, long amount) {
+        require(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive(),"退款预约必须在售后审核事务中执行");
+        Map<String,Object> row=locked(id);
+        Map<String,Object> after=one("SELECT status,refund_money FROM app_goods_order_after WHERE booking_adjustment_id=? FOR UPDATE",id);
+        require("1".equals(after.get("status")) && yuanFen(after.get("refund_money"))==amount && amount==n(row,"amount_fen"),"请通过原有售后审核核对完整人数差价");
+        require("REVIEW".equals(row.get("state")),"申请已处理，请刷新");
+        allocateRefund(row);
+        requireOne(db.update("UPDATE app_booking_adjustment SET state='PROCESSING',update_time=NOW() WHERE adjustment_id=? AND state='REVIEW'",id));
+    }
+
+    public void rejectAfterSaleRefund(long id) {
+        require(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive(),"拒绝申请必须在售后审核事务中执行");
+        require("2".equals(one("SELECT status FROM app_goods_order_after WHERE booking_adjustment_id=? FOR UPDATE",id).get("status")),"请通过原有售后审核拒绝申请");
+        requireOne(db.update("UPDATE app_booking_adjustment SET state='REJECTED',update_time=NOW() WHERE adjustment_id=? AND state='REVIEW'",id));
     }
 
     private void allocateRefund(Map<String, Object> row) {
@@ -252,11 +274,12 @@ public class BookingAdjustmentService {
         return Math.max(0, n(payment, "pay_money") - spent);
     }
 
-    private void dispatchRefunds(long id, boolean queryOnly) {
+    public void dispatchApprovedRefunds(long id, boolean queryOnly) {
+        require(Arrays.asList("PROCESSING","COMPLETED").contains(read(id).get("state")) && approvedAfterSale(id),"退款未经售后审核批准");
         for (Map<String, Object> item : db.queryForList("SELECT * FROM app_booking_adjustment_refund WHERE adjustment_id=? ORDER BY item_id", id)) {
             if ("SUCCESS".equals(item.get("state"))) continue;
             try {
-                Refund result = queryOnly ? gateway.queryRefund(String.valueOf(item.get("out_refund_no"))) : gateway.refund(item);
+                Refund result = queryOnly ? refunds.query(String.valueOf(item.get("out_refund_no"))) : refunds.createAllocation(item);
                 recordRefund(result);
             } catch (RuntimeException error) {
                 // Intent remains committed. Only an administrator can retry the SAME refund reference.
@@ -278,7 +301,7 @@ public class BookingAdjustmentService {
             Map<String, Object> base = read(n(initial, "adjustment_id")); Map<String, Object> order = lockOrder(String.valueOf(base.get("business_type")), n(base, "order_id"));
             Map<String, Object> row = locked(n(base, "adjustment_id"));
             Map<String, Object> item = one("SELECT * FROM app_booking_adjustment_refund WHERE item_id=? FOR UPDATE", initial.get("item_id"));
-            require(Arrays.asList("PROCESSING", "COMPLETED").contains(row.get("state")) && row.get("reviewer_id") != null, "退款未经管理员批准");
+            require(Arrays.asList("PROCESSING", "COMPLETED").contains(row.get("state")) && approvedAfterSale(n(row,"adjustment_id")), "退款未经管理员批准");
             validateRefund(item, evidence);
             String recorded = db.queryForObject("SELECT pay_no FROM app_pay_refund_log WHERE log_id=?", String.class, item.get("refund_log_id"));
             require(recorded == null || recorded.isEmpty() || recorded.equals(evidence.getRefundId()), "微信退款编号与已记录凭证不一致");
@@ -289,6 +312,8 @@ public class BookingAdjustmentService {
             db.update("UPDATE app_pay_refund_log SET status=?,pay_no=?,agent_pay_no=?,update_time=NOW() WHERE log_id=?",
                 Status.SUCCESS.equals(evidence.getStatus()) ? "1" : Status.CLOSED.equals(evidence.getStatus()) ? "2" : Status.ABNORMAL.equals(evidence.getStatus()) ? "3" : "0",
                 evidence.getRefundId(), evidence.getTransactionId(), item.get("refund_log_id"));
+            if(Status.CLOSED.equals(evidence.getStatus()) || Status.ABNORMAL.equals(evidence.getStatus()))
+                db.update("UPDATE app_goods_order_after SET status='5' WHERE booking_adjustment_id=? AND status<>'6'",row.get("adjustment_id"));
             if (Status.SUCCESS.equals(evidence.getStatus())) {
                 gold.reverseOnRefund(n(row, "user_id"), "3".equals(row.get("business_type")) ? AppGoldBizType.ACTIVITY_REFUND : AppGoldBizType.CARD_REFUND,
                     n(row, "order_id"), BigDecimal.valueOf(n(item, "refund_fen")), String.valueOf(item.get("out_refund_no")));
@@ -317,6 +342,7 @@ public class BookingAdjustmentService {
             db.update("UPDATE app_activity SET sign_count=GREATEST(0,COALESCE(NULLIF(sign_count,''),0)-?) WHERE activity_id=?", delta, row.get("activity_id"));
         } else requireOne(db.update("UPDATE app_user_card SET status='3',update_time=NOW() WHERE record_id=? AND status='1'", row.get("order_id")));
         requireOne(db.update("UPDATE app_booking_adjustment SET state='COMPLETED',update_time=NOW() WHERE adjustment_id=? AND state='PROCESSING'", row.get("adjustment_id")));
+        requireOne(db.update("UPDATE app_goods_order_after SET status='6' WHERE booking_adjustment_id=? AND status IN ('1','5')",row.get("adjustment_id")));
     }
 
     public long reservedSeats(long activityId) {
@@ -376,7 +402,7 @@ public class BookingAdjustmentService {
     }
     private long insert(String sql, Object... args) {
         GeneratedKeyHolder keys = new GeneratedKeyHolder();
-        String identity = sql.startsWith("INSERT INTO app_booking_adjustment_refund") ? "item_id" : sql.startsWith("INSERT INTO app_booking_adjustment(") ? "adjustment_id" : "log_id";
+        String identity = sql.startsWith("INSERT INTO app_booking_adjustment_refund") ? "item_id" : sql.startsWith("INSERT INTO app_booking_adjustment(") ? "adjustment_id" : sql.startsWith("INSERT INTO app_goods_order_after(") ? "after_id" : "log_id";
         db.update(connection -> { java.sql.PreparedStatement ps = connection.prepareStatement(sql, new String[]{identity});
             for (int i = 0; i < args.length; i++) ps.setObject(i + 1, args[i]); return ps; }, keys);
         return Objects.requireNonNull(keys.getKey()).longValue();
@@ -388,10 +414,15 @@ public class BookingAdjustmentService {
     private static void own(Map<String, Object> order, long user) { require(user > 0 && n(order, "user_id") == user, "非法订单"); }
     private static void require(boolean valid, String message) { if (!valid) throw new ServiceException(message); }
     private static void requireOne(int count) { require(count == 1, "订单状态已变化，请刷新"); }
-    private static Map<String, Object> view(Map<String, Object> row) {
+    private boolean approvedAfterSale(long id) {
+        return db.queryForObject("SELECT COUNT(*) FROM app_goods_order_after WHERE booking_adjustment_id=? AND status IN ('1','5','6')",Long.class,id)==1;
+    }
+    private Map<String, Object> view(Map<String, Object> row) {
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("adjustmentId", row.get("adjustment_id")); value.put("businessType", row.get("business_type")); value.put("orderId", row.get("order_id"));
         value.put("fromCount", row.get("from_count")); value.put("toCount", row.get("to_count")); value.put("amount", BigDecimal.valueOf(n(row, "amount_fen"), 2));
-        value.put("state", row.get("state")); value.put("reviewNote", row.get("review_note")); value.put("expiresAt", row.get("expires_at")); return value;
+        List<Map<String,Object>> after=db.queryForList("SELECT after_id,remark FROM app_goods_order_after WHERE booking_adjustment_id=?",row.get("adjustment_id"));
+        value.put("state", row.get("state")); value.put("reviewNote", after.isEmpty()?null:after.get(0).get("remark"));
+        value.put("afterId",after.isEmpty()?null:after.get(0).get("after_id")); value.put("expiresAt", row.get("expires_at")); return value;
     }
 }

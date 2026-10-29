@@ -12,9 +12,6 @@ CREATE TABLE app_booking_adjustment (
   state VARCHAR(24) NOT NULL COMMENT 'PAYMENT, REVIEW, PROCESSING, COMPLETED, REJECTED, CANCELLED',
   pay_no VARCHAR(32) NULL,
   expires_at DATETIME NULL,
-  reviewer_id BIGINT NULL,
-  review_note VARCHAR(500) NULL,
-  reviewed_at DATETIME NULL,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_booking_adjustment_pay (pay_no),
@@ -22,6 +19,13 @@ CREATE TABLE app_booking_adjustment (
   KEY ix_booking_adjustment_activity (activity_id, state),
   KEY ix_booking_adjustment_state (state, expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Reuse the existing after-sales application, review status, permission and audit workflow.
+-- Existing rows remain business_type=2 (goods/travel/course); no historical orders are rewritten.
+ALTER TABLE app_goods_order_after
+  ADD COLUMN business_type CHAR(1) NOT NULL DEFAULT '2' COMMENT '1 card, 2 goods/travel/course, 3 activity';
+ALTER TABLE app_goods_order_after ADD COLUMN booking_adjustment_id BIGINT NULL;
+ALTER TABLE app_goods_order_after ADD CONSTRAINT uq_after_booking_adjustment UNIQUE (booking_adjustment_id);
 
 CREATE TABLE app_booking_adjustment_refund (
   item_id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,

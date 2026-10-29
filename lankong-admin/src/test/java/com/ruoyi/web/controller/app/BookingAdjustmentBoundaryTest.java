@@ -15,9 +15,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class BookingAdjustmentBoundaryTest {
-    @Configuration @EnableMethodSecurity @Import(BookingAdjustmentController.class)
+    @Configuration @EnableMethodSecurity @Import({BookingAdjustmentController.class,AppGoodsOrderAfterController.class})
     static class Config {
         @Bean BookingAdjustmentService changes() { return mock(BookingAdjustmentService.class); }
+        @Bean com.ruoyi.system.service.IAppGoodsOrderAfterService afters() { return mock(com.ruoyi.system.service.IAppGoodsOrderAfterService.class); }
+        @Bean com.ruoyi.system.service.IAppGoodsOrderService orders() { return mock(com.ruoyi.system.service.IAppGoodsOrderService.class); }
+        @Bean com.ruoyi.system.service.IAppGoodsService goods() { return mock(com.ruoyi.system.service.IAppGoodsService.class); }
         @Bean(name="ss") PermissionService permissions() { return new PermissionService(); }
     }
     @BeforeEach void request() {
@@ -34,22 +37,31 @@ class BookingAdjustmentBoundaryTest {
             BookingAdjustmentController controller=context.getBean(BookingAdjustmentController.class);
             BookingAdjustmentService service=context.getBean(BookingAdjustmentService.class);
             clearInvocations(service); // Spring invokes the mocked schema startup check during bean creation.
+            AppGoodsOrderAfterController afters=context.getBean(AppGoodsOrderAfterController.class);
             for(String decision:Arrays.asList("approve","reject","sync","retry")) {
-                Map<String,String> input=new HashMap<>(); input.put("decision",decision);input.put("note","测试");
-                assertThrows(AccessDeniedException.class, () -> controller.review(1,input));
+                com.ruoyi.system.domain.AppGoodsOrderAfter input=new com.ruoyi.system.domain.AppGoodsOrderAfter();
+                input.setAfterId(1L);input.setRefundAction(decision);
+                assertThrows(AccessDeniedException.class, () -> afters.refundPrepay(input));
             }
-            assertThrows(AccessDeniedException.class, () -> controller.list(null));
+            assertThrows(AccessDeniedException.class, () -> afters.list(new com.ruoyi.system.domain.AppGoodsOrderAfter()));
             verifyNoInteractions(service);
             controller.latest("3",1); verify(service).latest("3",1,5);
         }
     }
     @Test void reviewerIdentityAlwaysComesFromTheAuthenticatedAdministrator() {
-        login(99,"system:app_pay_refund_log:edit");
+        login(99,"system:app_goods_order_after:edit");
         try(AnnotationConfigApplicationContext context=new AnnotationConfigApplicationContext(Config.class)) {
-            BookingAdjustmentController controller=context.getBean(BookingAdjustmentController.class);
-            Map<String,String> input=new HashMap<>();input.put("decision","approve");input.put("note","核对通过");input.put("reviewerId","5");
-            controller.review(7,input);
-            verify(context.getBean(BookingAdjustmentService.class)).review(7,99,"approve","核对通过");
+            AppGoodsOrderAfterController controller=context.getBean(AppGoodsOrderAfterController.class);
+            com.ruoyi.system.domain.AppGoodsOrderAfter input=new com.ruoyi.system.domain.AppGoodsOrderAfter();input.setAfterId(7L);input.setStatus("1");input.setUpdateBy("5");
+            controller.refundPrepay(input);
+            assertEquals("99",input.getUpdateBy());
+            verify(context.getBean(com.ruoyi.system.service.IAppGoodsOrderService.class)).wxpayRefund(input);
+        }
+    }
+    @Test void noIndependentActivityApprovalRouteRemains() {
+        for(java.lang.reflect.Method method:BookingAdjustmentController.class.getDeclaredMethods()) {
+            org.springframework.web.bind.annotation.PostMapping mapping=method.getAnnotation(org.springframework.web.bind.annotation.PostMapping.class);
+            if(mapping!=null) for(String path:mapping.value()) assertFalse(path.startsWith("/system/"));
         }
     }
     @Test void refundReceiptsCannotBeManuallyForgedOrDeleted() {

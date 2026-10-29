@@ -61,6 +61,7 @@ public class AppGoodsOrderAfterController extends BaseController
         if(null!=list){
             AppGoods goods = null;
             for(int i=0;i<list.size();i++){
+                if(!"2".equals(list.get(i).getBusinessType())) continue;
                 goods = appGoodsService.getCacheAppGoodsById(list.get(i).getGoodsId());
                 if(null!=goods){
                     list.get(i).setGoodsName(goods.getGoodsName());
@@ -107,6 +108,7 @@ public class AppGoodsOrderAfterController extends BaseController
     @ApiOperation("新增订单商品售后")
     public AjaxResult add(@RequestBody AppGoodsOrderAfter appGoodsOrderAfter)
     {
+        if(appGoodsOrderAfter.getBookingAdjustmentId()!=null || (appGoodsOrderAfter.getBusinessType()!=null && !"2".equals(appGoodsOrderAfter.getBusinessType()))) return error("活动和会员卡售后请从原订单申请");
         return toAjax(appGoodsOrderAfterService.insertAppGoodsOrderAfter(appGoodsOrderAfter));
     }
 
@@ -120,6 +122,8 @@ public class AppGoodsOrderAfterController extends BaseController
     @ApiOperation("修改订单商品售后")
     public AjaxResult edit(@RequestBody AppGoodsOrderAfter appGoodsOrderAfter)
     {
+        AppGoodsOrderAfter existing=appGoodsOrderAfterService.selectAppGoodsOrderAfterByAfterId(appGoodsOrderAfter.getAfterId());
+        if(existing!=null && !"2".equals(existing.getBusinessType())) return error("请使用原有售后审核，不允许直接修改报名关联或退款状态");
         return toAjax(appGoodsOrderAfterService.updateAppGoodsOrderAfter(appGoodsOrderAfter));
     }
 
@@ -133,6 +137,10 @@ public class AppGoodsOrderAfterController extends BaseController
     @ApiOperation("删除订单商品售后")
     public AjaxResult remove(@PathVariable Long[] afterIds)
     {
+        for(Long id:afterIds) {
+            AppGoodsOrderAfter existing=appGoodsOrderAfterService.selectAppGoodsOrderAfterByAfterId(id);
+            if(existing!=null && !"2".equals(existing.getBusinessType())) return error("报名变更关联的售后记录必须保留");
+        }
         return toAjax(appGoodsOrderAfterService.deleteAppGoodsOrderAfterByAfterIds(afterIds));
     }
 

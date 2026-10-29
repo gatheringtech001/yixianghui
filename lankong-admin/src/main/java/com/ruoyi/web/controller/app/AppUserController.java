@@ -638,6 +638,7 @@ public class AppUserController extends BaseController
             oneorder = list.get(i);
             if (retailOrderStore.enrich(oneorder)) {
                 AppGoodsOrderAfter retailAfter = new AppGoodsOrderAfter(); retailAfter.setOrderId(oneorder.getOrderId());
+                retailAfter.setBusinessType("2");
                 oneorder.setOrderAfterList(orderAfterService.selectAppGoodsOrderAfterList(retailAfter));
                 continue;
             }
@@ -679,6 +680,7 @@ public class AppUserController extends BaseController
             // 附带售后记录，供前端展示「售后已拒绝」等反馈
             AppGoodsOrderAfter afterWhere = new AppGoodsOrderAfter();
             afterWhere.setOrderId(oneorder.getOrderId());
+            afterWhere.setBusinessType("2");
             oneorder.setOrderAfterList(orderAfterService.selectAppGoodsOrderAfterList(afterWhere));
             list.set(i,oneorder);
         }
@@ -701,6 +703,7 @@ public class AppUserController extends BaseController
             AppGoodsOrderDetail details = new AppGoodsOrderDetail(); details.setOrderId(orderId);
             goodsOrder.setOrderDetailList(orderDetailService.selectAppGoodsOrderDetailList(details));
             AppGoodsOrderAfter after = new AppGoodsOrderAfter(); after.setOrderId(orderId);
+            after.setBusinessType("2");
             goodsOrder.setOrderAfterList(orderAfterService.selectAppGoodsOrderAfterList(after));
             return success(goodsOrder);
         }
@@ -748,6 +751,7 @@ public class AppUserController extends BaseController
             goodsOrder.setGoodsList(goodsList);
             AppGoodsOrderAfter afterWhere = new AppGoodsOrderAfter();
             afterWhere.setOrderId(orderId);
+            afterWhere.setBusinessType("2");
             goodsOrder.setOrderAfterList(orderAfterService.selectAppGoodsOrderAfterList(afterWhere));
         }
         return success(goodsOrder);
@@ -1557,6 +1561,7 @@ public class AppUserController extends BaseController
             // 防重复申请：已有进行中售后则拒绝
             AppGoodsOrderAfter query = new AppGoodsOrderAfter();
             query.setOrderId(order.getOrderId());
+            query.setBusinessType("2");
             List<AppGoodsOrderAfter> existList = appGoodsOrderAfterService.selectAppGoodsOrderAfterList(query);
             if (existList != null) {
                 for (AppGoodsOrderAfter exist : existList) {

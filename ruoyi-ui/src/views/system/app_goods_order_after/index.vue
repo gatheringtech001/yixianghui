@@ -1,6 +1,13 @@
 <template>
   <div class="app-container">
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="100px">
+      <el-form-item label="订单类型" prop="businessType">
+        <el-select v-model="queryParams.businessType" clearable placeholder="全部类型">
+          <el-option label="商品 / 旅居 / 课程" value="2" />
+          <el-option label="活动" value="3" />
+          <el-option label="会员卡" value="1" />
+        </el-select>
+      </el-form-item>
       <el-form-item label="用户ID" prop="userId">
         <el-input
           v-model="queryParams.userId"
@@ -172,6 +179,7 @@
               @selection-change="handleSelectionChange" style="width: 100%;min-width: 400" max-height="400" :fit="true">
       <el-table-column type="selection" width="55" align="center" fixed="left"/>
       <el-table-column label="退换id" align="center" prop="afterId" v-if="false"/>
+      <el-table-column label="订单类型" align="center" width="145"><template slot-scope="scope">{{ businessLabel(scope.row.businessType) }}</template></el-table-column>
       <el-table-column label="售后类型" align="center" prop="afterType" :resizable="true">
         <template slot-scope="scope">
           <dict-tag :options="dict.type.after_type" :value="scope.row.afterType" />
@@ -192,7 +200,7 @@
       <el-table-column label="重发快递名称" align="center" prop="resendExpressName" :resizable="true" show-overflow-tooltip/>
       <el-table-column label="重发快递单号" align="center" prop="resendExpressNo" :resizable="true" show-overflow-tooltip/>
       <el-table-column label="审批意见" align="center" prop="remark" :resizable="true" show-overflow-tooltip/>
-      <el-table-column label="售后状态" align="center" prop="status" :resizable="true"/>
+      <el-table-column label="售后状态" align="center" prop="status" :resizable="true"><template slot-scope="scope">{{ statusText(scope.row.status) }}</template></el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right">
         <template slot-scope="scope">
           <div class="action-dropdown">
@@ -297,27 +305,33 @@
           <h3>金额信息</h3>
           <div class="audit-row">
             <span class="label">商品金额：</span>
-            <span>{{ '¥' + selrow && selrow.goodsMoney?selrow.goodsMoney.toFixed(2):0 }}</span>
+            <span>¥{{ money(selrow.goodsMoney) }}</span>
           </div>
           <div class="audit-row">
             <span class="label">退款申请金额：</span>
-            <span class="highlight">{{ '¥' + selrow && selrow.appRefundMoney?selrow.appRefundMoney.toFixed(2):0 }}</span>
+            <span class="highlight">¥{{ money(selrow.appRefundMoney) }}</span>
           </div>
         </div>
 
         <el-form ref="refundform" :model="refundform" :rules="refundrules" label-width="80px">
           <el-form-item label="退款金额" prop="refundMoney">
-            <el-input v-model="refundform.refundMoney" placeholder="请输入退款金额" />
+            <el-input v-model="refundform.refundMoney" :readonly="!!selrow.bookingAdjustmentId" placeholder="请输入退款金额" />
+            <div v-if="selrow.bookingAdjustmentId">{{ selrow.reasonDescription }}；按本次申请差价退款，不同意可拒绝申请。</div>
           </el-form-item>
           <el-form-item label="审批意见" prop="remark">
             <el-input v-model="refundform.remark" type="textarea" placeholder="请输入内容" />
           </el-form-item>
         </el-form>
+        <el-checkbox v-if="selrow.afterType === '1'" v-model="refundform.returnReceived">已收到退货并核验无误</el-checkbox>
 
         <!-- 审核操作 -->
         <div class="audit-actions" v-if="selrow.status === '0'">
-          <el-button type="success" @click="approveAudit(selrow.afterId)">通过</el-button>
-          <el-button type="danger" @click="rejectAudit(selrow.afterId)">拒绝</el-button>
+          <el-button type="success" :disabled="auditBusy" @click="approveAudit(selrow.afterId)">通过</el-button>
+          <el-button type="danger" :disabled="auditBusy" @click="rejectAudit(selrow.afterId)">拒绝</el-button>
+        </div>
+        <div class="audit-actions" v-if="selrow.status === '1' || selrow.status === '5'">
+          <el-button :disabled="auditBusy" @click="recoverRefund('sync')">同步微信退款结果</el-button>
+          <el-button :disabled="auditBusy" @click="recoverRefund('retry')">继续原退款</el-button>
         </div>
       </div>
       <el-table :data="[selrow]" width="600">
@@ -340,9 +354,9 @@
             </div>
             <!-- 第三行：金额信息 -->
             <div class="money-line">
-              <span>商品：{{ '¥'+row && row.goodsMoney?row.goodsMoney.toFixed(2):0 }}</span>
-              <span>运费：{{ '¥'+row && row.expressMoney?row.expressMoney.toFixed(2):0 }}</span>
-              <span class="refund-money">退款：{{ '¥'+row && row.refundMoney?row.refundMoney.toFixed(2):0 }}</span>
+              <span>商品：¥{{ money(row.goodsMoney) }}</span>
+              <span>运费：¥{{ money(row.expressMoney) }}</span>
+              <span class="refund-money">退款：¥{{ money(row.refundMoney) }}</span>
             </div>
             <!-- 第四行：物流信息（条件显示） -->
             <div class="express-line" v-if="row.backExpressName">
@@ -383,10 +397,12 @@ export default {
       open: false,
       // 售后信息查看审批
       info: false,
+      auditBusy: false,
       //选择行
       selrow: {},
       // 查询参数
       queryParams: {
+        businessType: null,
         pageNum: 1,
         pageSize: 10,
         afterType: null,
@@ -457,6 +473,8 @@ export default {
     this.getList();
   },
   methods: {
+    money(value) { const amount = Number(value); return Number.isFinite(amount) ? amount.toFixed(2) : '0.00' },
+    businessLabel(value) { return ({'1':'会员卡','2':'商品 / 旅居 / 课程','3':'活动'})[value] || '商品 / 旅居 / 课程' },
     /** 查询订单商品售后列表 */
     getList() {
       this.loading = true;
@@ -471,7 +489,7 @@ export default {
       return map[status] || 'info'
     },
     statusText(status) {
-      const map = { '0': '待审核', '1': '已同意退款', '2': '已拒绝', '6': '退款完成' }
+      const map = { '0': '待审核', '1': '已同意退款', '2': '已拒绝', '5': '退款异常', '6': '退款完成' }
       return map[status] || status
     },
     // 取消按钮
@@ -525,25 +543,30 @@ export default {
       this.title = "添加订单商品售后";
     },
     /** 审核按钮操作 */
-    handleInfo(row) {
-      this.selrow = row
-      console.log(row)
+    async handleInfo(row) {
+      const afterId = row && row.afterId || this.ids[0]
+      if (!afterId) return
+      this.selrow = (await getApp_goods_order_after(afterId)).data
+      row = this.selrow
       this.refundform = {
         refundMoney: row.appRefundMoney != null ? row.appRefundMoney : (row.refundMoney != null ? row.refundMoney : row.goodsMoney),
-        remark: ''
+        remark: '', returnReceived: false
       }
       this.info = true // 确保info变量已定义在data中
     },
     /** 通过审核 */
     approveAudit(afterId) {
+      if (this.auditBusy) return
       this.$modal.confirm('确认通过该售后申请？').then(() => {
         this.$refs["refundform"].validate().then(validated => {
           if (!validated) return
+          this.auditBusy = true
           approvalApp_goods_order_after({
             afterId: afterId,
             status: '1',
             refundMoney: this.refundform.refundMoney,
             remark: this.refundform.remark,
+            returnReceived: this.refundform.returnReceived,
             outOrderNo: this.selrow.outOrderNo,
             orderMoney: this.selrow.orderMoney || this.selrow.goodsMoney,
             orderId: this.selrow.orderId
@@ -555,17 +578,19 @@ export default {
             const msg = (err && (err.msg || err.message)) || '退款失败'
             this.$modal.msgError(msg)
             this.getList()
-          })
+          }).finally(() => { this.auditBusy = false })
         })
       }).catch(() => {})
     },
     /** 拒绝审核 */
     rejectAudit(afterId) {
+      if (this.auditBusy) return
       this.$modal.confirm('确认拒绝该售后申请？').then(() => {
         if(this.refundform.remark=='' || this.refundform.remark==undefined){
           this.$modal.msgError("请输入审批意见")
           return
         }
+        this.auditBusy = true
         approvalApp_goods_order_after({
           afterId: afterId,
           status: '2',
@@ -579,8 +604,19 @@ export default {
         }).catch(err => {
           const msg = (err && (err.msg || err.message)) || '操作失败'
           this.$modal.msgError(msg)
-        })
+        }).finally(() => { this.auditBusy = false })
       }).catch(() => {})
+    },
+    async recoverRefund(refundAction) {
+      if (this.auditBusy) return
+      try {
+        await this.$modal.confirm(refundAction === 'sync' ? '查询微信并同步原退款结果？' : '仅继续已批准的原退款单号，不新建退款。确认继续？')
+        this.auditBusy = true
+        const response = await approvalApp_goods_order_after({ afterId: this.selrow.afterId, refundAction, remark: this.refundform.remark || '管理员核对原退款结果' })
+        this.$modal.msgSuccess(response.msg || '退款结果已同步')
+        await this.handleInfo(this.selrow); this.getList()
+      } catch (error) { if (error !== 'cancel' && error !== 'close' && error && error.message) this.$modal.msgError(error.message) }
+      finally { this.auditBusy = false }
     },
     /** 修改按钮操作 */
     handleUpdate(row) {

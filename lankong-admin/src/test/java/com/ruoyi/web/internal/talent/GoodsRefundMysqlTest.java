@@ -39,12 +39,12 @@ class GoodsRefundMysqlTest {
         jdbc = new JdbcTemplate(source);
         new ResourceDatabasePopulator(new ClassPathResource("talent-workflow-fixture.sql")).execute(source);
         new ResourceDatabasePopulator(new FileSystemResource(Objects.requireNonNull(System.getenv("WORKFLOW_MIGRATION_FILE")))).execute(source);
-        store = new GoodsRefundStore(jdbc, new DataSourceTransactionManager(source));
+        store = new GoodsRefundStore(jdbc, new DataSourceTransactionManager(source),null);
         jdbc.update("INSERT INTO app_goods(goods_id,goods_name,goods_type) VALUES (1,'隔离退款测试课程','education')");
     }
     @BeforeEach void fixture() {
         id = IDS.incrementAndGet(); gateway = mock(GoodsRefundGateway.class); effects = mock(IAppGoodsOrderService.class);
-        service = new GoodsRefundReviewService(store, gateway, effects);
+        service = new GoodsRefundReviewService(store, gateway, effects,null);
         jdbc.update("INSERT INTO app_goods_order(order_id,order_no,goods_id,user_id,status,pay_status,order_origin,travel_status,travel_status_before_refund) VALUES (?,?,1,5,'3','1','mini_program','6','1')", id, "TEST" + id);
         jdbc.update("INSERT INTO app_goods_order_after(after_id,order_id,goods_id,user_id,out_order_no,status,after_type,app_refund_money,goods_money) VALUES (?,?,1,5,?,'0','2',1.00,1.00)", id, id, "TEST" + id);
         jdbc.update("INSERT INTO app_pay_log(order_id,user_id,pay_no,pay_money,status,pay_method) VALUES (?,5,?,100,'1','wxpay')", id, "TEST" + id);
