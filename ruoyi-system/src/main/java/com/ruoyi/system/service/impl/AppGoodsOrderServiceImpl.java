@@ -69,6 +69,7 @@ import javax.servlet.http.HttpServletRequest;
 @Slf4j
 public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService 
 {
+    @Autowired private BookingAdjustmentService bookingAdjustments;
     @Autowired
     private AppGoodsOrderMapper appGoodsOrderMapper;
     @Autowired
@@ -728,6 +729,10 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
     }
 
     String handleVerifiedPayment(Transaction transaction) {
+        if (transaction.getOutTradeNo() != null && transaction.getOutTradeNo().startsWith("40")) {
+            bookingAdjustments.recordPayment(transaction);
+            return "{\"code\":\"SUCCESS\",\"message\":\"成功\"}";
+        }
         AppPayLog payLog = payLogService.selectAppPayLogByPayNo(transaction.getOutTradeNo());
        /* payLog.setNotifyContent(transaction.toString());
         payLogService.insertAppPayLog(payLog);
@@ -804,6 +809,10 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             activityOrder = activityOrderService.selectAppActivityOrderByOrderId(payLog.getOrderId());
             if (Objects.isNull(activityOrder)) {
                 log.error("活动订单不存在，非法调用");
+                return JSONObject.toJSONString(returnMap);
+            }
+            if (!Objects.equals(activityOrder.getOrderNo(), payLog.getPayNo())) {
+                log.error("旧活动支付单收到回调，需核对 orderId={}", activityOrder.getOrderId());
                 return JSONObject.toJSONString(returnMap);
             }
             if (activityOrder.getPayStatus() != null && !activityOrder.getPayStatus().equals("0")) {
@@ -1245,6 +1254,11 @@ public class AppGoodsOrderServiceImpl implements IAppGoodsOrderService
             NotificationParser parser = new NotificationParser(wxPayNotificationConfig);
             RefundNotification refundNotification = parser.parse(requestParam, RefundNotification.class);
             log.info("退款回调验签成功 outRefundNo={}", refundNotification.getOutRefundNo());
+
+            if (refundNotification.getOutRefundNo() != null && refundNotification.getOutRefundNo().startsWith("YXHBR")) {
+                bookingAdjustments.notification(refundNotification);
+                return "{\"code\":\"SUCCESS\",\"message\":\"成功\"}";
+            }
 
             if (refundNotification.getOutRefundNo() != null && refundNotification.getOutRefundNo().startsWith("YXHAF")) {
                 refundReviews.notification(refundNotification);

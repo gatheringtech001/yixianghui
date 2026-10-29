@@ -11,6 +11,7 @@ import com.ruoyi.system.domain.AppActivityOrder;
  */
 public interface AppActivityOrderMapper 
 {
+    AppActivityOrder selectAppActivityOrderByOrderIdForUpdate(Long orderId);
     /**
      * 查询活动预约
      * 

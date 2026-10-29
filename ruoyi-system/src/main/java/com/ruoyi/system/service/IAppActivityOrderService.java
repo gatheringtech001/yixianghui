@@ -77,7 +77,7 @@ public interface IAppActivityOrderService
     public AppActivityOrder createPendingActivityOrder(AppActivityOrder appActivityOrder);
 
     /**
-     * 取消活动预约（恢复名额；付费已支付则发起微信退款）
+     * 取消活动预约（免费直接取消；付费仅提交退款申请，管理员批准后退款）
      */
     public int cancelActivityOrder(Long orderId, Long userId);
 

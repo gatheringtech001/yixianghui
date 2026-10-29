@@ -13,6 +13,7 @@ const flush = () => new Promise(resolve => setImmediate(resolve))
 function detail(overrides = {}) {
   return loadPage(detailFile, {ActivityTeacherContact: {},
     getActivityOrderInfo: async () => ({data: booking}),
+    getBookingAdjustment: async () => ({data: null}),
     uni: {setNavigationBarTitle() {}}, ...overrides})
 }
 

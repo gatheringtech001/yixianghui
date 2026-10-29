@@ -345,83 +345,13 @@ public class AppUserCardServiceImpl implements IAppUserCardService
         return appUserCardMapper.updateAppUserCard(up);
     }
 
+    @Autowired
+    private BookingAdjustmentService bookingAdjustments;
+
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public AjaxResult refundUserCard(Long recordId, Long userId) {
-        AppUserCard card = appUserCardMapper.selectAppUserCardByRecordId(recordId);
-        if (card == null) {
-            throw new ServiceException("开通记录不存在");
-        }
-        if (userId == null || card.getUserId() == null || card.getUserId().longValue() != userId.longValue()) {
-            throw new ServiceException("非法操作");
-        }
-        if (!"1".equals(StringUtils.defaultIfBlank(card.getStatus(), ""))) {
-            throw new ServiceException("仅生效中的会员卡可退款");
-        }
-        if (card.getCreateTime() == null) {
-            throw new ServiceException("支付单号缺失，无法退款");
-        }
-        AppCard cardDef = cardService.selectAppCardByCardId(card.getCardId());
-        if (cardDef == null || StringUtils.isEmpty(cardDef.getPrice())) {
-            throw new ServiceException("会员卡价格信息缺失");
-        }
-        BigDecimal price = new BigDecimal(cardDef.getPrice());
-        if (price.compareTo(BigDecimal.ZERO) <= 0) {
-            // 免费卡直接失效
-            AppUserCard up = new AppUserCard();
-            up.setRecordId(recordId);
-            up.setStatus("3");
-            up.setUpdateTime(DateUtils.getNowDate());
-            appUserCardMapper.updateAppUserCard(up);
-            return AjaxResult.success("已取消");
-        }
-        String outTradeNo = "10" + DateUtils.parseDateToStr(DateUtils.YYYYMMDDHHMMSS, card.getCreateTime());
-        try {
-            RefundService service = new RefundService.Builder().config(wxPayConfigRuntime).build();
-            String outRefundNo = "RF10" + DateUtils.dateTimeNow() + recordId;
-            CreateRequest refundRequest = new CreateRequest();
-            refundRequest.setOutTradeNo(outTradeNo);
-            refundRequest.setOutRefundNo(outRefundNo);
-            refundRequest.setReason("会员卡退款");
-            refundRequest.setNotifyUrl(refundNotifyUrl);
-            AmountReq refundAmount = new AmountReq();
-            long fen = price.multiply(new BigDecimal(100)).longValue();
-            refundAmount.setRefund(fen);
-            refundAmount.setTotal(fen);
-            refundAmount.setCurrency("CNY");
-            refundRequest.setAmount(refundAmount);
-            Refund response = service.create(refundRequest);
-
-            AppPayRefundLog refundLog = new AppPayRefundLog();
-            refundLog.setOrderId(recordId);
-            refundLog.setUserId(userId);
-            refundLog.setOrderType("1");
-            refundLog.setPayNo(response.getRefundId());
-            refundLog.setPayMethod("wxpay");
-            refundLog.setAgentName("微信支付");
-            refundLog.setAgentPayNo(response.getTransactionId());
-            refundLog.setAgentRefundNo(outRefundNo);
-            refundLog.setRefundMoney(price.multiply(new BigDecimal(100)));
-            refundLog.setCreateTime(DateUtils.getNowDate());
-            refundLog.setStatus("0");
-            appPayRefundLogMapper.insertAppPayRefundLog(refundLog);
-
-            // 先撤销权益，退款结果由回调落库
-            AppUserCard up = new AppUserCard();
-            up.setRecordId(recordId);
-            up.setStatus("3");
-            up.setUpdateTime(DateUtils.getNowDate());
-            appUserCardMapper.updateAppUserCard(up);
-            return AjaxResult.success("退款已提交");
-        } catch (HttpException | MalformedMessageException e) {
-            log.error("会员卡退款失败 recordId={}", recordId, e);
-            throw new ServiceException("退款发起失败，请稍后重试");
-        } catch (ServiceException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("会员卡退款异常 recordId={}", recordId, e);
-            throw new ServiceException("退款发起失败，请稍后重试");
-        }
+        if (recordId == null || userId == null) throw new ServiceException("开通记录无效");
+        return AjaxResult.success("退款申请已提交，待管理员审核", bookingAdjustments.submitCard(recordId, userId));
     }
 
     @Override

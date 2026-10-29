@@ -100,13 +100,16 @@ class WechatPrepayContractTest {
         order.setStatus("0"); order.setPayStatus("0"); order.setSignCount(3);
         order.setMoneyPayable(new BigDecimal("0.01")); order.setCreateTime(new Date());
         when(orders.selectAppActivityOrderByOrderId(12L)).thenReturn(order);
+        when(orders.selectAppActivityOrderByOrderIdForUpdate(12L)).thenReturn(order);
         when(orders.updateAppActivityOrder(any())).thenReturn(1);
-        when(activities.selectAppActivityByActivityId(3L)).thenReturn(new AppActivity());
+        AppActivity activity = new AppActivity(); activity.setActivityId(3L);
+        when(activities.selectAppActivityByActivityId(3L)).thenReturn(activity);
         when(users.selectAppUserInfoByUserId(7L)).thenReturn(payer());
         AtomicReference<PrepayRequest> captured = new AtomicReference<>();
         wire(service,"appActivityOrderMapper",orders); wire(service,"appActivityMapper",activities);
         wire(service,"userInfoService",users); wire(service,"payLogService",mock(IAppPayLogService.class));
         wire(service,"wechatPrepayService",capturing(captured));
+        wire(service,"bookingAdjustments",mock(BookingAdjustmentService.class));
         assertEquals(200,service.wxpayPrepay(order).get("code"));
         assertEquals(MerchantOrderNumbers.create("30",12L),captured.get().getOutTradeNo());
         assertEquals(Integer.valueOf(1),captured.get().getAmount().getTotal());

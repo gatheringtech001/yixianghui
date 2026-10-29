@@ -82,7 +82,7 @@ test('validation rejects blank contacts invalid mobiles noninteger and exhausted
   for (const [patch,expected] of [
     [{signName:' '},'报名联系人'], [{signMobile:''},'手机号码'], [{signMobile:'12345678901'},'手机号码'],
     [{signCount:0},'整数'], [{signCount:1.5},'整数'], [{signCount:'1abc'},'整数'],
-    [{signCount:100},'可报名人数']
+    [{signCount:100},'仅限本人']
   ]) {const {page}=form();Object.assign(page,patch);assert.ok(page.validateForm().includes(expected))}
   const {page}=form(); page.activityDetail={...freeActivity,maxCount:2,signCount:2}
   assert.match(page.validateForm(),/剩余名额不足/)
@@ -90,10 +90,10 @@ test('validation rejects blank contacts invalid mobiles noninteger and exhausted
 
 test('valid free submission persists all contact fields and skips the cashier', async () => {
   const {page,calls,routes}=form()
-  page.signCount=2
+  page.signCount=1
   await page.submitOrder()
   assert.equal(calls.length,1);assert.equal(calls[0][0],'free')
-  assert.deepEqual(JSON.parse(JSON.stringify(calls[0][1])),{activityId:146,signName:'测试联系人',signMobile:'13800138000',signCount:2,remark:''})
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[0][1])),{activityId:146,signName:'测试联系人',signMobile:'13800138000',signCount:1,remark:''})
   assert.deepEqual(routes,['/packagesMember/MyActivity/detail/index?orderId=27&showTeacher=1'])
   assert.equal(page.submitting,false)
 })

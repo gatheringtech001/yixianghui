@@ -56,8 +56,9 @@
 					</view>
 					<view class="form-row">
 						<view class="row-label">参与人数（必填）</view>
-						<u-number-box v-model="signCount" :min="1" :max="maxSignCount" :step="1" :input-height="isSeniorMode ? 112 : 50" :input-width="isSeniorMode ? 112 : 80" :size="isSeniorMode ? 42 : 26" />
-						<view class="row-hint">包含您本人；如替他人报名，请填写实际参与总人数。</view>
+						<view v-if="isFreeSignup">1 人（仅限本人）</view>
+						<u-number-box v-else v-model="signCount" :min="1" :max="maxSignCount" :step="1" :input-height="isSeniorMode ? 112 : 50" :input-width="isSeniorMode ? 112 : 80" :size="isSeniorMode ? 42 : 26" />
+						<view class="row-hint">{{ isFreeSignup ? '免费活动仅限本人报名，请填写您本人的真实姓名和手机号。' : '包含您本人；如替他人报名，请填写实际参与总人数。' }}</view>
 					</view>
 					<view class="form-row">
 						<view class="row-label">备注</view>
@@ -214,6 +215,7 @@
 				return Math.max(maxCount - signCount, 0)
 			},
 			maxSignCount() {
+				if (this.isFreeSignup) return 1
 				if (!this.activityMaxCount) return 99
 				const maxCount = this.activityMaxCount
 				const signCount = Number(this.activityDetail.signCount || this.activityDetail.signcount) || 0
@@ -320,6 +322,7 @@
 					return '参与人数请填写大于0的整数'
 				}
 				if (this.activityMaxCount && Number(this.remainCount) < Number(this.signCount)) return '剩余名额不足，请调整参与人数'
+				if (this.isFreeSignup && Number(this.signCount) !== 1) return '免费活动仅限本人报名，人数固定为1'
 				if (Number(this.signCount) > this.maxSignCount) return '参与人数超出本次可报名人数'
 				if (!this.isFreeSignup && this.payAmount <= 0) {
 					return '活动价格未配置'

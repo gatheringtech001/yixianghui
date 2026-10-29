@@ -66,11 +66,14 @@ test('unlimited signup forms accept numeric and string zero limits consistently'
   assert.match(source, /activityMaxCount \? remainCount/)
   Object.assign(page, {signName: '测试联系人', signMobile: '13800138000', signCount: 2})
   for (const maxCount of [0, '0', null, undefined, '', -1]) {
-    page.activityDetail = {status: '1', isFree: 1, maxCount, signCount: 5}
+    page.activityDetail = {status: '1', isFree: 0, price: 10, maxCount, signCount: 5}
     assert.equal(page.remainCount, '不限')
     assert.equal(page.maxSignCount, 99)
     assert.equal(page.validateForm(), '')
   }
   page.activityDetail = {status: '1', isFree: 1, maxCount: 6, signCount: 5}
   assert.match(page.validateForm(), /剩余名额不足/)
+  page.activityDetail = {status: '1', isFree: 1, maxCount: 0, signCount: 5}
+  assert.equal(page.maxSignCount, 1)
+  assert.match(page.validateForm(), /仅限本人/)
 })

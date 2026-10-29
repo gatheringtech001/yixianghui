@@ -62,6 +62,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class AppActivityOrderServiceImpl implements IAppActivityOrderService 
 {
     @Autowired
+    private BookingAdjustmentService bookingAdjustments;
+    @Autowired
     private AppActivityOrderMapper appActivityOrderMapper;
 
     @Autowired
@@ -160,7 +162,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public int editUserActivityOrder(AppActivityOrder input, Long userId)
     {
         if (input == null || input.getOrderId() == null) {
@@ -173,6 +175,10 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
         if (userId == null || db.getUserId() == null || db.getUserId().longValue() != userId.longValue()) {
             throw new ServiceException("非法操作");
         }
+        // All headcount/payment edits serialize on activity then booking (same lock order as callbacks).
+        appActivityMapper.selectAppActivityByActivityIdForUpdate(db.getActivityId());
+        db = appActivityOrderMapper.selectAppActivityOrderByOrderIdForUpdate(input.getOrderId());
+        if (db == null || !userId.equals(db.getUserId())) throw new ServiceException("非法操作");
         String payStatus = StringUtils.defaultIfBlank(db.getPayStatus(), "0");
         String status = StringUtils.defaultIfBlank(db.getStatus(), "0");
         // 已取消/退款中/已退款不可改
@@ -186,6 +192,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
         if (StringUtils.isEmpty(input.getSignMobile())) {
             throw new ServiceException("请填写联系电话");
         }
+        validateContact(input);
 
         Integer newCount = input.getSignCount();
         int oldCount = db.getSignCount() != null ? db.getSignCount() : 0;
@@ -194,9 +201,13 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
                 && db.getPayMoney() != null
                 && db.getPayMoney().compareTo(BigDecimal.ZERO) > 0;
 
-        // 付费已支付：人数按支付时锁定，不可增减（防止一次付费多人）
+        // 人数变更独立记录；补款到账/退款审核完成前不能覆盖原报名。
         if (paidWithMoney && countChanged) {
-            throw new ServiceException("付费报名后不可修改人数，如需调整请取消后重新报名");
+            if (newCount < 1) throw new ServiceException("报名人数至少为1人，取消报名请申请退款");
+            bookingAdjustments.submitActivity(db.getOrderId(), userId, newCount);
+            countChanged = false;
+        } else if ("1".equals(payStatus) && countChanged) {
+            throw new ServiceException("免费活动仅限本人报名，人数固定为1");
         }
 
         AppActivityOrder up = new AppActivityOrder();
@@ -212,14 +223,14 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
             if (activity == null) {
                 throw new ServiceException("活动不存在");
             }
-            int maxCount = parseCount(activity.getMaxCount());
-            int currentCount = parseCount(activity.getSignCount());
-            int delta = newCount - oldCount;
-
             // 待支付：允许改人数并重算应付金额
             if ("0".equals(payStatus)) {
-                if (delta > 0 && maxCount > 0 && currentCount + delta > maxCount) {
-                    throw new ServiceException("报名名额不足");
+                assertAvailableWithAdjustments(activity, newCount, db.getOrderId());
+                AppPayLog previousPay = payLogService.selectAppPayLogByPayNo(db.getOrderNo());
+                if (previousPay != null) {
+                    bookingAdjustments.closePendingPaymentBeforeReprice(db.getOrderNo());
+                    closePayLogByPayNo(db.getOrderNo(), DateUtils.getNowDate());
+                    up.setOrderNo(MerchantOrderNumbers.create("30", db.getOrderId()) + "-" + java.util.UUID.randomUUID().toString().substring(0, 6));
                 }
                 BigDecimal unitPrice = resolveUnitPrice(activity);
                 if (unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
@@ -227,20 +238,6 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
                 }
                 up.setSignCount(newCount);
                 up.setMoneyPayable(unitPrice.multiply(new BigDecimal(newCount)));
-            } else if ("1".equals(payStatus)) {
-                // 免费已报名：允许改人数，同步占用名额
-                if (delta > 0) {
-                    if (maxCount > 0 && currentCount + delta > maxCount) {
-                        throw new ServiceException("报名名额不足");
-                    }
-                    int updated = appActivityMapper.increaseSignCount(db.getActivityId(), delta);
-                    if (updated <= 0) {
-                        throw new ServiceException("报名名额不足");
-                    }
-                } else if (delta < 0) {
-                    appActivityMapper.decreaseSignCount(db.getActivityId(), -delta);
-                }
-                up.setSignCount(newCount);
             }
         }
 
@@ -272,7 +269,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public AppActivityOrder signupActivity(AppActivityOrder order)
     {
         if (order == null || order.getActivityId() == null) {
@@ -300,6 +297,9 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
         if (isFree != null && isFree == 0) {
             throw new ServiceException("付费活动请通过支付流程报名");
         }
+        if (count != 1) throw new ServiceException("免费活动仅限本人报名，人数固定为1");
+        validateContact(order);
+        assertAvailableWithAdjustments(activity, count);
 
         int maxCount = parseCount(activity.getMaxCount());
         int currentCount = parseCount(activity.getSignCount());
@@ -327,7 +327,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public AppActivityOrder createPendingActivityOrder(AppActivityOrder order)
     {
         if (order == null || order.getActivityId() == null) {
@@ -361,6 +361,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
         if (isFree == null || isFree != 0) {
             throw new ServiceException("免费活动请直接报名");
         }
+        validateContact(order);
 
         int maxCount = parseCount(activity.getMaxCount());
         int currentCount = parseCount(activity.getSignCount());
@@ -369,21 +370,15 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
         }
 
         // 已有待支付单：直接复用，避免取消后/暂不支付后无法再次报名
+        assertNoConfirmedDuplicate(order.getUserId(), order.getActivityId());
         AppActivityOrder existingPending = findActivePendingOrder(order.getUserId(), order.getActivityId());
         if (existingPending != null) {
-            existingPending.setSignName(order.getSignName());
-            existingPending.setSignMobile(order.getSignMobile());
-            existingPending.setSignCount(count);
-            BigDecimal unitPrice = resolveUnitPrice(activity);
-            if (unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
-                throw new ServiceException("活动价格未配置");
-            }
-            existingPending.setMoneyPayable(unitPrice.multiply(new BigDecimal(count)));
-            appActivityOrderMapper.updateAppActivityOrder(existingPending);
-            return existingPending;
+            order.setOrderId(existingPending.getOrderId());
+            editUserActivityOrder(order, order.getUserId());
+            return appActivityOrderMapper.selectAppActivityOrderByOrderId(existingPending.getOrderId());
         }
 
-        assertNoConfirmedDuplicate(order.getUserId(), order.getActivityId());
+        assertAvailableWithAdjustments(activity, count);
 
         BigDecimal unitPrice = resolveUnitPrice(activity);
         if (unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
@@ -409,7 +404,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public int cancelActivityOrder(Long orderId, Long userId)
     {
         AppActivityOrder order = appActivityOrderMapper.selectAppActivityOrderByOrderId(orderId);
@@ -419,20 +414,18 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
         if (userId == null || order.getUserId() == null || order.getUserId().longValue() != userId.longValue()) {
             throw new ServiceException("非法操作");
         }
+        appActivityMapper.selectAppActivityByActivityIdForUpdate(order.getActivityId());
+        order = appActivityOrderMapper.selectAppActivityOrderByOrderIdForUpdate(orderId);
+        if (order == null || !userId.equals(order.getUserId())) throw new ServiceException("非法操作");
         String payStatus = StringUtils.defaultIfBlank(order.getPayStatus(), "0");
         if ("2".equals(payStatus) || "3".equals(payStatus) || "4".equals(payStatus)) {
             throw new ServiceException("当前订单不可取消");
         }
 
         Date now = DateUtils.getNowDate();
-        // 未支付：先向微信查单，避免「已付款但回调未落库」被误取消
+        // 未支付：持锁查询并关闭微信订单，超时/未知结果不取消本地记录。
         if ("0".equals(payStatus)) {
-            trySyncPaidBeforeCancel(order);
-            order = appActivityOrderMapper.selectAppActivityOrderByOrderId(orderId);
-            payStatus = StringUtils.defaultIfBlank(order.getPayStatus(), "0");
-            if ("1".equals(payStatus)) {
-                throw new ServiceException("订单已支付成功，请刷新后查看");
-            }
+            bookingAdjustments.closePendingPaymentBeforeReprice(order.getOrderNo());
             closePayLogByPayNo(order.getOrderNo(), now);
             AppActivityOrder up = new AppActivityOrder();
             up.setOrderId(orderId);
@@ -441,13 +434,21 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
             return appActivityOrderMapper.updateAppActivityOrder(up);
         }
 
-        // 已支付/已确认：先释放名额
+        if (order == null || !userId.equals(order.getUserId()) || !"1".equals(order.getPayStatus()) || !"1".equals(order.getStatus()))
+            throw new ServiceException("当前预约不可取消，请刷新");
+        // 付费只提交申请；管理员批准且退款到账后，才释放名额。
+        BigDecimal payMoney = order.getPayMoney() != null ? order.getPayMoney() : BigDecimal.ZERO;
+        if (payMoney.compareTo(BigDecimal.ZERO) > 0) {
+            bookingAdjustments.submitActivity(orderId, userId, 0);
+            return 1;
+        }
+
+        // 免费报名：直接取消并释放名额。
         int signCount = order.getSignCount() != null ? order.getSignCount() : 0;
         if (signCount > 0 && order.getActivityId() != null) {
             appActivityMapper.decreaseSignCount(order.getActivityId(), signCount);
         }
 
-        BigDecimal payMoney = order.getPayMoney() != null ? order.getPayMoney() : BigDecimal.ZERO;
         // 免费报名或实付为 0：直接取消
         if (payMoney.compareTo(BigDecimal.ZERO) <= 0) {
             AppActivityOrder up = new AppActivityOrder();
@@ -457,89 +458,12 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
             return appActivityOrderMapper.updateAppActivityOrder(up);
         }
 
-        // 付费已支付：发起微信退款
-        createActivityWxRefund(order);
-        AppActivityOrder latest = appActivityOrderMapper.selectAppActivityOrderByOrderId(orderId);
-        if (latest != null && "4".equals(latest.getPayStatus())) {
-            return 1;
-        }
-        AppActivityOrder up = new AppActivityOrder();
-        up.setOrderId(orderId);
-        up.setStatus("3");
-        up.setPayStatus("3");
-        return appActivityOrderMapper.updateAppActivityOrder(up);
+        throw new ServiceException("当前预约不可取消");
     }
 
-    /**
-     * 发起活动订单微信退款并写退款日志
-     */
-    private void createActivityWxRefund(AppActivityOrder order)
-    {
-        if (StringUtils.isEmpty(order.getOrderNo())) {
-            throw new ServiceException("支付单号缺失，无法退款");
-        }
-        try {
-            RefundService service = new RefundService.Builder().config(wxPayConfigRuntime).build();
-            String outRefundNo = "RF30" + DateUtils.dateTimeNow() + order.getOrderId();
-            CreateRequest refundRequest = new CreateRequest();
-            refundRequest.setOutTradeNo(order.getOrderNo());
-            refundRequest.setOutRefundNo(outRefundNo);
-            refundRequest.setReason("取消活动报名退款");
-            refundRequest.setNotifyUrl(refundNotifyUrl);
-            AmountReq refundAmount = new AmountReq();
-            long fen = order.getPayMoney().multiply(new BigDecimal("100")).setScale(0, RoundingMode.HALF_UP).longValue();
-            refundAmount.setRefund(fen);
-            refundAmount.setTotal(fen);
-            refundAmount.setCurrency("CNY");
-            refundRequest.setAmount(refundAmount);
-            Refund response = service.create(refundRequest);
-            if (response == null) {
-                throw new ServiceException("退款发起失败，请稍后重试");
-            }
-
-            boolean refundDone = Status.SUCCESS.equals(response.getStatus());
-            AppPayRefundLog refundLog = new AppPayRefundLog();
-            refundLog.setOrderId(order.getOrderId());
-            refundLog.setUserId(order.getUserId());
-            refundLog.setOrderType("3");
-            refundLog.setPayNo(response.getRefundId());
-            refundLog.setPayMethod("wxpay");
-            refundLog.setAgentName("微信支付");
-            refundLog.setAgentPayNo(response.getTransactionId());
-            refundLog.setAgentRefundNo(outRefundNo);
-            refundLog.setRefundMoney(new BigDecimal(fen));
-            refundLog.setCreateTime(DateUtils.getNowDate());
-            refundLog.setStatus(refundDone ? "1" : "0");
-            if (refundDone) {
-                refundLog.setNotifyContent(String.valueOf(response));
-                refundLog.setUpdateTime(DateUtils.getNowDate());
-            }
-            appPayRefundLogMapper.insertAppPayRefundLog(refundLog);
-            if (refundDone) {
-                handleRefundSuccess(order.getOrderId());
-            }
-        } catch (HttpException | MalformedMessageException e) {
-            log.error("活动订单退款失败 orderId={}", order.getOrderId(), e);
-            throw new ServiceException("退款发起失败，请稍后重试");
-        } catch (com.wechat.pay.java.core.exception.ServiceException e) {
-            String errMsg = StringUtils.defaultIfBlank(e.getErrorMessage(), e.getMessage());
-            log.error("活动订单微信退款业务失败 orderId={}, msg={}", order.getOrderId(), errMsg);
-            if (errMsg != null && (errMsg.contains("已全额退款") || errMsg.contains("订单已全额退款")
-                    || errMsg.contains("超过剩余可退"))) {
-                handleRefundSuccess(order.getOrderId());
-                return;
-            }
-            throw new ServiceException(StringUtils.defaultIfBlank(errMsg, "退款发起失败"));
-        } catch (ServiceException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("活动订单退款异常 orderId={}", order.getOrderId(), e);
-            throw new ServiceException("退款发起失败，请稍后重试");
-        }
-    }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public AjaxResult wxpayPrepay(AppActivityOrder order)
     {
         AjaxResult rs = AjaxResult.error();
@@ -547,6 +471,10 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
             throw new ServiceException("订单信息无效");
         }
         order = appActivityOrderMapper.selectAppActivityOrderByOrderId(order.getOrderId());
+        if (order != null) {
+            appActivityMapper.selectAppActivityByActivityIdForUpdate(order.getActivityId());
+            order = appActivityOrderMapper.selectAppActivityOrderByOrderIdForUpdate(order.getOrderId());
+        }
         if (order == null || !"0".equals(order.getPayStatus()) || !"0".equals(order.getStatus())) {
             throw new ServiceException("订单非待支付状态");
         }
@@ -554,6 +482,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
         if (activity == null) {
             throw new ServiceException("活动不存在");
         }
+        assertAvailableWithAdjustments(activity, order.getSignCount(), order.getOrderId());
         try {
             AppPayLog payLog = payLogService.selectAppPayLogByPayNo(order.getOrderNo());
             String paymentNo = MerchantOrderNumbers.forPayment(order.getOrderNo(), "30", order.getOrderId());
@@ -641,13 +570,23 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public void handlePaySuccess(AppActivityOrder order, BigDecimal payMoneyFen)
     {
         if (order == null || !"0".equals(order.getPayStatus())) {
             return;
         }
+        AppActivity activity = appActivityMapper.selectAppActivityByActivityIdForUpdate(order.getActivityId());
+        if (activity == null) throw new ServiceException("活动不存在");
+        String expectedNo = order.getOrderNo();
+        order = appActivityOrderMapper.selectAppActivityOrderByOrderIdForUpdate(order.getOrderId());
+        if (order == null || !java.util.Objects.equals(expectedNo, order.getOrderNo())) throw new ServiceException("支付单号已变更，请人工核对");
+        if ("1".equals(order.getPayStatus())) return;
+        if (!"0".equals(order.getPayStatus()) || !"0".equals(order.getStatus())) throw new ServiceException("订单已关闭，支付需人工核对");
+        if (order.getMoneyPayable() == null || order.getMoneyPayable().multiply(new BigDecimal("100")).compareTo(payMoneyFen) != 0)
+            throw new ServiceException("订单金额与支付凭证不一致");
         int signCount = order.getSignCount() != null ? order.getSignCount() : 0;
+        assertAvailableWithAdjustments(activity, signCount, order.getOrderId());
         int updated = appActivityMapper.increaseSignCount(order.getActivityId(), signCount);
         if (updated <= 0) {
             throw new ServiceException("报名名额已满");
@@ -661,7 +600,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public void handleRefundSuccess(Long orderId)
     {
         if (orderId == null) {
@@ -697,7 +636,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public AjaxResult syncPayResult(Long orderId, Long userId)
     {
         if (orderId == null || userId == null) {
@@ -917,7 +856,7 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public int closeExpiredUnpaidOrders(int expireMinutes)
     {
         int minutes = expireMinutes > 0 ? expireMinutes : 30;
@@ -939,8 +878,14 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
             if (order == null || order.getOrderId() == null) {
                 continue;
             }
-            AppActivityOrder latest = appActivityOrderMapper.selectAppActivityOrderByOrderId(order.getOrderId());
+            appActivityMapper.selectAppActivityByActivityIdForUpdate(order.getActivityId());
+            AppActivityOrder latest = appActivityOrderMapper.selectAppActivityOrderByOrderIdForUpdate(order.getOrderId());
             if (latest == null || !"0".equals(StringUtils.defaultIfBlank(latest.getPayStatus(), ""))) {
+                continue;
+            }
+            try { bookingAdjustments.closePendingPaymentBeforeReprice(latest.getOrderNo()); }
+            catch (RuntimeException error) {
+                log.warn("活动超时关单结果待核对 orderId={}", latest.getOrderId());
                 continue;
             }
             closePayLogByPayNo(latest.getOrderNo(), now);
@@ -1037,5 +982,23 @@ public class AppActivityOrderServiceImpl implements IAppActivityOrderService
         }
         BigDecimal price = activity.getPrice();
         return price != null ? price : BigDecimal.ZERO;
+    }
+
+    private void validateContact(AppActivityOrder order) {
+        if (StringUtils.isEmpty(order.getSignName()) || order.getSignName().trim().isEmpty() || order.getSignName().trim().length() > 30)
+            throw new ServiceException("请填写30字以内的真实姓名");
+        if (order.getSignMobile() == null || !order.getSignMobile().trim().matches("1[3-9][0-9]{9}"))
+            throw new ServiceException("请填写正确的11位手机号码");
+    }
+
+    private void assertAvailableWithAdjustments(AppActivity activity, int adding) {
+        assertAvailableWithAdjustments(activity, adding, null);
+    }
+
+    private void assertAvailableWithAdjustments(AppActivity activity, int adding, Long excludingOrder) {
+        long reserved = bookingAdjustments.reservedSeats(activity.getActivityId(), excludingOrder);
+        int max = parseCount(activity.getMaxCount());
+        if (max > 0 && parseCount(activity.getSignCount()) + reserved + adding > max)
+            throw new ServiceException("报名名额不足");
     }
 }

@@ -298,7 +298,7 @@ public class AppGoldServiceImpl implements IAppGoldService
         if (AppGoldBizType.GOODS_PAY.equals(businessType) || AppGoldBizType.GOODS_REFUND.equals(businessType)) {
             return isTrue(CFG_SCOPE_GOODS, true);
         }
-        if (AppGoldBizType.ACTIVITY_PAY.equals(businessType) || AppGoldBizType.ACTIVITY_REFUND.equals(businessType)) {
+        if (AppGoldBizType.ACTIVITY_PAY.equals(businessType) || AppGoldBizType.ACTIVITY_ADJUSTMENT_PAY.equals(businessType) || AppGoldBizType.ACTIVITY_REFUND.equals(businessType)) {
             return isTrue(CFG_SCOPE_ACTIVITY, true);
         }
         if (AppGoldBizType.CARD_PAY.equals(businessType) || AppGoldBizType.CARD_REFUND.equals(businessType)) {

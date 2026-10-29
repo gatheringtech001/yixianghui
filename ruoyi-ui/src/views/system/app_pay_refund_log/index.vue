@@ -1,397 +1,100 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="用户id" prop="userId">
-        <el-input
-          v-model="queryParams.userId"
-          placeholder="请输入用户id"
-          clearable
-          @keyup.enter.native="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="订单id" prop="orderId">
-        <el-input
-          v-model="queryParams.orderId"
-          placeholder="请输入订单id"
-          clearable
-          @keyup.enter.native="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="唯一识别单号" prop="payNo">
-        <el-input
-          v-model="queryParams.payNo"
-          placeholder="请输入唯一识别单号"
-          clearable
-          @keyup.enter.native="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="支付方式" prop="payMethod">
-        <el-select v-model="queryParams.payMethod" placeholder="请选择支付方式" clearable>
-          <el-option
-            v-for="dict in dict.type.pay_type"
-            :key="dict.value"
-            :label="dict.label"
-            :value="dict.value"
-          />
+    <el-alert title="所有退款申请均须管理员审核。旅居、商品和课程在「订单售后」审核；活动和会员卡在下方审核。" type="info" :closable="false" show-icon />
+    <h3>活动 / 会员卡退款审核</h3>
+    <el-form inline size="small">
+      <el-form-item label="申请状态">
+        <el-select v-model="reviewState" clearable @change="loadChanges">
+          <el-option v-for="(label, state) in changeStates" :key="state" :label="label" :value="state" />
         </el-select>
       </el-form-item>
-      <el-form-item label="支付机构名称" prop="agentName">
-        <el-input
-          v-model="queryParams.agentName"
-          placeholder="请输入支付机构名称"
-          clearable
-          @keyup.enter.native="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="支付单号" prop="agentPayNo">
-        <el-input
-          v-model="queryParams.agentPayNo"
-          placeholder="请输入支付单号"
-          clearable
-          @keyup.enter.native="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="退款单号" prop="agentRefundNo">
-        <el-input
-          v-model="queryParams.agentRefundNo"
-          placeholder="请输入退款单号"
-          clearable
-          @keyup.enter.native="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="退款金额" prop="refundMoney">
-        <el-input
-          v-model="queryParams.refundMoney"
-          placeholder="请输入退款金额"
-          clearable
-          @keyup.enter.native="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="状态" prop="status">
-        <el-select v-model="queryParams.status" placeholder="请选择状态" clearable>
-          <el-option
-            v-for="dict in dict.type.common_is_not"
-            :key="dict.value"
-            :label="dict.label"
-            :value="dict.value"
-          />
-        </el-select>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
-        <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
-      </el-form-item>
+      <el-button size="small" icon="el-icon-refresh" @click="loadChanges">刷新申请</el-button>
     </el-form>
-
-    <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
-        <el-button
-          type="primary"
-          plain
-          icon="el-icon-plus"
-          size="mini"
-          @click="handleAdd"
-          v-hasPermi="['system:app_pay_refund_log:add']"
-        >新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="success"
-          plain
-          icon="el-icon-edit"
-          size="mini"
-          :disabled="single"
-          @click="handleUpdate"
-          v-hasPermi="['system:app_pay_refund_log:edit']"
-        >修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="danger"
-          plain
-          icon="el-icon-delete"
-          size="mini"
-          :disabled="multiple"
-          @click="handleDelete"
-          v-hasPermi="['system:app_pay_refund_log:remove']"
-        >删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="el-icon-download"
-          size="mini"
-          @click="handleExport"
-          v-hasPermi="['system:app_pay_refund_log:export']"
-        >导出</el-button>
-      </el-col>
-      <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
-    </el-row>
-
-    <el-table v-loading="loading" :data="app_pay_refund_logList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="日志id" align="center" prop="logId" />
-      <el-table-column label="用户id" align="center" prop="userId" />
-      <el-table-column label="订单id" align="center" prop="orderId" />
-      <el-table-column label="订单类型" align="center" prop="orderType" />
-      <el-table-column label="唯一识别单号" align="center" prop="payNo" />
-      <el-table-column label="支付方式" align="center" prop="payMethod">
-        <template slot-scope="scope">
-          <dict-tag :options="dict.type.pay_type" :value="scope.row.payMethod"/>
-        </template>
-      </el-table-column>
-      <el-table-column label="支付机构名称" align="center" prop="agentName" />
-      <el-table-column label="支付单号" align="center" prop="agentPayNo" />
-      <el-table-column label="退款单号" align="center" prop="agentRefundNo" />
-      <el-table-column label="退款金额" align="center" prop="refundMoney" />
-      <el-table-column label="回调内容" align="center" prop="notifyContent" />
-      <el-table-column label="状态" align="center" prop="status">
-        <template slot-scope="scope">
-          <dict-tag :options="dict.type.common_is_not" :value="scope.row.status"/>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
-        <template slot-scope="scope">
-          <el-button
-            size="mini"
-            type="text"
-            icon="el-icon-edit"
-            @click="handleUpdate(scope.row)"
-            v-hasPermi="['system:app_pay_refund_log:edit']"
-          >修改</el-button>
-          <el-button
-            size="mini"
-            type="text"
-            icon="el-icon-delete"
-            @click="handleDelete(scope.row)"
-            v-hasPermi="['system:app_pay_refund_log:remove']"
-          >删除</el-button>
+    <el-table :data="changes" v-loading="reviewLoading">
+      <el-table-column label="申请编号" prop="adjustmentId" width="100" />
+      <el-table-column label="类型" width="100"><template slot-scope="s">{{ s.row.businessType === '3' ? '活动报名' : '会员卡' }}</template></el-table-column>
+      <el-table-column label="订单编号" prop="orderId" width="100" />
+      <el-table-column label="人数变更" width="120"><template slot-scope="s">{{ s.row.fromCount }} → {{ s.row.toCount }}</template></el-table-column>
+      <el-table-column label="申请金额（元）" width="130"><template slot-scope="s">{{ money(s.row.amount) }}</template></el-table-column>
+      <el-table-column label="状态" width="160"><template slot-scope="s">{{ changeStates[s.row.state] || s.row.state }}</template></el-table-column>
+      <el-table-column label="审核说明" prop="reviewNote" min-width="180" show-overflow-tooltip />
+      <el-table-column label="操作" min-width="220">
+        <template slot-scope="s">
+          <template v-if="s.row.state === 'REVIEW'">
+            <el-button type="text" :disabled="busy" @click="review(s.row, 'approve')" v-hasPermi="['system:app_pay_refund_log:edit']">批准并退款</el-button>
+            <el-button type="text" :disabled="busy" @click="review(s.row, 'reject')" v-hasPermi="['system:app_pay_refund_log:edit']">拒绝申请</el-button>
+          </template>
+          <template v-if="s.row.state === 'PROCESSING'">
+            <el-button type="text" :disabled="busy" @click="review(s.row, 'sync')" v-hasPermi="['system:app_pay_refund_log:edit']">同步微信结果</el-button>
+            <el-button type="text" :disabled="busy" @click="review(s.row, 'retry')" v-hasPermi="['system:app_pay_refund_log:edit']">继续原退款</el-button>
+          </template>
         </template>
       </el-table-column>
     </el-table>
-    
-    <pagination
-      v-show="total>0"
-      :total="total"
-      :page.sync="queryParams.pageNum"
-      :limit.sync="queryParams.pageSize"
-      @pagination="getList"
-    />
-
-    <!-- 添加或修改退款记录对话框 -->
-    <el-dialog :title="title" :visible.sync="open" width="500px" append-to-body>
-      <el-form ref="form" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="用户id" prop="userId">
-          <el-input v-model="form.userId" placeholder="请输入用户id" />
-        </el-form-item>
-        <el-form-item label="订单id" prop="orderId">
-          <el-input v-model="form.orderId" placeholder="请输入订单id" />
-        </el-form-item>
-        <el-form-item label="唯一识别单号" prop="payNo">
-          <el-input v-model="form.payNo" placeholder="请输入唯一识别单号" />
-        </el-form-item>
-        <el-form-item label="支付方式" prop="payMethod">
-          <el-select v-model="form.payMethod" placeholder="请选择支付方式">
-            <el-option
-              v-for="dict in dict.type.pay_type"
-              :key="dict.value"
-              :label="dict.label"
-              :value="dict.value"
-            ></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="支付机构名称" prop="agentName">
-          <el-input v-model="form.agentName" placeholder="请输入支付机构名称" />
-        </el-form-item>
-        <el-form-item label="支付单号" prop="agentPayNo">
-          <el-input v-model="form.agentPayNo" placeholder="请输入支付单号" />
-        </el-form-item>
-        <el-form-item label="退款单号" prop="agentRefundNo">
-          <el-input v-model="form.agentRefundNo" placeholder="请输入退款单号" />
-        </el-form-item>
-        <el-form-item label="退款金额" prop="refundMoney">
-          <el-input v-model="form.refundMoney" placeholder="请输入退款金额" />
-        </el-form-item>
-        <el-form-item label="回调内容" prop="notifyContent">
-          <el-input v-model="form.notifyContent" type="textarea" placeholder="请输入内容" />
-        </el-form-item>
-        <el-form-item label="状态" prop="status">
-          <el-radio-group v-model="form.status">
-            <el-radio
-              v-for="dict in dict.type.common_is_not"
-              :key="dict.value"
-              :label="dict.value"
-            >{{dict.label}}</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="submitForm">确 定</el-button>
-        <el-button @click="cancel">取 消</el-button>
-      </div>
-    </el-dialog>
+    <h3>微信退款流水（只读）</h3>
+    <el-form :model="queryParams" inline size="small">
+      <el-form-item label="订单编号"><el-input v-model="queryParams.orderId" clearable /></el-form-item>
+      <el-form-item label="退款单号"><el-input v-model="queryParams.agentRefundNo" clearable /></el-form-item>
+      <el-button type="primary" icon="el-icon-search" @click="search">查询</el-button>
+      <el-button icon="el-icon-download" @click="handleExport" v-hasPermi="['system:app_pay_refund_log:export']">导出</el-button>
+    </el-form>
+    <el-table v-loading="loading" :data="logs">
+      <el-table-column label="流水编号" prop="logId" width="100" />
+      <el-table-column label="订单编号" prop="orderId" width="100" />
+      <el-table-column label="订单类型" width="100"><template slot-scope="s">{{ ({'1':'会员卡','2':'商品/旅居/课程','3':'活动'})[s.row.orderType] || s.row.orderType }}</template></el-table-column>
+      <el-table-column label="微信退款编号" prop="payNo" min-width="180" show-overflow-tooltip />
+      <el-table-column label="商户退款单号" prop="agentRefundNo" min-width="180" show-overflow-tooltip />
+      <el-table-column label="退款金额（元）" width="140"><template slot-scope="s">{{ money(Number(s.row.refundMoney) / 100) }}</template></el-table-column>
+      <el-table-column label="状态" width="100"><template slot-scope="s">{{ ({'0':'处理中','1':'已退款','2':'已关闭','3':'异常'})[s.row.status] || '待核对' }}</template></el-table-column>
+      <el-table-column label="创建时间" prop="createTime" width="170" />
+    </el-table>
+    <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" />
   </div>
 </template>
 
 <script>
-import { listApp_pay_refund_log, getApp_pay_refund_log, delApp_pay_refund_log, addApp_pay_refund_log, updateApp_pay_refund_log } from "@/api/system/app_pay_refund_log";
+import request from '@/utils/request'
+import { listApp_pay_refund_log } from '@/api/system/app_pay_refund_log'
 
 export default {
-  name: "App_pay_refund_log",
-  dicts: ['common_is_not', 'pay_type'],
+  name: 'App_pay_refund_log',
   data() {
     return {
-      // 遮罩层
-      loading: true,
-      // 选中数组
-      ids: [],
-      // 非单个禁用
-      single: true,
-      // 非多个禁用
-      multiple: true,
-      // 显示搜索条件
-      showSearch: true,
-      // 总条数
-      total: 0,
-      // 退款记录表格数据
-      app_pay_refund_logList: [],
-      // 弹出层标题
-      title: "",
-      // 是否显示弹出层
-      open: false,
-      // 查询参数
-      queryParams: {
-        pageNum: 1,
-        pageSize: 10,
-        userId: null,
-        orderId: null,
-        orderType: null,
-        payNo: null,
-        payMethod: null,
-        agentName: null,
-        agentPayNo: null,
-        agentRefundNo: null,
-        refundMoney: null,
-        notifyContent: null,
-        status: null
-      },
-      // 表单参数
-      form: {},
-      // 表单校验
-      rules: {
-        status: [
-          { required: true, message: "状态不能为空", trigger: "change" }
-        ]
-      }
-    };
-  },
-  created() {
-    this.getList();
-  },
-  methods: {
-    /** 查询退款记录列表 */
-    getList() {
-      this.loading = true;
-      listApp_pay_refund_log(this.queryParams).then(response => {
-        this.app_pay_refund_logList = response.rows;
-        this.total = response.total;
-        this.loading = false;
-      });
-    },
-    // 取消按钮
-    cancel() {
-      this.open = false;
-      this.reset();
-    },
-    // 表单重置
-    reset() {
-      this.form = {
-        logId: null,
-        userId: null,
-        orderId: null,
-        orderType: null,
-        payNo: null,
-        payMethod: null,
-        agentName: null,
-        agentPayNo: null,
-        agentRefundNo: null,
-        refundMoney: null,
-        notifyContent: null,
-        createTime: null,
-        updateTime: null,
-        status: null
-      };
-      this.resetForm("form");
-    },
-    /** 搜索按钮操作 */
-    handleQuery() {
-      this.queryParams.pageNum = 1;
-      this.getList();
-    },
-    /** 重置按钮操作 */
-    resetQuery() {
-      this.resetForm("queryForm");
-      this.handleQuery();
-    },
-    // 多选框选中数据
-    handleSelectionChange(selection) {
-      this.ids = selection.map(item => item.logId)
-      this.single = selection.length!==1
-      this.multiple = !selection.length
-    },
-    /** 新增按钮操作 */
-    handleAdd() {
-      this.reset();
-      this.open = true;
-      this.title = "添加退款记录";
-    },
-    /** 修改按钮操作 */
-    handleUpdate(row) {
-      this.reset();
-      const logId = row.logId || this.ids
-      getApp_pay_refund_log(logId).then(response => {
-        this.form = response.data;
-        this.open = true;
-        this.title = "修改退款记录";
-      });
-    },
-    /** 提交按钮 */
-    submitForm() {
-      this.$refs["form"].validate(valid => {
-        if (valid) {
-          if (this.form.logId != null) {
-            updateApp_pay_refund_log(this.form).then(response => {
-              this.$modal.msgSuccess("修改成功");
-              this.open = false;
-              this.getList();
-            });
-          } else {
-            addApp_pay_refund_log(this.form).then(response => {
-              this.$modal.msgSuccess("新增成功");
-              this.open = false;
-              this.getList();
-            });
-          }
-        }
-      });
-    },
-    /** 删除按钮操作 */
-    handleDelete(row) {
-      const logIds = row.logId || this.ids;
-      this.$modal.confirm('是否确认删除退款记录编号为"' + logIds + '"的数据项？').then(function() {
-        return delApp_pay_refund_log(logIds);
-      }).then(() => {
-        this.getList();
-        this.$modal.msgSuccess("删除成功");
-      }).catch(() => {});
-    },
-    /** 导出按钮操作 */
-    handleExport() {
-      this.download('system/app_pay_refund_log/export', {
-        ...this.queryParams
-      }, `app_pay_refund_log_${new Date().getTime()}.xlsx`)
+      loading: false, reviewLoading: false, busy: false, total: 0, logs: [], changes: [], reviewState: 'REVIEW',
+      queryParams: { pageNum: 1, pageSize: 10, orderId: null, agentRefundNo: null },
+      changeStates: { REVIEW: '待管理员审核', PROCESSING: '已批准 / 结果待核对', PAYMENT: '待补款（无需审核）', COMPLETED: '已完成', REJECTED: '已拒绝', CANCELLED: '补款已取消' }
     }
+  },
+  created() { this.getList(); this.loadChanges() },
+  methods: {
+    money(value) { const amount = Number(value); return Number.isFinite(amount) ? amount.toFixed(2) : '-' },
+    async getList() {
+      this.loading = true
+      try { const result = await listApp_pay_refund_log(this.queryParams); this.logs = result.rows; this.total = result.total }
+      finally { this.loading = false }
+    },
+    search() { this.queryParams.pageNum = 1; this.getList() },
+    async loadChanges() {
+      this.reviewLoading = true
+      try { const result = await request({ url: '/system/booking_adjustment/list', method: 'get', params: { state: this.reviewState } }); this.changes = result.data || [] }
+      finally { this.reviewLoading = false }
+    },
+    async review(row, decision) {
+      if (this.busy) return
+      const title = ({approve: '批准并退款', reject: '拒绝退款申请', sync: '同步微信结果', retry: '继续原退款'})[decision]
+      try {
+        const { value } = await this.$prompt(
+          decision === 'approve' ? '将按申请金额 ¥' + this.money(row.amount) + ' 退款。退款全部成功后更新人数/权益。请输入审核说明：'
+            : decision === 'retry' ? '仅继续已批准的原退款单号，不会创建新的退款。请输入说明：' : '请输入本次操作说明：',
+          title, { inputType: 'textarea', inputValidator: text => !!text && !!text.trim() && text.length <= 500 || '请输入500字以内的说明', confirmButtonText: title })
+        this.busy = true
+        const result = await request({ url: '/system/booking_adjustment/' + row.adjustmentId + '/review', method: 'post', data: { decision, note: value.trim() } })
+        this.$modal.msgSuccess(result.data.state === 'COMPLETED' ? '已完成' : result.data.state === 'REJECTED' ? '已拒绝，原预约保留' : '已批准，微信退款结果待确认；请同步结果核对')
+        await this.loadChanges(); await this.getList()
+      } catch (error) { if (error !== 'cancel' && error !== 'close' && error && error.message) this.$modal.msgError(error.message) }
+      finally { this.busy = false }
+    },
+    handleExport() { this.download('system/app_pay_refund_log/export', { ...this.queryParams }, 'refund-logs.xlsx') }
   }
-};
+}
 </script>

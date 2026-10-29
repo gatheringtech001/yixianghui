@@ -7,6 +7,7 @@ package com.ruoyi.system.domain;
  */
 public final class AppGoldBizType
 {
+    public static final String ACTIVITY_ADJUSTMENT_PAY = "活动补款";
     private AppGoldBizType()
     {
     }

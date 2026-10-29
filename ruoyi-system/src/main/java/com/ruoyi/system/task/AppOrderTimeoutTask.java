@@ -26,11 +26,15 @@ public class AppOrderTimeoutTask
     @Autowired
     private IAppUserCardService userCardService;
 
+    @Autowired
+    private com.ruoyi.system.service.impl.BookingAdjustmentService bookingAdjustments;
+
     public void closeExpiredOrders()
     {
         int goods = goodsOrderService.closeExpiredUnpaidOrders(EXPIRE_MINUTES);
         int activity = activityOrderService.closeExpiredUnpaidOrders(EXPIRE_MINUTES);
         int card = userCardService.closeExpiredUnpaidCards(EXPIRE_MINUTES);
+        bookingAdjustments.closeExpired();
         if (goods > 0 || activity > 0 || card > 0) {
             log.info("close unpaid timeout goods={}, activity={}, card={}", goods, activity, card);
         }

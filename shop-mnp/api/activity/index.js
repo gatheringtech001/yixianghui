@@ -57,3 +57,16 @@ export function cancelActivityOrder(orderId) {
 export function editActivityOrder(data) {
 	return request(`${userUri}acticity_order/edit`, 'POST', data)
 }
+
+export function getBookingAdjustment(orderId, businessType = '3') {
+	return request(`${userUri}booking_adjustment/latest`, 'GET', { orderId, businessType })
+}
+export function prepayBookingAdjustment(id) {
+	return request(`${userUri}booking_adjustment/${id}/prepay`, 'POST')
+}
+export function syncBookingAdjustment(id) {
+	return request(`${userUri}booking_adjustment/${id}/sync`, 'POST')
+}
+export function cancelBookingAdjustment(id) {
+	return request(`${userUri}booking_adjustment/${id}/cancel`, 'POST')
+}

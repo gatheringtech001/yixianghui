@@ -3,6 +3,10 @@
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ruoyi.system.mapper.AppActivityOrderMapper">
+    <select id="selectAppActivityOrderByOrderIdForUpdate" parameterType="Long" resultMap="AppActivityOrderResult">
+        <include refid="selectAppActivityOrderVo"/>
+        where order_id = #{orderId} for update
+    </select>
     
     <resultMap type="AppActivityOrder" id="AppActivityOrderResult">
         <result property="orderId"    column="order_id"    />

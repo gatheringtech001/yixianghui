@@ -89,7 +89,7 @@ public class AppPayRefundLogController extends BaseController
     @ApiOperation("新增退款记录")
     public AjaxResult add(@RequestBody AppPayRefundLog appPayRefundLog)
     {
-        return toAjax(appPayRefundLogService.insertAppPayRefundLog(appPayRefundLog));
+        return error("退款流水由审核及微信凭证生成，不允许手工新增");
     }
 
     /**
@@ -102,7 +102,7 @@ public class AppPayRefundLogController extends BaseController
     @ApiOperation("修改退款记录")
     public AjaxResult edit(@RequestBody AppPayRefundLog appPayRefundLog)
     {
-        return toAjax(appPayRefundLogService.updateAppPayRefundLog(appPayRefundLog));
+        return error("退款流水不允许直接修改，请使用退款审核");
     }
 
     /**
@@ -115,6 +115,6 @@ public class AppPayRefundLogController extends BaseController
     @ApiOperation("删除退款记录")
     public AjaxResult remove(@PathVariable Long[] logIds)
     {
-        return toAjax(appPayRefundLogService.deleteAppPayRefundLogByLogIds(logIds));
+        return error("退款流水必须保留，不允许删除");
     }
 }
