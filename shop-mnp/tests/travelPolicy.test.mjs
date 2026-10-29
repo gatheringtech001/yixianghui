@@ -12,6 +12,7 @@ const travelPolicy = {
 	excludedStayRanges: [{ start: '2026-07-10', end: '2026-08-20' }]
 }
 const metadata = value => JSON.stringify({ travelPolicy: value })
+const longPackageDescription = '三餐；整间总价，最多2人；2026-10-30至2026-12-31住宿夜'
 const stay = overrides => ({ travelPolicy, nights: 6, checkInDate: '2026-10-29', checkOutDate: '2026-11-04', ...overrides })
 const catalog = (value = travelPolicy) => ({
 	goodsId: 77, goodsName: '测试基地', goodsImages: '',
@@ -20,7 +21,7 @@ const catalog = (value = travelPolicy) => ({
 		{ skuId: 202, parSkuId: 200, skuType: '202', skuName: '周套餐', status: '1', options: [
 			{ optionType: '303', skuSeqNo: 0, optionValue: '7', optionValueUnit: '晚', optionParam: metadata(value) },
 			{ optionType: '302', skuSeqNo: 1, optionValue: '1200', optionValueUnit: '元/间' },
-			{ optionType: '304', skuSeqNo: 1, optionValue: '套餐' }
+			{ optionType: '304', skuSeqNo: 1, optionValue: longPackageDescription }
 		] },
 		{ skuId: 201, skuType: '201', skuName: '额外收费供餐', price: 50, status: '1' }
 	]
@@ -190,6 +191,27 @@ test('metadata still replaces breakfast fallback when no 201 exists', async () =
 	assert.doesNotMatch(page.mealDescription, /早餐/)
 })
 
+test('confirmation meal-price heading says included for metadata and retains legacy pricing', async () => {
+	const source = readFileSync(new URL('../packagesMall/ConfirmOrder/SojournConfirmOrder.vue', import.meta.url), 'utf8')
+	assert.match(source, /<view class="title_price_view" v-if="includedMeals">已含套餐内<\/view>\s*<view class="title_price_view" v-else>/)
+	assert.match(source, /<text>￥<text>\{\{currentCombo.price\}\}<\/text><\/text>\/人\/天/)
+	for (const includedMeals of ['三餐', '早餐', '一早一正', '不含餐', '早晚餐']) {
+		const { page } = await confirmation(catalog({ ...travelPolicy, includedMeals }))
+		assert.equal(page.includedMeals, includedMeals)
+		assert.equal(page.mealFee, 0)
+	}
+	const legacyData = catalog()
+	delete legacyData.optionList[1].options[0].optionParam
+	const legacy = await confirmation(legacyData)
+	assert.equal(legacy.page.includedMeals, '')
+	assert.equal(legacy.page.currentCombo.price, 50)
+	assert.equal(legacy.page.mealFee, 700)
+	legacyData.optionList.pop()
+	const no201 = await confirmation(legacyData)
+	assert.equal(no201.page.includedMeals, '')
+	assert.equal(no201.page.currentCombo.price, 0)
+})
+
 test('confirmation preserves illegal routed dates and blocks date confirmation and order submission', async () => {
 	for (const overrides of [
 		{ checkInDate: '2026-07-06', checkOutDate: '2026-07-13' },
@@ -262,6 +284,7 @@ test('detail selects fixed 202 at zero room price, labels capacity and blocks un
 	await new Promise(resolve => setImmediate(resolve))
 	const sku = page.skuGroupList[0].skuDataList[0]
 	const combo = sku.combinationList[0]
+	assert.equal(combo.name, '三餐')
 	assert.equal(sku.day, 7)
 	assert.match(combo.priceLabel, /含2人\/间/)
 	assert.equal(combo.average, 171.43)
@@ -283,6 +306,15 @@ test('detail selects fixed 202 at zero room price, labels capacity and blocks un
 	page.popupDate.customNight = true
 	page.confirmFn()
 	assert.equal(events.navigations.length, 1)
+	for (const optionParam of [undefined, metadata({ version: 1 })]) {
+		const legacyData = catalog()
+		legacyData.optionList[1].options[0].optionParam = optionParam
+		const legacy = pageHarness('GoodsDetails/SojournGoodsDetails', legacyData)
+		legacy.page.loadCollectState = () => {}
+		legacy.page.getGoodsDetailFn(77)
+		await new Promise(resolve => setImmediate(resolve))
+		assert.equal(legacy.page.skuGroupList[0].skuDataList[0].combinationList[0].name, longPackageDescription)
+	}
 })
 
 test('detail blocks malformed metadata and year overflow before navigation', async () => {
@@ -299,4 +331,42 @@ test('detail blocks malformed metadata and year overflow before navigation', asy
 		assert.notEqual(page.selectionError, '')
 		assert.equal(events.navigations.length, 0)
 	}
+})
+
+test('metadata popup tabs show only duration while retaining full policy, prices and dates', async () => {
+	for (const [nights, checkOutDate] of [[7, '2026-11-06'], [14, '2026-11-13'], [30, '2026-11-29']]) {
+		const expectedPolicy = { ...travelPolicy, stayStart: '2026-10-30' }
+		const data = catalog(expectedPolicy)
+		const sourceName = `${nights}晚套餐（2026-10-30至2026-12-31住宿夜）`
+		data.optionList[1].skuName = sourceName
+		data.optionList[1].options[0].optionValue = String(nights)
+		const { page } = pageHarness('GoodsDetails/SojournGoodsDetails', data)
+		page.loadCollectState = () => {}
+		page.getGoodsDetailFn(77)
+		await new Promise(resolve => setImmediate(resolve))
+		const sku = page.skuGroupList[0].skuDataList[0]
+		const combo = sku.combinationList[0]
+		page.reserveFn(sku, combo, 0)
+		page.popupDate.checkInDate = '2026-10-30'
+		page.popupDate.checkOutDate = checkOutDate
+		assert.equal(page.popupSkuDataList[0].popupLabel, `${nights}晚`)
+		assert.equal(sku.name, sourceName)
+		assert.equal(sku.day, nights)
+		assert.equal(combo.name, '三餐')
+		assert.equal(combo.price, '1200')
+		assert.equal(page.popupDate.checkInDate, '2026-10-30')
+		assert.equal(page.popupDate.checkOutDate, checkOutDate)
+		assert.equal(page.selectionError, '')
+		assert.match(page.selectedTravelPolicyText, /2026-10-30至2026-12-31/)
+		assert.match(page.selectedTravelPolicyText, /2026-07-10至2026-08-20/)
+		assert.deepEqual(JSON.parse(JSON.stringify(sku.travelPolicy)), expectedPolicy)
+	}
+	const legacyData = catalog()
+	legacyData.optionList[1].skuName = '传统周套餐（原名称）'
+	delete legacyData.optionList[1].options[0].optionParam
+	const { page } = pageHarness('GoodsDetails/SojournGoodsDetails', legacyData)
+	page.loadCollectState = () => {}
+	page.getGoodsDetailFn(77)
+	await new Promise(resolve => setImmediate(resolve))
+	assert.equal(page.popupSkuDataList[0].popupLabel, '传统周套餐（原名称）')
 })

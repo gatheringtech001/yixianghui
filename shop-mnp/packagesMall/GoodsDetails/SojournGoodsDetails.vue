@@ -141,7 +141,7 @@
 				<view class="popup_tag_view">
 					<view class="tag_view" :class="popupDate.skuSelect == index ? 'tag_select':''"
 						v-for="(item, index) in popupSkuDataList" :key="index" @click="selectDayFn(index)">
-						{{item.name}}
+						{{item.popupLabel}}
 					</view>
 					<view v-if="canCustomizeNights" class="tag_customize_view" :class="popupDate.skuSelect == 'customize' ? 'tag_select':''"
 						@click="selectDayFn('customize')">自选晚数</view>
@@ -692,7 +692,7 @@
                         }
                       });
                       return {
-                        name: optionAttrName || '',
+                        name: (packagePolicy.travelPolicy && packagePolicy.travelPolicy.includedMeals) || optionAttrName || '',
                         price: optionTotPrice || 0,
                         priceUnit: optionPriceUnit,
                         priceLabel: optionPriceUnit === '间' && packagePolicy.travelPolicy && packagePolicy.travelPolicy.capacity
@@ -706,6 +706,8 @@
                     return {
                       skuId: option.skuId,
                       name: option.skuName || '',
+                      popupLabel: packagePolicy.travelPolicy && packagePolicy.day > 0
+                        ? `${packagePolicy.day}晚` : option.skuName || '',
                       ...packagePolicy,
                       combinationList: thecombinationList
                     };

@@ -31,7 +31,8 @@
 					<view class="title_text_view">
 						选择供餐套餐
 					</view>
-					<view class="title_price_view">
+					<view class="title_price_view" v-if="includedMeals">已含套餐内</view>
+					<view class="title_price_view" v-else>
 						<text>￥<text>{{currentCombo.price}}</text></text>/人/天
 					</view>
 				</view>
