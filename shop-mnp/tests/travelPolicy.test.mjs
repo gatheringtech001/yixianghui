@@ -194,7 +194,7 @@ test('metadata still replaces breakfast fallback when no 201 exists', async () =
 
 test('confirmation meal-price heading says included for metadata and retains legacy pricing', async () => {
 	const source = readFileSync(new URL('../packagesMall/ConfirmOrder/SojournConfirmOrder.vue', import.meta.url), 'utf8')
-	assert.match(source, /<view class="title_price_view" v-if="includedMeals">已含套餐内<\/view>\s*<view class="title_price_view" v-else>/)
+	assert.match(source, /<view class="title_price_view" v-if="includedMeals">\{\{ metadataMealPresentation.title \}\}<\/view>\s*<view class="title_price_view" v-else>/)
 	assert.match(source, /<text>￥<text>\{\{currentCombo.price\}\}<\/text><\/text>\/人\/天/)
 	for (const includedMeals of ['三餐', '早餐', '一早一正', '不含餐', '早晚餐']) {
 		const { page } = await confirmation(catalog({ ...travelPolicy, includedMeals }))
@@ -211,6 +211,43 @@ test('confirmation meal-price heading says included for metadata and retains leg
 	const no201 = await confirmation(legacyData)
 	assert.equal(no201.page.includedMeals, '')
 	assert.equal(no201.page.currentCombo.price, 0)
+})
+
+test('90 no-meal and 271 unspecified-meal metadata never promise included meals', async () => {
+	for (const [goodsId, includedMeals, title] of [
+		[90, '不含餐', '不含餐'],
+		[271, '餐次未注明（餐食标准见基地说明）', '餐食标准见资料']
+	]) {
+		const data = catalog({ ...travelPolicy, includedMeals })
+		data.goodsId = goodsId
+		const { page, events } = await confirmation(data, { id: String(goodsId) })
+		assert.equal(page.metadataMealPresentation.title, title)
+		assert.equal(page.mealDescription, `餐食说明：${includedMeals}；本订单未另外计收餐费。`)
+		assert.ok(page.selectedTravelPolicyText.includes(`餐食说明：${includedMeals}；本订单未另外计收餐费`))
+		for (const text of [page.mealDescription, page.selectedTravelPolicyText]) {
+			assert.doesNotMatch(text, /套餐供餐|供餐：|已含套餐内|套餐不另收餐费|含餐承诺/)
+		}
+		assert.equal(page.currentCombo.name, includedMeals)
+		assert.equal(page.currentCombo.comboId, null)
+		assert.equal(page.mealFee, 0)
+		assert.equal(page.payableAmount, 1200)
+		page.reserveData.name = '合成测试'
+		page.reserveData.phone = '13800000000'
+		page.isReadingAgreement = true
+		page.createOrderFn()
+		assert.equal(events.requests.length, 1)
+		assert.equal(events.requests[0].selfSkuId, null)
+	}
+})
+
+test('positive source meal labels retain included title and original policy wording', async () => {
+	for (const includedMeals of ['三餐', '早餐', '一早一正', '早晚餐', '午餐']) {
+		const { page } = await confirmation(catalog({ ...travelPolicy, includedMeals }))
+		assert.equal(page.metadataMealPresentation.title, '已含套餐内')
+		assert.equal(page.mealDescription, `套餐供餐：${includedMeals}（不另收餐费）。`)
+		assert.ok(page.selectedTravelPolicyText.includes(`供餐：${includedMeals}，套餐不另收餐费`))
+		assert.equal(page.mealFee, 0)
+	}
 })
 
 test('confirmation preserves illegal routed dates and blocks date confirmation and order submission', async () => {

@@ -72,11 +72,26 @@ export function travelCapacity(policy) {
 	return policy && policy.capacity !== undefined ? policy.capacity : 2
 }
 
+export function travelMealPresentation(meals) {
+	if (meals === '不含餐' || meals.startsWith('餐次未注明')) {
+		return {
+			title: meals === '不含餐' ? '不含餐' : '餐食标准见资料',
+			description: `餐食说明：${meals}；本订单未另外计收餐费。`,
+			policyText: `餐食说明：${meals}；本订单未另外计收餐费`
+		}
+	}
+	return {
+		title: '已含套餐内',
+		description: `套餐供餐：${meals}（不另收餐费）。`,
+		policyText: `供餐：${meals}，套餐不另收餐费`
+	}
+}
+
 export function travelPolicyText(policy) {
 	if (!policy) return ''
 	const text = []
 	if (policy.capacity) text.push(`每间最多${policy.capacity}人`)
-	if (policy.includedMeals) text.push(`供餐：${policy.includedMeals}，套餐不另收餐费`)
+	if (policy.includedMeals) text.push(travelMealPresentation(policy.includedMeals).policyText)
 	if (policy.stayStart || policy.stayEnd) text.push(`每个入住夜须在${policy.stayStart || '不限'}至${policy.stayEnd || '不限'}内`)
 	if (policy.excludedStayRanges && policy.excludedStayRanges.length) text.push(`不可入住：${policy.excludedStayRanges.map(range => `${range.start}至${range.end}（含首尾）`).join('、')}`)
 	if (policy.eligibilityNotice) text.push(`入住资格（自我声明）：${policy.eligibilityNotice}`)

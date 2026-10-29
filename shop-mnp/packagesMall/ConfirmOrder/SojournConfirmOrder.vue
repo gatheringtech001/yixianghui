@@ -31,7 +31,7 @@
 					<view class="title_text_view">
 						选择供餐套餐
 					</view>
-					<view class="title_price_view" v-if="includedMeals">已含套餐内</view>
+					<view class="title_price_view" v-if="includedMeals">{{ metadataMealPresentation.title }}</view>
 					<view class="title_price_view" v-else>
 						<text>￥<text>{{currentCombo.price}}</text></text>/人/天
 					</view>
@@ -187,7 +187,7 @@
 		getNoticeInfo
 	} from '@/api/system/notice'
 	import { formatCalendarPrice, resolveCalendarUnitPrice } from '@/utils/travelPresentation'
-	import { readTravelPackage, supportsCustomNights, travelCapacity, travelPolicyText, validateTravelSelection } from '@/utils/travelPolicy'
+	import { readTravelPackage, supportsCustomNights, travelCapacity, travelMealPresentation, travelPolicyText, validateTravelSelection } from '@/utils/travelPolicy'
 	export default {
 		components: {
 			Calendar
@@ -264,6 +264,9 @@
 			includedMeals() {
 				return (this.selectedTravelPackage.travelPolicy || {}).includedMeals || ''
 			},
+			metadataMealPresentation() {
+				return travelMealPresentation(this.includedMeals)
+			},
 			eligibilityNotice() {
 				return (this.selectedTravelPackage.travelPolicy || {}).eligibilityNotice || ''
 			},
@@ -289,7 +292,7 @@
 			},
 			mealDescription() {
 				const count = this.reserveData.day * this.reserveData.peopleNumber
-				if (this.includedMeals) return `套餐供餐：${this.includedMeals}（不另收餐费）。`
+				if (this.includedMeals) return this.metadataMealPresentation.description
 				return `共${count}份早餐，${this.comboIndex === 2 ? count : 0}份中餐，${this.comboIndex !== 0 ? count : 0}份晚餐。`
 			},
 			calendarPriceText() {
