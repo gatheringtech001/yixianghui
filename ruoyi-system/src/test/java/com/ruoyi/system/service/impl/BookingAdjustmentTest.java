@@ -31,7 +31,8 @@ class BookingAdjustmentTest {
     private IAppGoodsOrderService goodsOrders;
 
     @BeforeEach void setup() {
-        source = new DriverManagerDataSource("jdbc:h2:mem:" + UUID.randomUUID() + ";MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE", "sa", "");
+        // MySQL CAST(... AS BINARY) has variable length; H2 otherwise defaults to BINARY(1).
+        source = new DriverManagerDataSource("jdbc:h2:mem:" + UUID.randomUUID() + ";MODE=MySQL;VARIABLE_BINARY=TRUE;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE", "sa", "");
         db = new JdbcTemplate(source);
         db.execute("CREATE TABLE app_activity(activity_id BIGINT PRIMARY KEY,status VARCHAR(1),sign_end_time VARCHAR(40),max_count VARCHAR(20),sign_count VARCHAR(20))");
         db.execute("CREATE TABLE app_activity_order(order_id BIGINT PRIMARY KEY,user_id BIGINT,activity_id BIGINT,sign_count INT,status VARCHAR(1),pay_status VARCHAR(1),pay_money DECIMAL(10,2),money_payable DECIMAL(10,2),order_no VARCHAR(100))");
@@ -60,6 +61,20 @@ class BookingAdjustmentTest {
     }
 
     @AfterEach void close() { db.execute("SHUTDOWN"); }
+
+    @Test void pendingReservationsMatchExactPaymentReferenceAndBusinessType() {
+        db.update("INSERT INTO app_activity_order VALUES (2,5,7,3,'0','0',0,30,'Pending-AbC')");
+        // No payment, a different reference, another business, and a closed payment
+        // must not reserve seats. In particular, casting must not truncate IDs.
+        assertEquals(0, service.reservedSeats(7));
+        db.update("INSERT INTO app_pay_log(order_id,order_type,pay_no,status) VALUES (2,'3','Pending-AbD','0'),(2,'3','Pending-abc','0'),(2,'3','Pending-AbC ','0'),(2,'2','Pending-AbC','0'),(2,'3','Pending-AbC','2')");
+        assertEquals(0, service.reservedSeats(7));
+        db.update("INSERT INTO app_pay_log(order_id,order_type,pay_no,status) VALUES (2,'3','Pending-AbC','0'),(2,'3','Pending-AbC','0')");
+        assertEquals(3, service.reservedSeats(7));
+        assertEquals(0, service.reservedSeats(7, 2L));
+        db.update("UPDATE app_activity_order SET pay_status='1',status='1' WHERE order_id=2");
+        assertEquals(0, service.reservedSeats(7));
+    }
 
     @Test void activityApplicationsAreReadByTheOriginalAfterSalesMapperAndGoodsStayIsolated() throws Exception {
         Map<String,Object> request=service.submitActivity(1,5,1);

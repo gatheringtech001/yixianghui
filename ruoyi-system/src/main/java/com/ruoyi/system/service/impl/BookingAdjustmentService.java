@@ -260,7 +260,7 @@ public class BookingAdjustmentService {
         Map<String, Object> original = order(type, order, false);
         List<Map<String, Object>> receipts = "1".equals(type)
             ? db.queryForList("SELECT log_id,pay_no,pay_money FROM app_pay_log WHERE order_type='1' AND order_id=? AND user_id=? AND status='1' AND pay_method='wxpay' ORDER BY log_id DESC", order, original.get("user_id"))
-            : db.queryForList("SELECT p.log_id,p.pay_no,p.pay_money FROM app_pay_log p WHERE p.user_id=? AND p.status='1' AND p.pay_method='wxpay' AND ((p.order_type='3' AND p.order_id=? AND p.pay_no=?) OR (p.order_type='4' AND EXISTS (SELECT 1 FROM app_booking_adjustment a WHERE a.adjustment_id=p.order_id AND a.pay_no=p.pay_no AND a.amount_fen=p.pay_money AND a.business_type='3' AND a.order_id=? AND a.state='COMPLETED'))) ORDER BY p.log_id DESC", original.get("user_id"), order, original.get("order_no"), order);
+            : db.queryForList("SELECT p.log_id,p.pay_no,p.pay_money FROM app_pay_log p WHERE p.user_id=? AND p.status='1' AND p.pay_method='wxpay' AND ((p.order_type='3' AND p.order_id=? AND p.pay_no=?) OR (p.order_type='4' AND EXISTS (SELECT 1 FROM app_booking_adjustment a WHERE a.adjustment_id=p.order_id AND CAST(a.pay_no AS BINARY)=CAST(p.pay_no AS BINARY) AND a.amount_fen=p.pay_money AND a.business_type='3' AND a.order_id=? AND a.state='COMPLETED'))) ORDER BY p.log_id DESC", original.get("user_id"), order, original.get("order_no"), order);
         Set<String> numbers = new HashSet<>();
         for (Map<String, Object> receipt : receipts) require(receipt.get("pay_no") != null && numbers.add(String.valueOf(receipt.get("pay_no"))), "支付流水重复或缺少单号，请人工核对");
         return receipts;
@@ -351,7 +351,9 @@ public class BookingAdjustmentService {
 
     public long reservedSeats(long activityId, Long excludingOrder) {
         long supplements = db.queryForObject("SELECT COALESCE(SUM(to_count-from_count),0) FROM app_booking_adjustment WHERE activity_id=? AND state='PAYMENT'", Long.class, activityId);
-        long pending = db.queryForObject("SELECT COALESCE(SUM(o.sign_count),0) FROM app_activity_order o WHERE o.activity_id=? AND o.pay_status='0' AND o.status='0' AND (? IS NULL OR o.order_id<>?) AND EXISTS (SELECT 1 FROM app_pay_log p WHERE p.pay_no=o.order_no AND p.order_type='3' AND p.order_id=o.order_id AND p.status='0')", Long.class, activityId, excludingOrder, excludingOrder);
+        // Legacy order/payment columns use different collations in production. Merchant
+        // references are opaque identifiers: compare their bytes, not linguistic rules.
+        long pending = db.queryForObject("SELECT COALESCE(SUM(o.sign_count),0) FROM app_activity_order o WHERE o.activity_id=? AND o.pay_status='0' AND o.status='0' AND (? IS NULL OR o.order_id<>?) AND EXISTS (SELECT 1 FROM app_pay_log p WHERE CAST(p.pay_no AS BINARY)=CAST(o.order_no AS BINARY) AND p.order_type='3' AND p.order_id=o.order_id AND p.status='0')", Long.class, activityId, excludingOrder, excludingOrder);
         return supplements + pending;
     }
 
