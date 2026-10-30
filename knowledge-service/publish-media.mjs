@@ -78,6 +78,7 @@ const fs=require('fs'),z=require('zlib'),c=require('crypto');
 const packed=Array.from({length:${parts.length}},(_,i)=>process.env['MEDIA_PART_'+i]).join('');
 const bytes=z.gunzipSync(Buffer.from(packed,'base64'));
 if(c.createHash('sha256').update(bytes).digest('hex')!=='${hash}')throw Error('Transport checksum mismatch');
+if (${snapshot.textOnly === true}) process.exit(0);
 fs.writeFileSync('/var/lib/yixianghui-knowledge/media-snapshot.json.next',bytes,{mode:0o600});
 fs.renameSync('/var/lib/yixianghui-knowledge/media-snapshot.json.next','/var/lib/yixianghui-knowledge/media-snapshot.json');
 DECODE
@@ -99,6 +100,12 @@ const response=await fetch('http://127.0.0.1:3210/admin/sync',{method:'POST',hea
 const result=await response.json();if(!response.ok)throw Error('Text refresh failed: '+response.status);console.log(JSON.stringify({text:result}));
 }
 REFRESH
+if ${snapshot.textOnly === true ? 'true' : 'false'}; then
+node <<'TEXT_RECEIPT'
+console.log(JSON.stringify({textReconciliationComplete:true,publicationHash:'${hash}'}));
+TEXT_RECEIPT
+exit 0
+fi
 node --env-file=/etc/yixianghui-knowledge.env media-sync.mjs /var/lib/yixianghui-knowledge/media-snapshot.json
 `;
   const body = { location: "eastasia", properties: { source: { script },
@@ -169,4 +176,21 @@ export async function publishMedia(file, publish = publishSnapshot) {
   return result;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) console.log(JSON.stringify(await publishMedia(process.argv[2])));
+export async function refreshDocuments(documents, publish = publishSnapshot) {
+  if (!Array.isArray(documents) || !documents.length || documents.some(row =>
+      !row.token || !row.title) || new Set(documents.map(row => row.token)).size !== documents.length) {
+    throw new Error('Invalid authoritative document identities');
+  }
+  // Bind the ARM receipt to these exact expected identities. The caller must
+  // additionally read back the public directory before accepting completion.
+  const result = await publish({ version: 1, records: [], textOnly: true,
+    expectedDocuments: documents.map(row => ({ token: row.token, title: row.title })) });
+  if (result?.textReconciliationComplete !== true) throw new Error('Missing text reconciliation receipt');
+  return result;
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  console.log(JSON.stringify(process.argv[2] === '--text-only'
+    ? await refreshDocuments(JSON.parse(fs.readFileSync(0, 'utf8')))
+    : await publishMedia(process.argv[2])));
+}

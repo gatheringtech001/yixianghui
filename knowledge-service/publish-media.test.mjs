@@ -4,7 +4,28 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { publishMedia, publicationBatches, publishSnapshot } from './publish-media.mjs';
+import { publishMedia, publicationBatches, publishSnapshot, refreshDocuments } from './publish-media.mjs';
+
+test('post-retirement text refresh neither overwrites nor republishes media snapshot', async () => {
+  let script;
+  const snapshot = { version: 1, records: [], textOnly: true, expectedDocuments: [{ token: 'new', title: 'current' }] };
+  const hash = crypto.createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
+  await publishSnapshot(snapshot, { wait: async () => {}, command: (args, input) => {
+    if (args.includes('put')) { script = JSON.parse(input).properties.source.script; return ''; }
+    return JSON.stringify({ properties: { instanceView: { executionState: 'Succeeded', exitCode: 0,
+      output: script ? JSON.stringify({ textReconciliationComplete: true, publicationHash: hash }) : '' } } });
+  } });
+  assert.ok(script.indexOf('if (true) process.exit(0)') < script.indexOf('fs.writeFileSync'));
+  assert.ok(script.indexOf("/admin/sync") < script.indexOf('textReconciliationComplete:true'));
+  assert.match(script, /TEXT_RECEIPT\nexit 0\nfi\nnode --env-file/);
+  let published;
+  await refreshDocuments([{ token: 'new', title: 'current' }], async value => {
+    published = value; return { textReconciliationComplete: true };
+  });
+  assert.deepEqual(published, snapshot);
+  await assert.rejects(refreshDocuments([], () => assert.fail()), /Invalid/);
+  await assert.rejects(refreshDocuments([{ token: 'new', title: 'current' }], async () => ({})), /Missing/);
+});
 
 test('cold work is bounded but warm records are not needlessly split into many ARM jobs', () => {
   const records = Array.from({ length: 300 }, (_, i) => ({ id: 'image:' + i, media: { kind: 'image' } }));
