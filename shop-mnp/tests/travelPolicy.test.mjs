@@ -371,7 +371,7 @@ test('detail blocks malformed metadata and year overflow before navigation', asy
 	}
 })
 
-test('metadata popup tabs show only duration while retaining full policy, prices and dates', async () => {
+test('metadata popup tabs separate duration and season while retaining full policy, prices and dates', async () => {
 	for (const [nights, checkOutDate] of [[7, '2026-11-06'], [14, '2026-11-13'], [30, '2026-11-29']]) {
 		const expectedPolicy = { ...travelPolicy, stayStart: '2026-10-30' }
 		const data = catalog(expectedPolicy)
@@ -387,7 +387,8 @@ test('metadata popup tabs show only duration while retaining full policy, prices
 		page.reserveFn(sku, combo, 0)
 		page.popupDate.checkInDate = '2026-10-30'
 		page.popupDate.checkOutDate = checkOutDate
-		assert.equal(page.popupSkuDataList[0].popupLabel, `${nights}晚`)
+		assert.equal(page.popupSkuDataList[0].popupLabel, `${nights + 1}天${nights}晚`)
+		assert.equal(page.popupSkuDataList[0].popupPeriod, '2026.10.30–12.31')
 		assert.equal(sku.name, sourceName)
 		assert.equal(sku.day, nights)
 		assert.equal(combo.name, '三餐')
@@ -407,6 +408,64 @@ test('metadata popup tabs show only duration while retaining full policy, prices
 	page.getGoodsDetailFn(77)
 	await new Promise(resolve => setImmediate(resolve))
 	assert.equal(page.popupSkuDataList[0].popupLabel, '传统周套餐（原名称）')
+})
+
+test('season labels retain year boundaries and optional start/end bounds', () => {
+	assert.equal(policy.travelPackagePeriodLabel(null), '')
+	assert.equal(policy.travelPackagePeriodLabel({ version: 1 }), '')
+	assert.equal(policy.travelPackagePeriodLabel({ stayStart: '2026-12-01', stayEnd: '2026-12-31' }), '2026.12.01–12.31')
+	assert.equal(policy.travelPackagePeriodLabel({ stayStart: '2026-12-01', stayEnd: '2027-01-31' }), '2026.12.01–2027.01.31')
+	assert.equal(policy.travelPackagePeriodLabel({ stayStart: '2026-12-01' }), '2026.12.01起')
+	assert.equal(policy.travelPackagePeriodLabel({ stayEnd: '2026-12-31' }), '截至2026.12.31')
+})
+
+test('three six-night seasonal offers have distinct labels, prices and enforced stay windows', async () => {
+	const data = catalog()
+	const prototype = data.optionList[1]
+	const periods = [
+		['2026-12-01', '2026-12-31', '3054'],
+		['2027-01-04', '2027-01-31', '3054'],
+		['2027-03-01', '2027-03-31', '2645']
+	]
+	const packages = periods.map(([stayStart, stayEnd, price], index) => ({
+		...prototype, skuId: 202 + index, skuName: `7天6晚·三餐（${stayStart}~${stayEnd}）`,
+		options: prototype.options.map(option => String(option.optionType) === '303'
+			? { ...option, optionValue: '6', optionParam: metadata({ version: 1, capacity: 4, includedMeals: '三餐', stayStart, stayEnd }) }
+			: String(option.optionType) === '302' ? { ...option, optionValue: price } : { ...option })
+	}))
+	data.optionList = [data.optionList[0], ...packages]
+	const { page, events } = pageHarness('GoodsDetails/SojournGoodsDetails', data)
+	page.loadCollectState = () => {}
+	page.getGoodsDetailFn(77)
+	await new Promise(resolve => setImmediate(resolve))
+	const offers = page.skuGroupList[0].skuDataList
+	assert.equal(offers.length, 3)
+	assert.equal(new Set(offers.map(offer => offer.popupPeriod)).size, 3)
+	assert.ok(offers.every(offer => offer.popupLabel === '7天6晚'))
+	page.reserveFn(offers[0], offers[0].combinationList[0], 0)
+	page.popupDate.checkInDate = '2027-01-05'
+	page.popupDate.checkOutDate = '2027-01-11'
+	page.confirmFn()
+	assert.equal(events.navigations.length, 0)
+	assert.match(page.selectionError, /范围/)
+	page.selectDayFn(1)
+	assert.equal(page.selectionError, '')
+	assert.equal(page.selectedTravelPackage.combinationList[0].price, '3054')
+	page.confirmFn()
+	assert.equal(events.navigations.length, 1)
+	assert.match(events.navigations[0].url, /skuId=203&skuSeqNo=1/)
+})
+
+test('popup duration and period use separate wrapping rows with no fixed card height', () => {
+	const source = readFileSync(new URL('../packagesMall/GoodsDetails/SojournGoodsDetails.vue', import.meta.url), 'utf8')
+	const style = readFileSync(new URL('../packagesMall/GoodsDetails/SojournGoodsDetails.scss', import.meta.url), 'utf8')
+	assert.match(source, /class="package_duration">\{\{item.popupLabel\}\}/)
+	assert.match(source, /v-if="item.popupPeriod" class="package_period">\{\{item.popupPeriod\}\}/)
+	const popupCards = style.slice(style.indexOf('.popup_tag_view'), style.indexOf('.popup_customize_view'))
+	assert.match(popupCards, /height: auto/)
+	assert.match(popupCards, /flex-direction: column/)
+	assert.match(popupCards, /word-break: break-all/)
+	assert.doesNotMatch(popupCards, /(?<!-)height: 90rpx/)
 })
 
 test('optional eligibilityNotice preserves source text and strictly rejects invalid or overlong values', () => {

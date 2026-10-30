@@ -137,11 +137,12 @@
 	>
 		<view class="popup_view">
 			<view class="popup_header_view">
-				<view class="popup_title_view">选择天数</view>
+				<view class="popup_title_view">选择住宿套餐</view>
 				<view class="popup_tag_view">
 					<view class="tag_view" :class="popupDate.skuSelect == index ? 'tag_select':''"
 						v-for="(item, index) in popupSkuDataList" :key="index" @click="selectDayFn(index)">
-						{{item.popupLabel}}
+						<text class="package_duration">{{item.popupLabel}}</text>
+						<text v-if="item.popupPeriod" class="package_period">{{item.popupPeriod}}</text>
 					</view>
 					<view v-if="canCustomizeNights" class="tag_customize_view" :class="popupDate.skuSelect == 'customize' ? 'tag_select':''"
 						@click="selectDayFn('customize')">自选晚数</view>
@@ -152,7 +153,7 @@
 						:input-height="60" @change="onCustomDayChange"></u-number-box>
 					晚
 				</view>
-				<view>{{ selectedTravelPolicyText }}</view>
+				<view class="popup_policy_view">{{ selectedTravelPolicyText }}</view>
 				<view v-if="selectionError" style="color: #701018">{{ selectionError }}</view>
 			</view>
 			<!-- 小程序 view 的 overflow 滚动不稳定，用 scroll-view 保证可滚 -->
@@ -228,7 +229,7 @@
 	import { goodsCollect, deleteCollect, goodsCollectList } from '@/api/member/index'
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
 	import { prepareRichTextHtml } from '@/utils/richText'
-	import { readTravelPackage, supportsCustomNights, travelPolicyText, validateTravelSelection } from '@/utils/travelPolicy'
+	import { readTravelPackage, supportsCustomNights, travelPackagePeriodLabel, travelPolicyText, validateTravelSelection } from '@/utils/travelPolicy'
 	import {
 		formatCalendarPrice,
 		travelPriceUnit,
@@ -707,7 +708,8 @@
                       skuId: option.skuId,
                       name: option.skuName || '',
                       popupLabel: packagePolicy.travelPolicy && packagePolicy.day > 0
-                        ? `${packagePolicy.day}晚` : option.skuName || '',
+                        ? `${packagePolicy.day + 1}天${packagePolicy.day}晚` : option.skuName || '',
+                      popupPeriod: travelPackagePeriodLabel(packagePolicy.travelPolicy),
                       ...packagePolicy,
                       combinationList: thecombinationList
                     };

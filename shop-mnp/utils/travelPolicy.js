@@ -72,6 +72,20 @@ export function travelCapacity(policy) {
 	return policy && policy.capacity !== undefined ? policy.capacity : 2
 }
 
+// Keep seasonal offers distinguishable without putting the entire SKU name in a tab.
+// The full occupied-night bounds remain visible in travelPolicyText and enforced below.
+export function travelPackagePeriodLabel(policy) {
+	if (!policy) return ''
+	const start = policy.stayStart
+	const end = policy.stayEnd
+	const format = date => date.replace(/-/g, '.')
+	if (start && end) {
+		const sameYear = start.slice(0, 4) === end.slice(0, 4)
+		return `${format(start)}–${format(sameYear ? end.slice(5) : end)}`
+	}
+	return start ? `${format(start)}起` : end ? `截至${format(end)}` : ''
+}
+
 export function travelMealPresentation(meals) {
 	if (meals === '不含餐' || meals.startsWith('餐次未注明')) {
 		return {
