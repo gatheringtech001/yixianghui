@@ -160,8 +160,9 @@
 			<scroll-view v-if="calendarRateData.months.length > 1" scroll-x class="calendar_month_nav">
 				<view v-for="month in calendarRateData.months" :key="month.month" class="calendar_month_button" :class="popupDate.checkInDate.slice(0, 7) === month.month ? 'active' : ''" @click="selectCalendarMonth(month)">{{ month.label }}</view>
 			</scroll-view>
-			<scroll-view scroll-y="true" class="popup_calendar_view" :show-scrollbar="false" :scroll-into-view="calendarFocusId" scroll-with-animation>
+			<scroll-view scroll-y="true" class="popup_calendar_view" :show-scrollbar="false" :scroll-top="calendarScrollTop" scroll-with-animation>
 				<Calendar ref="CalendarRef" :is-show="true" :isFixed="false" :price="calendarPriceText"
+					:focusMonthId="calendarFocusId" @monthFocus="onCalendarMonthFocus"
 					:dailyPrices="popupDate.customNight ? null : calendarRateData.prices" :initMonth="calendarRateData.count"
 					:startDate="popupDate.checkInDate" :endDate="popupDate.checkOutDate"
 					:betweenStart="calendarStayStart" :betweenEnd="calendarStayEnd"
@@ -278,6 +279,7 @@
 				skuSelect: '0_0', // 选中
 				roomQuoteDates: {},
 				calendarFocusId: '',
+				calendarScrollTop: 0,
 				popupDate: {
 					show: false,
 					skuSelect: 0,
@@ -400,6 +402,10 @@
 			}
 		},
 		methods: {
+			onCalendarMonthFocus(top) {
+				this.calendarScrollTop = top + 1
+				this.$nextTick(() => { this.calendarScrollTop = top })
+			},
 			durationOptions(groupIndex) {
 				return groupTravelRates((this.skuGroupList[groupIndex] || {}).skuDataList)
 			},

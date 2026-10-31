@@ -127,8 +127,9 @@
 			<view class="popup_view">
 				<view class="popup_title_view">选择入住日期 · {{reserveData.day}}晚</view>
 				<!-- 小程序 view 的 overflow 滚动不稳定，用 scroll-view 保证可滚 -->
-				<scroll-view scroll-y="true" class="popup_calendar_view" :show-scrollbar="false" :scroll-into-view="calendarFocusId">
+				<scroll-view scroll-y="true" class="popup_calendar_view" :show-scrollbar="false" :scroll-top="calendarScrollTop">
 					<Calendar ref="CalendarRef" :is-show="true" :isFixed="false" :price="calendarPriceText"
+						:focusMonthId="calendarFocusId" @monthFocus="onCalendarMonthFocus"
 						:dailyPrices="customNight ? null : calendarRateData.prices" :initMonth="calendarRateData.count"
 						:betweenStart="calendarRateData.first" :betweenEnd="calendarRateData.end"
 						:startDate="reserveData.checkInDate" :endDate="reserveData.checkOutDate" :fixedEnd="true" :mode="2"
@@ -237,6 +238,7 @@
 				comboIndex: 0, // 套餐选中的下标
 				skuList: [],
 				calendarFocusId: '',
+				calendarScrollTop: 0,
 				goodsLoaded: false,
 				skuPrice: 0, // sku选中的价格（整段住宿房价，未乘房间数）
 				nightPrice: 0, // 自选晚数：每晚单价
@@ -373,6 +375,10 @@
 			}
 		},
 		methods: {
+			onCalendarMonthFocus(top) {
+				this.calendarScrollTop = top + 1
+				this.$nextTick(() => { this.calendarScrollTop = top })
+			},
 			onRoomNumberChange() {
 				const maxPeople = this.maxPeopleNumber
 				if (Number(this.reserveData.peopleNumber) > maxPeople) {

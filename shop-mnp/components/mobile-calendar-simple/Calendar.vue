@@ -39,6 +39,7 @@
 <script>
 	export default {
 		props: {
+			focusMonthId: { type: String, default: '' },
 			dailyPrices: { type: Object, default: null },
 			isShow: { //是否显示
 				type: [Boolean],
@@ -120,6 +121,7 @@
 			};
 		},
 		watch: {
+			focusMonthId() { this.scrollToFocusedMonth() },
 			initMonth() { this.init() },
 			isShow() {
 				this.init();
@@ -136,6 +138,7 @@
 		},
 		mounted() {
 			this.init();
+			this.scrollToFocusedMonth();
 		},
 		computed: {
 			//设置主题色入住离开之间的背景色
@@ -151,6 +154,17 @@
 			}
 		},
 		methods: {
+			scrollToFocusedMonth() {
+				if (!this.focusMonthId) return
+				this.$nextTick(() => {
+					const query = uni.createSelectorQuery().in(this)
+					query.select('.calendar-tz').boundingClientRect()
+					query.select(`#${this.focusMonthId}`).boundingClientRect()
+					query.exec(rects => {
+						if (rects[0] && rects[1]) this.$emit('monthFocus', Math.max(0, rects[1].top - rects[0].top))
+					})
+				})
+			},
 			monthDomId(year, month) { return `travel-month-${year}-${String(month).padStart(2, '0')}` },
 			dateKey(day, month, year) { return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}` },
 			datePrice(day, month, year) {
