@@ -718,6 +718,10 @@
 }
 .calendar-tz.senior-mode.rate-calendar .each-month .each-day .price {
 	display: block;
-	font-size: 24rpx;
+	// The seven-column grid cannot use the global 26px order-total scale.
+	// Keep each quote contained; the selected quote is repeated above at reading size.
+	font-size: 24rpx !important;
+	line-height: 1.15 !important;
+	white-space: nowrap;
 }
 </style>

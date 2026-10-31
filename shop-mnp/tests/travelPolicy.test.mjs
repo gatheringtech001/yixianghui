@@ -746,4 +746,5 @@ test('shared calendar blocks missing seasonal quotes while preserving flat-price
 	assert.equal(events[1][0], 'monthFocus')
 	assert.equal(events[1][1], 800)
 	assert.match(source, /senior-mode\.rate-calendar/)
+	assert.match(source, /font-size: 24rpx !important/)
 })
