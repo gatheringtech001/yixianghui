@@ -65,9 +65,9 @@
             </view>
           </view>
           <view class="sku_option_view" v-if="skuGroup.skuDataList && skuGroup.skuDataList.length > 0">
-            <view class="option_view" :class="skuSelect == groupIndex + '_' + index?'option_select':''"
-                  v-for="(item, index) in skuGroup.skuDataList" :key="index" @click="skuSelect = groupIndex + '_' + index">
-              {{ item.name }}
+            <view class="option_view" :class="item.indices.includes(getSkuSelectIndex(groupIndex)) ? 'option_select':''"
+                  v-for="(item, index) in durationOptions(groupIndex)" :key="index" @click="selectDuration(groupIndex, item)">
+              {{ item.label }}
             </view>
           </view>
           <view class="sku_list_view" v-if="skuGroup.skuDataList && skuGroup.skuDataList.length > 0">
@@ -78,14 +78,12 @@
               </view>
               <view class="item_price_view">
                 <view class="price_view">
-                  <text><text>￥ </text>{{ item.price }}</text> /{{ item.priceUnit }}/套餐起
+                  <text>{{ nightlyPrice(item) }}</text> /晚{{ item.isExact ? '' : '起' }}
                 </view>
+                <view class="price_average_view">套餐总价￥{{ item.price }}/{{ item.priceUnit }}{{ item.isExact ? '' : '起' }}</view>
                 <view class="price_average_view" v-if="item.priceLabel">{{ item.priceLabel }}</view>
-                <view class="price_average_view" v-if="item.average">
-                  均￥{{ item.average }}/{{ item.priceUnit }}/晚起
-                </view>
               </view>
-              <view class="item_button_view" @click="reserveFn(getCurrentSkuData(groupIndex), item, groupIndex)">订</view>
+              <view class="item_button_view" @click="reserveFn(skuGroup.skuDataList[item.skuIndex], item, groupIndex)">订</view>
             </view>
           </view>
           <view class="sku_empty_view" v-else>
@@ -139,10 +137,9 @@
 			<view class="popup_header_view">
 				<view class="popup_title_view">选择住宿套餐</view>
 				<view class="popup_tag_view">
-					<view class="tag_view" :class="popupDate.skuSelect == index ? 'tag_select':''"
-						v-for="(item, index) in popupSkuDataList" :key="index" @click="selectDayFn(index)">
-						<text class="package_duration">{{item.popupLabel}}</text>
-						<text v-if="item.popupPeriod" class="package_period">可住：{{item.popupPeriod}}</text>
+					<view class="tag_view" :class="!popupDate.customNight && item.indices.includes(popupDate.skuSelect) ? 'tag_select':''"
+						v-for="(item, index) in popupDurationOptions" :key="index" @click="selectDayFn(item.indices[0])">
+						<text class="package_duration">{{item.label}}</text>
 					</view>
 					<view v-if="canCustomizeNights" class="tag_customize_view" :class="popupDate.skuSelect == 'customize' ? 'tag_select':''"
 						@click="selectDayFn('customize')">自选晚数</view>
@@ -154,13 +151,18 @@
 					晚
 				</view>
 				<view class="popup_policy_view">{{ selectedTravelPolicyText }}</view>
+				<view class="popup_quote_view" v-if="selectedRatePrice">{{ selectedRatePrice }}/晚 <text>套餐总价￥{{ selectedRateTotal }}</text></view>
 				<view class="popup_policy_view" v-if="popupDate.checkInDate && popupDate.checkOutDate">本次入住：{{ popupDate.checkInDate }}　退房：{{ popupDate.checkOutDate }}</view>
 				<view v-else class="popup_policy_view">请选择入住日期；该时段如无可用日期，请更换套餐。</view>
 				<view v-if="selectionError" style="color: #701018">{{ selectionError }}</view>
 			</view>
 			<!-- 小程序 view 的 overflow 滚动不稳定，用 scroll-view 保证可滚 -->
-			<scroll-view scroll-y="true" class="popup_calendar_view" :show-scrollbar="false">
+			<scroll-view v-if="calendarRateData.months.length > 1" scroll-x class="calendar_month_nav">
+				<view v-for="month in calendarRateData.months" :key="month.month" class="calendar_month_button" :class="popupDate.checkInDate.slice(0, 7) === month.month ? 'active' : ''" @click="selectCalendarMonth(month)">{{ month.label }}</view>
+			</scroll-view>
+			<scroll-view scroll-y="true" class="popup_calendar_view" :show-scrollbar="false" :scroll-into-view="calendarFocusId" scroll-with-animation>
 				<Calendar ref="CalendarRef" :is-show="true" :isFixed="false" :price="calendarPriceText"
+					:dailyPrices="popupDate.customNight ? null : calendarRateData.prices" :initMonth="calendarRateData.count"
 					:startDate="popupDate.checkInDate" :endDate="popupDate.checkOutDate"
 					:betweenStart="calendarStayStart" :betweenEnd="calendarStayEnd"
 					:fixedEnd="true" :mode="2" themeColor="#701018" @callback="calendarCallBackFn"
@@ -233,6 +235,7 @@
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
 	import { prepareRichTextHtml } from '@/utils/richText'
 	import { readTravelPackage, supportsCustomNights, travelPackagePeriodLabel, defaultTravelDates, travelPolicyText, validateTravelSelection } from '@/utils/travelPolicy'
+	import { groupTravelRates, resolveTravelRate, defaultRateSelection, rateCombination, travelRatePrice, buildTravelRateCalendar } from '@/utils/travelRates'
 	import {
 		formatCalendarPrice,
 		travelPriceUnit,
@@ -273,6 +276,8 @@
 				relatedSelect: '', // 相关介绍选中下标
 				skuDataList: [], // SKU
 				skuSelect: '0_0', // 选中
+				roomQuoteDates: {},
+				calendarFocusId: '',
 				popupDate: {
 					show: false,
 					skuSelect: 0,
@@ -324,17 +329,28 @@
 			this.clearAnchorTimers()
 		},
 		computed: {
+			popupDurationOptions() {
+				return groupTravelRates(this.popupSkuDataList)
+			},
+			selectedDurationOption() {
+				return this.popupDurationOptions.find(o => o.indices.includes(Number(this.popupDate.skuSelect))) || { variants: [] }
+			},
+			calendarRateData() {
+				if (this.popupDate.customNight) return { first: this.formatDate(new Date()), end: '', prices: {}, months: [], count: 6 }
+				return buildTravelRateCalendar(this.selectedDurationOption.variants, this.popupDate.day, this.popupDate.skuSeqNo, this.formatDate(new Date()))
+			},
+			selectedRatePrice() {
+				return !this.selectionError && !this.popupDate.customNight ? travelRatePrice(this.selectedTravelPackage, this.popupDate.skuSeqNo) : ''
+			},
+			selectedRateTotal() {
+				const combo = rateCombination(this.selectedTravelPackage, this.popupDate.skuSeqNo)
+				return combo ? `${combo.price}/${combo.priceUnit}` : ''
+			},
 			calendarStayStart() {
-				const today = this.formatDate(new Date())
-				const policy = this.selectedTravelPackage.travelPolicy || {}
-				return policy.stayStart && policy.stayStart > today ? policy.stayStart : today
+				return this.calendarRateData.first
 			},
 			calendarStayEnd() {
-				const policy = this.selectedTravelPackage.travelPolicy || {}
-				if (!policy.stayEnd) return ''
-				const end = new Date(`${policy.stayEnd}T00:00:00Z`)
-				end.setUTCDate(end.getUTCDate() + 1)
-				return end.toISOString().slice(0, 10)
+				return this.calendarRateData.end
 			},
 			canCustomizeNights() {
 				return supportsCustomNights(this.getPopupSkuGroup())
@@ -384,6 +400,33 @@
 			}
 		},
 		methods: {
+			durationOptions(groupIndex) {
+				return groupTravelRates((this.skuGroupList[groupIndex] || {}).skuDataList)
+			},
+			selectDuration(groupIndex, option) {
+				this.skuSelect = `${groupIndex}_${option.indices[0]}`
+				this.roomQuoteDates = { ...this.roomQuoteDates, [groupIndex]: null }
+			},
+			nightlyPrice(combo) {
+				return formatCalendarPrice(resolveCalendarUnitPrice({ average: combo.average, total: combo.price, nights: combo.nights }), combo.priceUnit)
+			},
+			focusCalendarMonth(date) {
+				this.calendarFocusId = ''
+				this.$nextTick(() => { this.calendarFocusId = `travel-month-${date.slice(0, 7)}` })
+			},
+			selectCalendarMonth(month) {
+				this.calendarClickFn({ startStr: { dateStr: month.date } })
+				this.focusCalendarMonth(month.date)
+			},
+			selectRateForDate(date) {
+				const sku = resolveTravelRate(this.selectedDurationOption.variants, date, this.popupDate.day, this.popupDate.skuSeqNo, this.formatDate(new Date()))
+				if (!sku) return false
+				this.popupDate.skuSelect = this.popupSkuDataList.findIndex(s => s.skuId === sku.skuId)
+				this.popupDate.skuId = sku.skuId
+				this.skuSelect = `${this.popupDate.groupIndex}_${this.popupDate.skuSelect}`
+				this.roomQuoteDates = { ...this.roomQuoteDates, [this.popupDate.groupIndex]: date }
+				return true
+			},
 			previewDetailImages(current, images) {
 				return previewDetailImages.call(this, current, images)
 			},
@@ -465,7 +508,17 @@
 				})
 			},
 			initPopupCalendar() {
-				this.applyStayDuration(true)
+				this.selectRateDefaultDates()
+				this.focusCalendarMonth(this.popupDate.checkInDate || this.calendarStayStart)
+			},
+			selectRateDefaultDates() {
+				if (this.popupDate.customNight) { this.applyStayDuration(true); return }
+				const selected = defaultRateSelection(this.selectedDurationOption.variants, this.popupDate.day, this.popupDate.skuSeqNo, this.popupDate.checkInDate, this.formatDate(new Date()))
+				if (!selected) { this.popupDate.checkInDate = ''; this.popupDate.checkOutDate = ''; return }
+				this.selectRateForDate(selected.checkInDate)
+				this.popupDate.checkInDate = selected.checkInDate
+				this.popupDate.checkOutDate = selected.checkOutDate
+				this.applyStayDuration()
 			},
 			setPageScrollHeight() {
 				this.$nextTick(() => {
@@ -593,7 +646,16 @@
         if (!skuData || !skuData.combinationList) {
           return [];
         }
-        return skuData.combinationList;
+        const group = this.skuGroupList[groupIndex]
+        const family = this.durationOptions(groupIndex).find(o => o.variants.some(s => s.skuId === skuData.skuId))
+        const today = this.formatDate(new Date())
+        const date = this.roomQuoteDates[groupIndex]
+        return skuData.combinationList.map(combo => {
+          const exact = date && resolveTravelRate(family.variants, date, skuData.day, combo.skuSeqNo, today)
+          const candidates = family.variants.filter(s => defaultRateSelection([s], s.day, combo.skuSeqNo, '', today))
+          const selected = exact || candidates.sort((a, b) => Number(rateCombination(a, combo.skuSeqNo).price) - Number(rateCombination(b, combo.skuSeqNo).price))[0] || skuData
+          return { ...rateCombination(selected, combo.skuSeqNo), nights: selected.day, skuIndex: group.skuDataList.findIndex(s => s.skuId === selected.skuId), isExact: !!exact }
+        });
       },
 			 // 为HTML内容中的URL添加host前缀并适配移动端图片展示
 			  addHostPrefixToUrls(content, host) {
@@ -956,7 +1018,8 @@
               : skuData.combinationList[0].skuSeqNo
           }
         }
-        this.applyStayDuration(true)
+        this.selectRateDefaultDates()
+        this.focusCalendarMonth(this.popupDate.checkInDate || this.calendarStayStart)
       },
       onCustomDayChange(e) {
         const val = typeof e === 'object' ? e.value : e
@@ -973,6 +1036,7 @@
 			},
 			calendarClickFn(data) {
 				this.popupDate.checkInDate = data.startStr.dateStr
+				if (!this.popupDate.customNight) this.selectRateForDate(this.popupDate.checkInDate)
 				this.applyStayDuration()
 			},
 			// 格式化日期

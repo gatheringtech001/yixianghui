@@ -603,6 +603,23 @@ $page-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 		font-size: 24rpx;
 		line-height: 1.5;
 	}
+	.popup_quote_view {
+		margin-top: 12rpx;
+		font-size: 32rpx;
+		font-weight: bold;
+		color: $page-accent;
+		text { margin-left: 16rpx; font-size: 26rpx; font-weight: normal; }
+	}
+	.calendar_month_nav { flex-shrink: 0; white-space: nowrap; margin-top: 14rpx; }
+	.calendar_month_button {
+		display: inline-block;
+		padding: 14rpx 20rpx;
+		margin-right: 12rpx;
+		border: 1rpx solid #d5c9c6;
+		border-radius: 12rpx;
+		font-size: 26rpx;
+		&.active { color: white; background: $page-accent; border-color: $page-accent; }
+	}
 
 	.popup_customize_view {
 		margin-top: 20rpx;

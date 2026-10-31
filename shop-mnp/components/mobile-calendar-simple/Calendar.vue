@@ -1,15 +1,15 @@
 <template>
 	<transition :name="transition">
-		<div class="calendar-tz" v-if="isShow" :class="[displayModeClass, isFixed&&'fixed']">
+		<div class="calendar-tz" v-if="isShow" :class="[displayModeClass, isFixed&&'fixed', dailyPrices && 'rate-calendar']">
 			<slot name="header"></slot>
-			<view v-if="isSeniorMode && price" class="senior-calendar-price">每日参考价：{{ price }}</view>
+			<view v-if="isSeniorMode && price && !dailyPrices" class="senior-calendar-price">每日参考价：{{ price }}</view>
 			<div class="week-number">
 				<span v-for="(item,index) in weekList" :style="{color:(index==0||index==weekList.length-1)&&themeColor}"
 					:key="index">{{item}}</span>
 			</div>
 			<p class="tips" v-if="title">{{title}}</p>
 			<div class="content" id="scrollWrap">
-				<div class="con" v-for="(item,index) in calendar" :key="index" :id="item.year+''+item.month">
+				<div class="con" v-for="(item,index) in calendar" :key="index" :id="monthDomId(item.year, item.month)">
 					<h3 v-text="item.year + '年' + item.month + '月'"></h3>
 					<span class="month-bg" :style="{color:getBetweenColor}">{{item.month}}</span>
 					<ul class="each-month">
@@ -21,7 +21,10 @@
 								:style="{background:themeBg(day, item.month, item.year)}">
 								<p class="day-tip" :style="{color:themeColor}"><i v-text="setTip(day, item.month, item.year,1)"></i></p>
 								<p class="day">{{day?day:''}}</p>
-								<p class="price" v-if="day && price">{{price}}</p>
+								<p class="price" v-if="day && (price || dailyPrices)">
+									<text>{{datePrice(day, item.month, item.year).split('/')[0]}}</text>
+									<text v-if="datePrice(day, item.month, item.year).includes('/')" class="date-price-unit">/{{datePrice(day, item.month, item.year).split('/')[1]}}</text>
+								</p>
 								<p class="recent"><i v-text="setTip(day, item.month, item.year,2)"></i></p>
 							</div>
 						</li>
@@ -36,6 +39,7 @@
 <script>
 	export default {
 		props: {
+			dailyPrices: { type: Object, default: null },
 			isShow: { //是否显示
 				type: [Boolean],
 				default () {
@@ -116,6 +120,7 @@
 			};
 		},
 		watch: {
+			initMonth() { this.init() },
 			isShow() {
 				this.init();
 			},
@@ -146,6 +151,14 @@
 			}
 		},
 		methods: {
+			monthDomId(year, month) { return `travel-month-${year}-${String(month).padStart(2, '0')}` },
+			dateKey(day, month, year) { return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}` },
+			datePrice(day, month, year) {
+				return this.dailyPrices ? this.dailyPrices[this.dateKey(day, month, year)] || '不可订' : this.price
+			},
+			dateUnavailable(day, month, year) {
+				return !!this.dailyPrices && !this.dailyPrices[this.dateKey(day, month, year)]
+			},
 			init() {
 				var date = new Date();
 				this.year = date.getFullYear();
@@ -166,6 +179,7 @@
 					this.startMonth = dd[1];
 				}
 				if (!this.endDate) {
+					this.endDates = ''
 					// var temp = this.startDates + 24 * 60 * 60 * 1000;
 					// var dateTemp = new Date(temp);
 					// const year = dateTemp.getFullYear(),
@@ -251,7 +265,7 @@
 			},
 			scrollTop(year, month) {
 				// #ifdef H5
-				var id = year + "" + parseInt(month)
+				var id = this.monthDomId(year, month)
 				setTimeout(() => {
 					if (typeof document === 'undefined' || !document) return
 					var obj = document.getElementById(id)
@@ -267,6 +281,7 @@
 				if (!day) return;
 				const _date = new Date(year + "/" + month + "/" + day);
 				let className = [];
+				if (this.dateUnavailable(day, month, year)) className.push('disabled')
 				// if (_date.getDay() == 0 || _date.getDay() == 6) { //周末或周六样式
 				//     className.push('weekend')
 				// }
@@ -418,12 +433,20 @@
 				const week = this.weekList[new Date(_date).getDay()];
 				//判断日期区域是否可点击
 				if (!day) return;
+				if (this.dateUnavailable(day, month, year)) return;
 				if (this.betweenStarts) {
 					if (_date * 1 < this.betweenStarts) return;
 				} else {
 					if (_date < this.today) return;
 				}
 				if (_date > this.betweenEnds) return;
+				// Rate calendars select check-in only; the parent owns the fixed stay length.
+				if (this.fixedEnd && this.dailyPrices) {
+					this.startDates = _date;
+					this.endDates = '';
+					this.$emit('calendarClick', { startStr: this.dateFormat(_date) });
+					return;
+				}
 				//判断酒店或者往返模式的选择逻辑
 				if (this.startDates && this.endDates && _date > this.endDates) {
 					this.startDates = _date;
@@ -656,6 +679,7 @@
 			}
 		}
 	}
+	.date-price-unit { display: block; font-size: 20rpx; line-height: 1.2; }
 
 	/***右侧进入动画***/
 	.slide-enter-active,
@@ -677,5 +701,9 @@
 	.each-month .each-day .price { display: none; }
 	.each-month .each-day .day-tip, .each-month .each-day .recent,
 	.each-month .each-day .day-tip i, .each-month .each-day .recent i { font-size: 16px !important; min-height: 22px; }
+}
+.calendar-tz.senior-mode.rate-calendar .each-month .each-day .price {
+	display: block;
+	font-size: 24rpx;
 }
 </style>

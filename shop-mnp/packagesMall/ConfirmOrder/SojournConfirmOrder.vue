@@ -10,7 +10,7 @@
 					<view class="base_desc_view">{{hotelData.desc}}</view>
 				</view>
 			</view>
-			<view class="body_date_view" @click="popupDate.show = true">
+			<view class="body_date_view" @click="selectDateFn">
 				<view class="date_start_view">
 					<view class="text_view">入住日期</view>
 					<view class="date_view">{{reserveData.checkInDate}}</view>
@@ -125,14 +125,17 @@
 			:safe-area-inset-bottom="true"
 		>
 			<view class="popup_view">
-				<view class="popup_title_view">选择天数</view>
+				<view class="popup_title_view">选择入住日期 · {{reserveData.day}}晚</view>
 				<!-- 小程序 view 的 overflow 滚动不稳定，用 scroll-view 保证可滚 -->
-				<scroll-view scroll-y="true" class="popup_calendar_view" :show-scrollbar="false">
+				<scroll-view scroll-y="true" class="popup_calendar_view" :show-scrollbar="false" :scroll-into-view="calendarFocusId">
 					<Calendar ref="CalendarRef" :is-show="true" :isFixed="false" :price="calendarPriceText"
+						:dailyPrices="customNight ? null : calendarRateData.prices" :initMonth="calendarRateData.count"
+						:betweenStart="calendarRateData.first" :betweenEnd="calendarRateData.end"
 						:startDate="reserveData.checkInDate" :endDate="reserveData.checkOutDate" :fixedEnd="true" :mode="2"
 						themeColor="#701018" @callback="calendarCallBackFn" @calendarClick="calendarClickFn" />
 				</scroll-view>
 				<view class="popup_button_view">
+					<view v-if="!selectionError">{{calendarPriceText}}/晚 · {{reserveData.day}}晚合计 ￥{{skuPrice}}</view>
 					<view v-if="selectionError" style="color: #701018">{{ selectionError }}</view>
 					<view class="button_confirm_view" @click="confirmFn">
 						确认{{`${reserveData.day+1}天${reserveData.day}晚`}}
@@ -186,7 +189,8 @@
 	import {
 		getNoticeInfo
 	} from '@/api/system/notice'
-	import { formatCalendarPrice, resolveCalendarUnitPrice } from '@/utils/travelPresentation'
+	import { formatCalendarPrice, resolveCalendarUnitPrice, travelPriceUnit, sanitizeTravelCustomerText } from '@/utils/travelPresentation'
+	import { groupTravelRates, resolveTravelRate, buildTravelRateCalendar } from '@/utils/travelRates'
 	import { readTravelPackage, supportsCustomNights, travelCapacity, travelMealPresentation, travelPolicyText, validateTravelSelection } from '@/utils/travelPolicy'
 	export default {
 		components: {
@@ -232,6 +236,7 @@
 				], // 套餐数据集合
 				comboIndex: 0, // 套餐选中的下标
 				skuList: [],
+				calendarFocusId: '',
 				goodsLoaded: false,
 				skuPrice: 0, // sku选中的价格（整段住宿房价，未乘房间数）
 				nightPrice: 0, // 自选晚数：每晚单价
@@ -257,6 +262,17 @@
 			}
 		},
 		computed: {
+			selectedRateFamily() {
+				const selected = this.selectedTravelPackage
+				const siblings = this.skuList.filter(s => Number(s.parSkuId) === Number(selected.parSkuId)
+					&& Number(s.skuSeqNo) === Number(selected.skuSeqNo))
+				return groupTravelRates(siblings).find(g => g.variants.some(s => s.skuId === selected.skuId)) || { variants: [] }
+			},
+			calendarRateData() {
+				const today = this.formatDate(new Date())
+				if (this.customNight) return { first: today, end: '', prices: {}, count: 6 }
+				return buildTravelRateCalendar(this.selectedRateFamily.variants, this.reserveData.day, this.selSkuSeqNo, today)
+			},
 			selectedTravelPackage() {
 				return this.skuList.find(item => Number(item.skuId) === Number(this.selSkuId)
 					&& Number(item.skuSeqNo) === Number(this.selSkuSeqNo)) || {}
@@ -372,12 +388,12 @@
 			},
 			syncStayCalendar() {
 				const nights = Number(this.reserveData.day) || 0
-				if (!nights || !this.reserveData.checkInDate || !this.$refs.CalendarRef) return
+				if (!nights || !this.reserveData.checkInDate) return
 				const end = new Date(this.reserveData.checkInDate.replace(/-/g, '/'))
 				end.setDate(end.getDate() + nights)
 				const checkOut = this.formatDate(end)
 				this.reserveData.checkOutDate = checkOut
-				this.$refs.CalendarRef.endDates = this.$refs.CalendarRef.resetTime(checkOut)
+				if (this.$refs.CalendarRef) this.$refs.CalendarRef.endDates = this.$refs.CalendarRef.resetTime(checkOut)
 				this.syncSkuSelection()
 			},
 			syncSkuSelection() {
@@ -488,8 +504,21 @@
 					   return Object.keys(groupedBySeqNo).map(seqNo => {
 					     const items = groupedBySeqNo[seqNo];
 					     const priceItem = items.find(item => item.optionType == '302');
+					     const nameItem = items.find(item => item.optionType == '304');
+					     const averageItem = items.find(item => item.optionType == '301');
+					     const priceUnit = travelPriceUnit(priceItem && priceItem.optionValueUnit);
+					     const combo = {
+					       skuSeqNo: parseInt(seqNo),
+					       name: (packagePolicy.travelPolicy || {}).includedMeals || sanitizeTravelCustomerText(nameItem && nameItem.optionValue),
+					       price: priceItem ? Number(priceItem.optionValue) : 0,
+					       priceUnit,
+					       average: priceUnit === '间' ? 0 : Number(averageItem && averageItem.optionValue) || 0
+					     };
 					     return {
 					       skuId: option.skuId,
+					       parSkuId: option.parSkuId,
+					       name: option.skuName,
+					       combinationList: [combo],
 					       skuSeqNo: parseInt(seqNo) || 0,
 					       ...packagePolicy,
 					       price: priceItem ? Number(priceItem.optionValue) : 0,
@@ -538,7 +567,14 @@
 				}
 			},
 			calendarClickFn(data) {
-				this.reserveData.checkInDate = data.startStr.dateStr
+				const date = data.startStr.dateStr
+				if (!this.customNight) {
+					const sku = resolveTravelRate(this.selectedRateFamily.variants, date, this.reserveData.day, this.selSkuSeqNo, this.formatDate(new Date()))
+					if (!sku) return
+					this.routeSkuId = sku.skuId
+					this.routeSkuSeqNo = sku.skuSeqNo
+				}
+				this.reserveData.checkInDate = date
 				this.syncStayCalendar()
 			},
 			// 格式化日期
@@ -571,6 +607,8 @@
 			// 选择日期方法
 			selectDateFn() {
 				this.popupDate.show = true
+				this.calendarFocusId = ''
+				this.$nextTick(() => { this.calendarFocusId = `travel-month-${(this.reserveData.checkInDate || this.calendarRateData.first).slice(0, 7)}` })
 			},
 			// 确认日期方法
 			confirmFn() {

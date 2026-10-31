@@ -5,6 +5,7 @@ import vm from 'node:vm'
 
 import * as policy from '../utils/travelPolicy.js'
 import * as presentation from '../utils/travelPresentation.js'
+import * as rates from '../utils/travelRates.js'
 
 const travelPolicy = {
 	version: 1, capacity: 2, includedMeals: '三餐',
@@ -125,7 +126,7 @@ function pageHarness(file, data) {
 		.replace(/^\s*import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]\s*$/gm, '')
 		.replace('export default', 'module.exports =')
 	const context = {
-		...policy, ...presentation, module: { exports: {} }, Calendar: {}, AuthProfilePopup: {},
+		...policy, ...presentation, ...rates, module: { exports: {} }, Calendar: {}, AuthProfilePopup: {},
 		sharePageMixin: {}, console: { log() {} }, BaseUrl: {},
 		getGoodsInfo: async () => ({ data }), getBannerList: async () => ({ data: [] }),
 		runWithAuth: (_, callback) => callback(true),
@@ -502,11 +503,12 @@ test('three six-night seasonal offers have distinct labels, prices and enforced 
 	assert.match(events.navigations[0].url, /skuId=203&skuSeqNo=1/)
 })
 
-test('popup duration and period use separate wrapping rows with no fixed card height', () => {
+test('popup duration is grouped independently of seasonal periods with no fixed card height', () => {
 	const source = readFileSync(new URL('../packagesMall/GoodsDetails/SojournGoodsDetails.vue', import.meta.url), 'utf8')
 	const style = readFileSync(new URL('../packagesMall/GoodsDetails/SojournGoodsDetails.scss', import.meta.url), 'utf8')
-	assert.match(source, /class="package_duration">\{\{item.popupLabel\}\}/)
-	assert.match(source, /v-if="item.popupPeriod" class="package_period">可住：\{\{item.popupPeriod\}\}/)
+	assert.match(source, /class="package_duration">\{\{item.label\}\}/)
+	assert.match(source, /v-for="\(item, index\) in popupDurationOptions"/)
+	assert.doesNotMatch(source, /class="package_period"/)
 	const popupCards = style.slice(style.indexOf('.popup_tag_view'), style.indexOf('.popup_customize_view'))
 	assert.match(popupCards, /height: auto/)
 	assert.match(popupCards, /flex-direction: column/)
@@ -623,4 +625,116 @@ test('invalid eligibility metadata blocks real page navigation and submission ev
 		assert.match(page.selectionError, /eligibilityNotice/)
 		assert.equal(events.requests.length, 0)
 	}
+})
+
+function seasonalCatalog() {
+	const data = catalog()
+	const source = data.optionList[1]
+	const windows = [['2026-12-01', '2026-12-31'], ['2027-01-04', '2027-01-31'], ['2027-03-01', '2027-03-31']]
+	let id = 1579
+	data.optionList = [data.optionList[0], ...[6, 14, 29].flatMap(nights => windows.flatMap(([stayStart, stayEnd], i) => {
+		if (nights === 29 && i === 1) return []
+		const total = { 6: [3054, 3054, 2645], 14: [6752, 6752, 5350], 29: [12394, 0, 9520] }[nights][i]
+		return [{ ...source, skuId: id++, options: [...source.options.map(o => String(o.optionType) === '303'
+			? { ...o, optionValue: String(nights), optionParam: metadata({ version: 1, capacity: 4, includedMeals: '三餐', stayStart, stayEnd }) }
+			: String(o.optionType) === '302' ? { ...o, optionValue: String(total) } : { ...o }), { optionType: '301', skuSeqNo: 1, optionValue: String(total / nights) }] }]
+	}))]
+	return data
+}
+
+test('eight source seasonal SKUs render as three durations; selected date chooses original price and checkout SKU', async () => {
+	const { page, events } = pageHarness('GoodsDetails/SojournGoodsDetails', seasonalCatalog())
+	page.loadCollectState = () => {}
+	page.$nextTick = fn => fn()
+	page.getGoodsDetailFn(77)
+	await new Promise(resolve => setImmediate(resolve))
+	assert.equal(page.skuGroupList[0].skuDataList.length, 8)
+	assert.deepEqual(Array.from(page.durationOptions(0), o => o.label), ['7天6晚', '15天14晚', '30天29晚'])
+	const from = page.getCurrentCombinationList(0)[0]
+	assert.equal(from.price, '2645')
+	assert.equal(from.isExact, false)
+	page.reserveFn(page.skuGroupList[0].skuDataList[from.skuIndex], from, 0)
+	assert.equal(page.popupDurationOptions.length, 3)
+	assert.equal(page.calendarRateData.prices['2026-12-01'], '￥509/间')
+	assert.equal(page.calendarRateData.prices['2027-01-04'], '￥509/间')
+	assert.equal(page.calendarRateData.prices['2027-03-01'], '￥440.83/间')
+	assert.equal(page.calendarRateData.prices['2027-02-01'], undefined)
+	assert.equal(page.calendarRateData.prices['2026-12-27'], undefined)
+	page.selectCalendarMonth(page.calendarRateData.months[0])
+	assert.equal(page.popupDate.skuId, 1579)
+	assert.equal(page.popupDate.checkOutDate, '2026-12-07')
+	assert.equal(page.selectedRateTotal, '3054/间')
+	assert.equal(page.calendarFocusId, 'travel-month-2026-12')
+	page.selectCalendarMonth(page.calendarRateData.months[2])
+	assert.equal(page.popupDate.skuId, 1581)
+	assert.equal(page.getCurrentCombinationList(0)[0].price, '2645')
+	assert.equal(page.calendarFocusId, 'travel-month-2027-03')
+	page.confirmFn()
+	assert.match(events.navigations[0].url, /skuId=1581&skuSeqNo=1/)
+	page.selectDayFn(page.popupDurationOptions[2].indices[0])
+	assert.equal(page.popupDate.day, 29)
+	assert.equal(page.calendarRateData.prices['2027-01-04'], undefined)
+	assert.equal(page.calendarRateData.prices['2027-03-03'], '￥328.28/间')
+})
+
+test('confirmation date changes update season and keep new raw SKU through order resynchronization', async () => {
+	const { page } = await confirmation(seasonalCatalog(), { skuId: '1579', day: '6', checkInDate: '2026-12-01', checkOutDate: '2026-12-07' })
+	assert.equal(page.selectionError, '')
+	assert.equal(page.selectedRateFamily.variants.length, 3)
+	assert.equal(page.calendarRateData.prices['2027-03-01'], '￥440.83/间')
+	page.calendarClickFn({ startStr: { dateStr: '2027-03-01' } })
+	assert.equal(page.reserveData.checkOutDate, '2027-03-07')
+	assert.equal(page.skuPrice, 2645)
+	assert.equal(page.selSkuId, 1581)
+	assert.equal(page.selectionError, '')
+	page.syncSkuSelection()
+	assert.equal(page.selSkuId, 1581)
+	page.calendarClickFn({ startStr: { dateStr: '2027-02-01' } })
+	assert.equal(page.selSkuId, 1581)
+	assert.equal(page.reserveData.checkInDate, '2027-03-01')
+	page.calendarClickFn({ startStr: { dateStr: '2027-01-05' } })
+	assert.equal(page.selSkuId, 1580)
+	assert.equal(page.skuPrice, 3054)
+	assert.equal(page.selectionError, '')
+})
+
+test('rate grouping never merges distinct benefits, room parents, combinations, overlap or invalid policy', () => {
+	const make = (start, end) => ({ day: 6, parSkuId: 200, travelPolicy: { version: 1, capacity: 4, stayStart: start, stayEnd: end }, combinationList: [{ name: '三餐', priceUnit: '元/间', skuSeqNo: 1, price: 600 }] })
+	const a = make('2026-12-01', '2026-12-31'), b = make('2027-01-04', '2027-01-31')
+	assert.equal(rates.groupTravelRates([a, b]).length, 1)
+	for (const changed of [
+		{ ...b, parSkuId: 201 }, { ...b, day: 14 }, { ...b, policyError: 'bad' },
+		{ ...b, travelPolicy: null }, { ...b, travelPolicy: { ...b.travelPolicy, capacity: 2 } },
+		{ ...b, travelPolicy: { ...b.travelPolicy, eligibilityNotice: '需陪同' } },
+		{ ...b, combinationList: [{ ...b.combinationList[0], name: '早餐' }] },
+		{ ...b, combinationList: [{ ...b.combinationList[0], priceUnit: '元/人' }] }, a
+	]) assert.equal(rates.groupTravelRates([a, changed]).length, 2)
+	assert.equal(rates.defaultRateSelection([{ ...b, combinationList: [{ ...b.combinationList[0], price: Infinity }] }], 6, 1, '', '2026-10-31'), null)
+})
+
+test('shared calendar blocks missing seasonal quotes while preserving flat-price consumers', () => {
+	const source = readFileSync(new URL('../components/mobile-calendar-simple/Calendar.vue', import.meta.url), 'utf8')
+	const context = { module: { exports: {} } }
+	vm.runInNewContext(source.match(/<script>([\s\S]*?)<\/script>/)[1].replace('export default', 'module.exports ='), context)
+	const options = context.module.exports
+	const page = { ...options.data(), dailyPrices: { '2027-03-01': '￥440.83/间' }, price: '￥509/间' }
+	for (const [key, fn] of Object.entries(options.methods)) page[key] = fn.bind(page)
+	assert.equal(page.datePrice(1, 3, 2027), '￥440.83/间')
+	assert.equal(page.datePrice(1, 2, 2027), '不可订')
+	page.chooseDate(1, 2, 2027)
+	assert.equal(page.startDates, '')
+	page.dailyPrices = null
+	assert.equal(page.datePrice(1, 2, 2027), '￥509/间')
+	assert.equal(page.dateUnavailable(1, 2, 2027), false)
+	page.dailyPrices = { '2027-03-01': '￥440.83/间' }
+	page.fixedEnd = true
+	page.mode = 2
+	page.today = 0
+	page.betweenEnds = NaN
+	const events = []
+	page.$emit = (...event) => events.push(event)
+	page.chooseDate(1, 3, 2027)
+	assert.equal(events[0][0], 'calendarClick')
+	assert.equal(events[0][1].startStr.dateStr, '2027-03-01')
+	assert.match(source, /senior-mode\.rate-calendar/)
 })
