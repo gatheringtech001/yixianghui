@@ -3,7 +3,7 @@
 		<view class="acticity-list" v-if="activityList.length > 0">
 			<view class="list" v-for="(item, index) in activityList" :key="index" @click.stop="activityOrderDetail(item)">
 				<view class="thumb">
-					<image :src="host+ item.activityCover" mode=""></image>
+					<image :src="coverUrl(item.activityCover)" mode="aspectFill"></image>
 				</view>
 				<view class="item">
 					<view class="title-row">
@@ -46,6 +46,7 @@
 
 <script>
 	import { getActivityOrderList, syncActivityOrderPay, syncActivityOrderRefund } from '@/api/activity/index'
+	import { detailImageUrl } from '@/utils/detailImagePreview'
 	export default {
 		data() {
 			return {
@@ -57,6 +58,9 @@
 			this.getMyActivity()
 		},
 		methods:{
+			coverUrl(cover) {
+				return detailImageUrl(cover, this.host) || '/static/home-design/entry-stay.jpg'
+			},
 			formatMoney(value) {
 				const num = Number(value)
 				return Number.isFinite(num) ? num.toFixed(2) : '0.00'

@@ -86,6 +86,29 @@ export function travelPackagePeriodLabel(policy) {
 	return start ? `${format(start)}起` : end ? `截至${format(end)}` : ''
 }
 
+// Select a valid default when opening/changing packages. Manual date clicks still
+// go through validateTravelSelection, so an unavailable date is never silently booked.
+export function defaultTravelDates({ travelPolicy, policyError, nights, checkInDate, today }) {
+	const empty = { checkInDate: '', checkOutDate: '' }
+	const count = Number(nights)
+	const currentDay = dateDay(today)
+	if (policyError || !positiveInteger(count) || !Number.isFinite(currentDay)) return empty
+	const policy = travelPolicy || {}
+	const first = Math.max(currentDay, policy.stayStart ? dateDay(policy.stayStart) : currentDay)
+	const last = policy.stayEnd ? dateDay(policy.stayEnd) - count + 1 : Infinity
+	const format = day => new Date(day * DAY).toISOString().slice(0, 10)
+	const dates = start => ({ checkInDate: format(start), checkOutDate: format(start + count) })
+	const chosen = dateDay(checkInDate)
+	if (Number.isFinite(chosen) && chosen >= first && chosen <= last
+		&& !validateTravelSelection({ travelPolicy, nights: count, ...dates(chosen) })) return dates(chosen)
+	let start = first
+	const excluded = (policy.excludedStayRanges || []).slice().sort((a, b) => a.start.localeCompare(b.start))
+	for (const range of excluded) {
+		if (start <= dateDay(range.end) && start + count > dateDay(range.start)) start = dateDay(range.end) + 1
+	}
+	return start <= last ? dates(start) : empty
+}
+
 export function travelMealPresentation(meals) {
 	if (meals === '不含餐' || meals.startsWith('餐次未注明')) {
 		return {

@@ -142,7 +142,7 @@
 					<view class="tag_view" :class="popupDate.skuSelect == index ? 'tag_select':''"
 						v-for="(item, index) in popupSkuDataList" :key="index" @click="selectDayFn(index)">
 						<text class="package_duration">{{item.popupLabel}}</text>
-						<text v-if="item.popupPeriod" class="package_period">{{item.popupPeriod}}</text>
+						<text v-if="item.popupPeriod" class="package_period">可住：{{item.popupPeriod}}</text>
 					</view>
 					<view v-if="canCustomizeNights" class="tag_customize_view" :class="popupDate.skuSelect == 'customize' ? 'tag_select':''"
 						@click="selectDayFn('customize')">自选晚数</view>
@@ -154,12 +154,15 @@
 					晚
 				</view>
 				<view class="popup_policy_view">{{ selectedTravelPolicyText }}</view>
+				<view class="popup_policy_view" v-if="popupDate.checkInDate && popupDate.checkOutDate">本次入住：{{ popupDate.checkInDate }}　退房：{{ popupDate.checkOutDate }}</view>
+				<view v-else class="popup_policy_view">请选择入住日期；该时段如无可用日期，请更换套餐。</view>
 				<view v-if="selectionError" style="color: #701018">{{ selectionError }}</view>
 			</view>
 			<!-- 小程序 view 的 overflow 滚动不稳定，用 scroll-view 保证可滚 -->
 			<scroll-view scroll-y="true" class="popup_calendar_view" :show-scrollbar="false">
 				<Calendar ref="CalendarRef" :is-show="true" :isFixed="false" :price="calendarPriceText"
 					:startDate="popupDate.checkInDate" :endDate="popupDate.checkOutDate"
+					:betweenStart="calendarStayStart" :betweenEnd="calendarStayEnd"
 					:fixedEnd="true" :mode="2" themeColor="#701018" @callback="calendarCallBackFn"
 					@calendarClick="calendarClickFn" />
 			</scroll-view>
@@ -229,7 +232,7 @@
 	import { goodsCollect, deleteCollect, goodsCollectList } from '@/api/member/index'
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
 	import { prepareRichTextHtml } from '@/utils/richText'
-	import { readTravelPackage, supportsCustomNights, travelPackagePeriodLabel, travelPolicyText, validateTravelSelection } from '@/utils/travelPolicy'
+	import { readTravelPackage, supportsCustomNights, travelPackagePeriodLabel, defaultTravelDates, travelPolicyText, validateTravelSelection } from '@/utils/travelPolicy'
 	import {
 		formatCalendarPrice,
 		travelPriceUnit,
@@ -321,6 +324,18 @@
 			this.clearAnchorTimers()
 		},
 		computed: {
+			calendarStayStart() {
+				const today = this.formatDate(new Date())
+				const policy = this.selectedTravelPackage.travelPolicy || {}
+				return policy.stayStart && policy.stayStart > today ? policy.stayStart : today
+			},
+			calendarStayEnd() {
+				const policy = this.selectedTravelPackage.travelPolicy || {}
+				if (!policy.stayEnd) return ''
+				const end = new Date(`${policy.stayEnd}T00:00:00Z`)
+				end.setUTCDate(end.getUTCDate() + 1)
+				return end.toISOString().slice(0, 10)
+			},
 			canCustomizeNights() {
 				return supportsCustomNights(this.getPopupSkuGroup())
 			},
@@ -422,27 +437,35 @@
 				const end = new Date(checkOut.replace(/-/g, '/'))
 				return Math.round((end - start) / (24 * 3600 * 1000))
 			},
-			applyStayDuration() {
+			applyStayDuration(adjustToPolicy = false) {
 				const nights = Number(this.popupDate.day) || 0
 				if (nights <= 0) return
+				if (adjustToPolicy) {
+					Object.assign(this.popupDate, defaultTravelDates({
+						...this.selectedTravelPackage, nights, checkInDate: this.popupDate.checkInDate,
+						today: this.formatDate(new Date())
+					}))
+					if (!this.popupDate.checkInDate) return
+				}
 				this.$nextTick(() => {
 					const cal = this.$refs.CalendarRef
-					if (!cal) return
 					if (!this.popupDate.checkInDate) {
 						this.popupDate.checkInDate = this.formatDate(new Date())
 					}
 					const startDate = this.popupDate.checkInDate
-					cal.startDates = cal.resetTime(startDate)
 					const end = new Date(startDate.replace(/-/g, '/'))
 					end.setDate(end.getDate() + nights)
 					const checkOut = this.formatDate(end)
-					cal.endDates = cal.resetTime(checkOut)
 					this.popupDate.checkOutDate = checkOut
 					this.calendarEndDate = checkOut
+					if (cal) {
+						cal.startDates = cal.resetTime(startDate)
+						cal.endDates = cal.resetTime(checkOut)
+					}
 				})
 			},
 			initPopupCalendar() {
-				this.applyStayDuration()
+				this.applyStayDuration(true)
 			},
 			setPageScrollHeight() {
 				this.$nextTick(() => {
@@ -916,7 +939,7 @@
           this.popupDate.skuId = group.skuId
           this.popupDate.skuSeqNo = null
           this.popupDate.customNight = true
-          this.applyStayDuration()
+          this.applyStayDuration(true)
           return
         }
         this.popupDate.skuSelect = index
@@ -933,7 +956,7 @@
               : skuData.combinationList[0].skuSeqNo
           }
         }
-        this.applyStayDuration()
+        this.applyStayDuration(true)
       },
       onCustomDayChange(e) {
         const val = typeof e === 'object' ? e.value : e

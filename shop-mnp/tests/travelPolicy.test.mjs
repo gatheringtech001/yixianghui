@@ -419,6 +419,52 @@ test('season labels retain year boundaries and optional start/end bounds', () =>
 	assert.equal(policy.travelPackagePeriodLabel({ stayEnd: '2026-12-31' }), '截至2026.12.31')
 })
 
+test('switching seasonal packages selects valid dates for both six and fourteen nights', () => {
+	for (const nights of [6, 14]) {
+		let checkInDate = ''
+		for (const [stayStart, stayEnd] of [['2026-12-01', '2026-12-31'], ['2027-01-04', '2027-01-31'], ['2027-03-01', '2027-03-31']]) {
+			const travelPolicy = { version: 1, stayStart, stayEnd }
+			const dates = policy.defaultTravelDates({ travelPolicy, nights, checkInDate, today: '2026-10-31' })
+			assert.equal(dates.checkInDate, stayStart)
+			assert.equal(policy.validateTravelSelection({ travelPolicy, nights, ...dates }), '')
+			checkInDate = dates.checkInDate
+		}
+	}
+})
+
+test('default dates preserve valid selection, skip excluded stays and never pick a past or expired stay', () => {
+	const base = { nights: 6, today: '2026-10-31' }
+	assert.deepEqual(policy.defaultTravelDates({ ...base, checkInDate: '2026-11-05' }), { checkInDate: '2026-11-05', checkOutDate: '2026-11-11' })
+	assert.equal(policy.defaultTravelDates({ ...base, checkInDate: '2026-10-01' }).checkInDate, '2026-10-31')
+	assert.equal(policy.defaultTravelDates({ ...base, travelPolicy: { excludedStayRanges: [{ start: '2026-11-02', end: '2026-11-08' }, { start: '2026-11-10', end: '2026-11-15' }] } }).checkInDate, '2026-11-16')
+	const empty = { checkInDate: '', checkOutDate: '' }
+	assert.deepEqual(policy.defaultTravelDates({ ...base, travelPolicy: { stayEnd: '2026-11-04' } }), empty)
+	assert.deepEqual(policy.defaultTravelDates({ ...base, policyError: '配置无效' }), empty)
+	assert.deepEqual(policy.defaultTravelDates({ ...base, nights: 0 }), empty)
+	assert.deepEqual(policy.defaultTravelDates({ ...base, today: 'bad' }), empty)
+	assert.deepEqual(policy.defaultTravelDates({ ...base, nights: 1, travelPolicy: { stayEnd: '2026-10-31' } }), { checkInDate: '2026-10-31', checkOutDate: '2026-11-01' })
+})
+
+test('actual popup switches seasonal dates before calendar ref is mounted, but keeps manual invalid date for validation', async () => {
+	const data = catalog({ version: 1, stayStart: '2027-01-04', stayEnd: '2027-01-31' })
+	data.optionList[1].options[0].optionValue = '6'
+	const { page } = pageHarness('GoodsDetails/SojournGoodsDetails', data)
+	page.loadCollectState = () => {}
+	page.$nextTick = callback => callback()
+	page.getGoodsDetailFn(77)
+	await new Promise(resolve => setImmediate(resolve))
+	const offer = page.skuGroupList[0].skuDataList[0]
+	page.reserveFn(offer, offer.combinationList[0], 0)
+	assert.equal(page.popupDate.checkInDate, '2027-01-04')
+	assert.equal(page.popupDate.checkOutDate, '2027-01-10')
+	assert.equal(page.calendarStayStart, '2027-01-04')
+	assert.equal(page.calendarStayEnd, '2027-02-01')
+	assert.equal(page.selectionError, '')
+	page.calendarClickFn({ startStr: { dateStr: '2027-01-30' } })
+	assert.equal(page.popupDate.checkInDate, '2027-01-30')
+	assert.match(page.selectionError, /范围/)
+})
+
 test('three six-night seasonal offers have distinct labels, prices and enforced stay windows', async () => {
 	const data = catalog()
 	const prototype = data.optionList[1]
@@ -460,7 +506,7 @@ test('popup duration and period use separate wrapping rows with no fixed card he
 	const source = readFileSync(new URL('../packagesMall/GoodsDetails/SojournGoodsDetails.vue', import.meta.url), 'utf8')
 	const style = readFileSync(new URL('../packagesMall/GoodsDetails/SojournGoodsDetails.scss', import.meta.url), 'utf8')
 	assert.match(source, /class="package_duration">\{\{item.popupLabel\}\}/)
-	assert.match(source, /v-if="item.popupPeriod" class="package_period">\{\{item.popupPeriod\}\}/)
+	assert.match(source, /v-if="item.popupPeriod" class="package_period">可住：\{\{item.popupPeriod\}\}/)
 	const popupCards = style.slice(style.indexOf('.popup_tag_view'), style.indexOf('.popup_customize_view'))
 	assert.match(popupCards, /height: auto/)
 	assert.match(popupCards, /flex-direction: column/)
