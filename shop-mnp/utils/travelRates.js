@@ -48,7 +48,10 @@ export function defaultRateSelection(variants, nights, seq, date, today) {
 	const selected = resolveTravelRate(variants, date, nights, seq, today)
 	if (selected) return { sku: selected, checkInDate: date, checkOutDate: travelDateAfter(date, nights) }
 	return (variants || []).map(sku => ({ sku, ...defaultTravelDates({ ...sku, nights, today }) }))
-		.filter(item => item.checkInDate && Number.isFinite(Number(rateCombination(item.sku, seq)?.price)) && Number(rateCombination(item.sku, seq)?.price) > 0)
+		.filter(item => {
+			const combo = rateCombination(item.sku, seq)
+			return item.checkInDate && combo && Number.isFinite(Number(combo.price)) && Number(combo.price) > 0
+		})
 		.sort((a, b) => a.checkInDate.localeCompare(b.checkInDate))[0] || null
 }
 
@@ -59,8 +62,8 @@ export function travelRatePrice(sku, seq) {
 
 export function buildTravelRateCalendar(variants, nights, seq, today) {
 	if (!variants || !variants.length) return { first: today, end: '', prices: {}, months: [], count: 6 }
-	const starts = (variants || []).map(s => s.travelPolicy?.stayStart).filter(Boolean).sort()
-	const ends = (variants || []).map(s => s.travelPolicy?.stayEnd).filter(Boolean).sort()
+	const starts = (variants || []).map(s => (s.travelPolicy || {}).stayStart).filter(Boolean).sort()
+	const ends = (variants || []).map(s => (s.travelPolicy || {}).stayEnd).filter(Boolean).sort()
 	const first = starts.length === variants.length && starts[0] > today ? starts[0] : today
 	const fallbackEnd = new Date(`${first}T00:00:00Z`)
 	fallbackEnd.setUTCMonth(fallbackEnd.getUTCMonth() + 6)
