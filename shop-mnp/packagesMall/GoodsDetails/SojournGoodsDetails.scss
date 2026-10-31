@@ -313,22 +313,29 @@ $page-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 							align-items: flex-end;
 							
 							.price_view {
-								color: #111111;
+								color: $page-accent;
 								font-size: 24rpx;
-								
-								text {
+								display: flex;
+								align-items: baseline;
+								flex-wrap: wrap;
+								justify-content: flex-end;
+								column-gap: 4rpx;
+								.rate_amount {
 									color: $page-accent;
 									font-size: 38rpx;
 									font-weight: 840;
-									
-									text {
-										font-size: 24rpx;
-									}
+								}
+								text.rate_unit {
+									color: $page-accent;
+									font-size: 24rpx !important;
+									font-weight: 500;
+									white-space: nowrap;
 								}
 							}
 							.price_average_view {
-								color: #777777;
-								font-size: 20rpx;
+								color: #615653;
+								font-size: 24rpx;
+								line-height: 1.5;
 								font-weight: 400;
 							}
 						}
@@ -609,16 +616,6 @@ $page-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 		font-weight: bold;
 		color: $page-accent;
 		text { margin-left: 16rpx; font-size: 26rpx; font-weight: normal; }
-	}
-	.calendar_month_nav { flex-shrink: 0; white-space: nowrap; margin-top: 14rpx; }
-	.calendar_month_button {
-		display: inline-block;
-		padding: 14rpx 20rpx;
-		margin-right: 12rpx;
-		border: 1rpx solid #d5c9c6;
-		border-radius: 12rpx;
-		font-size: 26rpx;
-		&.active { color: white; background: $page-accent; border-color: $page-accent; }
 	}
 
 	.popup_customize_view {

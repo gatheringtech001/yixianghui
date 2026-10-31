@@ -78,7 +78,7 @@
               </view>
               <view class="item_price_view">
                 <view class="price_view">
-                  <text>{{ nightlyPrice(item) }}</text> /晚{{ item.isExact ? '' : '起' }}
+                  <text class="rate_amount">{{ nightlyPrice(item).split('/')[0] }}</text><text class="rate_unit">/{{ nightlyPrice(item).split('/')[1] }}/晚{{ item.isExact ? '' : '起' }}</text>
                 </view>
                 <view class="price_average_view">套餐总价￥{{ item.price }}/{{ item.priceUnit }}{{ item.isExact ? '' : '起' }}</view>
                 <view class="price_average_view" v-if="item.priceLabel">{{ item.priceLabel }}</view>
@@ -157,9 +157,6 @@
 				<view v-if="selectionError" style="color: #701018">{{ selectionError }}</view>
 			</view>
 			<!-- 小程序 view 的 overflow 滚动不稳定，用 scroll-view 保证可滚 -->
-			<scroll-view v-if="calendarRateData.months.length > 1" scroll-x class="calendar_month_nav">
-				<view v-for="month in calendarRateData.months" :key="month.month" class="calendar_month_button" :class="popupDate.checkInDate.slice(0, 7) === month.month ? 'active' : ''" @click="selectCalendarMonth(month)">{{ month.label }}</view>
-			</scroll-view>
 			<scroll-view scroll-y="true" class="popup_calendar_view" :show-scrollbar="false" :scroll-top="calendarScrollTop" scroll-with-animation>
 				<Calendar ref="CalendarRef" :is-show="true" :isFixed="false" :price="calendarPriceText"
 					:focusMonthId="calendarFocusId" @monthFocus="onCalendarMonthFocus"
@@ -419,10 +416,6 @@
 			focusCalendarMonth(date) {
 				this.calendarFocusId = ''
 				this.$nextTick(() => { this.calendarFocusId = `travel-month-${date.slice(0, 7)}` })
-			},
-			selectCalendarMonth(month) {
-				this.calendarClickFn({ startStr: { dateStr: month.date } })
-				this.focusCalendarMonth(month.date)
 			},
 			selectRateForDate(date) {
 				const sku = resolveTravelRate(this.selectedDurationOption.variants, date, this.popupDate.day, this.popupDate.skuSeqNo, this.formatDate(new Date()))
