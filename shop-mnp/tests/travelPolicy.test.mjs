@@ -736,5 +736,14 @@ test('shared calendar blocks missing seasonal quotes while preserving flat-price
 	page.chooseDate(1, 3, 2027)
 	assert.equal(events[0][0], 'calendarClick')
 	assert.equal(events[0][1].startStr.dateStr, '2027-03-01')
+	page.focusMonthId = 'travel-month-2027-03'
+	page.$nextTick = fn => fn()
+	const selectors = []
+	const query = { select(selector) { selectors.push(selector); return this }, boundingClientRect() { return this }, exec(fn) { fn([{ top: -700 }, { top: 100 }]) } }
+	context.uni = { createSelectorQuery: () => ({ in: () => query }) }
+	page.scrollToFocusedMonth()
+	assert.deepEqual(selectors, ['.calendar-tz', '#travel-month-2027-03'])
+	assert.equal(events[1][0], 'monthFocus')
+	assert.equal(events[1][1], 800)
 	assert.match(source, /senior-mode\.rate-calendar/)
 })
