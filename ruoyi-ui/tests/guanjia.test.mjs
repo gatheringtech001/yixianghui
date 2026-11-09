@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {guanjiaUrl,exportQuery,rosterTarget} from '../src/utils/guanjia.mjs';
+import {guanjiaUrl,exportQuery,rosterTarget,nativeEmbedUrl,workspaceMessage} from '../src/utils/guanjia.mjs';
 
 test('AI上下文仅携带任务与对象ID，同页导航保留现有登录，不传凭据或客户资料',()=>{
  const url=new URL(guanjiaUrl({task:'edit',type:'goods',id:311,from:'goods',token:'must-not-travel',name:'private-name'}));
@@ -13,4 +13,15 @@ test('导出沿用筛选而非当前页；商品、课程与活动名单精确�
  assert.deepEqual(exportQuery({pageNum:2,pageSize:10,goodsType:'education',status:'1',params:{beginTime:'2026-10-16'}}),{goodsType:'education',status:'1',params:{beginTime:'2026-10-16'}});
  assert.deepEqual(rosterTarget({type:'goods',id:311}),{url:'system/app_goods_order/roster',query:{goodsId:311},permission:'system:app_goods_order:export'});
  assert.deepEqual(rosterTarget({type:'activity',id:7}).query,{activityId:7});assert.throws(()=>rosterTarget({type:'course',id:7}));
+});
+
+
+test('真实AI工作区内嵌，不接受任意iframe地址或其他窗口发来的登录跳转',()=>{
+ assert.equal(new URL(nativeEmbedUrl(guanjiaUrl({task:'assistant',scope:'mini',from:'goods'}))).searchParams.get('embed'),'native');
+ assert.throws(()=>nativeEmbedUrl('https://evil.invalid/guanjia/'));
+ const frame={};
+ assert.equal(workspaceMessage({origin:'https://gatheringtech.com',source:frame,data:{type:'guanjia:close'}},frame),'guanjia:close');
+ assert.equal(workspaceMessage({origin:'https://gatheringtech.com',source:frame,data:{type:'guanjia:auth-required'}},frame),'guanjia:auth-required');
+ assert.equal(workspaceMessage({origin:'https://evil.invalid',source:frame,data:{type:'guanjia:auth-required'}},frame),'');
+ assert.equal(workspaceMessage({origin:'https://gatheringtech.com',source:{},data:{type:'guanjia:auth-required'}},frame),'');
 });

@@ -1,39 +1,43 @@
 <template>
-  <el-drawer title="聚英 AI" :visible.sync="visible" size="min(440px, 100vw)" append-to-body custom-class="guanjia-drawer">
-    <div class="guanjia-content">
+  <el-drawer title="聚英 AI" :visible.sync="visible" :size="workspaceUrl ? 'min(560px, 100vw)' : 'min(440px, 100vw)'" append-to-body custom-class="guanjia-drawer" @closed="workspaceUrl = ''">
+    <section v-if="workspaceUrl" class="guanjia-workspace">
+      <div class="guanjia-workspace-tools"><el-button type="text" icon="el-icon-back" @click="workspaceUrl = ''">返回工具</el-button><a :href="fullWorkspaceUrl">打开完整管家 <i class="el-icon-top-right" /></a></div>
+      <iframe ref="workspace" :src="workspaceUrl" title="聚英管家工作区" allow="microphone" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads" />
+    </section>
+    <div v-else class="guanjia-content">
       <section v-if="context.id" class="guanjia-current">
         <span>{{ context.type === 'activity' ? '当前活动' : '当前商品' }} · #{{ context.id }}</span>
         <h3>{{ context.name }}</h3>
-        <a v-if="canEdit" :href="link({task:'edit',type:context.type,id:context.id})" class="guanjia-action primary"><i class="el-icon-magic-stick" /> AI 修改现有内容 <i class="el-icon-right" /></a>
+        <a v-if="canEdit" :href="link({task:'edit',type:context.type,id:context.id})" class="guanjia-action primary" @click.prevent="launch(link({task:'edit',type:context.type,id:context.id}))"><i class="el-icon-magic-stick" /> AI 修改现有内容 <i class="el-icon-right" /></a>
         <el-button v-if="canExportRoster" plain icon="el-icon-download" :loading="exporting" @click="exportRoster">导出该{{ context.type === 'activity' ? '活动' : '商品' }}报名名单</el-button>
       </section>
       <h3>智能上架</h3>
       <div class="guanjia-grid">
-        <a v-for="item in listingKinds" :key="item.kind" :href="link({task:'create',kind:item.kind})" class="guanjia-tile"><i :class="item.icon" /><strong>{{ item.label }}</strong></a>
+        <a v-for="item in listingKinds" :key="item.kind" :href="link({task:'create',kind:item.kind})" class="guanjia-tile" @click.prevent="launch(link({task:'create',kind:item.kind}))"><i :class="item.icon" /><strong>{{ item.label }}</strong></a>
       </div>
       <p class="guanjia-hint">在聚英管家上传图片或文字，整理资料后统一核对。</p>
       <h3>业务与内容助手</h3>
       <div class="guanjia-grid">
-        <a v-for="item in assistants" :key="item.scope" :href="link({task:'assistant',scope:item.scope})" class="guanjia-tile"><strong>{{ item.label }}</strong><small>{{ item.hint }}</small></a>
+        <a v-for="item in assistants" :key="item.scope" :href="link({task:'assistant',scope:item.scope})" class="guanjia-tile" @click.prevent="launch(link({task:'assistant',scope:item.scope}))"><strong>{{ item.label }}</strong><small>{{ item.hint }}</small></a>
       </div>
       <div class="guanjia-shortcuts">
-        <a :href="link({task:'page',page:'orders'})">订单、报名与名单 <i class="el-icon-right" /></a>
-        <a :href="link({task:'page',page:'approvals'})">审批与待办 <i class="el-icon-right" /></a>
-        <a :href="link({task:'page',page:'notifications'})">付款与报名通知 <i class="el-icon-right" /></a>
+        <a :href="link({task:'page',page:'orders'})" @click.prevent="launch(link({task:'page',page:'orders'}))">订单、报名与名单 <i class="el-icon-right" /></a>
+        <a :href="link({task:'page',page:'approvals'})" @click.prevent="launch(link({task:'page',page:'approvals'}))">审批与待办 <i class="el-icon-right" /></a>
+        <a :href="link({task:'page',page:'notifications'})" @click.prevent="launch(link({task:'page',page:'notifications'}))">付款与报名通知 <i class="el-icon-right" /></a>
       </div>
-      <small class="guanjia-hint">复用聚英管家登录与权限；返回后台可继续当前操作。</small>
+      <small class="guanjia-hint">复用聚英管家登录与权限。</small>
     </div>
   </el-drawer>
 </template>
 
 <script>
 import { checkPermi } from '@/utils/permission'
-import { guanjiaUrl, rosterTarget } from '@/utils/guanjia.mjs'
+import { guanjiaUrl, rosterTarget, nativeEmbedUrl, workspaceMessage } from '@/utils/guanjia.mjs'
 export default {
   name: 'GuanjiaAssistant',
   data() {
     return {
-      visible: false, exporting: false, context: {},
+      visible: false, exporting: false, context: {}, workspaceUrl: '',
       listingKinds: [
         { kind: 'hotel', label: '旅居', icon: 'el-icon-house' },
         { kind: 'activity', label: '活动', icon: 'el-icon-date' },
@@ -51,6 +55,7 @@ export default {
     }
   },
   computed: {
+    fullWorkspaceUrl() { const url = new URL(this.workspaceUrl); url.searchParams.delete('embed'); return url.href },
     canEdit() { return this.context.id && checkPermi(['system:app_' + this.context.type + ':edit']) },
     canExportRoster() { return this.context.id && checkPermi([rosterTarget(this.context).permission]) },
     from() {
@@ -62,10 +67,18 @@ export default {
       return path.includes('app_goods') ? 'goods' : 'home'
     }
   },
-  mounted() { this.$root.$on('guanjia:open', this.open) },
-  beforeDestroy() { this.$root.$off('guanjia:open', this.open) },
+  mounted() { this.$root.$on('guanjia:open', this.open); window.addEventListener('message', this.onWorkspaceMessage) },
+  beforeDestroy() { this.$root.$off('guanjia:open', this.open); window.removeEventListener('message', this.onWorkspaceMessage) },
   methods: {
-    open(context = {}) { this.context = context; this.visible = true },
+    open(context = {}) { this.context = context; this.workspaceUrl = ''; this.visible = true },
+    launch(href) { this.workspaceUrl = nativeEmbedUrl(href) },
+    onWorkspaceMessage(event) {
+      const action = workspaceMessage(event, this.$refs.workspace?.contentWindow)
+      if (!action || !this.workspaceUrl) return
+      if (action === 'guanjia:close') this.visible = false
+      // Third-party-cookie restrictions and legacy cookies must never create a login loop.
+      if (action === 'guanjia:auth-required') window.location.assign(this.fullWorkspaceUrl)
+    },
     link(intent) { return guanjiaUrl({ ...intent, from: this.from }) },
     async exportRoster() {
       if (this.exporting || !this.canExportRoster) return
@@ -80,6 +93,7 @@ export default {
 </script>
 
 <style scoped>
+.guanjia-workspace{height:100%;display:flex;flex-direction:column;min-width:0}.guanjia-workspace-tools{display:flex;align-items:center;justify-content:space-between;padding:0 20px 10px;font-size:12px;flex-shrink:0}.guanjia-workspace iframe{width:100%;flex:1;min-height:0;border:0;background:#fff}
 .guanjia-content{padding:0 20px 28px;color:#303133;overflow-wrap:anywhere;box-sizing:border-box;min-width:0}
 .guanjia-content h3{margin:20px 0 12px;font-size:15px;line-height:1.6}
 .guanjia-current{padding:16px;border:1px solid #d9e7fa;border-radius:8px;background:#f5f9ff}
@@ -92,5 +106,5 @@ export default {
 .guanjia-shortcuts a{display:flex;justify-content:space-between;padding:15px 0;border-bottom:1px solid #ebeef5;font-size:14px}
 </style>
 <style>
-.guanjia-drawer{max-width:100vw}.guanjia-drawer .el-drawer__body{overflow:auto;min-width:0}.guanjia-drawer .el-drawer__header{margin-bottom:20px}
+.guanjia-drawer{max-width:100vw}.guanjia-drawer .el-drawer__body{overflow:auto;min-width:0;height:calc(100dvh - 76px)}.guanjia-drawer .el-drawer__header{margin-bottom:20px}
 </style>

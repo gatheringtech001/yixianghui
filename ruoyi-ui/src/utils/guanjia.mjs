@@ -23,3 +23,13 @@ export function rosterTarget(context) {
   if (!['goods', 'activity'].includes(context.type) || !Number.isSafeInteger(id) || id < 1) throw new Error('名单对象无效');
   return { url: 'system/app_' + context.type + '_order/roster', query: { [context.type === 'goods' ? 'goodsId' : 'activityId']: id }, permission: 'system:app_' + context.type + '_order:export' };
 }
+export function nativeEmbedUrl(href) {
+  const url = new URL(href);
+  if (url.origin !== 'https://gatheringtech.com' || url.pathname !== '/guanjia/') throw new Error('工作区地址无效');
+  url.searchParams.set('embed', 'native');
+  return url.href;
+}
+export function workspaceMessage(event, frameWindow) {
+  if (!frameWindow || event.origin !== 'https://gatheringtech.com' || event.source !== frameWindow) return '';
+  return ['guanjia:close', 'guanjia:auth-required'].includes(event.data?.type) ? event.data.type : '';
+}
