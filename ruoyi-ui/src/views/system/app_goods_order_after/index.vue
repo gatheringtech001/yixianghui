@@ -462,7 +462,8 @@ export default {
     async handleInfo(row) {
       const afterId = row && row.afterId || this.ids[0]
       if (!afterId) return
-      this.selrow = (await getApp_goods_order_after(afterId)).data
+      const detail = (await getApp_goods_order_after(afterId)).data
+      this.selrow = { ...detail, goodsName: detail.goodsName || (row && row.goodsName) }
       row = this.selrow
       this.refundform = {
         refundMoney: row.appRefundMoney != null ? row.appRefundMoney : (row.refundMoney != null ? row.refundMoney : row.goodsMoney),
