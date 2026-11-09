@@ -27,8 +27,8 @@
       </template>
 
       <el-dropdown class="avatar-container right-menu-item hover-effect" trigger="click">
-        <div class="avatar-wrapper">
-          <img :src="avatar" class="user-avatar">
+        <div class="avatar-wrapper" aria-label="账号菜单">
+          <account-avatar :src="avatar" />
           <i class="el-icon-caret-bottom" />
         </div>
         <el-dropdown-menu slot="dropdown">
@@ -55,6 +55,7 @@ import Hamburger from '@/components/Hamburger'
 import Screenfull from '@/components/Screenfull'
 import SizeSelect from '@/components/SizeSelect'
 import Search from '@/components/HeaderSearch'
+import AccountAvatar from '@/components/AccountAvatar'
 import RuoYiGit from '@/components/RuoYi/Git'
 import RuoYiDoc from '@/components/RuoYi/Doc'
 
@@ -66,6 +67,7 @@ export default {
     Screenfull,
     SizeSelect,
     Search,
+    AccountAvatar,
     RuoYiGit,
     RuoYiDoc
   },
@@ -176,24 +178,19 @@ export default {
     }
 
     .avatar-container {
-      margin-right: 30px;
+      margin-right: 12px;
+      vertical-align: top;
 
       .avatar-wrapper {
         margin-top: 5px;
-        position: relative;
-
-        .user-avatar {
-          cursor: pointer;
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
-        }
+        display: flex;
+        align-items: center;
+        height: 40px;
+        cursor: pointer;
 
         .el-icon-caret-bottom {
           cursor: pointer;
-          position: absolute;
-          right: -20px;
-          top: 25px;
+          margin-left: 8px;
           font-size: 12px;
         }
       }
