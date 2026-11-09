@@ -395,6 +395,8 @@ export default {
         this.app_goods_order_afterList = response.rows;
         this.total = response.total;
         if (tab === 'pending') this.pendingTotal = response.total
+      }).catch(() => {
+        if (requestId === this.reviewRequestId) { this.app_goods_order_afterList = []; this.total = 0 }
       }).finally(() => { if (requestId === this.reviewRequestId) this.loading = false });
       if (this.reviewTab !== 'pending') {
         listApp_goods_order_after(reviewQuery({ ...this.queryParams, pageNum: 1, pageSize: 1 }, 'pending')).then(response => { this.pendingTotal = response.total })
