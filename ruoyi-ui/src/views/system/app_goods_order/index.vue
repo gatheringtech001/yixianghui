@@ -263,6 +263,7 @@
     </el-form>
 
     <el-row :gutter="10" class="mb8">
+      <el-col :span="1.5"><el-button type="warning" plain icon="el-icon-download" size="mini" v-hasPermi="['system:app_goods_order:export']" @click="handleRosterExport">导出名单</el-button></el-col>
       <el-col :span="1.5">
         <el-button
           type="primary"
@@ -609,6 +610,7 @@
 </template>
 
 <script>
+import { exportQuery } from '@/utils/guanjia.mjs'
 import { listApp_goods_order, getApp_goods_order, delApp_goods_order, addApp_goods_order, updateApp_goods_order, updateTravelStatus } from "@/api/system/app_goods_order";
 export default {
   name: "App_goods_order",
@@ -708,6 +710,10 @@ export default {
     this.getList();
   },
   methods: {
+    handleRosterExport() {
+      const filters = exportQuery(this.queryParams);
+      this.download('system/app_goods_order/roster', filters, `报名名单_${Date.now()}.xlsx`);
+    },
     /** 查询商品订单列表 */
     getList() {
       this.loading = true;

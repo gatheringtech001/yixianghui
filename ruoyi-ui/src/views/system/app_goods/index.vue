@@ -82,6 +82,7 @@
     </div>
 
     <el-row :gutter="10" class="mb8">
+      <el-col :span="1.5"><el-button type="primary" plain icon="el-icon-magic-stick" size="mini" @click="openAI()">AI 助手</el-button></el-col>
       <el-col :span="1.5">
         <el-button type="primary" plain icon="el-icon-plus" size="mini" @click="handleAdd"
                    v-hasPermi="['system:app_goods:add']">新增</el-button>
@@ -118,10 +119,10 @@
       <el-table-column label="价格" width="145" prop="price" sortable="custom"><template slot-scope="{row}"><strong>¥{{ row.price }}</strong><small class="listing-secondary">会员 ¥{{ row.vipPrice == null ? row.price : row.vipPrice }} / {{ row.unit || '份' }}</small></template></el-table-column>
       <el-table-column label="库存" width="90"><template slot-scope="{row}">{{ row.isSku === 1 ? '按规格' : row.stock == null ? '—' : row.stock }}</template></el-table-column>
       <el-table-column label="状态" width="100"><template slot-scope="{row}"><el-tag size="small" :type="String(row.status) === '1' ? 'success' : 'info'">{{ publicationLabel(row.status) }}</el-tag></template></el-table-column>
-      <el-table-column label="操作" width="220" align="right"><template slot-scope="{row}"><el-button type="text" size="mini" @click="handlePreview(row)">预览</el-button><el-button type="text" size="mini" @click="handleUpdate(row)" v-hasPermi="['system:app_goods:edit']">编辑</el-button><el-button size="mini" :type="String(row.status) === '1' ? 'default' : 'primary'" :loading="publicationBusy === row.goodsId" :disabled="publicationBusy !== null" @click="togglePublication(row)" v-hasPermi="['system:app_goods:edit']">{{ String(row.status) === '1' ? '下架' : '上架' }}</el-button></template></el-table-column>
+      <el-table-column label="操作" width="245" align="right"><template slot-scope="{row}"><el-button type="text" size="mini" @click="handlePreview(row)">预览</el-button><el-button type="text" size="mini" @click="openAI(row)" v-hasPermi="['system:app_goods:edit']">AI</el-button><el-button type="text" size="mini" @click="handleUpdate(row)" v-hasPermi="['system:app_goods:edit']">编辑</el-button><el-button size="mini" :type="String(row.status) === '1' ? 'default' : 'primary'" :loading="publicationBusy === row.goodsId" :disabled="publicationBusy !== null" @click="togglePublication(row)" v-hasPermi="['system:app_goods:edit']">{{ String(row.status) === '1' ? '下架' : '上架' }}</el-button></template></el-table-column>
     </el-table>
 
-    <div v-loading="loading" class="listing-mobile"><article v-for="row in app_goodsList" :key="row.goodsId" class="listing-mobile-card"><div class="listing-mobile-heading"><strong>{{ row.goodsName }}</strong><el-tag size="mini" :type="String(row.status) === '1' ? 'success' : 'info'">{{ publicationLabel(row.status) }}</el-tag></div><p>{{ typeLabel(row.goodsType) }} · {{ categoryLabel(row.categoryId) }}</p><p>¥{{ row.price }} / {{ row.unit || '份' }} · 库存 {{ row.isSku === 1 ? '按规格' : row.stock }}</p><div class="listing-mobile-actions"><el-button size="mini" @click="handlePreview(row)">预览</el-button><el-button size="mini" @click="handleUpdate(row)" v-hasPermi="['system:app_goods:edit']">编辑</el-button><el-button size="mini" type="primary" :disabled="publicationBusy !== null" @click="togglePublication(row)" v-hasPermi="['system:app_goods:edit']">{{ String(row.status) === '1' ? '下架' : '上架' }}</el-button></div></article><el-empty v-if="!loading && !app_goodsList.length" description="没有符合条件的商品" /></div>
+    <div v-loading="loading" class="listing-mobile"><article v-for="row in app_goodsList" :key="row.goodsId" class="listing-mobile-card"><div class="listing-mobile-heading"><strong>{{ row.goodsName }}</strong><el-tag size="mini" :type="String(row.status) === '1' ? 'success' : 'info'">{{ publicationLabel(row.status) }}</el-tag></div><p>{{ typeLabel(row.goodsType) }} · {{ categoryLabel(row.categoryId) }}</p><p>¥{{ row.price }} / {{ row.unit || '份' }} · 库存 {{ row.isSku === 1 ? '按规格' : row.stock }}</p><div class="listing-mobile-actions"><el-button size="mini" @click="handlePreview(row)">预览</el-button><el-button size="mini" @click="openAI(row)" v-hasPermi="['system:app_goods:edit']">AI</el-button><el-button size="mini" @click="handleUpdate(row)" v-hasPermi="['system:app_goods:edit']">编辑</el-button><el-button size="mini" type="primary" :disabled="publicationBusy !== null" @click="togglePublication(row)" v-hasPermi="['system:app_goods:edit']">{{ String(row.status) === '1' ? '下架' : '上架' }}</el-button></div></article><el-empty v-if="!loading && !app_goodsList.length" description="没有符合条件的商品" /></div>
     <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize"
                 @pagination="getList" />
 
@@ -611,6 +612,7 @@
 </template>
 
 <script>
+import { exportQuery } from '@/utils/guanjia.mjs'
 import { listApp_goods, getApp_goods, delApp_goods, addApp_goods, updateApp_goods, changeGoodsPublication } from "@/api/system/app_goods";
 import ListingPreview from '@/components/ListingPreview'
 import { publicationIssues, publicationLabel, treeLabel, isNewPublication } from '@/utils/listing-operations.mjs'
@@ -881,6 +883,7 @@ export default {
     }
   },
   methods: {
+    openAI(row) { this.$root.$emit('guanjia:open', row ? { type: 'goods', id: row.goodsId, name: row.goodsName } : {}) },
     publicationLabel,
     typeLabel(type) { return ((this.dict.type.goods_type || []).find(item => item.value === type) || {}).label || '商品' },
     categoryLabel(id) { return treeLabel(this.app_goods_categoryOptions, id) || '未分类' },
@@ -1743,7 +1746,7 @@ export default {
     /** 导出按钮操作 */
     handleExport() {
       this.download('system/app_goods/export', {
-        ...this.buildListQueryParams()
+        ...exportQuery(this.buildListQueryParams())
       }, `app_goods_${new Date().getTime()}.xlsx`)
     }
   }

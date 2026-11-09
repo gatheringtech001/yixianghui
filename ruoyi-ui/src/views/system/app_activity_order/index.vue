@@ -68,6 +68,7 @@
     </el-form>
 
     <el-row :gutter="10" class="mb8">
+      <el-col :span="1.5"><el-button type="warning" plain icon="el-icon-download" size="mini" v-hasPermi="['system:app_activity_order:export']" @click="handleRosterExport">导出名单</el-button></el-col>
       <el-col :span="1.5">
         <el-button
           type="primary"
@@ -238,6 +239,7 @@
 </template>
 
 <script>
+import { exportQuery } from '@/utils/guanjia.mjs'
 import { listApp_activity_order, getApp_activity_order, delApp_activity_order, addApp_activity_order, updateApp_activity_order } from "@/api/system/app_activity_order";
 
 export default {
@@ -277,6 +279,10 @@ export default {
     this.getList();
   },
   methods: {
+    handleRosterExport() {
+      const filters = exportQuery(this.queryParams);
+      this.download('system/app_activity_order/roster', filters, `报名名单_${Date.now()}.xlsx`);
+    },
     formatMoney(value) {
       const num = Number(value);
       if (!Number.isFinite(num)) return '0.00';

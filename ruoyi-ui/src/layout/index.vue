@@ -8,6 +8,7 @@
         <tags-view v-if="needTagsView"/>
       </div>
       <app-main/>
+      <guanjia-assistant/>
       <right-panel>
         <settings/>
       </right-panel>
@@ -16,6 +17,7 @@
 </template>
 
 <script>
+import GuanjiaAssistant from '@/components/GuanjiaAssistant'
 import RightPanel from '@/components/RightPanel'
 import { AppMain, Navbar, Settings, Sidebar, TagsView } from './components'
 import ResizeMixin from './mixin/ResizeHandler'
@@ -25,6 +27,7 @@ import variables from '@/assets/styles/variables.scss'
 export default {
   name: 'Layout',
   components: {
+    GuanjiaAssistant,
     AppMain,
     Navbar,
     RightPanel,

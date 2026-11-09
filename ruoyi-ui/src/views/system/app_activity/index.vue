@@ -78,6 +78,7 @@
     </el-form>
 
     <el-row :gutter="10" class="mb8">
+      <el-col :span="1.5"><el-button type="primary" plain icon="el-icon-magic-stick" size="mini" @click="openAI()">AI 助手</el-button></el-col>
       <el-col :span="1.5">
         <el-button
           type="primary"
@@ -130,9 +131,9 @@
       <el-table-column label="报名人数" width="110"><template slot-scope="{row}">{{ row.signCount || 0 }} / {{ Number(row.maxCount) > 0 ? row.maxCount : '不限' }}</template></el-table-column>
       <el-table-column label="时间" min-width="150"><template slot-scope="{row}">{{ row.activityTime || '未填写' }}<small class="listing-secondary">截止 {{ row.signEndTime || '未设置' }}</small></template></el-table-column>
       <el-table-column label="状态" width="100"><template slot-scope="{row}"><el-tag size="small" :type="String(row.status) === '1' ? 'success' : 'info'">{{ publicationLabel(row.status) }}</el-tag><small v-if="isEnded(row)" class="listing-secondary">已结束</small></template></el-table-column>
-      <el-table-column label="操作" width="220" align="right"><template slot-scope="{row}"><el-button type="text" size="mini" @click="handlePreview(row)">预览</el-button><el-button type="text" size="mini" @click="handleUpdate(row)" v-hasPermi="['system:app_activity:edit']">编辑</el-button><el-button size="mini" :type="String(row.status) === '1' ? 'default' : 'primary'" :loading="publicationBusy === row.activityId" :disabled="publicationBusy !== null" @click="togglePublication(row)" v-hasPermi="['system:app_activity:edit']">{{ String(row.status) === '1' ? '下架' : '上架' }}</el-button></template></el-table-column>
+      <el-table-column label="操作" width="245" align="right"><template slot-scope="{row}"><el-button type="text" size="mini" @click="handlePreview(row)">预览</el-button><el-button type="text" size="mini" @click="openAI(row)" v-hasPermi="['system:app_activity:edit']">AI</el-button><el-button type="text" size="mini" @click="handleUpdate(row)" v-hasPermi="['system:app_activity:edit']">编辑</el-button><el-button size="mini" :type="String(row.status) === '1' ? 'default' : 'primary'" :loading="publicationBusy === row.activityId" :disabled="publicationBusy !== null" @click="togglePublication(row)" v-hasPermi="['system:app_activity:edit']">{{ String(row.status) === '1' ? '下架' : '上架' }}</el-button></template></el-table-column>
     </el-table>
-    <div v-loading="loading" class="listing-mobile"><article v-for="row in app_activityList" :key="row.activityId" class="listing-mobile-card"><div class="listing-mobile-heading"><strong>{{ row.activityName }}</strong><el-tag size="mini" :type="String(row.status) === '1' ? 'success' : 'info'">{{ publicationLabel(row.status) }}</el-tag></div><p>{{ row.activityTime || '时间未填写' }}{{ isEnded(row) ? ' · 已结束' : '' }}</p><p>{{ row.isFree === 0 ? '¥' + row.vipPrice : '免费' }} · 报名 {{ row.signCount || 0 }} / {{ Number(row.maxCount) > 0 ? row.maxCount : '不限' }}</p><div class="listing-mobile-actions"><el-button size="mini" @click="handlePreview(row)">预览</el-button><el-button size="mini" @click="handleUpdate(row)" v-hasPermi="['system:app_activity:edit']">编辑</el-button><el-button size="mini" type="primary" :disabled="publicationBusy !== null" @click="togglePublication(row)" v-hasPermi="['system:app_activity:edit']">{{ String(row.status) === '1' ? '下架' : '上架' }}</el-button></div></article><el-empty v-if="!loading && !app_activityList.length" description="没有符合条件的活动" /></div>
+    <div v-loading="loading" class="listing-mobile"><article v-for="row in app_activityList" :key="row.activityId" class="listing-mobile-card"><div class="listing-mobile-heading"><strong>{{ row.activityName }}</strong><el-tag size="mini" :type="String(row.status) === '1' ? 'success' : 'info'">{{ publicationLabel(row.status) }}</el-tag></div><p>{{ row.activityTime || '时间未填写' }}{{ isEnded(row) ? ' · 已结束' : '' }}</p><p>{{ row.isFree === 0 ? '¥' + row.vipPrice : '免费' }} · 报名 {{ row.signCount || 0 }} / {{ Number(row.maxCount) > 0 ? row.maxCount : '不限' }}</p><div class="listing-mobile-actions"><el-button size="mini" @click="handlePreview(row)">预览</el-button><el-button size="mini" @click="openAI(row)" v-hasPermi="['system:app_activity:edit']">AI</el-button><el-button size="mini" @click="handleUpdate(row)" v-hasPermi="['system:app_activity:edit']">编辑</el-button><el-button size="mini" type="primary" :disabled="publicationBusy !== null" @click="togglePublication(row)" v-hasPermi="['system:app_activity:edit']">{{ String(row.status) === '1' ? '下架' : '上架' }}</el-button></div></article><el-empty v-if="!loading && !app_activityList.length" description="没有符合条件的活动" /></div>
 
     <pagination
       v-show="total>0"
@@ -247,6 +248,7 @@
 </template>
 
 <script>
+import { exportQuery } from '@/utils/guanjia.mjs'
 import { listApp_activity, getApp_activity, delApp_activity, addApp_activity, updateApp_activity, changeActivityPublication } from "@/api/system/app_activity";
 import ListingPreview from '@/components/ListingPreview'
 import { publicationIssues, publicationLabel, treeLabel, isNewPublication } from '@/utils/listing-operations.mjs'
@@ -338,6 +340,7 @@ export default {
     }
   },
   methods: {
+    openAI(row) { this.$root.$emit('guanjia:open', row ? { type: 'activity', id: row.activityId, name: row.activityName } : {}) },
     publicationLabel,
     isEnded(row) { return row.activityEndTime && new Date(String(row.activityEndTime).replace(/-/g, '/')).getTime() <= Date.now() },
     async handlePreview(row) {
@@ -553,7 +556,7 @@ export default {
     /** 导出按钮操作 */
     handleExport() {
       this.download('system/app_activity/export', {
-        ...this.queryParams
+        ...exportQuery(this.queryParams)
       }, `app_activity_${new Date().getTime()}.xlsx`)
     }
   }

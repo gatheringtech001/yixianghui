@@ -6,6 +6,7 @@
     <top-nav v-if="topNav" id="topmenu-container" class="topmenu-container" />
 
     <div class="right-menu">
+      <el-button class="guanjia-nav-button" type="text" icon="el-icon-magic-stick" @click="$root.$emit('guanjia:open')">聚英 AI</el-button>
       <template v-if="device!=='mobile'">
         <search id="header-search" class="right-menu-item" />
 
@@ -111,6 +112,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.guanjia-nav-button { padding: 0 10px; height: 50px; vertical-align: top; }
+@media (max-width: 767px) { .breadcrumb-container { max-width: calc(100% - 205px); overflow: hidden; white-space: nowrap; } }
 .navbar {
   height: 50px;
   overflow: hidden;
