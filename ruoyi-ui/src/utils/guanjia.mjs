@@ -11,7 +11,7 @@ export function guanjiaUrl(intent) {
     p.set('type', intent.type); p.set('id', String(intent.id));
   } else if (intent.task === 'create' && ['hotel', 'education', 'activity', 'online'].includes(intent.kind)) p.set('kind', intent.kind);
   else if (intent.task === 'assistant' && scopes.includes(intent.scope)) p.set('scope', intent.scope);
-  else if (intent.task === 'page' && ['orders', 'approvals', 'admin'].includes(intent.page)) p.set('page', intent.page);
+  else if (intent.task === 'page' && ['orders', 'approvals', 'admin', 'notifications'].includes(intent.page)) p.set('page', intent.page);
   else throw new Error('AI入口任务无效');
   return base + '#native?' + p.toString();
 }

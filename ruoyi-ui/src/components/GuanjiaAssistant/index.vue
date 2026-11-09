@@ -19,7 +19,7 @@
       <div class="guanjia-shortcuts">
         <a :href="link({task:'page',page:'orders'})">订单、报名与名单 <i class="el-icon-right" /></a>
         <a :href="link({task:'page',page:'approvals'})">审批与待办 <i class="el-icon-right" /></a>
-        <a :href="link({task:'assistant',scope:'mini'})">付款与报名通知 <i class="el-icon-right" /></a>
+        <a :href="link({task:'page',page:'notifications'})">付款与报名通知 <i class="el-icon-right" /></a>
       </div>
       <small class="guanjia-hint">复用聚英管家登录与权限；返回后台可继续当前操作。</small>
     </div>
