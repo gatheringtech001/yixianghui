@@ -110,110 +110,25 @@
       @selection-change="handleSelectionChange"
       @sort-change="handleSortChange"
       :fit="true"
-      style="width: 100%;min-width: 400px"
-      max-height="calc(100vh - 320px)"
+      class="listing-desktop" style="width: 100%"
+
     >
-      <el-table-column type="selection" width="55" align="center" fixed="left" />
-      <el-table-column label="商品id" align="center" prop="goodsId" v-if="false" />
-      <el-table-column label="所属分站" align="center" prop="deptId" v-if="false" />
-      <el-table-column label="所属分站" align="center" prop="deptName" min-width="100" :resizable="true"
-                       show-overflow-tooltip />
-      <el-table-column label="商品名称" align="center" prop="goodsName" min-width="200" fixed="left" :resizable="true"
-                       show-overflow-tooltip sortable="custom" :sort-orders="['descending', 'ascending']" />
-      <el-table-column label="商品类型" align="center" prop="goodsType" :resizable="true">
-        <template slot-scope="scope">
-          <dict-tag :options="dict.type.goods_type" :value="scope.row.goodsType" />
-        </template>
-      </el-table-column>
-      <el-table-column label="所属分类" align="center" prop="categoryId" :resizable="true" />
-      <!--      <el-table-column label="祖级分类" align="center" prop="categoryIds" />-->
-      <el-table-column label="封面图片" align="center" prop="goodsCover" width="100" :resizable="true">
-        <template slot-scope="scope">
-          <image-preview :src="scope.row.goodsCover" :width="50" :height="50" />
-        </template>
-      </el-table-column>
-      <!--      <el-table-column label="轮播图" align="center" prop="goodsImages" width="100">-->
-      <!--        <template slot-scope="scope">-->
-      <!--          <image-preview :src="scope.row.goodsImages" :width="50" :height="50"/>-->
-      <!--        </template>-->
-      <!--      </el-table-column>-->
-      <!--      <el-table-column label="商品简介" align="center" prop="description" />-->
-      <el-table-column label="商品标签" align="center" prop="tags" min-width="120" :resizable="true"
-                       show-overflow-tooltip />
-      <el-table-column label="价格" align="center" prop="price" :resizable="true" sortable="custom" :sort-orders="['descending', 'ascending']" />
-      <el-table-column label="会员价格" align="center" prop="vipPrice" :resizable="true" sortable="custom" :sort-orders="['descending', 'ascending']" />
-      <el-table-column label="单位" align="center" prop="unit" :resizable="true" />
-      <!--      <el-table-column label="规格说明" align="center" prop="specifications" />-->
-      <!--      <el-table-column label="库存" align="center" prop="stock" />-->
-      <!--      <el-table-column label="是否置顶" align="center" prop="isTop">-->
-      <!--        <template slot-scope="scope">-->
-      <!--          <dict-tag :options="dict.type.common_is_not" :value="scope.row.isTop"/>-->
-      <!--        </template>-->
-      <!--      </el-table-column>-->
-      <el-table-column label="是否首页热门" align="center" prop="isHot" :resizable="true">
-        <template slot-scope="scope">
-          <dict-tag :options="dict.type.common_is_not" :value="scope.row.isHot" />
-        </template>
-      </el-table-column>
-      <!--      <el-table-column label="分类属性id集合" align="center" prop="attrIds" />-->
-      <!--      <el-table-column label="分类属性值集合" align="center" prop="attrValues" />-->
-      <!--      <el-table-column label="是否多规格" align="center" prop="isSku">-->
-      <!--        <template slot-scope="scope">-->
-      <!--          <dict-tag :options="dict.type.common_is_not" :value="scope.row.isSku"/>-->
-      <!--        </template>-->
-      <!--      </el-table-column>-->
-      <!--      <el-table-column label="推荐奖励类型" align="center" prop="awardType">-->
-      <!--        <template slot-scope="scope">-->
-      <!--          <dict-tag :options="dict.type.award_type" :value="scope.row.awardType"/>-->
-      <!--        </template>-->
-      <!--      </el-table-column>-->
-      <!--      <el-table-column label="父级奖励比例" align="center" prop="awardParentRatio" />-->
-      <!--      <el-table-column label="祖级奖励比例" align="center" prop="awardGrandParentRatio" />-->
-      <el-table-column label="奖励金币" align="center" prop="awardGolden" :resizable="true" />
-      <!--      <el-table-column label="运费" align="center" prop="expressFee" />-->
-      <!--      <el-table-column label="重量(克)" align="center" prop="weight" />-->
-      <!--      <el-table-column label="阅读次数" align="center" prop="viewCount" />-->
-      <el-table-column label="销量" align="center" prop="saleCount" :resizable="true" sortable="custom" :sort-orders="['descending', 'ascending']" />
-      <el-table-column label="创建时间" align="center" prop="createTime" width="160" sortable="custom" :sort-orders="['descending', 'ascending']">
-        <template slot-scope="scope">
-          <span>{{ parseTime(scope.row.createTime) }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="商品状态" align="center" prop="status" :resizable="true">
-        <template slot-scope="scope">
-          <dict-tag :options="dict.type.goods_status" :value="scope.row.status" />
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right">
-        <template slot-scope="scope">
-          <div class="action-dropdown">
-            <el-dropdown>
-              <el-button type="primary" size="small">
-                操作<i class="el-icon-arrow-down el-icon--right"></i>
-              </el-button>
-              <el-dropdown-menu slot="dropdown">
-                <!--                <el-dropdown-item @click.native="handleSku(scope.row)"-->
-                <!--                                  icon="el-icon-info"-->
-                <!--                                  v-has-permi="['system:app_goods:edit']" v-if="false">属性配置</el-dropdown-item>-->
-                <el-dropdown-item @click.native="handleSku(scope.row)" v-if="false" icon="el-icon-info"
-                                  v-has-permi="['system:app_goods:edit']">多规格</el-dropdown-item>
-                <el-dropdown-item @click.native="handleUpdate(scope.row)" icon="el-icon-edit"
-                                  v-has-permi="['system:app_goods:edit']">修改</el-dropdown-item>
-                <el-dropdown-item @click.native="handleDelete(scope.row)" icon="el-icon-delete"
-                                  v-hasPermi="['system:app_goods:remove']">删除</el-dropdown-item>
-              </el-dropdown-menu>
-            </el-dropdown>
-          </div>
-        </template>
-      </el-table-column>
+      <el-table-column type="selection" width="45" align="center" />
+      <el-table-column label="商品" min-width="250"><template slot-scope="{row}"><div class="listing-identity"><image-preview :src="row.goodsCover" :width="48" :height="48"/><div><strong>{{ row.goodsName }}</strong><small>{{ typeLabel(row.goodsType) }} · {{ categoryLabel(row.categoryId) }} · {{ row.deptName || '未分配站点' }}</small></div></div></template></el-table-column>
+      <el-table-column label="价格" width="145" prop="price" sortable="custom"><template slot-scope="{row}"><strong>¥{{ row.price }}</strong><small class="listing-secondary">会员 ¥{{ row.vipPrice == null ? row.price : row.vipPrice }} / {{ row.unit || '份' }}</small></template></el-table-column>
+      <el-table-column label="库存" width="90"><template slot-scope="{row}">{{ row.isSku === 1 ? '按规格' : row.stock == null ? '—' : row.stock }}</template></el-table-column>
+      <el-table-column label="状态" width="100"><template slot-scope="{row}"><el-tag size="small" :type="String(row.status) === '1' ? 'success' : 'info'">{{ publicationLabel(row.status) }}</el-tag></template></el-table-column>
+      <el-table-column label="操作" width="220" align="right"><template slot-scope="{row}"><el-button type="text" size="mini" @click="handlePreview(row)">预览</el-button><el-button type="text" size="mini" @click="handleUpdate(row)" v-hasPermi="['system:app_goods:edit']">编辑</el-button><el-button size="mini" :type="String(row.status) === '1' ? 'default' : 'primary'" :loading="publicationBusy === row.goodsId" :disabled="publicationBusy !== null" @click="togglePublication(row)" v-hasPermi="['system:app_goods:edit']">{{ String(row.status) === '1' ? '下架' : '上架' }}</el-button></template></el-table-column>
     </el-table>
 
+    <div v-loading="loading" class="listing-mobile"><article v-for="row in app_goodsList" :key="row.goodsId" class="listing-mobile-card"><div class="listing-mobile-heading"><strong>{{ row.goodsName }}</strong><el-tag size="mini" :type="String(row.status) === '1' ? 'success' : 'info'">{{ publicationLabel(row.status) }}</el-tag></div><p>{{ typeLabel(row.goodsType) }} · {{ categoryLabel(row.categoryId) }}</p><p>¥{{ row.price }} / {{ row.unit || '份' }} · 库存 {{ row.isSku === 1 ? '按规格' : row.stock }}</p><div class="listing-mobile-actions"><el-button size="mini" @click="handlePreview(row)">预览</el-button><el-button size="mini" @click="handleUpdate(row)" v-hasPermi="['system:app_goods:edit']">编辑</el-button><el-button size="mini" type="primary" :disabled="publicationBusy !== null" @click="togglePublication(row)" v-hasPermi="['system:app_goods:edit']">{{ String(row.status) === '1' ? '下架' : '上架' }}</el-button></div></article><el-empty v-if="!loading && !app_goodsList.length" description="没有符合条件的商品" /></div>
     <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize"
                 @pagination="getList" />
 
+    <listing-preview :visible.sync="previewVisible" :confirmable="previewConfirmable" :busy="saving" :name="form.goodsName" :cover="form.goodsCover" :status="form.status" :rows="previewRows" :sections="previewSections" @confirm="commitForm" />
     <!-- 添加或修改商品对话框 -->
-    <el-dialog :title="title" :visible.sync="open" width="900px" append-to-body>
-      <el-form ref="form" :model="form" :rules="rules" label-width="120px">
+    <el-dialog :title="title" :visible.sync="open" width="900px" custom-class="listing-editor" append-to-body :close-on-click-modal="false" :close-on-press-escape="!saving" :show-close="!saving">
+      <el-form ref="form" :model="form" :rules="rules" label-width="100px"><el-tabs v-model="editSection"><el-tab-pane label="基本信息" name="basic">
         <!--        <el-form-item label="祖级分类" prop="categoryIds">-->
         <!--          <el-input v-model="form.categoryIds" placeholder="请输入祖级分类" />-->
         <!--        </el-form-item>-->
@@ -249,6 +164,7 @@
                       :label="dict.value">{{ dict.label }}</el-radio>
           </el-radio-group>
         </el-form-item>
+        </el-tab-pane><el-tab-pane label="价格与报名" name="pricing">
         <el-form-item v-if="!isEducationGoods" label="是否多规格" prop="isSku">
           <el-radio-group v-model="form.isSku">
             <el-radio v-for="dict in dict.type.common_is_not" :key="dict.value"
@@ -357,6 +273,54 @@
         <!--            >{{dict.label}}</el-radio>-->
         <!--          </el-radio-group>-->
         <!--        </el-form-item>-->
+        <el-card class="box-card" style="margin-top: 20px;" v-if="form.isSku === 1 && !isEducationGoods">
+          <div slot="header" class="clearfix">
+            <span>规格管理</span>
+            <el-button style="float: right;" type="primary" size="mini" @click="handleAddSku">
+              添加规格
+            </el-button>
+          </div>
+
+          <el-table
+            :data="skuTreeData"
+            border
+            style="width: 100%"
+            row-key="skuId"
+            :tree-props="{children: 'children', hasChildren: 'hasChildren'}">
+            <el-table-column prop="skuName" label="规格名称" width="150">
+              <template slot-scope="scope">
+                <span :style="{ paddingLeft: (scope.row.level || 0) * 20 + 'px' }">
+                  {{ scope.row.skuName }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="skuType" label="类型" width="80">
+              <template slot-scope="scope">
+                <el-tag v-if="scope.row.skuType === '200'">标准</el-tag>
+                <el-tag v-else-if="scope.row.skuType === '201'">自选</el-tag>
+                <el-tag v-else type="success">组合</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="price" label="售价" width="80"></el-table-column>
+            <el-table-column prop="stock" label="库存" width="80"></el-table-column>
+            <el-table-column prop="stockUnit" label="库存单位" width="80"></el-table-column>
+            <el-table-column prop="skuCode" label="编码" width="120"></el-table-column>
+            <el-table-column prop="status" label="状态" width="80">
+              <template slot-scope="scope">
+                <el-tag v-if="isSkuStatusEnabled(scope.row.status)" type="success">启用</el-tag>
+                <el-tag v-else type="danger">停用</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="180">
+              <template slot-scope="scope">
+                <el-button size="mini" @click="handleEditSku(scope.row)">编辑</el-button>
+                <el-button size="mini" @click="handleManageOptions(scope.row)">属性</el-button>
+                <el-button size="mini" type="danger" @click="removeSku(scope.row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+        </el-tab-pane><el-tab-pane label="详细内容" name="content">
         <el-form-item label="是否首页热门" prop="isHot">
           <el-radio-group v-model="form.isHot">
             <el-radio v-for="dict in dict.type.common_is_not" :key="dict.value"
@@ -427,76 +391,23 @@
             </div>
           </el-tabs>
         </el-form-item>
-        <el-card class="box-card" style="margin-top: 20px;" v-if="form.isSku === 1 && !isEducationGoods">
-          <div slot="header" class="clearfix">
-            <span>规格管理</span>
-            <el-button style="float: right;" type="primary" size="mini" @click="handleAddSku">
-              添加规格
-            </el-button>
-          </div>
 
-          <el-table
-            :data="skuTreeData"
-            border
-            style="width: 100%"
-            row-key="skuId"
-            :tree-props="{children: 'children', hasChildren: 'hasChildren'}">
-            <el-table-column prop="skuName" label="规格名称" width="150">
-              <template slot-scope="scope">
-                <span :style="{ paddingLeft: (scope.row.level || 0) * 20 + 'px' }">
-                  {{ scope.row.skuName }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="skuType" label="类型" width="80">
-              <template slot-scope="scope">
-                <el-tag v-if="scope.row.skuType === '200'">标准</el-tag>
-                <el-tag v-else-if="scope.row.skuType === '201'">自选</el-tag>
-                <el-tag v-else type="success">组合</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="price" label="售价" width="80"></el-table-column>
-            <el-table-column prop="stock" label="库存" width="80"></el-table-column>
-            <el-table-column prop="stockUnit" label="库存单位" width="80"></el-table-column>
-            <el-table-column prop="skuCode" label="编码" width="120"></el-table-column>
-            <el-table-column prop="status" label="状态" width="80">
-              <template slot-scope="scope">
-                <el-tag v-if="isSkuStatusEnabled(scope.row.status)" type="success">启用</el-tag>
-                <el-tag v-else type="danger">停用</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="180">
-              <template slot-scope="scope">
-                <el-button size="mini" @click="handleEditSku(scope.row)">编辑</el-button>
-                <el-button size="mini" @click="handleManageOptions(scope.row)">属性</el-button>
-                <el-button size="mini" type="danger" @click="removeSku(scope.row)">删除</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
         <el-form-item v-if="form.goodsType === 'online'" label="运费" prop="expressFee">
           <el-input v-model="form.expressFee" placeholder="请输入运费" />
         </el-form-item>
         <el-form-item v-if="form.goodsType === 'online'" label="重量(克)" prop="weight">
           <el-input v-model="form.weight" placeholder="请输入重量(克)" />
         </el-form-item>
+        </el-tab-pane><el-tab-pane label="其他设置" name="other">
         <el-form-item label="阅读次数" prop="viewCount">
           <el-input v-model="form.viewCount" placeholder="请输入阅读次数" />
         </el-form-item>
         <el-form-item label="销量" prop="saleCount">
           <el-input v-model="form.saleCount" placeholder="请输入销量" />
         </el-form-item>
-        <el-form-item label="商品状态" prop="status">
-          <el-radio-group v-model="form.status">
-            <el-radio v-for="dict in dict.type.goods_status" :key="dict.value"
-                      :label="dict.value">{{ dict.label }}</el-radio>
-          </el-radio-group>
-        </el-form-item>
+        </el-tab-pane></el-tabs>
       </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="submitForm">确 定</el-button>
-        <el-button @click="cancel">取 消</el-button>
-      </div>
+      <div slot="footer" class="dialog-footer editor-actions"><el-radio-group v-model="form.status" size="small"><el-radio-button label="0">暂不上架</el-radio-button><el-radio-button label="1">上架</el-radio-button></el-radio-group><div><el-button :disabled="saving" @click="cancel">取消</el-button><el-button type="primary" :loading="saving" @click="preparePreview">预览并保存</el-button></div></div>
     </el-dialog>
     <el-dialog title="添加商品特色" :visible.sync="showAddFeatureDialog" width="400px">
       <!-- 修改表单绑定 -->
@@ -700,7 +611,10 @@
 </template>
 
 <script>
-import { listApp_goods, getApp_goods, delApp_goods, addApp_goods, updateApp_goods } from "@/api/system/app_goods";
+import { listApp_goods, getApp_goods, delApp_goods, addApp_goods, updateApp_goods, changeGoodsPublication } from "@/api/system/app_goods";
+import ListingPreview from '@/components/ListingPreview'
+import { publicationIssues, publicationLabel, treeLabel, isNewPublication } from '@/utils/listing-operations.mjs'
+import '@/assets/styles/listing-operations.css'
 import Treeselect from "@riophae/vue-treeselect";
 import "@riophae/vue-treeselect/dist/vue-treeselect.css";
 import { listApp_goods_category } from "@/api/system/app_goods_category";
@@ -724,10 +638,11 @@ export default {
   name: "App_goods",
   dicts: ['common_is_not', 'award_type', 'goods_status', 'goods_type'],
   components: {
-    Treeselect
+    Treeselect, ListingPreview
   },
   data() {
     return {
+      initialPublicationStatus: '0', editSection: 'basic', previewVisible: false, previewConfirmable: false, saving: false, publicationBusy: null,
       goodsId: null,
       goodsInfo: {},
       skuList: [],
@@ -864,6 +779,26 @@ export default {
     };
   },
   computed: {
+    previewRows() {
+      const rows = [
+        { label: '类型', value: this.typeLabel(this.form.goodsType) },
+        { label: '站点', value: treeLabel(this.deptOptions, this.form.deptId) },
+        { label: '分类', value: this.categoryLabel(this.form.categoryId) },
+        { label: '价格', value: this.form.price == null ? '—' : `¥${this.form.price}` },
+        { label: '会员价格', value: this.form.vipPrice == null ? '—' : `¥${this.form.vipPrice}` },
+        { label: '库存 / 单位', value: `${this.form.stock == null ? '按规格' : this.form.stock} / ${this.form.unit || '份'}` },
+        { label: '简介', value: this.form.description }, { label: '标签', value: this.form.tags }
+      ]
+      const ext = this.form.educationExt || {}
+      const labels = { courseTime: '上课时间', coursePlace: '授课地点', teacherName: '授课老师', lessonCount: '课次', classSizeMax: '班级上限', classSizeMin: '开班下限', startDate: '开课日期', signupStart: '报名开始', signupEnd: '报名截止', consultPhone: '咨询电话', materialNote: '材料备注' }
+      Object.keys(labels).forEach(key => { if (ext[key] != null && ext[key] !== '') rows.push({ label: labels[key], value: ext[key] }) })
+      this.skuList.forEach((sku, index) => rows.push({ label: `规格 ${index + 1}`, value: `${sku.skuName || '未命名'} · ¥${sku.price} · 库存 ${sku.stock} · ${String(sku.status) === '1' ? '启用' : '停用'}` }))
+      return rows
+    },
+    previewSections() {
+      const features = Array.isArray(this.form.features) ? this.form.features.map(f => ({ label: f.sectionName, content: f.content })) : Object.keys(this.form.features || {}).map(key => ({ label: this.getFeatureLabel(key), content: this.form.features[key] }))
+      return [{ label: '商品内容', content: this.form.content }, ...features]
+    },
     isEducationGoods() {
       return this.form.goodsType === 'education';
     },
@@ -916,7 +851,7 @@ export default {
     app_goodsList() {
       this.syncTableLayout()
     },
-    'form.goodsType'(val, oldVal) {
+    'form.goodsType'(val) {
       if (val === 'education') {
         this.form.isSku = 0;
         if (!this.form.educationExt) {
@@ -926,11 +861,7 @@ export default {
           this.form.unit = '期';
         }
       }
-      if (oldVal && val !== oldVal && (val === 'education' || oldVal === 'education')) {
-        this.featureTabs = [];
-        this.form.features = {};
-        this.activeFeatureTab = '';
-      }
+
     }
   },
   created() {
@@ -950,6 +881,44 @@ export default {
     }
   },
   methods: {
+    publicationLabel,
+    typeLabel(type) { return ((this.dict.type.goods_type || []).find(item => item.value === type) || {}).label || '商品' },
+    categoryLabel(id) { return treeLabel(this.app_goods_categoryOptions, id) || '未分类' },
+    async handlePreview(row) {
+      const response = await getApp_goods(row.goodsId)
+      this.form = response.data
+      this.skuList = response.data.optionList || []
+      this.previewConfirmable = false
+      this.previewVisible = true
+    },
+    preparePreview() {
+      this.$refs.form.validate((valid, fields) => {
+        if (!valid) {
+          const field = Object.keys(fields || {})[0]
+          const pricing = ['price', 'vipPrice', 'stock', 'unit', 'isSku', 'isFree', 'maxCount', 'activityTime', 'signEndTime', 'activityEndTime', 'address']
+          this.editSection = pricing.includes(field) ? 'pricing' : 'basic'
+          return
+        }
+        if (isNewPublication(this.initialPublicationStatus, this.form.status)) {
+          const issues = publicationIssues(this.form, 'goods', this.skuList)
+          if (issues.length) { this.$message.warning(issues.join('；')); return }
+        }
+        this.previewConfirmable = true
+        this.previewVisible = true
+      })
+    },
+    async togglePublication(row) {
+      if (this.publicationBusy !== null) return
+      const status = String(row.status) === '1' ? '0' : '1'
+      try {
+        await this.$confirm(`${status === '1' ? '上架' : '下架'}「${row.goodsName}」？`, '商品上下架', { confirmButtonText: status === '1' ? '确认上架' : '确认下架', cancelButtonText: '取消', type: 'warning' })
+        this.publicationBusy = row.goodsId
+        await changeGoodsPublication(row.goodsId, { status, expectedStatus: row.status == null ? '' : String(row.status) })
+        this.$message.success(status === '1' ? '已上架' : '已下架')
+        this.getList()
+      } catch (error) { /* API errors are displayed by the request interceptor. */ }
+      finally { this.publicationBusy = null }
+    },
     createDefaultEducationExt() {
       return {
         courseTime: '',
@@ -1405,9 +1374,8 @@ export default {
       listApp_goods(this.buildListQueryParams()).then(response => {
         this.app_goodsList = response.rows;
         this.total = response.total;
-        this.loading = false;
         this.syncTableLayout();
-      });
+      }).finally(() => { this.loading = false });
     },
     /** 转换分站数据结构 */
     normalizerDept(node) {
@@ -1468,6 +1436,7 @@ export default {
     },
     // 表单重置
     reset() {
+      this.initialPublicationStatus = '0';
       this.form = {
         goodsId: null,
         categoryId: null,
@@ -1498,7 +1467,7 @@ export default {
         saleCount: null,
         createTime: null,
         updateTime: null,
-        status: null,
+        status: '0',
         features: {},  // 保持空对象，用于动态添加
         educationExt: null
       };
@@ -1557,6 +1526,7 @@ export default {
     },
     /** 新增按钮操作 */
     handleAdd() {
+      this.editSection = 'basic';
       this.reset();
       this.getCategoryTreeselect();
       this.getDeptTreeselect();
@@ -1567,12 +1537,14 @@ export default {
     },
     /** 修改按钮操作 */
     handleUpdate(row) {
+      this.editSection = 'basic';
       this.reset();
       this.getCategoryTreeselect();
       this.getDeptTreeselect();
       const goodsId = row.goodsId || this.ids
       getApp_goods(goodsId).then(response => {
         this.form = response.data;
+        this.initialPublicationStatus = String(response.data.status);
         if (this.form.goodsType === 'education' && !this.form.educationExt) {
           this.$set(this.form, 'educationExt', this.createDefaultEducationExt());
         }
@@ -1670,7 +1642,8 @@ export default {
       this.$router.push({ path: "/goods/app_goods_sku_data", query: { goodsId: goodsId } });
     },
     /** 提交按钮 */
-    submitForm() {
+    commitForm() {
+      if (this.saving) return;
       this.$refs["form"].validate(valid => {
         if (valid) {
           // 整合所有数据（商品信息、SKU列表、商品特色）
@@ -1690,12 +1663,6 @@ export default {
               }
             });
           }
-          // 添加调试日志
-          console.log('SKU List:', this.skuList);
-          this.skuList.forEach((sku, index) => {
-            console.log(`SKU ${index}:`, sku);
-            console.log(`SKU ${index} options:`, sku.options);
-          });
           // 处理SKU列表，将临时ID替换为null
           const processedSkuList = this.skuList.map(sku => {
             // 确保options字段存在且为数组
@@ -1744,18 +1711,21 @@ export default {
           if (this.isEducationGoods && !formData.educationExt) {
             formData.educationExt = this.createDefaultEducationExt();
           }
+          this.saving = true;
           if (this.form.goodsId != null) {
             updateApp_goods(formData).then(response => {
               this.$modal.msgSuccess("修改成功");
+              this.previewVisible = false;
               this.open = false;
               this.getList();
-            });
+            }).finally(() => { this.saving = false });
           } else {
             addApp_goods(formData).then(response => {
               this.$modal.msgSuccess("新增成功");
+              this.previewVisible = false;
               this.open = false;
               this.getList();
-            });
+            }).finally(() => { this.saving = false });
           }
         }
       });

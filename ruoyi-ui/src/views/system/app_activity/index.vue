@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container">
+  <div class="app-container activity-operations">
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="68px">
 <!--      <el-form-item label="所属分类" prop="categoryId">-->
 <!--        <el-input-->
@@ -46,7 +46,7 @@
 <!--          <el-option-->
 <!--            v-for="dict in dict.type.common_is_not"-->
 <!--            :key="dict.value"-->
-<!--            :label="dict.label"-->
+<!--            :label="dict.value === '1' ? '已上架' : '未上架'"-->
 <!--            :value="dict.value"-->
 <!--          />-->
 <!--        </el-select>-->
@@ -56,7 +56,7 @@
 <!--          <el-option-->
 <!--            v-for="dict in dict.type.common_is_not"-->
 <!--            :key="dict.value"-->
-<!--            :label="dict.label"-->
+<!--            :label="dict.value === '1' ? '已上架' : '未上架'"-->
 <!--            :value="dict.value"-->
 <!--          />-->
 <!--        </el-select>-->
@@ -66,7 +66,7 @@
           <el-option
             v-for="dict in dict.type.enable_status"
             :key="dict.value"
-            :label="dict.label"
+            :label="dict.value === '1' ? '已上架' : '未上架'"
             :value="dict.value"
           />
         </el-select>
@@ -123,81 +123,16 @@
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="app_activityList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="活动ID" align="center" prop="activityId" />
-      <el-table-column label="所属分类" align="center" prop="categoryId" />
-      <el-table-column label="归属站点" align="center" prop="deptId" />
-<!--      <el-table-column label="祖级分类" align="center" prop="categoryIds" />-->
-      <el-table-column label="活动标题" align="center" prop="activityName" />
-      <el-table-column label="活动地点" align="center" prop="address" />
-      <el-table-column label="封面图片" align="center" prop="activityCover" width="100">
-        <template slot-scope="scope">
-          <image-preview :src="scope.row.activityCover" :width="50" :height="50"/>
-        </template>
-      </el-table-column>
-<!--      <el-table-column label="活动简介" align="center" prop="description" />-->
-      <el-table-column label="活动标签" align="center" prop="tags" />
-<!--      <el-table-column label="是否置顶" align="center" prop="isTop">-->
-<!--        <template slot-scope="scope">-->
-<!--          <dict-tag :options="dict.type.common_is_not" :value="scope.row.isTop"/>-->
-<!--        </template>-->
-<!--      </el-table-column>-->
-<!--      <el-table-column label="是否热门" align="center" prop="isHot">-->
-<!--        <template slot-scope="scope">-->
-<!--          <dict-tag :options="dict.type.common_is_not" :value="scope.row.isHot"/>-->
-<!--        </template>-->
-<!--      </el-table-column>-->
-      <el-table-column label="已报名人数" align="center" prop="signCount" />
-      <el-table-column label="收费类型" align="center" prop="isFree" width="90">
-        <template slot-scope="scope">
-          <span>{{ scope.row.isFree === 0 ? '付费' : '免费' }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="报名费用" align="center" width="100">
-        <template slot-scope="scope">
-          <span v-if="scope.row.isFree === 0">￥{{ scope.row.vipPrice || scope.row.price || 0 }}</span>
-          <span v-else>免费</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="报名人数限制" align="center" prop="maxCount" />
-      <el-table-column label="报名截止时间" align="center" prop="signEndTime" width="180">
-        <template slot-scope="scope">
-          <span>{{ parseTime(scope.row.signEndTime, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="活动时间" align="center" prop="activityTime" />
-      <el-table-column label="结束时间" align="center" prop="activityEndTime" width="180">
-        <template slot-scope="scope">
-          <span>{{ parseTime(scope.row.activityEndTime, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
-        </template>
-      </el-table-column>
-<!--      <el-table-column label="活动内容" align="center" prop="content" />-->
-<!--      <el-table-column label="阅读次数" align="center" prop="viewCount" />-->
-      <el-table-column label="活动状态" align="center" prop="status">
-        <template slot-scope="scope">
-          <dict-tag :options="dict.type.enable_status" :value="scope.row.status"/>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
-        <template slot-scope="scope">
-          <el-button
-            size="mini"
-            type="text"
-            icon="el-icon-edit"
-            @click="handleUpdate(scope.row)"
-            v-hasPermi="['system:app_activity:edit']"
-          >修改</el-button>
-          <el-button
-            size="mini"
-            type="text"
-            icon="el-icon-delete"
-            @click="handleDelete(scope.row)"
-            v-hasPermi="['system:app_activity:remove']"
-          >删除</el-button>
-        </template>
-      </el-table-column>
+    <el-table class="listing-desktop" v-loading="loading" :data="app_activityList" @selection-change="handleSelectionChange">
+      <el-table-column type="selection" width="45" />
+      <el-table-column label="活动" min-width="250"><template slot-scope="{row}"><div class="listing-identity"><image-preview :src="row.activityCover" :width="48" :height="48"/><div><strong>{{ row.activityName }}</strong><small>{{ row.address || '未填写地点' }}</small></div></div></template></el-table-column>
+      <el-table-column label="报名费用" width="120"><template slot-scope="{row}">{{ row.isFree === 0 ? '¥' + row.vipPrice : '免费' }}</template></el-table-column>
+      <el-table-column label="报名人数" width="110"><template slot-scope="{row}">{{ row.signCount || 0 }} / {{ Number(row.maxCount) > 0 ? row.maxCount : '不限' }}</template></el-table-column>
+      <el-table-column label="时间" min-width="150"><template slot-scope="{row}">{{ row.activityTime || '未填写' }}<small class="listing-secondary">截止 {{ row.signEndTime || '未设置' }}</small></template></el-table-column>
+      <el-table-column label="状态" width="100"><template slot-scope="{row}"><el-tag size="small" :type="String(row.status) === '1' ? 'success' : 'info'">{{ publicationLabel(row.status) }}</el-tag><small v-if="isEnded(row)" class="listing-secondary">已结束</small></template></el-table-column>
+      <el-table-column label="操作" width="220" align="right"><template slot-scope="{row}"><el-button type="text" size="mini" @click="handlePreview(row)">预览</el-button><el-button type="text" size="mini" @click="handleUpdate(row)" v-hasPermi="['system:app_activity:edit']">编辑</el-button><el-button size="mini" :type="String(row.status) === '1' ? 'default' : 'primary'" :loading="publicationBusy === row.activityId" :disabled="publicationBusy !== null" @click="togglePublication(row)" v-hasPermi="['system:app_activity:edit']">{{ String(row.status) === '1' ? '下架' : '上架' }}</el-button></template></el-table-column>
     </el-table>
+    <div v-loading="loading" class="listing-mobile"><article v-for="row in app_activityList" :key="row.activityId" class="listing-mobile-card"><div class="listing-mobile-heading"><strong>{{ row.activityName }}</strong><el-tag size="mini" :type="String(row.status) === '1' ? 'success' : 'info'">{{ publicationLabel(row.status) }}</el-tag></div><p>{{ row.activityTime || '时间未填写' }}{{ isEnded(row) ? ' · 已结束' : '' }}</p><p>{{ row.isFree === 0 ? '¥' + row.vipPrice : '免费' }} · 报名 {{ row.signCount || 0 }} / {{ Number(row.maxCount) > 0 ? row.maxCount : '不限' }}</p><div class="listing-mobile-actions"><el-button size="mini" @click="handlePreview(row)">预览</el-button><el-button size="mini" @click="handleUpdate(row)" v-hasPermi="['system:app_activity:edit']">编辑</el-button><el-button size="mini" type="primary" :disabled="publicationBusy !== null" @click="togglePublication(row)" v-hasPermi="['system:app_activity:edit']">{{ String(row.status) === '1' ? '下架' : '上架' }}</el-button></div></article><el-empty v-if="!loading && !app_activityList.length" description="没有符合条件的活动" /></div>
 
     <pagination
       v-show="total>0"
@@ -207,9 +142,10 @@
       @pagination="getList"
     />
 
+    <listing-preview :visible.sync="previewVisible" :confirmable="previewConfirmable" :busy="saving" :name="form.activityName" :cover="form.activityCover" :status="form.status" :rows="previewRows" :sections="[{ label: '活动内容', content: form.content }]" @confirm="commitForm" />
     <!-- 添加或修改活动对话框 -->
-    <el-dialog :title="title" :visible.sync="open" width="960px" append-to-body>
-      <el-form ref="form" :model="form" :rules="rules" label-width="120px">
+    <el-dialog :title="title" :visible.sync="open" width="900px" custom-class="listing-editor" append-to-body :close-on-click-modal="false" :close-on-press-escape="!saving" :show-close="!saving">
+      <el-form ref="form" :model="form" :rules="rules" label-width="100px"><el-tabs v-model="editSection"><el-tab-pane label="基本信息" name="basic">
         <el-form-item label="归属站点" prop="deptId">
           <treeselect v-model="form.deptId" :options="deptOptions" :normalizer="normalizerDept" placeholder="选择归属站点（城市）" />
         </el-form-item>
@@ -253,6 +189,7 @@
 <!--          </el-radio-group>-->
 <!--        </el-form-item>-->
 
+        </el-tab-pane><el-tab-pane label="时间与报名" name="pricing">
         <el-form-item label="报名人数限制" prop="maxCount">
           <el-input v-model="form.maxCount" placeholder="请输入报名人数限制" />
         </el-form-item>
@@ -295,32 +232,25 @@
           </el-form-item>
         </template>
 
+        </el-tab-pane><el-tab-pane label="详细内容" name="content">
         <el-form-item label="活动内容" prop="content">
           <editor v-model="form.content" :min-height="192"/>
         </el-form-item>
         <el-form-item label="阅读次数" prop="viewCount">
           <el-input v-model="form.viewCount" placeholder="请输入阅读次数" />
         </el-form-item>
-        <el-form-item label="活动状态" prop="status">
-          <el-radio-group v-model="form.status">
-            <el-radio
-              v-for="dict in dict.type.enable_status"
-              :key="dict.value"
-              :label="dict.value"
-            >{{dict.label}}</el-radio>
-          </el-radio-group>
-        </el-form-item>
+        </el-tab-pane></el-tabs>
       </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="submitForm">确 定</el-button>
-        <el-button @click="cancel">取 消</el-button>
-      </div>
+      <div slot="footer" class="dialog-footer editor-actions"><el-radio-group v-model="form.status" size="small"><el-radio-button label="0">暂不上架</el-radio-button><el-radio-button label="1">上架</el-radio-button></el-radio-group><div><el-button :disabled="saving" @click="cancel">取消</el-button><el-button type="primary" :loading="saving" @click="preparePreview">预览并保存</el-button></div></div>
     </el-dialog>
   </div>
 </template>
 
 <script>
-import { listApp_activity, getApp_activity, delApp_activity, addApp_activity, updateApp_activity } from "@/api/system/app_activity";
+import { listApp_activity, getApp_activity, delApp_activity, addApp_activity, updateApp_activity, changeActivityPublication } from "@/api/system/app_activity";
+import ListingPreview from '@/components/ListingPreview'
+import { publicationIssues, publicationLabel, treeLabel, isNewPublication } from '@/utils/listing-operations.mjs'
+import '@/assets/styles/listing-operations.css'
 import Treeselect from "@riophae/vue-treeselect";
 import { listApp_activity_category } from "@/api/system/app_activity_category";
 import { listDept } from "@/api/system/dept";
@@ -330,10 +260,11 @@ export default {
   name: "App_activity",
   dicts: ['common_is_not', 'enable_status'],
   components: {
-    Treeselect
+    Treeselect, ListingPreview
   },
   data() {
     return {
+      initialPublicationStatus: '0', editSection: 'basic', previewVisible: false, previewConfirmable: false, saving: false, publicationBusy: null,
       // 遮罩层
       loading: true,
       // 选中数组
@@ -356,6 +287,8 @@ export default {
       queryParams: {
         pageNum: 1,
         pageSize: 10,
+        orderByColumn: 'activityId',
+        isAsc: 'descending',
         categoryId: null,
         categoryIds: null,
         activityName: null,
@@ -390,15 +323,65 @@ export default {
   created() {
     this.getList();
   },
+  computed: {
+    previewRows() {
+      return [
+        { label: '站点', value: treeLabel(this.deptOptions, this.form.deptId) },
+        { label: '分类', value: treeLabel(this.app_activity_categoryOptions, this.form.categoryId) },
+        { label: '地点', value: this.form.address }, { label: '简介', value: this.form.description },
+        { label: '标签', value: this.form.tags }, { label: '活动时间', value: this.form.activityTime },
+        { label: '报名截止', value: this.form.signEndTime }, { label: '结束时间', value: this.form.activityEndTime },
+        { label: '报名费用', value: this.form.isFree === 0 ? `¥${this.form.vipPrice}` : '免费' },
+        { label: '原价', value: this.form.isFree === 0 ? this.form.price : 0 },
+        { label: '名额', value: Number(this.form.maxCount) > 0 ? this.form.maxCount : '不限' }
+      ]
+    }
+  },
   methods: {
+    publicationLabel,
+    isEnded(row) { return row.activityEndTime && new Date(String(row.activityEndTime).replace(/-/g, '/')).getTime() <= Date.now() },
+    async handlePreview(row) {
+      const response = await getApp_activity(row.activityId)
+      this.form = response.data
+      this.getDeptTreeselect(); this.getTreeselect()
+      this.previewConfirmable = false
+      this.previewVisible = true
+    },
+    preparePreview() {
+      this.$refs.form.validate((valid, fields) => {
+        if (!valid) {
+          const field = Object.keys(fields || {})[0]
+          const pricing = ['price', 'vipPrice', 'stock', 'unit', 'isSku', 'isFree', 'maxCount', 'activityTime', 'signEndTime', 'activityEndTime', 'address']
+          this.editSection = pricing.includes(field) ? 'pricing' : 'basic'
+          return
+        }
+        if (isNewPublication(this.initialPublicationStatus, this.form.status)) {
+          const issues = publicationIssues(this.form, 'activity')
+          if (issues.length) { this.$message.warning(issues.join('；')); return }
+        }
+        this.previewConfirmable = true
+        this.previewVisible = true
+      })
+    },
+    async togglePublication(row) {
+      if (this.publicationBusy !== null) return
+      const status = String(row.status) === '1' ? '0' : '1'
+      try {
+        await this.$confirm(`${status === '1' ? '上架' : '下架'}「${row.activityName}」？`, '活动上下架', { confirmButtonText: status === '1' ? '确认上架' : '确认下架', cancelButtonText: '取消', type: 'warning' })
+        this.publicationBusy = row.activityId
+        await changeActivityPublication(row.activityId, { status, expectedStatus: row.status == null ? '' : String(row.status) })
+        this.$message.success(status === '1' ? '已上架' : '已下架')
+        this.getList()
+      } catch (error) { /* API errors are displayed by the request interceptor. */ }
+      finally { this.publicationBusy = null }
+    },
     /** 查询活动列表 */
     getList() {
       this.loading = true;
       listApp_activity(this.queryParams).then(response => {
         this.app_activityList = response.rows;
         this.total = response.total;
-        this.loading = false;
-      });
+      }).finally(() => { this.loading = false });
     },
     /** 转换站点数据结构 */
     normalizerDept(node) {
@@ -447,6 +430,7 @@ export default {
     },
     // 表单重置
     reset() {
+      this.initialPublicationStatus = '0';
       this.form = {
         activityId: null,
         categoryId: null,
@@ -471,7 +455,7 @@ export default {
         viewCount: null,
         createTime: null,
         updateTime: null,
-        status: null
+        status: '0'
       };
       this.$nextTick(() => {
         if (this.$refs.form) {
@@ -497,6 +481,7 @@ export default {
     },
     /** 新增按钮操作 */
     handleAdd() {
+      this.editSection = 'basic';
       this.reset();
       this.getDeptTreeselect();
       this.getTreeselect();
@@ -505,11 +490,13 @@ export default {
     },
     /** 修改按钮操作 */
     handleUpdate(row) {
+      this.editSection = 'basic';
       this.getDeptTreeselect();
       this.getTreeselect();
       const activityId = row.activityId || this.ids
       getApp_activity(activityId).then(response => {
         this.form = response.data;
+        this.initialPublicationStatus = String(response.data.status);
         this.open = true;
         this.title = "修改活动";
         this.$nextTick(() => {
@@ -520,7 +507,8 @@ export default {
       });
     },
     /** 提交按钮 */
-    submitForm() {
+    commitForm() {
+      if (this.saving) return;
       this.$refs["form"].validate(valid => {
         if (valid) {
           if (this.form.isFree === 0) {
@@ -533,18 +521,21 @@ export default {
             this.form.price = 0
             this.form.vipPrice = 0
           }
+          this.saving = true;
           if (this.form.activityId != null) {
             updateApp_activity(this.form).then(response => {
               this.$modal.msgSuccess("修改成功");
+              this.previewVisible = false;
               this.open = false;
               this.getList();
-            });
+            }).finally(() => { this.saving = false });
           } else {
             addApp_activity(this.form).then(response => {
               this.$modal.msgSuccess("新增成功");
+              this.previewVisible = false;
               this.open = false;
               this.getList();
-            });
+            }).finally(() => { this.saving = false });
           }
         }
       });

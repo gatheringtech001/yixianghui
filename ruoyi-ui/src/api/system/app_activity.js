@@ -42,3 +42,8 @@ export function delApp_activity(activityId) {
     method: 'delete'
   })
 }
+
+// Dedicated status-only endpoint: never rewrite content, SKU or orders.
+export function changeActivityPublication(activityId, data) {
+  return request({ url: '/system/app_activity/' + activityId + '/publication', method: 'put', data })
+}

@@ -56,10 +56,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="resendExpressName != null  and resendExpressName != ''"> and resend_express_name like concat('%', #{resendExpressName}, '%')</if>
             <if test="resendExpressNo != null  and resendExpressNo != ''"> and resend_express_no = #{resendExpressNo}</if>
             <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="params.reviewBucket != null and params.reviewBucket == 'processed'"> and status in ('1', '2', '6')</if>
             <if test="refundReason != null"> and refund_reason = #{refundReason}</if>
             <if test="reasonDescription != null  and reasonDescription != ''"> and reason_description like concat('%', #{reasonDescription}, '%')</if>
             <if test="appRefundMoney != null"> and app_refund_money = #{appRefundMoney}</if>
         </where>
+        <choose><when test="status == '0'.toString()">order by after_id asc</when><otherwise>order by after_id desc</otherwise></choose>
     </select>
     
     <select id="selectAppGoodsOrderAfterByAfterId" parameterType="Long" resultMap="AppGoodsOrderAfterResult">

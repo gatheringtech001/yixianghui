@@ -1,5 +1,6 @@
 <template>
-  <div class="app-container">
+  <div class="app-container review-operations">
+    <el-tabs v-model="reviewTab" class="review-tabs" @tab-click="handleQuery"><el-tab-pane :label="'待处理' + (pendingTotal == null ? '' : ' · ' + pendingTotal)" name="pending"/><el-tab-pane label="已处理" name="processed"/><el-tab-pane label="退款异常" name="exception"/><el-tab-pane label="全部" name="all"/></el-tabs>
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="100px">
       <el-form-item label="订单类型" prop="businessType">
         <el-select v-model="queryParams.businessType" clearable placeholder="全部类型">
@@ -118,112 +119,17 @@
       </el-form-item>
     </el-form>
 
-    <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
-        <el-button
-          type="primary"
-          plain
-          icon="el-icon-plus"
-          size="mini"
-          @click="handleAdd"
-          v-hasPermi="['system:app_goods_order_after:add']"
-        >新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="success"
-          plain
-          icon="el-icon-edit"
-          size="mini"
-          :disabled="single"
-          @click="handleUpdate"
-          v-hasPermi="['system:app_goods_order_after:edit']"
-        >修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="danger"
-          plain
-          icon="el-icon-delete"
-          size="mini"
-          :disabled="multiple"
-          @click="handleDelete"
-          v-hasPermi="['system:app_goods_order_after:remove']"
-        >删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="success"
-          plain
-          icon="el-icon-view"
-          size="mini"
-          :disabled="single"
-          @click="handleInfo"
-          v-hasPermi="['system:app_goods_order_after:edit']"
-        >审核</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="el-icon-download"
-          size="mini"
-          @click="handleExport"
-          v-hasPermi="['system:app_goods_order_after:export']"
-        >导出</el-button>
-      </el-col>
-      <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
-    </el-row>
+    <el-row :gutter="10" class="mb8"><el-col :span="1.5"><el-button type="warning" plain icon="el-icon-download" size="mini" @click="handleExport" v-hasPermi="['system:app_goods_order_after:export']">导出</el-button></el-col><right-toolbar :showSearch.sync="showSearch" @queryTable="getList"/></el-row>
 
-    <el-table v-loading="loading" :data="app_goods_order_afterList"
-              @selection-change="handleSelectionChange" style="width: 100%;min-width: 400" max-height="400" :fit="true">
-      <el-table-column type="selection" width="55" align="center" fixed="left"/>
-      <el-table-column label="退换id" align="center" prop="afterId" v-if="false"/>
-      <el-table-column label="订单类型" align="center" width="145"><template slot-scope="scope">{{ businessLabel(scope.row.businessType) }}</template></el-table-column>
-      <el-table-column label="售后类型" align="center" prop="afterType" :resizable="true">
-        <template slot-scope="scope">
-          <dict-tag :options="dict.type.after_type" :value="scope.row.afterType" />
-        </template>
-      </el-table-column>
-      <el-table-column label="用户ID" align="center" prop="userId" v-if="false"/>
-      <el-table-column label="所属订单" align="center" prop="orderId" v-if="false"/>
-      <el-table-column label="退款订单编号" align="center" prop="outOrderNo" min-width="180" show-overflow-tooltip/>
-      <el-table-column label="商品小计金额" align="center" prop="orderMoney" :resizable="true"/>
-      <el-table-column label="商品ID" align="center" prop="goodsId" v-if="false"/>
-      <el-table-column label="商品" align="center" prop="goodsName" min-width="100" show-overflow-tooltip/>
-      <el-table-column label="商品数量" align="center" prop="goodsCount" :resizable="true"/>
-      <el-table-column label="商品售价" align="center" prop="goodsMoney" :resizable="true"/>
-      <el-table-column label="快递金额" align="center" prop="expressMoney" :resizable="true"/>
-      <el-table-column label="退款金额" align="center" prop="refundMoney" :resizable="true"/>
-      <el-table-column label="快递名称" align="center" prop="backExpressName" :resizable="true" show-overflow-tooltip/>
-      <el-table-column label="快递单号" align="center" prop="backExpressNo" :resizable="true" show-overflow-tooltip/>
-      <el-table-column label="重发快递名称" align="center" prop="resendExpressName" :resizable="true" show-overflow-tooltip/>
-      <el-table-column label="重发快递单号" align="center" prop="resendExpressNo" :resizable="true" show-overflow-tooltip/>
-      <el-table-column label="审批意见" align="center" prop="remark" :resizable="true" show-overflow-tooltip/>
-      <el-table-column label="售后状态" align="center" prop="status" :resizable="true"><template slot-scope="scope">{{ statusText(scope.row.status) }}</template></el-table-column>
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right">
-        <template slot-scope="scope">
-          <div class="action-dropdown">
-            <el-dropdown>
-              <el-button type="primary" size="small">
-                操作<i class="el-icon-arrow-down el-icon--right"></i>
-              </el-button>
-              <el-dropdown-menu slot="dropdown">
-                <el-dropdown-item @click.native="handleUpdate(scope.row)"
-                                  icon="el-icon-info"
-                                  v-has-permi="['system:app_goods_order_after:edit']">修改</el-dropdown-item>
-                <el-dropdown-item @click.native="handleDelete(scope.row)"
-                                  icon="el-icon-edit"
-                                  v-hasPermi="['system:app_goods_order_after:remove']">删除</el-dropdown-item>
-                <el-dropdown-item @click.native="handleInfo(scope.row)"
-                                  icon="el-icon-view"
-                                  v-hasPermi="['system:app_goods_order_after:edit']">审核</el-dropdown-item>
-              </el-dropdown-menu>
-            </el-dropdown>
-          </div>
-        </template>
-      </el-table-column>
+    <el-table class="listing-desktop" v-loading="loading" :data="app_goods_order_afterList">
+      <el-table-column label="申请" min-width="250"><template slot-scope="{row}"><strong>{{ row.goodsName || businessLabel(row.businessType) }}</strong><small class="listing-secondary">{{ row.outOrderNo || '申请 #' + row.afterId }}</small></template></el-table-column>
+      <el-table-column label="类型" width="145"><template slot-scope="{row}">{{ businessLabel(row.businessType) }}</template></el-table-column>
+      <el-table-column label="申请退款" width="115"><template slot-scope="{row}">¥{{ money(row.appRefundMoney == null ? row.goodsMoney : row.appRefundMoney) }}</template></el-table-column>
+      <el-table-column label="状态" width="120"><template slot-scope="{row}"><el-tag :type="statusColor(row.status)" size="small">{{ statusText(row.status) }}</el-tag></template></el-table-column>
+      <el-table-column label="申请顺序" width="100"><template slot-scope="{row}">#{{ row.afterId }}</template></el-table-column>
+      <el-table-column label="操作" width="140" align="right"><template slot-scope="{row}"><el-button :type="String(row.status) === '0' ? 'primary' : 'default'" size="mini" @click="handleInfo(row)" v-hasPermi="['system:app_goods_order_after:edit']">{{ String(row.status) === '0' ? '处理申请' : '查看详情' }}</el-button></template></el-table-column>
     </el-table>
+    <div v-loading="loading" class="listing-mobile"><article v-for="row in app_goods_order_afterList" :key="row.afterId" class="listing-mobile-card"><div class="listing-mobile-heading"><strong>{{ row.goodsName || businessLabel(row.businessType) }}</strong><el-tag :type="statusColor(row.status)" size="mini">{{ statusText(row.status) }}</el-tag></div><p>{{ row.outOrderNo || '申请 #' + row.afterId }}</p><p>申请退款 ¥{{ money(row.appRefundMoney == null ? row.goodsMoney : row.appRefundMoney) }} · {{ businessLabel(row.businessType) }}</p><div class="listing-mobile-actions"><el-button type="primary" size="mini" @click="handleInfo(row)" v-hasPermi="['system:app_goods_order_after:edit']">{{ String(row.status) === '0' ? '处理申请' : '查看详情' }}</el-button></div></article><el-empty v-if="!loading && !app_goods_order_afterList.length" :description="reviewTab === 'pending' ? '暂无待处理申请' : '暂无记录'"/></div>
 
     <pagination
       v-show="total>0"
@@ -283,7 +189,8 @@
     </el-dialog>
 
     <!-- 售后信息查看审批 -->
-    <el-dialog :title="'售后审核 - ' + selrow.afterId" :visible.sync="info" width="600px" append-to-body>
+    <el-dialog :title="'售后申请 #' + selrow.afterId" :visible.sync="info" width="640px" custom-class="listing-editor" append-to-body :close-on-click-modal="false">
+      <div class="review-detail-summary"><strong>{{ selrow.goodsName || businessLabel(selrow.businessType) }}</strong><p>订单 {{ selrow.outOrderNo || selrow.orderId }} · 用户 #{{ selrow.userId }}</p><p v-if="selrow.reasonDescription">申请原因：{{ selrow.reasonDescription }}</p><p v-if="selrow.remark && String(selrow.status) !== '0'">处理意见：{{ selrow.remark }}</p></div>
       <div class="audit-container">
         <!-- 基本信息 -->
         <div class="audit-section">
@@ -313,7 +220,7 @@
           </div>
         </div>
 
-        <el-form ref="refundform" :model="refundform" :rules="refundrules" label-width="80px">
+        <el-form v-if="String(selrow.status) === '0'" ref="refundform" :model="refundform" :rules="refundrules" label-width="80px">
           <el-form-item label="退款金额" prop="refundMoney">
             <el-input v-model="refundform.refundMoney" :readonly="!!selrow.bookingAdjustmentId" placeholder="请输入退款金额" />
             <div v-if="selrow.bookingAdjustmentId">{{ selrow.reasonDescription }}；按本次申请差价退款，不同意可拒绝申请。</div>
@@ -322,11 +229,11 @@
             <el-input v-model="refundform.remark" type="textarea" placeholder="请输入内容" />
           </el-form-item>
         </el-form>
-        <el-checkbox v-if="selrow.afterType === '1'" v-model="refundform.returnReceived">已收到退货并核验无误</el-checkbox>
+        <el-checkbox v-if="selrow.afterType === '1' && String(selrow.status) === '0'" v-model="refundform.returnReceived">已收到退货并核验无误</el-checkbox>
 
         <!-- 审核操作 -->
         <div class="audit-actions" v-if="selrow.status === '0'">
-          <el-button type="success" :disabled="auditBusy" @click="approveAudit(selrow.afterId)">通过</el-button>
+          <el-button type="success" :disabled="auditBusy" @click="approveAudit(selrow.afterId)">同意并退款 ¥{{ money(refundform.refundMoney) }}</el-button>
           <el-button type="danger" :disabled="auditBusy" @click="rejectAudit(selrow.afterId)">拒绝</el-button>
         </div>
         <div class="audit-actions" v-if="selrow.status === '1' || selrow.status === '5'">
@@ -370,6 +277,8 @@
   </div>
 </template>
 <script>
+import { reviewQuery } from '@/utils/listing-operations.mjs'
+import '@/assets/styles/listing-operations.css'
 import { listApp_goods_order_after, getApp_goods_order_after, delApp_goods_order_after, addApp_goods_order_after, updateApp_goods_order_after,approvalApp_goods_order_after } from "@/api/system/app_goods_order_after";
 
 export default {
@@ -377,6 +286,7 @@ export default {
   dicts: ['after_type'],
   data() {
     return {
+      reviewTab: 'pending', pendingTotal: null,
       // 遮罩层
       loading: true,
       // 选中数组
@@ -477,15 +387,21 @@ export default {
     businessLabel(value) { return ({'1':'会员卡','2':'商品 / 旅居 / 课程','3':'活动'})[value] || '商品 / 旅居 / 课程' },
     /** 查询订单商品售后列表 */
     getList() {
+      const requestId = this.reviewRequestId = (this.reviewRequestId || 0) + 1;
+      const tab = this.reviewTab;
       this.loading = true;
-      listApp_goods_order_after(this.queryParams).then(response => {
+      listApp_goods_order_after(reviewQuery(this.queryParams, this.reviewTab)).then(response => {
+        if (requestId !== this.reviewRequestId) return;
         this.app_goods_order_afterList = response.rows;
         this.total = response.total;
-        this.loading = false;
-      });
+        if (tab === 'pending') this.pendingTotal = response.total
+      }).finally(() => { if (requestId === this.reviewRequestId) this.loading = false });
+      if (this.reviewTab !== 'pending') {
+        listApp_goods_order_after(reviewQuery({ ...this.queryParams, pageNum: 1, pageSize: 1 }, 'pending')).then(response => { this.pendingTotal = response.total })
+      }
     },
     statusColor(status) {
-      const map = { '0': 'danger', '1': 'success', '2': 'warning', '6': 'info' }
+      const map = { '0': 'warning', '1': 'primary', '2': 'info', '5': 'danger', '6': 'success' }
       return map[status] || 'info'
     },
     statusText(status) {
@@ -557,7 +473,7 @@ export default {
     /** 通过审核 */
     approveAudit(afterId) {
       if (this.auditBusy) return
-      this.$modal.confirm('确认通过该售后申请？').then(() => {
+      this.$modal.confirm(`将向原支付渠道发起 ¥${this.money(this.refundform.refundMoney)} 退款，确认执行？`, '确认退款', { confirmButtonText: '确认退款', cancelButtonText: '取消', type: 'warning' }).then(() => {
         this.$refs["refundform"].validate().then(validated => {
           if (!validated) return
           this.auditBusy = true
@@ -661,7 +577,7 @@ export default {
     /** 导出按钮操作 */
     handleExport() {
       this.download('system/app_goods_order_after/export', {
-        ...this.queryParams
+        ...reviewQuery(this.queryParams, this.reviewTab)
       }, `app_goods_order_after_${new Date().getTime()}.xlsx`)
     }
   }
