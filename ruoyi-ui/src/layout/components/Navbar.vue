@@ -115,8 +115,9 @@ export default {
 
 <style lang="scss" scoped>
 .guanjia-nav-button { padding: 0 10px; height: 50px; vertical-align: top; }
-@media (max-width: 767px) { .breadcrumb-container { max-width: calc(100% - 205px); overflow: hidden; white-space: nowrap; } }
 .navbar {
+  display: flex;
+  align-items: center;
   height: 50px;
   overflow: hidden;
   position: relative;
@@ -124,6 +125,7 @@ export default {
   box-shadow: 0 1px 4px rgba(0,21,41,.08);
 
   .hamburger-container {
+    flex-shrink: 0;
     line-height: 46px;
     height: 100%;
     float: left;
@@ -137,7 +139,16 @@ export default {
   }
 
   .breadcrumb-container {
-    float: left;
+    flex: 1;
+    min-width: 0;
+    height: 50px;
+    overflow: hidden;
+    white-space: nowrap;
+
+    ::v-deep .el-breadcrumb__item {
+      float: none;
+      display: inline-block;
+    }
   }
 
   .topmenu-container {
@@ -151,7 +162,8 @@ export default {
   }
 
   .right-menu {
-    float: right;
+    flex-shrink: 0;
+    margin-left: auto;
     height: 100%;
     line-height: 50px;
 
