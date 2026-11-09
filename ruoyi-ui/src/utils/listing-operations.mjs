@@ -31,13 +31,22 @@ export function publicationIssues(form, kind, skus = [], now = Date.now()) {
       }
     }
     if (Number(form.maxCount) > 0 && Number(form.signCount) >= Number(form.maxCount)) issues.push('报名名额已满')
+  } else if (form.isSku === 1 && form.goodsType === 'hotel') {
+    const enabled = sku => !['0', '停用'].includes(String(sku.status))
+    const available = skus.some(sku => {
+      if (!enabled(sku) || !['200', '202'].includes(String(sku.skuType))) return false
+      if (String(sku.skuType) === '202' && !skus.some(parent => String(parent.skuId) === String(sku.parSkuId) && String(parent.skuType) === '200' && enabled(parent))) return false
+      return (String(sku.skuType) === '200' && Number(sku.price) > 0) || (sku.options || []).some(option => ['301', '302'].includes(String(option.optionType)) && Number(option.optionValue) > 0)
+    })
+    if (!available) issues.push('配置可售房型或套餐价格')
   } else if (form.isSku === 1 && form.goodsType !== 'education') {
     if (!skus.some(sku => String(sku.status) === '1' && Number(sku.stock) > 0 && Number(sku.price) > 0)) {
       issues.push('配置有价格和库存的启用规格')
     }
   } else {
     if (!(Number(form.price) > 0)) issues.push('填写大于 0 的价格')
-    if (!(Number(form.stock) > 0)) issues.push('填写可售库存')
+    const unlimited = form.goodsType === 'education' && form.educationExt?.classSizeMax != null && Number(form.educationExt.classSizeMax) === 0
+    if (!unlimited && !(Number(form.stock) > 0)) issues.push('填写可售库存')
   }
   return issues
 }

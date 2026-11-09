@@ -41,3 +41,13 @@ test('readiness only gates a transition to publication, not existing sold-out co
   assert.equal(isNewPublication(null, '1'), true)
   assert.equal(isNewPublication('1', '0'), false)
 })
+
+test('native hotel package pricing is in options, with no fabricated SKU stock', () => {
+  const form = { ...goods, goodsType: 'hotel', isSku: 1 }
+  const skus = [{ skuId: 10, skuType: '200', status: '1', stock: 0, price: 0 }, { skuId: 11, parSkuId: '10', skuType: '202', status: '1', stock: 0, price: 0, options: [{ optionType: '302', optionValue: '745' }] }]
+  assert.deepEqual(publicationIssues(form, 'goods', skus), [])
+  assert.ok(publicationIssues(form, 'goods', [{ ...skus[0], status: '0' }, skus[1]]).length)
+})
+test('explicitly unlimited education does not require fabricated stock', () => {
+  assert.deepEqual(publicationIssues({ ...goods, stock: 0, educationExt: { classSizeMax: 0 } }, 'goods'), [])
+})

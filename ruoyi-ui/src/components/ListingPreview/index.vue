@@ -25,7 +25,7 @@
 import { plainContent } from '@/utils/listing-operations.mjs'
 export default {
   name: 'ListingPreview',
-  props: { visible: Boolean, busy: Boolean, confirmable: Boolean, title: { type: String, default: '确认发布内容' }, name: { type: String, default: '' }, cover: { type: String, default: '' }, status: { type: [String, Number], default: '0' }, rows: { type: Array, default: () => [] }, sections: { type: Array, default: () => [] }},
+  props: { visible: Boolean, busy: Boolean, confirmable: Boolean, title: { type: String, default: '内容预览' }, name: { type: String, default: '' }, cover: { type: String, default: '' }, status: { type: [String, Number], default: '0' }, rows: { type: Array, default: () => [] }, sections: { type: Array, default: () => [] }},
   methods: { text: plainContent }
 }
 </script>

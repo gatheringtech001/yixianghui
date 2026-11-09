@@ -31,11 +31,17 @@ public class AppListingPublicationService {
             requirePositive(row, "dept_id", "选择所属站点");
             requirePositive(row, "category_id", "选择分类");
             if ("1".equals(text(row.get("is_sku"))) && !"education".equals(text(row.get("goods_type")))) {
-                Integer available = jdbc.queryForObject("select count(*) from app_goods_sku where goods_id=? and status='1' and price>0 and stock>0", Integer.class, id);
-                if (available == null || available == 0) throw new ServiceException("配置有价格和库存的启用规格后再上架");
+                if ("hotel".equals(text(row.get("goods_type")))) {
+                    if (!hasTravelOffer(id)) throw new ServiceException("配置可售房型或套餐价格后再上架");
+                } else {
+                    Integer available = jdbc.queryForObject("select count(*) from app_goods_sku where goods_id=? and status='1' and price>0 and stock>0", Integer.class, id);
+                    if (available == null || available == 0) throw new ServiceException("配置有价格和库存的启用规格后再上架");
+                }
             } else {
                 requirePositive(row, "price", "填写大于 0 的价格");
-                requirePositive(row, "stock", "填写可售库存");
+                boolean unlimited = "education".equals(text(row.get("goods_type"))) && jdbc.queryForObject(
+                    "select count(*) from app_goods_education_ext where goods_id=? and class_size_max=0", Integer.class, id) > 0;
+                if (!unlimited) requirePositive(row, "stock", "填写可售库存");
             }
         }
         int changed = update("app_goods", "goods_id", id, status);
@@ -70,6 +76,25 @@ public class AppListingPublicationService {
         }
         return update("app_activity", "activity_id", id, status);
     }
+
+    // Travel sells option-priced packages; its SKU stock is not an enrollment capacity.
+    private boolean hasTravelOffer(Long id) {
+        List<Map<String, Object>> skus = jdbc.queryForList("select sku_id,sku_type,par_sku_id,status,price from app_goods_sku where goods_id=?", id);
+        for (Map<String, Object> sku : skus) {
+            String type = text(sku.get("sku_type"));
+            if (!enabled(sku.get("status")) || !("200".equals(type) || "202".equals(type))) continue;
+            if ("202".equals(type)) {
+                boolean parentEnabled = skus.stream().anyMatch(parent -> text(parent.get("sku_id")).equals(text(sku.get("par_sku_id")))
+                    && "200".equals(text(parent.get("sku_type"))) && enabled(parent.get("status")));
+                if (!parentEnabled) continue;
+            }
+            if ("200".equals(type) && number(sku.get("price")).signum() > 0) return true;
+            List<Map<String, Object>> prices = jdbc.queryForList("select option_value from app_goods_sku_option where goods_id=? and sku_id=? and option_type in ('301','302')", id, sku.get("sku_id"));
+            if (prices.stream().anyMatch(price -> number(price.get("option_value")).signum() > 0)) return true;
+        }
+        return false;
+    }
+    private static boolean enabled(Object status) { return !("0".equals(text(status)) || "停用".equals(text(status))); }
 
     private Map<String, Object> lock(String table, String key, Long id) {
         // table/key are internal constants, never supplied by a request.
