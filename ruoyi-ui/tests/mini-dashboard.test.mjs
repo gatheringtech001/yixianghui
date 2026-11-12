@@ -22,6 +22,7 @@ test('dashboard requests selected order cohort, guards races, and removes CRM an
   assert.ok(page.includes('getUserStaticCount({ period: this.period })'))
   assert.ok(page.includes('request !== this.requestId'))
   assert.ok(page.includes('不是该期间现金流水'))
+  assert.ok(page.includes('支付完成含免付及后续退款订单'))
   for (const source of [page, cards]) for (const old of ['81212', '102400', 'expectedData', 'getCharData']) assert.ok(!source.includes(old))
   assert.ok(page.includes('business-mobile'))
 })

@@ -98,7 +98,7 @@ public class SysUserOnlineController extends BaseController
 
     @PreAuthorize("@ss.hasPermi('monitor:online:list')")
     @GetMapping("/getUserStaticCount")
-    public AjaxResult getUserStaticCount(@RequestParam(defaultValue = "30d") String period)
+    public AjaxResult getUserStaticCount(@RequestParam(name = "period", defaultValue = "30d") String period)
     {
         return success(miniDashboardService.summary(period));
     }

@@ -28,19 +28,19 @@
       <el-table :data="businesses" v-loading="loading" class="business-table" empty-text="暂无统计数据">
         <el-table-column prop="business" label="业务" min-width="110" />
         <el-table-column prop="orderCount" label="订单" min-width="70" />
-        <el-table-column prop="paidCount" label="已付款" min-width="80" />
+        <el-table-column prop="paidCount" label="支付完成" min-width="80" />
         <el-table-column prop="pendingCount" label="待付款" min-width="80" />
         <el-table-column label="累计收款（元）" min-width="130"><template slot-scope="scope">{{ formatMetric(scope.row.receivedAmount, true) }}</template></el-table-column>
         <el-table-column label="已退款（元）" min-width="120"><template slot-scope="scope">{{ formatMetric(scope.row.refundAmount, true) }}</template></el-table-column>
         <el-table-column label="净收款（元）" min-width="120"><template slot-scope="scope">{{ formatMetric(scope.row.netAmount, true) }}</template></el-table-column>
       </el-table>
       <div class="business-mobile">
-        <article v-for="row in businesses" :key="row.business"><h4>{{ row.business }}<span>{{ row.orderCount }} 单</span></h4><div class="mobile-counts"><span>已付款 {{ row.paidCount }}</span><span>待付款 {{ row.pendingCount }}</span></div><div class="mobile-money"><span>收款<strong>¥{{ formatMetric(row.receivedAmount, true) }}</strong></span><span>退款<strong>¥{{ formatMetric(row.refundAmount, true) }}</strong></span><span>净收款<strong>¥{{ formatMetric(row.netAmount, true) }}</strong></span></div></article>
+        <article v-for="row in businesses" :key="row.business"><h4>{{ row.business }}<span>{{ row.orderCount }} 单</span></h4><div class="mobile-counts"><span>支付完成 {{ row.paidCount }}</span><span>待付款 {{ row.pendingCount }}</span></div><div class="mobile-money"><span>收款<strong>¥{{ formatMetric(row.receivedAmount, true) }}</strong></span><span>退款<strong>¥{{ formatMetric(row.refundAmount, true) }}</strong></span><span>净收款<strong>¥{{ formatMetric(row.netAmount, true) }}</strong></span></div></article>
       </div>
     </section>
     <div v-if="warnings.length" class="data-warning" role="status">{{ warnings.join('；') }}。历史数据缺失不补造。</div>
     <footer class="data-source">
-      <p>按下单日期筛选，金额为这些订单当前累计成功收款、成功退款及两者差额，不是该期间现金流水。商品仅统计小程序来源，活动统计现有报名订单；不含充值、会员卡及线下导入订单。</p>
+      <p>支付完成含免付及后续退款订单。按下单日期筛选，金额为这些订单当前累计成功收款、成功退款及两者差额，不是该期间现金流水。商品仅统计小程序来源，活动统计现有报名订单；不含充值、会员卡及线下导入订单。</p>
       <p v-if="updatedAt">更新于 {{ updatedAt }} · 访问数据来自微信，订单与退款来自业务系统</p>
     </footer>
   </div>
@@ -56,7 +56,7 @@ export default {
     return {
       period: '30d', periods: [{ label: '今日下单', value: 'today' }, { label: '昨日下单', value: 'yesterday' }, { label: '近7天下单', value: '7d' }, { label: '近30天下单', value: '30d' }, { label: '全部订单', value: 'all' }],
       loading: false, trafficLoading: false, error: '', totals: {}, traffic: {}, businesses: [], startDate: null, endDate: null, updatedAt: '', requestId: 0,
-      secondaryCards: [{ label: '已付款订单', key: 'paidCount' }, { label: '待付款订单', key: 'pendingCount' }, { label: '已取消订单', key: 'cancelledCount' }, { label: '已退款订单', key: 'refundedCount' }, { label: '成功退款', key: 'refundAmount', money: true }, { label: '净收款', key: 'netAmount', money: true }]
+      secondaryCards: [{ label: '支付完成订单', key: 'paidCount' }, { label: '待付款订单', key: 'pendingCount' }, { label: '已取消订单', key: 'cancelledCount' }, { label: '已退款订单', key: 'refundedCount' }, { label: '成功退款', key: 'refundAmount', money: true }, { label: '净收款', key: 'netAmount', money: true }]
     }
   },
   computed: {
