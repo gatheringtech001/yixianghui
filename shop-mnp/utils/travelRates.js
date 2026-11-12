@@ -1,5 +1,5 @@
 import { defaultTravelDates, validateTravelSelection } from './travelPolicy.js'
-import { formatCalendarPrice, resolveCalendarUnitPrice } from './travelPresentation.js'
+import { travelQuote } from './travelPresentation.js'
 
 const DAY = 86400000
 export function travelDateAfter(date, nights) {
@@ -57,7 +57,8 @@ export function defaultRateSelection(variants, nights, seq, date, today) {
 
 export function travelRatePrice(sku, seq) {
 	const combo = rateCombination(sku, seq)
-	return combo ? formatCalendarPrice(resolveCalendarUnitPrice({ average: combo.average, total: combo.price, nights: sku.day }), combo.priceUnit) : ''
+	const quote = combo && travelQuote(sku, combo)
+	return quote ? `约￥${quote.amount}/${quote.unit}` : ''
 }
 
 export function buildTravelRateCalendar(variants, nights, seq, today) {

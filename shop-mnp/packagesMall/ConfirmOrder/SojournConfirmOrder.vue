@@ -2,9 +2,10 @@
 	<view :class="displayModeClass" class="page_view">
 		<view class="page_head_view">
 		</view>
-		<view class="page_body_view">
+		<view v-if="!goodsLoaded" class="loading_quote_view">{{ loadError || '正在加载房型与套餐报价…' }}</view>
+		<view class="page_body_view" v-if="goodsLoaded">
 			<view class="body_base_view">
-				<image :src="host + hotelData.goodsImages[0]" />
+				<image :src="coverUrl" />
 				<view class="base_view">
 					<view class="base_title_view">{{hotelData.name}}</view>
 					<view class="base_desc_view">{{hotelData.desc}}</view>
@@ -58,15 +59,26 @@
 						预定信息
 					</view>
 				</view>
-				<view class="combo_text_view">每间套餐￥{{ skuPrice }}，最多{{ roomCapacity }}人/间；人数不足仍按整间计价。</view>
+				<view class="booking_quote_view" v-if="!partyQuoteError && selectedQuote">
+                    <view class="booking_quote_amount">约￥{{ selectedQuote.amount }}/{{ selectedQuote.unit }}/晚</view>
+                    <view>套餐总价￥{{ selectedQuote.total }}/{{ selectedQuote.totalUnit }} · {{ reserveData.day + 1 }}天{{ reserveData.day }}晚</view>
+                    <view>{{ reserveData.peopleNumber === 1 ? '单人包房' : selectedQuote.occupancyLabel }}</view>
+                </view>
+                <view class="combo_text_view" v-if="partyQuoteError" style="color: #701018">{{ partyQuoteError }}</view>
 				<view class="combo_row_view">
-					订几间房：<u-number-box v-model="reserveData.roomNumber" :min="1" disabled-input :input-width="200"
-						:input-height="60" @change="onRoomNumberChange"></u-number-box>
+					订几间房：<view class="booking_stepper">
+                        <button role="button" aria-label="减少房间" :disabled="reserveData.roomNumber <= 1" @click="changeRoomNumber(-1)">－</button>
+                        <text>{{ reserveData.roomNumber }}</text>
+                        <button role="button" aria-label="增加房间" @click="changeRoomNumber(1)">＋</button>
+                    </view>
 					间
 				</view>
 				<view class="combo_row_view">
-					几人用餐：<u-number-box v-model="reserveData.peopleNumber" :min="1" :max="maxPeopleNumber" disabled-input :input-width="200"
-						:input-height="60"></u-number-box>
+					入住人数：<view class="booking_stepper">
+                        <button role="button" aria-label="减少入住人数" :disabled="reserveData.peopleNumber <= 1" @click="changePeopleNumber(-1)">－</button>
+                        <text>{{ reserveData.peopleNumber }}</text>
+                        <button role="button" aria-label="增加入住人数" :disabled="reserveData.peopleNumber >= maxPeopleNumber" @click="changePeopleNumber(1)">＋</button>
+                    </view>
 					人
 				</view>
 				<view class="combo_row_view">
@@ -79,7 +91,7 @@
 					<text>逸享荟管家方便联系到您</text>
 				</view>
 				<view class="combo_text_view">
-					<text>不占床位人员不记人数，1间房最多入住{{ roomCapacity }}人。</text>
+					<text>请按实际入住人数选择；1人入住仅使用已配置的单人包房报价。</text>
 				</view>
 			</view>
 			<view v-if="eligibilityNotice" class="body_combo_view">
@@ -102,18 +114,18 @@
 				<text class="agreement-link" @click.stop="openNotice">《预订及入住须知》</text>
 			</view>
 		</view>
-		<view class="page_foot_view" v-if="!popupDate.show">
+		<view class="page_foot_view" v-if="goodsLoaded && !popupDate.show">
 			<view class="foot_price_view">
 				<view class="price_view">
-					￥<text>{{ payableAmountText }}</text>
+					<text>{{ partyQuoteError ? '报价待确认' : '￥' + payableAmountText }}</text>
 				</view>
 				<view class="text_view">
 					实付金额
 				</view>
 			</view>
 			<view class="foot_button_view">
-				<view class="text_button_view" @click="popupPrice.show = true">费用明细</view>
-				<view class="pay_button_view" @click="createOrderFn">去付款</view>
+				<view class="text_button_view" v-if="!partyQuoteError" @click="popupPrice.show = true">费用明细</view>
+				<view class="pay_button_view" :class="{pay_disabled: !!selectionError}" :aria-disabled="!!selectionError" @click="createOrderFn">{{ selectionError ? '暂不可预订' : '去付款' }}</view>
 			</view>
 		</view>
 		<u-popup
@@ -193,6 +205,8 @@
 	import { formatCalendarPrice, resolveCalendarUnitPrice, travelPriceUnit, sanitizeTravelCustomerText } from '@/utils/travelPresentation'
 	import { groupTravelRates, resolveTravelRate, buildTravelRateCalendar } from '@/utils/travelRates'
 	import { readTravelPackage, supportsCustomNights, travelCapacity, travelMealPresentation, travelPolicyText, validateTravelSelection } from '@/utils/travelPolicy'
+	import { travelPartyVariants, selectTravelPartyRate, travelQuote } from '@/utils/travelBooking'
+	import { detailImageUrl } from '@/utils/detailImagePreview'
 	export default {
 		components: {
 			Calendar
@@ -240,11 +254,14 @@
 				calendarFocusId: '',
 				calendarScrollTop: 0,
 				goodsLoaded: false,
+                loadError: '',
 				skuPrice: 0, // sku选中的价格（整段住宿房价，未乘房间数）
 				nightPrice: 0, // 自选晚数：每晚单价
 				selSkuId: undefined,
 				selComboId: undefined,
 				selSkuSeqNo: undefined,
+				partyReference: null,
+                partyQuoteError: '',
 				routeSkuId: null,
 				routeSkuSeqNo: null,
 				customNight: false, // 自选晚数下单
@@ -264,6 +281,9 @@
 			}
 		},
 		computed: {
+            coverUrl() { return detailImageUrl(this.hotelData.goodsImages[0], this.host) },
+            partyVariants() { return this.partyReference ? travelPartyVariants(this.skuList, this.partyReference) : [] },
+            selectedQuote() { return travelQuote(this.selectedTravelPackage, (this.selectedTravelPackage.combinationList || [])[0]) },
 			selectedRateFamily() {
 				const selected = this.selectedTravelPackage
 				const siblings = this.skuList.filter(s => Number(s.parSkuId) === Number(selected.parSkuId)
@@ -305,6 +325,7 @@
 			},
 			selectionError() {
 				if (!this.goodsLoaded) return '正在加载套餐，请稍候'
+                if (this.partyQuoteError) return this.partyQuoteError
 				if (!this.selSkuId) return this.customNight ? '该房型不支持自选晚数，请返回重新选择' : '未匹配到有效套餐，请返回重新选择'
 				return validateTravelSelection({ ...this.selectedTravelPackage, ...this.reserveData, nights: this.reserveData.day })
 			},
@@ -314,14 +335,8 @@
 				return `共${count}份早餐，${this.comboIndex === 2 ? count : 0}份中餐，${this.comboIndex !== 0 ? count : 0}份晚餐。`
 			},
 			calendarPriceText() {
-				const unitPrice = resolveCalendarUnitPrice({
-					nightPrice: this.nightPrice,
-					total: this.skuPrice,
-					nights: this.reserveData.day
-				})
-				const selected = this.skuList.find(item => Number(item.skuId) === Number(this.selSkuId)
-					&& Number(item.skuSeqNo) === Number(this.selSkuSeqNo))
-				return formatCalendarPrice(unitPrice, selected && selected.priceUnit)
+                if (!this.customNight && this.selectedQuote) return `约￥${this.selectedQuote.amount}/${this.selectedQuote.unit}`
+                return formatCalendarPrice(resolveCalendarUnitPrice({ nightPrice: this.nightPrice, total: this.skuPrice, nights: this.reserveData.day }), '间')
 			},
 			mealUnitPrice() {
 				return this.includedMeals ? 0 : Number(this.currentCombo.price) || 0
@@ -329,7 +344,7 @@
 			roomFee() {
 				const unit = Number(this.skuPrice) || 0
 				const rooms = Number(this.reserveData.roomNumber) || 1
-				return unit * rooms
+				return Math.round(unit * 100) * rooms / 100
 			},
 			mealFee() {
 				const people = Number(this.reserveData.peopleNumber) || 0
@@ -350,7 +365,7 @@
 			},
 			maxPeopleNumber() {
 				const rooms = Number(this.reserveData.roomNumber) || 1
-				return Math.max(rooms * this.roomCapacity, 1)
+				return Math.max(rooms * Math.max(this.roomCapacity, ...this.partyVariants.map(s => Number((s.travelPolicy || {}).capacity) || 0)), 1)
 			}
 		},
 		onLoad(e) {
@@ -379,11 +394,38 @@
 				this.calendarScrollTop = top + 1
 				this.$nextTick(() => { this.calendarScrollTop = top })
 			},
+            changePeopleNumber(delta) {
+                this.reserveData.peopleNumber = Math.max(1, Math.min(this.maxPeopleNumber, this.reserveData.peopleNumber + delta))
+                this.syncPartySelection()
+            },
+            changeRoomNumber(delta) {
+                this.reserveData.roomNumber = Math.max(1, this.reserveData.roomNumber + delta)
+                this.reserveData.peopleNumber = Math.min(this.reserveData.peopleNumber, this.maxPeopleNumber)
+                this.syncPartySelection()
+            },
+            syncPartySelection() {
+                if (this.customNight || !this.partyReference || !(this.partyReference.travelPolicy || {}).capacity) return
+                const sku = selectTravelPartyRate(this.partyVariants, Number(this.reserveData.peopleNumber), Number(this.reserveData.roomNumber), this.reserveData.checkInDate, this.formatDate(new Date()))
+                if (!sku) {
+                    this.partyQuoteError = Number(this.reserveData.peopleNumber) === 1
+                        ? '该房型、餐制和日期暂无可用单人包房报价，请联系客服确认或选择多人入住。'
+                        : '当前人数、房间数或日期暂无匹配套餐，请调整选择。'
+                    this.skuPrice = 0
+                    return
+                }
+                const changed = this.routeSkuId !== sku.skuId || this.routeSkuSeqNo !== sku.skuSeqNo
+                this.partyQuoteError = ''
+                this.routeSkuId = sku.skuId
+                this.routeSkuSeqNo = sku.skuSeqNo
+                this.syncSkuSelection()
+                if (changed) this.travelEligibilityConfirmed = false
+            },
 			onRoomNumberChange() {
 				const maxPeople = this.maxPeopleNumber
 				if (Number(this.reserveData.peopleNumber) > maxPeople) {
 					this.reserveData.peopleNumber = maxPeople
 				}
+                this.$nextTick(() => { this.syncPartySelection() })
 			},
 
 			isSkuEnabled(sku) {
@@ -534,6 +576,7 @@
 					  });
 					  this.syncSkuSelection();
 					  this.reserveData.peopleNumber = this.roomCapacity
+                      this.partyReference = this.selectedTravelPackage
 					  const filteredSelfOptionList = res.data.optionList.filter(
 					    option => option.skuType === '201' && this.isSkuEnabled(option)
 					  );
@@ -562,6 +605,7 @@
 					}
 					this.goodsLoaded = true
 				}).catch(err => {
+					this.loadError = '套餐加载失败，请返回重试'
 					console.log('getGoodsInfo', err)
 				})
 			},
@@ -582,6 +626,7 @@
 				}
 				this.reserveData.checkInDate = date
 				this.syncStayCalendar()
+                this.syncPartySelection()
 			},
 			// 格式化日期
 			formatDate(date) {
@@ -655,7 +700,8 @@
 			},
 			// 创建订单方法
 			createOrderFn() {
-				this.syncSkuSelection()
+                this.syncPartySelection()
+                if (!this.partyQuoteError) this.syncSkuSelection()
 				const error = this.selectionError || this.eligibilityConfirmationError
 				if (error) {
 					uni.showToast({ icon: 'none', title: error })

@@ -269,7 +269,8 @@ $page-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 						padding: 20rpx 0;
 						border-bottom: 1rpx solid $page-line;
 						display: flex;
-						align-items: flex-end;
+						align-items: center;
+						flex-wrap: wrap;
 						justify-content: space-between;
 						gap: 16rpx;
 						
@@ -278,7 +279,7 @@ $page-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 						}
 						
 						.item_title_view {
-							flex: 1;
+							flex: 1 1 100%;
 							min-width: 0;
 							display: flex;
 							align-items: center;
@@ -310,7 +311,7 @@ $page-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 							display: flex;
 							flex-direction: column;
 							justify-content: center;
-							align-items: flex-end;
+							align-items: flex-start;
 							
 							.price_view {
 								color: $page-accent;
@@ -757,4 +758,39 @@ $page-shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 			}
 		}
 	}
+}
+
+.booking_section_title {
+    padding: 28rpx 28rpx 12rpx;
+    font-size: 34rpx;
+    font-weight: 700;
+    color: #281c19;
+}
+.booking_section_hint {
+    padding: 0 28rpx 24rpx;
+    font-size: 26rpx;
+    line-height: 1.6;
+    color: #70645f;
+}
+
+.matrix_hint_view { color: #70645f; font-size: 24rpx; margin: 20rpx 0 12rpx; }
+.rate_matrix_scroll { width: 100%; margin-top: 24rpx; }
+.rate_matrix {
+    min-width: 100%;
+    border: 1rpx solid #e8dfd8;
+    border-radius: 12rpx;
+    overflow: hidden;
+    .matrix_row { display: flex; align-items: stretch; border-top: 1rpx solid #e8dfd8; }
+    .matrix_header { background: #f5eee7; border-top: 0; color: #50352b; font-weight: 700; }
+    .matrix_meal { width: 144rpx; flex-shrink: 0; padding: 24rpx 14rpx; font-size: 26rpx; line-height: 1.6; background: #fcfaf7; }
+    .matrix_cell { flex: 1; min-width: 236rpx; padding: 24rpx 14rpx; box-sizing: border-box; border-left: 1rpx solid #e8dfd8; font-size: 26rpx; line-height: 1.5; }
+    .price_view { color: #701018; display: flex; align-items: baseline; flex-wrap: wrap; }
+    .rate_amount { font-size: 36rpx; font-weight: 800; }
+    text.rate_unit { color: #701018; font-size: 24rpx !important; }
+    .rate_basis { color: #701018; font-size: 24rpx; }
+    .package_total { margin-top: 12rpx; font-size: 24rpx; color: #51443e; word-break: break-all; }
+    .package_occupancy { font-size: 22rpx; color: #70645f; margin-top: 4rpx; }
+    .quote_book { padding: 12rpx 0; margin-top: 20rpx; line-height: 1.5; min-height: 88rpx; font-size: 28rpx; color: #fff; background: #701018; border-radius: 10rpx; }
+    .quote_book::after { border: 0; }
+    .matrix_unavailable { color: #938a83; padding: 20rpx 0; font-size: 24rpx; }
 }

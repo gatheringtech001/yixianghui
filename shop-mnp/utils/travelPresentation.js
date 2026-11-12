@@ -48,3 +48,23 @@ export function sanitizeTravelCustomerText(value) {
 	const sanitized = text.replace(/知识库价格[，,：:\s-]*/g, '').trim()
 	return sanitized === '按人计价' ? '' : sanitized
 }
+
+const money = cents => (cents / 100).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')
+
+// Only an explicit quotation occupancy may be used, never the legacy capacity default.
+export function travelQuote(sku, combo) {
+	const cents = Math.round(Number(combo && combo.price) * 100)
+	const nights = Number(sku && sku.day)
+	if (!Number.isSafeInteger(cents) || cents <= 0 || !Number.isSafeInteger(nights) || nights <= 0) return null
+	const unit = travelPriceUnit(combo.priceUnit)
+	const occupancy = Number((sku.travelPolicy || {}).capacity)
+	const divisor = unit === '人' ? 1 : Number.isSafeInteger(occupancy) && occupancy > 0 ? occupancy : 1
+	const displayUnit = unit === '人' || divisor > 1 || occupancy === 1 ? '人' : '间'
+	return {
+		nightly: cents / 100 / divisor / nights,
+		amount: money(Math.round(cents / divisor / nights)), unit: displayUnit,
+		// Native 302 remains the exact payable room/package total, never the rounded reference.
+		total: money(cents), totalUnit: unit,
+		occupancyLabel: unit === '间' && occupancy > 0 ? `${occupancy}人/间套餐` : ''
+	}
+}

@@ -524,3 +524,32 @@ $shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
 		}
 	}
 }
+
+.booking_quote_view {
+    margin: 20rpx 0;
+    padding: 24rpx;
+    background: #f7f1eb;
+    border-radius: 12rpx;
+    color: #615651;
+    font-size: 26rpx;
+    line-height: 1.65;
+    .booking_quote_amount {
+        color: #701018;
+        font-size: 38rpx;
+        font-weight: 700;
+    }
+}
+
+.booking_stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 12rpx;
+    margin: 0 12rpx;
+    flex-shrink: 0;
+    text { min-width: 48rpx; text-align: center; }
+    button { width: 88rpx; min-height: 88rpx; padding: 0; margin: 0; font-size: 34rpx; line-height: 88rpx; background: #f5eee7; color: #701018; border-radius: 10rpx; }
+    button::after { border: 0; }
+    button[disabled] { opacity: 0.35; }
+}
+.loading_quote_view { padding: 48rpx 28rpx; color: #70645f; font-size: 30rpx; }
+.pay_disabled { opacity: 0.45; }

@@ -6,6 +6,8 @@ import vm from 'node:vm'
 import * as policy from '../utils/travelPolicy.js'
 import * as presentation from '../utils/travelPresentation.js'
 import * as rates from '../utils/travelRates.js'
+import * as booking from '../utils/travelBooking.js'
+import { detailImageUrl } from '../utils/detailImagePreview.js'
 
 const travelPolicy = {
 	version: 1, capacity: 2, includedMeals: '三餐',
@@ -126,7 +128,8 @@ function pageHarness(file, data) {
 		.replace(/^\s*import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]\s*$/gm, '')
 		.replace('export default', 'module.exports =')
 	const context = {
-		...policy, ...presentation, ...rates, module: { exports: {} }, Calendar: {}, AuthProfilePopup: {},
+		...policy, ...presentation, ...rates, ...booking, detailImageUrl,
+        Date: class extends Date { constructor(...args) { super(...(args.length ? args : ['2026-10-01T00:00:00Z'])) } }, module: { exports: {} }, Calendar: {}, AuthProfilePopup: {},
 		sharePageMixin: {}, console: { log() {} }, BaseUrl: {},
 		getGoodsInfo: async () => ({ data }), getBannerList: async () => ({ data: [] }),
 		runWithAuth: (_, callback) => callback(true),
@@ -288,7 +291,7 @@ test('valid submission payload uses a room total and no 201 charge (stub only, n
 	page.reserveData.phone = '13800000000'
 	page.isReadingAgreement = true
 	page.reserveData.roomNumber = 2
-	page.reserveData.peopleNumber = 1
+	page.reserveData.peopleNumber = 4
 	page.createOrderFn()
 	assert.equal(events.requests.length, 1)
 	const request = events.requests[0]
@@ -296,7 +299,7 @@ test('valid submission payload uses a room total and no 201 charge (stub only, n
 	assert.equal(request.skuSeqNo, 1)
 	assert.equal(request.interCount, 7)
 	assert.equal(request.goodsCount, 2)
-	assert.equal(request.selfGoodsCount, 1)
+	assert.equal(request.selfGoodsCount, 4)
 	assert.equal(request.selfSkuId, null)
 	assert.equal(page.payableAmount, 2400)
 })
@@ -655,9 +658,9 @@ test('eight source seasonal SKUs render as three durations; selected date choose
 	assert.equal(from.isExact, false)
 	page.reserveFn(page.skuGroupList[0].skuDataList[from.skuIndex], from, 0)
 	assert.equal(page.popupDurationOptions.length, 3)
-	assert.equal(page.calendarRateData.prices['2026-12-01'], '￥509/间')
-	assert.equal(page.calendarRateData.prices['2027-01-04'], '￥509/间')
-	assert.equal(page.calendarRateData.prices['2027-03-01'], '￥440.83/间')
+	assert.equal(page.calendarRateData.prices['2026-12-01'], '约￥127.25/人')
+	assert.equal(page.calendarRateData.prices['2027-01-04'], '约￥127.25/人')
+	assert.equal(page.calendarRateData.prices['2027-03-01'], '约￥110.21/人')
 	assert.equal(page.calendarRateData.prices['2027-02-01'], undefined)
 	assert.equal(page.calendarRateData.prices['2026-12-27'], undefined)
 	page.calendarClickFn({ startStr: { dateStr: '2026-12-01' } })
@@ -672,7 +675,7 @@ test('eight source seasonal SKUs render as three durations; selected date choose
 	page.selectDayFn(page.popupDurationOptions[2].indices[0])
 	assert.equal(page.popupDate.day, 29)
 	assert.equal(page.calendarRateData.prices['2027-01-04'], undefined)
-	assert.equal(page.calendarRateData.prices['2027-03-03'], '￥328.28/间')
+	assert.equal(page.calendarRateData.prices['2027-03-03'], '约￥82.07/人')
 })
 
 test('seasonal prices use the continuous calendar without a separate month selector', () => {
@@ -689,7 +692,7 @@ test('confirmation date changes update season and keep new raw SKU through order
 	const { page } = await confirmation(seasonalCatalog(), { skuId: '1579', day: '6', checkInDate: '2026-12-01', checkOutDate: '2026-12-07' })
 	assert.equal(page.selectionError, '')
 	assert.equal(page.selectedRateFamily.variants.length, 3)
-	assert.equal(page.calendarRateData.prices['2027-03-01'], '￥440.83/间')
+	assert.equal(page.calendarRateData.prices['2027-03-01'], '约￥110.21/人')
 	page.calendarClickFn({ startStr: { dateStr: '2027-03-01' } })
 	assert.equal(page.reserveData.checkOutDate, '2027-03-07')
 	assert.equal(page.skuPrice, 2645)
@@ -725,16 +728,16 @@ test('shared calendar blocks missing seasonal quotes while preserving flat-price
 	const context = { module: { exports: {} } }
 	vm.runInNewContext(source.match(/<script>([\s\S]*?)<\/script>/)[1].replace('export default', 'module.exports ='), context)
 	const options = context.module.exports
-	const page = { ...options.data(), dailyPrices: { '2027-03-01': '￥440.83/间' }, price: '￥509/间' }
+	const page = { ...options.data(), dailyPrices: { '2027-03-01': '约￥110.21/人' }, price: '约￥127.25/人' }
 	for (const [key, fn] of Object.entries(options.methods)) page[key] = fn.bind(page)
-	assert.equal(page.datePrice(1, 3, 2027), '￥440.83/间')
+	assert.equal(page.datePrice(1, 3, 2027), '约￥110.21/人')
 	assert.equal(page.datePrice(1, 2, 2027), '不可订')
 	page.chooseDate(1, 2, 2027)
 	assert.equal(page.startDates, '')
 	page.dailyPrices = null
-	assert.equal(page.datePrice(1, 2, 2027), '￥509/间')
+	assert.equal(page.datePrice(1, 2, 2027), '约￥127.25/人')
 	assert.equal(page.dateUnavailable(1, 2, 2027), false)
-	page.dailyPrices = { '2027-03-01': '￥440.83/间' }
+	page.dailyPrices = { '2027-03-01': '约￥110.21/人' }
 	page.fixedEnd = true
 	page.mode = 2
 	page.today = 0
@@ -755,4 +758,117 @@ test('shared calendar blocks missing seasonal quotes while preserving flat-price
 	assert.equal(events[1][1], 800)
 	assert.match(source, /senior-mode\.rate-calendar/)
 	assert.match(source, /font-size: 24rpx !important/)
+})
+
+test('new listing layout groups duration columns across meals and hides solo quotations', async () => {
+    const data = catalog({ version: 1, capacity: 2, includedMeals: '三餐' })
+    const clone = (id, nights, meals, capacity, price) => {
+        const sku = JSON.parse(JSON.stringify(data.optionList[1]))
+        sku.skuId = id
+        Object.assign(sku.options[0], { optionValue: String(nights), optionParam: metadata({ version: 1, capacity, includedMeals: meals }) })
+        sku.options[1].optionValue = String(price)
+        return sku
+    }
+    data.optionList.push(clone(203, 7, '早餐', 2, 800), clone(204, 7, '三餐', 1, 1500), clone(205, 30, '三餐', 2, 6000))
+    const { page } = pageHarness('GoodsDetails/SojournGoodsDetails', data)
+    page.loadCollectState = () => {}
+    page.getGoodsDetailFn(77)
+    await new Promise(resolve => setImmediate(resolve))
+    assert.deepEqual(Array.from(page.durationOptions(0), d => d.label), ['8天7晚', '31天30晚'])
+    let rows = page.getCurrentCombinationList(0)
+    assert.deepEqual(Array.from(rows, r => r.name), ['一日三餐', '只含早'])
+    assert.equal(rows[0].quote.amount, '85.71') // 1200 / 2 / 7, not days or nightly average option301
+    assert.equal(rows[0].quote.total, '1200')
+    assert.equal(rows[0].quote.totalUnit, '间')
+    assert.equal(rows[1].price, '800')
+    page.selectDuration(0, page.durationOptions(0)[1])
+    rows = page.getCurrentCombinationList(0)
+    assert.equal(rows.length, 1) // no fabricated breakfast/30-night price
+    assert.equal(rows[0].quote.amount, '100')
+})
+
+test('booking switches source-backed 2 -> 1 -> 2 occupancy without leaking or doubling solo prices', async () => {
+    const data = catalog()
+    const solo = JSON.parse(JSON.stringify(data.optionList[1]))
+    solo.skuId = 203
+    solo.options[0].optionParam = metadata({ ...travelPolicy, capacity: 1 })
+    solo.options[1].optionValue = '1500'
+    data.optionList.push(solo)
+    const { page, events } = await confirmation(data)
+    assert.equal(page.skuPrice, 1200)
+    assert.equal(page.selectedQuote.amount, '85.71')
+    page.changePeopleNumber(-1)
+    assert.equal(page.selSkuId, 203)
+    assert.equal(page.skuPrice, 1500)
+    assert.equal(page.selectedQuote.amount, '214.29')
+    assert.equal(page.selectionError, '')
+    assert.equal(page.maxPeopleNumber, 2) // the stepper must allow returning from solo to sharing
+    page.changePeopleNumber(1)
+    assert.equal(page.selSkuId, 202)
+    assert.equal(page.skuPrice, 1200)
+    assert.equal(page.selectionError, '')
+    assert.equal(events.requests.length, 0)
+})
+
+test('no source solo quotation blocks checkout and recovers after returning to sharing', async () => {
+    const { page, events } = await confirmation()
+    page.reserveData.peopleNumber = 1
+    page.syncPartySelection()
+    assert.match(page.selectionError, /暂无可用单人包房报价/)
+    assert.equal(page.skuPrice, 0)
+    page.reserveData.name = '合成测试'
+    page.reserveData.phone = '13800000000'
+    page.isReadingAgreement = true
+    page.createOrderFn()
+    assert.equal(events.requests.length, 0)
+    page.reserveData.peopleNumber = 2
+    page.syncPartySelection()
+    assert.equal(page.selectionError, '')
+    assert.equal(page.skuPrice, 1200)
+})
+
+test('solo matching never borrows another room, meal, duration, exclusion or expired quote', async () => {
+    for (const change of [
+        s => { s.parSkuId = 999 },
+        s => { s.options[0].optionValue = '30' },
+        s => { s.options[0].optionParam = metadata({ ...travelPolicy, capacity: 1, includedMeals: '早餐' }) },
+        s => { s.options[0].optionParam = metadata({ ...travelPolicy, capacity: 1, stayEnd: '2026-10-28' }) }
+    ]) {
+        const data = catalog()
+        const solo = JSON.parse(JSON.stringify(data.optionList[1]))
+        solo.skuId = 203
+        solo.options[0].optionParam = metadata({ ...travelPolicy, capacity: 1 })
+        change(solo)
+        data.optionList.push(solo)
+        const { page } = await confirmation(data)
+        page.reserveData.peopleNumber = 1
+        page.syncPartySelection()
+        assert.match(page.selectionError, /暂无可用单人包房报价/)
+    }
+})
+
+test('reference price never guesses occupancy or changes exact cents and ignores stale averages', () => {
+    assert.equal(booking.travelQuote({ day: 7 }, { price: 538, priceUnit: '间', average: 1 }).unit, '间')
+    const sku = { day: 7, travelPolicy: { capacity: 2 } }
+    assert.equal(booking.travelQuote(sku, { price: '1770.01', priceUnit: '间', average: 99 }).amount, '126.43')
+    assert.equal(booking.travelQuote(sku, { price: '1770.01', priceUnit: '间' }).total, '1770.01')
+    assert.equal(booking.travelQuote(sku, { price: '885', priceUnit: '人' }).amount, '126.43')
+    for (const price of [0, -1, NaN, Infinity, 'bad']) assert.equal(booking.travelQuote(sku, { price, priceUnit: '人' }), null)
+    for (const day of [0, 1.2, 'bad']) assert.equal(booking.travelQuote({ ...sku, day }, { price: 885, priceUnit: '人' }), null)
+})
+
+test('matrix columns align sparse meal offers and preserve lunch/dinner qualifications', () => {
+    const source = readFileSync(new URL('../packagesMall/GoodsDetails/SojournGoodsDetails.vue', import.meta.url), 'utf8')
+    assert.match(source, /class="matrix_row matrix_header"/)
+    assert.match(source, /v-for="\(duration, durationIndex\) in durationOptions\(groupIndex\)"/)
+    assert.match(source, /v-for="\(row, rowIndex\) in roomRateMatrix\(groupIndex\)"/)
+    const { page } = pageHarness('GoodsDetails/SojournGoodsDetails', catalog())
+    const make = (skuId, day, meal) => ({ skuId, parSkuId: 200, day, travelPolicy: { version: 1, capacity: 2, includedMeals: meal }, combinationList: [{ name: meal, skuSeqNo: 1, price: 1200, priceUnit: '间' }] })
+    page.skuGroupList = [{ skuDataList: [make(1, 7, '含三餐'), make(2, 30, '三餐'), make(3, 7, '一早一正（晚餐）')] }]
+    const rows = page.roomRateMatrix(0)
+    assert.equal(rows.length, 2)
+    assert.equal(rows[0].name, '一日三餐')
+    assert.ok(rows[0].cells.every(Boolean))
+    assert.equal(rows[1].name, '一早一正（晚餐）')
+    assert.equal(rows[1].cells[1], null)
 })

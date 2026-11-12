@@ -55,7 +55,9 @@
 				</view>
 			</view>
       <view class="body_sku_view" id="id_skuList">
-        <view class="sku_box_view" v-for="(skuGroup, groupIndex) in skuGroupList" :key="groupIndex">
+        <view class="booking_section_title">选房型 · 选住多久 · 选餐制</view>
+        <view class="booking_section_hint">约每人每晚价仅供比较，按套餐总价预订；单人包房请在预订时选择1人。</view>
+        <view class="sku_box_view" v-for="(skuGroup, groupIndex) in skuGroupList" :key="groupIndex" v-if="durationOptions(groupIndex).length">
           <view class="sku_info_view">
             <image :src="resolveCoverUrl(skuGroup.cover)" mode="aspectFill" @tap.stop="previewDetailImages(resolveCoverUrl(skuGroup.cover))" />
             <view class="info_text_view">
@@ -64,29 +66,30 @@
               <view class="text_label_view">{{ formatDescText(skuGroup.descTwo) }}</view>
             </view>
           </view>
-          <view class="sku_option_view" v-if="skuGroup.skuDataList && skuGroup.skuDataList.length > 0">
-            <view class="option_view" :class="item.indices.includes(getSkuSelectIndex(groupIndex)) ? 'option_select':''"
-                  v-for="(item, index) in durationOptions(groupIndex)" :key="index" @click="selectDuration(groupIndex, item)">
-              {{ item.label }}
-            </view>
-          </view>
-          <view class="sku_list_view" v-if="skuGroup.skuDataList && skuGroup.skuDataList.length > 0">
-            <view class="sku_item_view" v-for="(item, index) in getCurrentCombinationList(groupIndex)" :key="index">
-              <view class="item_title_view">
-                <view class="title_icon_view">餐</view>
-                <view class="title_view">{{ item.name }}</view>
+          <view class="matrix_hint_view" v-if="durationOptions(groupIndex).length > 2">左右滑动，比较不同天晚套餐 →</view>
+          <view class="matrix_hint_view" v-if="roomQuoteDates[groupIndex]">报价日期：{{ roomQuoteDates[groupIndex] }}，可在预订时调整</view>
+          <scroll-view scroll-x class="rate_matrix_scroll" v-if="roomRateMatrix(groupIndex).length">
+            <view class="rate_matrix" :style="{width: (144 + durationOptions(groupIndex).length * 236) + 'rpx'}">
+              <view class="matrix_row matrix_header">
+                <view class="matrix_meal">餐制 / 套餐</view>
+                <view class="matrix_cell" v-for="(duration, durationIndex) in durationOptions(groupIndex)" :key="durationIndex">{{ duration.label }}</view>
               </view>
-              <view class="item_price_view">
-                <view class="price_view">
-                  <text class="rate_amount">{{ nightlyPrice(item).split('/')[0] }}</text><text class="rate_unit">/{{ nightlyPrice(item).split('/')[1] }}/晚{{ item.isExact ? '' : '起' }}</text>
+              <view class="matrix_row" v-for="(row, rowIndex) in roomRateMatrix(groupIndex)" :key="rowIndex">
+                <view class="matrix_meal">{{ row.name }}</view>
+                <view class="matrix_cell" v-for="(item, columnIndex) in row.cells" :key="columnIndex">
+                  <template v-if="item">
+                    <view class="price_view"><text class="rate_unit">约</text><text class="rate_amount">￥{{ item.quote.amount }}</text></view>
+                    <view class="rate_basis">/{{ item.quote.unit }}/晚起</view>
+                    <view class="package_total">总价￥{{ item.quote.total }}/{{ item.quote.totalUnit }}</view>
+                    <view class="package_occupancy" v-if="item.quote.occupancyLabel">{{ item.quote.occupancyLabel }}</view>
+                    <button class="quote_book" @click="reserveFn(skuGroup.skuDataList[item.skuIndex], item, groupIndex)">预订</button>
+                  </template>
+                  <view v-else class="matrix_unavailable">暂无此套餐</view>
                 </view>
-                <view class="price_average_view">套餐总价￥{{ item.price }}/{{ item.priceUnit }}{{ item.isExact ? '' : '起' }}</view>
-                <view class="price_average_view" v-if="item.priceLabel">{{ item.priceLabel }}</view>
               </view>
-              <view class="item_button_view" @click="reserveFn(skuGroup.skuDataList[item.skuIndex], item, groupIndex)">订</view>
             </view>
-          </view>
-          <view class="sku_empty_view" v-else>
+          </scroll-view>
+          <view class="sku_empty_view" v-if="!roomRateMatrix(groupIndex).length">
             <text>暂无可预订套餐</text>
           </view>
         </view>
@@ -138,7 +141,7 @@
 				<view class="popup_title_view">选择住宿套餐</view>
 				<view class="popup_tag_view">
 					<view class="tag_view" :class="!popupDate.customNight && item.indices.includes(popupDate.skuSelect) ? 'tag_select':''"
-						v-for="(item, index) in popupDurationOptions" :key="index" @click="selectDayFn(item.indices[0])">
+						v-for="(item, index) in popupDurationOptions" :key="index" @click="selectPopupDuration(item)">
 						<text class="package_duration">{{item.label}}</text>
 					</view>
 					<view v-if="canCustomizeNights" class="tag_customize_view" :class="popupDate.skuSelect == 'customize' ? 'tag_select':''"
@@ -233,7 +236,7 @@
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
 	import { prepareRichTextHtml } from '@/utils/richText'
 	import { readTravelPackage, supportsCustomNights, travelPackagePeriodLabel, defaultTravelDates, travelPolicyText, validateTravelSelection } from '@/utils/travelPolicy'
-	import { groupTravelRates, resolveTravelRate, defaultRateSelection, rateCombination, travelRatePrice, buildTravelRateCalendar } from '@/utils/travelRates'
+	import { groupTravelRates, resolveTravelRate, defaultRateSelection, rateCombination, buildTravelRateCalendar } from '@/utils/travelRates'
 	import {
 		formatCalendarPrice,
 		travelPriceUnit,
@@ -248,6 +251,7 @@
 	import {
 		getBannerList
 	} from '@/api/index'
+	import { groupTravelDurations, travelMealRows, travelQuote } from '@/utils/travelBooking'
 	export default {
 		mixins: [sharePageMixin],
 		components: {
@@ -329,17 +333,17 @@
 		},
 		computed: {
 			popupDurationOptions() {
-				return groupTravelRates(this.popupSkuDataList)
+				return groupTravelDurations(this.popupSkuDataList)
 			},
 			selectedDurationOption() {
-				return this.popupDurationOptions.find(o => o.indices.includes(Number(this.popupDate.skuSelect))) || { variants: [] }
+				return groupTravelRates(this.popupSkuDataList).find(o => o.indices.includes(Number(this.popupDate.skuSelect))) || { variants: [] }
 			},
 			calendarRateData() {
 				if (this.popupDate.customNight) return { first: this.formatDate(new Date()), end: '', prices: {}, months: [], count: 6 }
 				return buildTravelRateCalendar(this.selectedDurationOption.variants, this.popupDate.day, this.popupDate.skuSeqNo, this.formatDate(new Date()))
 			},
 			selectedRatePrice() {
-				return !this.selectionError && !this.popupDate.customNight ? travelRatePrice(this.selectedTravelPackage, this.popupDate.skuSeqNo) : ''
+				return !this.selectionError && !this.popupDate.customNight ? this.referenceRatePrice(this.selectedTravelPackage, this.popupDate.skuSeqNo) : ''
 			},
 			selectedRateTotal() {
 				const combo = rateCombination(this.selectedTravelPackage, this.popupDate.skuSeqNo)
@@ -386,12 +390,7 @@
 				const selected = combinations.find(item => (
 					Number(item.skuSeqNo) === Number(this.popupDate.skuSeqNo)
 				)) || combinations[0]
-				const unitPrice = resolveCalendarUnitPrice({
-					average: selected && selected.average,
-					total: selected && selected.price,
-					nights: this.popupDate.day
-				})
-				return formatCalendarPrice(unitPrice, selected && selected.priceUnit)
+				return this.referenceRatePrice(skuData, selected && selected.skuSeqNo)
 			},
 			popupSkuDataList() {
 				const group = this.skuGroupList[this.popupDate.groupIndex] || this.skuGroupList[0]
@@ -404,12 +403,35 @@
 				this.$nextTick(() => { this.calendarScrollTop = top })
 			},
 			durationOptions(groupIndex) {
-				return groupTravelRates((this.skuGroupList[groupIndex] || {}).skuDataList)
+				return groupTravelDurations((this.skuGroupList[groupIndex] || {}).skuDataList)
 			},
+            roomRateMatrix(groupIndex) {
+                const skus = this.skuGroupList[groupIndex].skuDataList
+                const columns = this.durationOptions(groupIndex).map(duration => travelMealRows(skus, duration, this.roomQuoteDates[groupIndex], this.formatDate(new Date())))
+                const meals = []
+                columns.forEach(rows => rows.forEach(row => {
+                    if (!meals.some(m => m.sourceMeal === row.sourceMeal)) meals.push({ sourceMeal: row.sourceMeal, name: row.name })
+                }))
+                return meals.map(meal => ({ ...meal, cells: columns.map(rows => rows.find(row => row.sourceMeal === meal.sourceMeal) || null) }))
+            },
+			selectPopupDuration(option) {
+                const selected = this.selectedTravelPackage
+                const meal = (rateCombination(selected, this.popupDate.skuSeqNo) || {}).name
+                const capacity = (selected.travelPolicy || {}).capacity
+                const index = option.indices.find(i => {
+                  const sku = this.popupSkuDataList[i]
+                  return (sku.travelPolicy || {}).capacity === capacity && (sku.combinationList || []).some(c => c.name === meal)
+                })
+                this.selectDayFn(index === undefined ? option.indices[0] : index)
+            },
 			selectDuration(groupIndex, option) {
 				this.skuSelect = `${groupIndex}_${option.indices[0]}`
 				this.roomQuoteDates = { ...this.roomQuoteDates, [groupIndex]: null }
 			},
+			referenceRatePrice(sku, seq) {
+                const quote = travelQuote(sku, rateCombination(sku, seq))
+                return quote ? `约￥${quote.amount}/${quote.unit}` : ''
+            },
 			nightlyPrice(combo) {
 				return formatCalendarPrice(resolveCalendarUnitPrice({ average: combo.average, total: combo.price, nights: combo.nights }), combo.priceUnit)
 			},
@@ -620,15 +642,11 @@
 				}
 			},
       getSkuSelectIndex(groupIndex) {
-        if (!this.skuSelect || typeof this.skuSelect !== 'string') {
-          return 0;
-        }
-        const selectKey = this.skuSelect.split('_');
-        if (selectKey[0] == groupIndex) {
-          const index = parseInt(selectKey[1]);
-          return isNaN(index) ? 0 : index;
-        }
-        return 0;
+        const options = this.durationOptions(groupIndex)
+        const fallback = options.length ? options[0].indices[0] : -1
+        const [room, rawIndex] = String(this.skuSelect || '').split('_')
+        const index = Number(rawIndex)
+        return Number(room) === groupIndex && options.some(o => o.indices.includes(index)) ? index : fallback
       },
       // 获取当前套餐组的SKU数据
       getCurrentSkuData(groupIndex) {
@@ -641,21 +659,12 @@
       },
       // 获取当前套餐组的组合列表
       getCurrentCombinationList(groupIndex) {
-        const skuData = this.getCurrentSkuData(groupIndex);
-        if (!skuData || !skuData.combinationList) {
-          return [];
-        }
         const group = this.skuGroupList[groupIndex]
-        const family = this.durationOptions(groupIndex).find(o => o.variants.some(s => s.skuId === skuData.skuId))
-        const today = this.formatDate(new Date())
-        const date = this.roomQuoteDates[groupIndex]
-        return skuData.combinationList.map(combo => {
-          const exact = date && resolveTravelRate(family.variants, date, skuData.day, combo.skuSeqNo, today)
-          const candidates = family.variants.filter(s => defaultRateSelection([s], s.day, combo.skuSeqNo, '', today))
-          const selected = exact || candidates.sort((a, b) => Number(rateCombination(a, combo.skuSeqNo).price) - Number(rateCombination(b, combo.skuSeqNo).price))[0] || skuData
-          return { ...rateCombination(selected, combo.skuSeqNo), nights: selected.day, skuIndex: group.skuDataList.findIndex(s => s.skuId === selected.skuId), isExact: !!exact }
-        });
+        if (!group) return []
+        const duration = this.durationOptions(groupIndex).find(o => o.indices.includes(this.getSkuSelectIndex(groupIndex)))
+        return travelMealRows(group.skuDataList, duration, this.roomQuoteDates[groupIndex], this.formatDate(new Date()))
       },
+
 			 // 为HTML内容中的URL添加host前缀并适配移动端图片展示
 			  addHostPrefixToUrls(content, host) {
 			    return prepareRichTextHtml(content, host)
@@ -790,6 +799,7 @@
 
                     return {
                       skuId: option.skuId,
+                      parSkuId: option.parSkuId,
                       name: option.skuName || '',
                       popupLabel: packagePolicy.travelPolicy && packagePolicy.day > 0
                         ? `${packagePolicy.day + 1}天${packagePolicy.day}晚` : option.skuName || '',
