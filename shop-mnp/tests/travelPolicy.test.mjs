@@ -911,3 +911,16 @@ test('original room cards keep duration tabs and meal rows with corrected quotes
     page.selectDuration(0, page.durationOptions(0)[0])
     assert.equal(page.getCurrentCombinationList(0).length, 2)
 })
+
+test('fixed-stay last-night bounds enforce the original exclusive check-in cutoff across year end', () => {
+    const cutoff = '2026-12-31', day = 86400000
+    for (const nights of [6, 15, 30]) {
+        const end = new Date(Date.parse(cutoff) + (nights - 2) * day).toISOString().slice(0, 10)
+        const travelPolicy = { version: 1, capacity: 2, includedMeals: '一日三餐', stayEnd: end }
+        const selection = date => ({ travelPolicy, nights, checkInDate: date,
+            checkOutDate: new Date(Date.parse(date) + nights * day).toISOString().slice(0, 10) })
+        assert.equal(policy.validateTravelSelection(selection('2026-12-30')), '')
+        assert.match(policy.validateTravelSelection(selection('2026-12-31')), /范围/)
+        assert.match(policy.validateTravelSelection(selection('2027-01-01')), /范围/)
+    }
+})
