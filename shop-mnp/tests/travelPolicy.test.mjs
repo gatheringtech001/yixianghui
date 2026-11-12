@@ -827,6 +827,33 @@ test('no source solo quotation blocks checkout and recovers after returning to s
     assert.equal(page.skuPrice, 1200)
 })
 
+test('a distinct solo room requires explicit booking selection and returns to original shared room', async () => {
+    const data = catalog()
+    data.optionList.push({ skuId: 210, skuType: '200', skuName: '大床一人包房', status: '1', options: [] })
+    const solo = JSON.parse(JSON.stringify(data.optionList[1]))
+    Object.assign(solo, { skuId: 211, parSkuId: 210 })
+    solo.options[0].optionParam = metadata({ ...travelPolicy, capacity: 1 })
+    solo.options[1].optionValue = '1500'
+    data.optionList.push(solo)
+    const { page, events } = await confirmation(data)
+    assert.equal(page.soloRoomOffers.length, 0)
+    page.selectSoloRoomOffer(211) // cannot reveal/select a solo quote for a multi-person booking
+    assert.equal(page.selSkuId, 202)
+    page.changePeopleNumber(-1)
+    assert.match(page.selectionError, /暂无可用单人包房报价/)
+    assert.equal(page.soloRoomOffers[0].roomName, '大床一人包房')
+    page.selectSoloRoomOffer(211)
+    assert.equal(page.selSkuId, 211)
+    assert.equal(page.selectedTravelPackage.parSkuId, 210)
+    assert.equal(page.skuPrice, 1500)
+    assert.equal(page.selectionError, '')
+    page.changePeopleNumber(1)
+    assert.equal(page.selSkuId, 202)
+    assert.equal(page.skuPrice, 1200)
+    assert.equal(page.soloRoomOffers.length, 0)
+    assert.equal(events.requests.length, 0)
+})
+
 test('solo matching never borrows another room, meal, duration, exclusion or expired quote', async () => {
     for (const change of [
         s => { s.parSkuId = 999 },

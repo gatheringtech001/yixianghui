@@ -26,7 +26,7 @@
 				</view>
 			</view>
 			<view class="combo_text_view">{{ selectedTravelPolicyText }}</view>
-			<view v-if="selectionError" class="combo_text_view" style="color: #701018">{{ selectionError }}</view>
+			<view v-if="selectionError && selectionError !== partyQuoteError" class="combo_text_view" style="color: #701018">{{ selectionError }}</view>
 			<view class="body_combo_view">
 				<view class="combo_title_view">
 					<view class="title_text_view">
@@ -65,6 +65,14 @@
                     <view>{{ reserveData.peopleNumber === 1 ? '单人包房' : selectedQuote.occupancyLabel }}</view>
                 </view>
                 <view class="combo_text_view" v-if="partyQuoteError" style="color: #701018">{{ partyQuoteError }}</view>
+                <view v-if="reserveData.peopleNumber === 1 && soloRoomOffers.length" class="solo_room_offers">
+                    <view>单人包房房型（点击明确选择，不自动替换原房型）</view>
+                    <view v-for="offer in soloRoomOffers" :key="offer.skuId" class="solo_room_offer"
+                        :class="!partyQuoteError && selSkuId === offer.skuId ? 'combo_select' : ''"
+                        role="button" @click="selectSoloRoomOffer(offer.skuId)">
+                        {{ offer.roomName }} · {{ offer.day + 1 }}天{{ offer.day }}晚 · {{ offer.meal }} · 总价￥{{ offer.total }}/间
+                    </view>
+                </view>
 				<view class="combo_row_view">
 					订几间房：<view class="booking_stepper">
                         <button role="button" aria-label="减少房间" :disabled="reserveData.roomNumber <= 1" @click="changeRoomNumber(-1)">－</button>
@@ -261,6 +269,7 @@
 				selComboId: undefined,
 				selSkuSeqNo: undefined,
 				partyReference: null,
+                soloRoomSkuId: null,
                 partyQuoteError: '',
 				routeSkuId: null,
 				routeSkuSeqNo: null,
@@ -283,6 +292,18 @@
 		computed: {
             coverUrl() { return detailImageUrl(this.hotelData.goodsImages[0], this.host) },
             partyVariants() { return this.partyReference ? travelPartyVariants(this.skuList, this.partyReference) : [] },
+            soloRoomOffers() {
+                if (Number(this.reserveData.peopleNumber) !== 1 || Number(this.reserveData.roomNumber) !== 1 || !this.partyReference) return []
+                const ref = this.partyReference, meal = (ref.travelPolicy || {}).includedMeals
+                return this.skuList.filter(s => Number((s.travelPolicy || {}).capacity) === 1
+                    && Number(s.day) === Number(ref.day) && (s.travelPolicy || {}).includedMeals === meal
+                    && travelQuote(s, (s.combinationList || [])[0])
+                    && this.standardSkuList.some(r => Number(r.skuId) === Number(s.parSkuId))
+                    && selectTravelPartyRate([s], 1, 1, this.reserveData.checkInDate, this.formatDate(new Date())))
+                    .map(s => ({ skuId: s.skuId, day: Number(s.day), meal,
+                        roomName: this.standardSkuList.find(r => Number(r.skuId) === Number(s.parSkuId)).name,
+                        total: travelQuote(s, s.combinationList[0]).total }))
+            },
             selectedQuote() { return travelQuote(this.selectedTravelPackage, (this.selectedTravelPackage.combinationList || [])[0]) },
 			selectedRateFamily() {
 				const selected = this.selectedTravelPackage
@@ -396,6 +417,12 @@
 			},
             changePeopleNumber(delta) {
                 this.reserveData.peopleNumber = Math.max(1, Math.min(this.maxPeopleNumber, this.reserveData.peopleNumber + delta))
+                if (this.reserveData.peopleNumber !== 1) this.soloRoomSkuId = null
+                this.syncPartySelection()
+            },
+            selectSoloRoomOffer(skuId) {
+                if (!this.soloRoomOffers.some(o => o.skuId === skuId)) return
+                this.soloRoomSkuId = skuId
                 this.syncPartySelection()
             },
             changeRoomNumber(delta) {
@@ -405,7 +432,9 @@
             },
             syncPartySelection() {
                 if (this.customNight || !this.partyReference || !(this.partyReference.travelPolicy || {}).capacity) return
-                const sku = selectTravelPartyRate(this.partyVariants, Number(this.reserveData.peopleNumber), Number(this.reserveData.roomNumber), this.reserveData.checkInDate, this.formatDate(new Date()))
+                const explicitSolo = Number(this.reserveData.peopleNumber) === 1 && this.soloRoomOffers.some(o => o.skuId === this.soloRoomSkuId)
+                const variants = explicitSolo ? this.skuList.filter(s => s.skuId === this.soloRoomSkuId) : this.partyVariants
+                const sku = selectTravelPartyRate(variants, Number(this.reserveData.peopleNumber), Number(this.reserveData.roomNumber), this.reserveData.checkInDate, this.formatDate(new Date()))
                 if (!sku) {
                     this.partyQuoteError = Number(this.reserveData.peopleNumber) === 1
                         ? '该房型、餐制和日期暂无可用单人包房报价，请联系客服确认或选择多人入住。'

@@ -540,6 +540,25 @@ $shadow: 0 12rpx 36rpx rgba(17, 17, 17, 0.06);
     }
 }
 
+.solo_room_offers {
+    margin: 20rpx 0;
+    font-size: 24rpx;
+    line-height: 1.65;
+    color: #57534e;
+    .solo_room_offer {
+        margin-top: 12rpx;
+        padding: 18rpx;
+        border: 1rpx solid #d6d3d1;
+        border-radius: 12rpx;
+        overflow-wrap: anywhere;
+        &.combo_select {
+            color: #701018;
+            background: #f8efea;
+            border-color: #701018;
+        }
+    }
+}
+
 .booking_stepper {
     display: inline-flex;
     align-items: center;
