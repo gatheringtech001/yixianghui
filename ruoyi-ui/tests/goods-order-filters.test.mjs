@@ -7,7 +7,7 @@ test('all orders never retain legacy travel inference', () => {
   assert.deepEqual(goodsOrderQuery({ businessType: 'travel', goodsType: 'hotel' }), { businessType: null, goodsType: null })
 })
 test('dictionary scopes are passed exactly, including future listing types', () => {
-  for (const scope of ['course', 'hotel', 'education', 'new-type']) {
+  for (const scope of ['training', 'hotel', 'education', 'new-type']) {
     assert.equal(goodsOrderQuery({ businessType: 'education' }, scope).goodsType, scope)
     assert.equal(goodsOrderQuery({}, scope).businessType, null)
   }

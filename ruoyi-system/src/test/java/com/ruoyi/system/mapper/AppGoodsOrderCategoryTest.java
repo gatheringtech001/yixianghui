@@ -80,7 +80,7 @@ public class AppGoodsOrderCategoryTest {
             s.execute("create table app_goods_sku(sku_id bigint,sku_name varchar(100))");
             s.execute("create alias find_in_set for 'com.ruoyi.system.mapper.AppGoodsOrderCategoryTest.ancestor'");
             s.execute("insert into app_goods_category values (10,'Parent','0'),(11,'Child','0,10'),(12,'Training','0,10'),(20,'Travel','0')");
-            s.execute("insert into app_goods values (1,'Education','education',11),(2,'Training','course',12),(3,'Travel','hotel',20),(4,'No category','education',null)");
+            s.execute("insert into app_goods values (1,'Education','education',11),(2,'Training','training',12),(3,'Travel','hotel',20),(4,'No category','education',null)");
             s.execute("insert into app_goods_order(order_id,goods_id,pay_status,travel_status) values ('1','1','0',null),('2','2','1',null),('3','3','0',null),('4','999','0','1'),('5','1','1',null),('6','4','0',null)");
             s.execute("insert into app_goods_order_detail values (1,1,1,1,1),(1,1,1,1,2)");
         }
@@ -92,7 +92,7 @@ public class AppGoodsOrderCategoryTest {
             query.setGoodsType("hotel");
             List<AppGoodsOrder> travel = session.selectList(NS + "selectAppGoodsOrderList", query);
             assertEquals(1, travel.size()); assertEquals(Long.valueOf(3), travel.get(0).getOrderId());
-            query.setGoodsType("course");
+            query.setGoodsType("training");
             assertEquals(1, session.selectList(NS + "selectAppGoodsOrderList", query).size());
             query.setGoodsType(null); query.setCategoryId(10L);
             assertEquals(3, session.selectList(NS + "selectAppGoodsOrderList", query).size());
