@@ -2,6 +2,9 @@
   <div class="login">
     <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form">
       <h3 class="title">智享居后台管理系统</h3>
+      <el-form-item>
+        <el-button type="success" style="width:100%;" @click="wechatLogin">微信登录</el-button>
+      </el-form-item>
       <el-form-item prop="username">
         <el-input
           v-model="loginForm.username"
@@ -94,8 +97,8 @@ export default {
     return {
       codeUrl: "",
       loginForm: {
-        username: "admin",
-        password: "admin123",
+        username: "",
+        password: "",
         rememberMe: false,
         code: "",
         uuid: ""
@@ -130,6 +133,7 @@ export default {
     this.getCookie();
   },
   methods: {
+    wechatLogin() { location.assign("/api/system/auth/guanjia/start"); },
     getCode() {
       getCodeImg().then(res => {
         this.captchaEnabled = res.captchaEnabled === undefined ? true : res.captchaEnabled;
@@ -201,6 +205,8 @@ export default {
   border-radius: 6px;
   background: #ffffff;
   width: 400px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
   padding: 25px 25px 5px 25px;
   .el-input {
     height: 38px;

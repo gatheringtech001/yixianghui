@@ -30,6 +30,7 @@ import Layout from '@/layout'
 
 // 公共路由
 export const constantRoutes = [
+  { path: '/guanjia-login', component: () => import('@/views/guanjiaLogin'), hidden: true },
   {
     path: '/redirect',
     component: Layout,
