@@ -17,14 +17,16 @@ class GoodsOrderAdminViewTest(unittest.TestCase):
         self.assertIn("'order_pay_status'", source)
         self.assertIn(':options="dict.type.order_pay_status"', source)
 
-    def test_tabs_reuse_listing_dictionary_and_category_tree(self):
+    def test_tabs_reuse_mini_program_services_and_category_tree(self):
         source = VIEW.read_text(encoding="utf-8")
-        self.assertIn('v-for="type in dict.type.goods_type"', source)
+        self.assertIn('v-for="entry in serviceEntries"', source)
         self.assertIn('listApp_goods_category()', source)
-        self.assertIn("this.handleTree(response.data, 'categoryId', 'parentId')", source)
+        self.assertIn("this.handleTree(this.categoryRows, 'categoryId', 'parentId')", source)
         self.assertIn('label="商品分类"', source)
+        self.assertNotIn('dict.type.goods_type', source)
+        self.assertIn('this.$router.push(entry.route)', source)
         self.assertIn("orderScope: 'all'", source)
-        self.assertEqual(source.count('exportQuery(goodsOrderQuery(this.queryParams, this.orderScope))'), 2)
+        self.assertEqual(source.count('exportQuery(goodsOrderQuery(this.queryParams, this.orderScope, this.serviceEntries))'), 2)
         self.assertIn('if (request !== this.listRequest) return', source)
 
     def test_backend_filters_the_two_business_types(self):

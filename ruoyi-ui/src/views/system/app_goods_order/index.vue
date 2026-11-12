@@ -2,7 +2,7 @@
   <div class="app-container goods-orders-page">
     <el-tabs v-model="orderScope" @tab-click="handleOrderScopeChange">
       <el-tab-pane label="全部商品订单" name="all" />
-      <el-tab-pane v-for="type in dict.type.goods_type" :key="type.value" :label="type.label" :name="type.value" />
+      <el-tab-pane v-for="entry in serviceEntries" :key="entry.scope" :label="entry.label" :name="entry.scope" />
     </el-tabs>
 
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="110px">
@@ -31,7 +31,7 @@
         />
       </el-form-item>
       <el-form-item label="商品分类" prop="categoryId">
-        <treeselect v-model="queryParams.categoryId" :options="categoryOptions" :normalizer="normalizeCategory"
+        <treeselect v-model="queryParams.categoryId" :options="scopedCategoryOptions" :normalizer="normalizeCategory"
                     placeholder="全部分类" class="order-category-select" @input="handleQuery" />
       </el-form-item>
       <el-form-item label="订单号" prop="orderNo">
@@ -342,14 +342,11 @@
           <el-tag v-if="scope.row.orderOrigin === 'feishu_history' && !scope.row.goodsId" size="mini" type="danger">未匹配商品</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="商品类型" align="center" min-width="110">
-        <template slot-scope="{row}">
-          <dict-tag v-if="row.goodsType" :options="dict.type.goods_type" :value="row.goodsType" />
-          <span v-else>未关联商品</span>
-        </template>
+      <el-table-column label="业务分类" align="center" min-width="110">
+        <template slot-scope="{row}">{{ businessLabel(row) }}</template>
       </el-table-column>
       <el-table-column label="商品分类" align="center" prop="categoryName" min-width="120" show-overflow-tooltip>
-        <template slot-scope="{row}">{{ row.categoryName || '未分类' }}</template>
+        <template slot-scope="{row}">{{ categoryLabel(row) }}</template>
       </el-table-column>
       <el-table-column v-if="orderScope === 'hotel'" label="客户" align="center" min-width="130">
         <template slot-scope="scope">
@@ -625,13 +622,13 @@
 import Treeselect from '@riophae/vue-treeselect'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import { listApp_goods_category } from '@/api/system/app_goods_category'
-import { goodsOrderQuery, resetGoodsOrderQuery } from '@/utils/goods-order-filters.mjs'
+import { goodsOrderQuery, resetGoodsOrderQuery, orderServices, orderBusinessLabel } from '@/utils/goods-order-filters.mjs'
 import { exportQuery } from '@/utils/guanjia.mjs'
 import { listApp_goods_order, getApp_goods_order, delApp_goods_order, addApp_goods_order, updateApp_goods_order, updateTravelStatus } from "@/api/system/app_goods_order";
 export default {
   name: "App_goods_order",
   components: { Treeselect },
-  dicts: ['common_is_not', 'pay_type', 'order_status', 'order_pay_status', 'goods_type'],
+  dicts: ['common_is_not', 'pay_type', 'order_status', 'order_pay_status'],
   data() {
     return {
       // 遮罩层
@@ -650,6 +647,8 @@ export default {
       app_goods_orderList: [],
       orderScope: 'all',
       categoryOptions: [],
+      categoryRows: [],
+      previousOrderScope: 'all',
       listRequest: 0,
       travelStatusOptions: [
         { value: '0', label: '待确认' },
@@ -727,15 +726,32 @@ export default {
       }
     };
   },
+  computed: {
+    serviceEntries() { return orderServices(this.categoryRows) },
+    scopedCategoryOptions() {
+      const entries = this.serviceEntries.filter(entry => !entry.route && (this.orderScope === 'all' || entry.scope === this.orderScope))
+      return entries.map(entry => {
+        const root = this.categoryOptions.find(node => String(node.categoryId) === String(entry.categoryId))
+        return root && { ...root, categoryName: entry.label }
+      }).filter(Boolean)
+    }
+  },
   created() {
     listApp_goods_category().then(response => {
-      this.categoryOptions = this.handleTree(response.data, 'categoryId', 'parentId')
+      this.categoryRows = response.data || []
+      this.categoryOptions = this.handleTree(this.categoryRows, 'categoryId', 'parentId')
+      if (this.orderScope !== 'all') this.getList()
     }).catch(() => this.$modal.msgError('商品分类读取失败，请刷新重试'))
     this.getList();
   },
   methods: {
+    categoryLabel(row) {
+      const entry = this.serviceEntries.find(item => !item.route && String(item.categoryId) === String(row.categoryId))
+      return (entry && entry.label) || row.categoryName || '未分类'
+    },
+    businessLabel(row) { return orderBusinessLabel(row, this.categoryRows, this.serviceEntries) },
     handleRosterExport() {
-      const filters = exportQuery(goodsOrderQuery(this.queryParams, this.orderScope));
+      const filters = exportQuery(goodsOrderQuery(this.queryParams, this.orderScope, this.serviceEntries));
       this.download('system/app_goods_order/roster', filters, `报名名单_${Date.now()}.xlsx`);
     },
     /** 查询商品订单列表 */
@@ -745,7 +761,7 @@ export default {
     getList() {
       const request = ++this.listRequest
       this.loading = true
-      listApp_goods_order(goodsOrderQuery(this.queryParams, this.orderScope)).then(response => {
+      listApp_goods_order(goodsOrderQuery(this.queryParams, this.orderScope, this.serviceEntries)).then(response => {
         if (request !== this.listRequest) return
         this.app_goods_orderList = response.rows
         this.total = response.total
@@ -801,6 +817,13 @@ export default {
       this.getList();
     },
     handleOrderScopeChange() {
+      const entry = this.serviceEntries.find(item => item.scope === this.orderScope)
+      if (entry && entry.route) {
+        this.orderScope = this.previousOrderScope
+        this.$router.push(entry.route)
+        return
+      }
+      this.previousOrderScope = this.orderScope
       this.queryParams = resetGoodsOrderQuery(this.queryParams)
       this.getList()
     },
@@ -913,7 +936,7 @@ export default {
     },
     /** 导出按钮操作 */
     handleExport() {
-      this.download('system/app_goods_order/export', exportQuery(goodsOrderQuery(this.queryParams, this.orderScope)), `app_goods_order_${new Date().getTime()}.xlsx`)
+      this.download('system/app_goods_order/export', exportQuery(goodsOrderQuery(this.queryParams, this.orderScope, this.serviceEntries)), `app_goods_order_${new Date().getTime()}.xlsx`)
     }
   }
 };
