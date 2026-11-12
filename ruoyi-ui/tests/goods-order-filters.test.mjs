@@ -18,7 +18,7 @@ test('business names follow current mini-program, not legacy type labels', () =>
   const mini = readFileSync(new URL('../../shop-mnp/pages/classify/classify.vue', import.meta.url), 'utf8')
   entries.forEach(e => assert.ok(mini.includes(`<text>${e.label}</text>`)))
   assert.equal(entries.find(e => e.scope === 'education').categoryId, 58)
-  assert.equal(entries.find(e => e.scope === 'activity').route, '/order/app_activity_order')
+  assert.equal(entries.find(e => e.scope === 'activity').route, '/activity/app_activity_order')
 })
 test('business filters use category hierarchy and never constrain legacy goods type', () => {
   assert.deepEqual(goodsOrderQuery({ businessType: 'travel', goodsType: 'training', categoryId: null }, 'education', entries), { businessType: null, goodsType: null, categoryId: 58 })

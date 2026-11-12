@@ -1,7 +1,7 @@
 // Match shop-mnp/pages/classify/classify.vue, not the legacy goods_type dictionary.
 const services = [
   { scope: 'hotel', label: '全国旅居', names: ['全国旅居'] },
-  { scope: 'activity', label: '聚会活动', names: ['聚会活动'], route: '/order/app_activity_order' },
+  { scope: 'activity', label: '聚会活动', names: ['聚会活动'], route: '/activity/app_activity_order' },
   { scope: 'education', label: '芳华学院', names: ['老年教育'] },
   { scope: 'retail', label: '云南好物', names: ['云南好物', '云野好物'] }
 ]
