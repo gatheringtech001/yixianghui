@@ -25,6 +25,8 @@ public class MiniDashboardContractTest {
         }
     }
     public static void main(String[] args) throws Exception {
+        org.springframework.web.bind.annotation.RequestParam binding = com.ruoyi.web.controller.monitor.SysUserOnlineController.class.getMethod("getUserStaticCount",String.class).getParameters()[0].getAnnotation(org.springframework.web.bind.annotation.RequestParam.class);
+        check("period".equals(binding.name()) && "30d".equals(binding.defaultValue()));
         LocalDate day=LocalDate.of(2026,11,12);
         check(MiniDashboardService.periodStart("today",day).equals(day));
         check(MiniDashboardService.periodStart("yesterday",day).equals(day.minusDays(1)));
