@@ -760,7 +760,7 @@ test('shared calendar blocks missing seasonal quotes while preserving flat-price
 	assert.match(source, /font-size: 24rpx !important/)
 })
 
-test('new listing layout groups duration columns across meals and hides solo quotations', async () => {
+test('room cards group duration tabs across meals and hide solo quotations', async () => {
     const data = catalog({ version: 1, capacity: 2, includedMeals: '三餐' })
     const clone = (id, nights, meals, capacity, price) => {
         const sku = JSON.parse(JSON.stringify(data.optionList[1]))
@@ -857,18 +857,30 @@ test('reference price never guesses occupancy or changes exact cents and ignores
     for (const day of [0, 1.2, 'bad']) assert.equal(booking.travelQuote({ ...sku, day }, { price: 885, priceUnit: '人' }), null)
 })
 
-test('matrix columns align sparse meal offers and preserve lunch/dinner qualifications', () => {
+test('original room cards keep duration tabs and meal rows with corrected quotes', () => {
     const source = readFileSync(new URL('../packagesMall/GoodsDetails/SojournGoodsDetails.vue', import.meta.url), 'utf8')
-    assert.match(source, /class="matrix_row matrix_header"/)
-    assert.match(source, /v-for="\(duration, durationIndex\) in durationOptions\(groupIndex\)"/)
-    assert.match(source, /v-for="\(row, rowIndex\) in roomRateMatrix\(groupIndex\)"/)
+    assert.match(source, /class="sku_option_view"/)
+    assert.match(source, /@click="selectDuration\(groupIndex, item\)"/)
+    assert.match(source, /v-for="\(item, index\) in getCurrentCombinationList\(groupIndex\)"/)
+    assert.match(source, /约￥{{ item.quote.amount }}/)
+    assert.match(source, /套餐总价￥{{ item.quote.total }}/)
+    assert.match(source, /reserveFn\(skuGroup.skuDataList\[item.skuIndex\], item, groupIndex\)/)
+    assert.doesNotMatch(source, /rate_matrix|matrix_row|roomRateMatrix/)
     const { page } = pageHarness('GoodsDetails/SojournGoodsDetails', catalog())
     const make = (skuId, day, meal) => ({ skuId, parSkuId: 200, day, travelPolicy: { version: 1, capacity: 2, includedMeals: meal }, combinationList: [{ name: meal, skuSeqNo: 1, price: 1200, priceUnit: '间' }] })
     page.skuGroupList = [{ skuDataList: [make(1, 7, '含三餐'), make(2, 30, '三餐'), make(3, 7, '一早一正（晚餐）')] }]
-    const rows = page.roomRateMatrix(0)
+    let rows = page.getCurrentCombinationList(0)
     assert.equal(rows.length, 2)
     assert.equal(rows[0].name, '一日三餐')
-    assert.ok(rows[0].cells.every(Boolean))
+    assert.equal(rows[0].quote.amount, '85.71')
+    assert.equal(rows[0].quote.total, '1200')
     assert.equal(rows[1].name, '一早一正（晚餐）')
-    assert.equal(rows[1].cells[1], null)
+    page.selectDuration(0, page.durationOptions(0)[1])
+    rows = page.getCurrentCombinationList(0)
+    assert.equal(rows.length, 1)
+    assert.equal(rows[0].name, '一日三餐')
+    assert.equal(rows[0].quote.amount, '20')
+    assert.equal(rows[0].skuIndex, 1)
+    page.selectDuration(0, page.durationOptions(0)[0])
+    assert.equal(page.getCurrentCombinationList(0).length, 2)
 })

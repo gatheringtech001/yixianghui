@@ -55,8 +55,6 @@
 				</view>
 			</view>
       <view class="body_sku_view" id="id_skuList">
-        <view class="booking_section_title">选房型 · 选住多久 · 选餐制</view>
-        <view class="booking_section_hint">约每人每晚价仅供比较，按套餐总价预订；单人包房请在预订时选择1人。</view>
         <view class="sku_box_view" v-for="(skuGroup, groupIndex) in skuGroupList" :key="groupIndex" v-if="durationOptions(groupIndex).length">
           <view class="sku_info_view">
             <image :src="resolveCoverUrl(skuGroup.cover)" mode="aspectFill" @tap.stop="previewDetailImages(resolveCoverUrl(skuGroup.cover))" />
@@ -66,30 +64,29 @@
               <view class="text_label_view">{{ formatDescText(skuGroup.descTwo) }}</view>
             </view>
           </view>
-          <view class="matrix_hint_view" v-if="durationOptions(groupIndex).length > 2">左右滑动，比较不同天晚套餐 →</view>
-          <view class="matrix_hint_view" v-if="roomQuoteDates[groupIndex]">报价日期：{{ roomQuoteDates[groupIndex] }}，可在预订时调整</view>
-          <scroll-view scroll-x class="rate_matrix_scroll" v-if="roomRateMatrix(groupIndex).length">
-            <view class="rate_matrix" :style="{width: (144 + durationOptions(groupIndex).length * 236) + 'rpx'}">
-              <view class="matrix_row matrix_header">
-                <view class="matrix_meal">餐制 / 套餐</view>
-                <view class="matrix_cell" v-for="(duration, durationIndex) in durationOptions(groupIndex)" :key="durationIndex">{{ duration.label }}</view>
-              </view>
-              <view class="matrix_row" v-for="(row, rowIndex) in roomRateMatrix(groupIndex)" :key="rowIndex">
-                <view class="matrix_meal">{{ row.name }}</view>
-                <view class="matrix_cell" v-for="(item, columnIndex) in row.cells" :key="columnIndex">
-                  <template v-if="item">
-                    <view class="price_view"><text class="rate_unit">约</text><text class="rate_amount">￥{{ item.quote.amount }}</text></view>
-                    <view class="rate_basis">/{{ item.quote.unit }}/晚起</view>
-                    <view class="package_total">总价￥{{ item.quote.total }}/{{ item.quote.totalUnit }}</view>
-                    <view class="package_occupancy" v-if="item.quote.occupancyLabel">{{ item.quote.occupancyLabel }}</view>
-                    <button class="quote_book" @click="reserveFn(skuGroup.skuDataList[item.skuIndex], item, groupIndex)">预订</button>
-                  </template>
-                  <view v-else class="matrix_unavailable">暂无此套餐</view>
-                </view>
-              </view>
+          <view class="sku_option_view" v-if="skuGroup.skuDataList && skuGroup.skuDataList.length > 0">
+            <view class="option_view" :class="item.indices.includes(getSkuSelectIndex(groupIndex)) ? 'option_select':''"
+                  v-for="(item, index) in durationOptions(groupIndex)" :key="index" @click="selectDuration(groupIndex, item)">
+              {{ item.label }}
             </view>
-          </scroll-view>
-          <view class="sku_empty_view" v-if="!roomRateMatrix(groupIndex).length">
+          </view>
+          <view class="sku_list_view" v-if="getCurrentCombinationList(groupIndex).length">
+            <view class="sku_item_view" v-for="(item, index) in getCurrentCombinationList(groupIndex)" :key="index">
+              <view class="item_title_view">
+                <view class="title_icon_view">餐</view>
+                <view class="title_view">{{ item.name }}</view>
+              </view>
+              <view class="item_price_view">
+                <view class="price_view">
+                  <text class="rate_amount">约￥{{ item.quote.amount }}</text><text class="rate_unit">/{{ item.quote.unit }}/晚起</text>
+                </view>
+                <view class="price_average_view">套餐总价￥{{ item.quote.total }}/{{ item.quote.totalUnit }}</view>
+                <view class="price_average_view" v-if="item.quote.occupancyLabel">{{ item.quote.occupancyLabel }}</view>
+              </view>
+              <view class="item_button_view" @click="reserveFn(skuGroup.skuDataList[item.skuIndex], item, groupIndex)">订</view>
+            </view>
+          </view>
+          <view class="sku_empty_view" v-else>
             <text>暂无可预订套餐</text>
           </view>
         </view>
@@ -405,15 +402,7 @@
 			durationOptions(groupIndex) {
 				return groupTravelDurations((this.skuGroupList[groupIndex] || {}).skuDataList)
 			},
-            roomRateMatrix(groupIndex) {
-                const skus = this.skuGroupList[groupIndex].skuDataList
-                const columns = this.durationOptions(groupIndex).map(duration => travelMealRows(skus, duration, this.roomQuoteDates[groupIndex], this.formatDate(new Date())))
-                const meals = []
-                columns.forEach(rows => rows.forEach(row => {
-                    if (!meals.some(m => m.sourceMeal === row.sourceMeal)) meals.push({ sourceMeal: row.sourceMeal, name: row.name })
-                }))
-                return meals.map(meal => ({ ...meal, cells: columns.map(rows => rows.find(row => row.sourceMeal === meal.sourceMeal) || null) }))
-            },
+
 			selectPopupDuration(option) {
                 const selected = this.selectedTravelPackage
                 const meal = (rateCombination(selected, this.popupDate.skuSeqNo) || {}).name
