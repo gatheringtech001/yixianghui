@@ -1,202 +1,36 @@
 <template>
-  <el-row :gutter="40" class="panel-group">
-    <el-col :xs="12" :sm="12" :lg="6" class="card-panel-col">
-      <div class="card-panel" @click="handleSetLineChartData('newVisitis')">
-        <div class="card-panel-icon-wrapper icon-people">
-          <svg-icon icon-class="peoples" class-name="card-panel-icon" />
-        </div>
-        <div class="card-panel-description">
-          <div class="card-panel-text">
-            访客
-          </div>
-          <count-to :start-val="0" :end-val="userStaticCount.onlineUserCount" :duration="2600" class="card-panel-num" />
-        </div>
-      </div>
-    </el-col>
-    <el-col :xs="12" :sm="12" :lg="6" class="card-panel-col">
-      <div class="card-panel" @click="handleSetLineChartData('messages')">
-        <div class="card-panel-icon-wrapper icon-message">
-          <svg-icon icon-class="message" class-name="card-panel-icon" />
-        </div>
-        <div class="card-panel-description">
-          <div class="card-panel-text">
-            消息
-          </div>
-          <count-to :start-val="0" :end-val="userStaticCount.msgCount" :duration="3000" class="card-panel-num" />
-        </div>
-      </div>
-    </el-col>
-    <el-col :xs="12" :sm="12" :lg="6" class="card-panel-col">
-      <div class="card-panel" @click="handleSetLineChartData('purchases')">
-        <div class="card-panel-icon-wrapper icon-money">
-          <svg-icon icon-class="money" class-name="card-panel-icon" />
-        </div>
-        <div class="card-panel-description">
-          <div class="card-panel-text">
-            金额
-          </div>
-          <count-to :start-val="0" :end-val="userStaticCount.orderMoney" :duration="3200" class="card-panel-num" />
-        </div>
-      </div>
-    </el-col>
-    <el-col :xs="12" :sm="12" :lg="6" class="card-panel-col">
-      <div class="card-panel" @click="handleSetLineChartData('shoppings')">
-        <div class="card-panel-icon-wrapper icon-shopping">
-          <svg-icon icon-class="shopping" class-name="card-panel-icon" />
-        </div>
-        <div class="card-panel-description">
-          <div class="card-panel-text">
-            订单
-          </div>
-          <count-to :start-val="0" :end-val="userStaticCount.orderCount" :duration="3600" class="card-panel-num" />
-        </div>
-      </div>
-    </el-col>
-  </el-row>
+  <div class="panel-group">
+    <section v-for="card in cards" :key="card.title" class="metric-card">
+      <div class="metric-title">{{ card.title }}<i :class="card.icon" /></div>
+      <div class="metric-value" :class="{ money: card.money }">{{ loading ? '—' : formatMetric(card.value, card.money) }}<small v-if="card.money && !loading && card.value != null">元</small></div>
+      <div class="metric-caption">{{ card.caption }}</div>
+    </section>
+  </div>
 </template>
-
 <script>
-import CountTo from 'vue-count-to'
-import { getUserStaticCount } from "@/api/monitor/online";
-
+import { formatMetric, trafficMetric } from '@/utils/mini-dashboard.mjs'
 export default {
-  components: {
-    CountTo
-  },
-  data() {
-    return {
-      userStaticCount: {
-        "onlineUserCount":102400,
-        "orderCount":13600,
-        "orderMoney":9280,
-        "msgCount":81212
-      }
+  props: { totals: { type: Object, default: () => ({}) }, traffic: { type: Object, default: () => ({}) }, loading: Boolean },
+  computed: {
+    cards() {
+      const trafficCaption = this.traffic.date ? `${this.traffic.date} · 微信统计` : '微信小程序数据分析'
+      return [
+        { title: '小程序访客', value: trafficMetric(this.traffic, 'visitors'), caption: trafficCaption, icon: 'el-icon-user' },
+        { title: '浏览次数', value: trafficMetric(this.traffic, 'pageViews'), caption: trafficCaption, icon: 'el-icon-view' },
+        { title: '累计收款', value: this.totals.receivedAmount, caption: '所选订单的成功付款金额 · 含已退款款项', money: true, icon: 'el-icon-wallet' },
+        { title: '订单总数', value: this.totals.orderCount, caption: '商品订单 + 活动报名 · 含未付款', icon: 'el-icon-tickets' }
+      ]
     }
   },
-  mounted() {
-    getUserStaticCount().then(res => {
-      this.userStaticCount = {
-        "onlineUserCount":res.data.onlineUserCount,
-        "orderCount":res.data.orderCount,
-        "orderMoney":res.data.orderMoney,
-        "msgCount":res.data.msgCount
-      };
-    });
-  },
-  methods: {
-    handleSetLineChartData(type) {
-      this.$emit('handleSetLineChartData', type)
-    }
-  }
+  methods: { formatMetric }
 }
 </script>
-
 <style lang="scss" scoped>
-.panel-group {
-  margin-top: 3px;
-
-  .card-panel-col {
-    margin-bottom: 5px;
-  }
-
-  .card-panel {
-    height: 108px;
-    cursor: pointer;
-    font-size: 12px;
-    position: relative;
-    overflow: hidden;
-    color: #666;
-    background: #fff;
-    box-shadow: 4px 4px 40px rgba(0, 0, 0, .05);
-    border-color: rgba(0, 0, 0, .05);
-
-    &:hover {
-      .card-panel-icon-wrapper {
-        color: #fff;
-      }
-
-      .icon-people {
-        background: #40c9c6;
-      }
-
-      .icon-message {
-        background: #36a3f7;
-      }
-
-      .icon-money {
-        background: #f4516c;
-      }
-
-      .icon-shopping {
-        background: #34bfa3
-      }
-    }
-
-    .icon-people {
-      color: #40c9c6;
-    }
-
-    .icon-message {
-      color: #36a3f7;
-    }
-
-    .icon-money {
-      color: #f4516c;
-    }
-
-    .icon-shopping {
-      color: #34bfa3
-    }
-
-    .card-panel-icon-wrapper {
-      float: left;
-      margin: 14px 0 0 14px;
-      padding: 16px;
-      transition: all 0.38s ease-out;
-      border-radius: 6px;
-    }
-
-    .card-panel-icon {
-      float: left;
-      font-size: 48px;
-    }
-
-    .card-panel-description {
-      float: right;
-      font-weight: bold;
-      margin: 26px;
-      margin-left: 0px;
-
-      .card-panel-text {
-        line-height: 18px;
-        color: rgba(0, 0, 0, 0.45);
-        font-size: 16px;
-        margin-bottom: 12px;
-      }
-
-      .card-panel-num {
-        font-size: 20px;
-      }
-    }
-  }
-}
-
-@media (max-width:550px) {
-  .card-panel-description {
-    display: none;
-  }
-
-  .card-panel-icon-wrapper {
-    float: none !important;
-    width: 100%;
-    height: 100%;
-    margin: 0 !important;
-
-    .svg-icon {
-      display: block;
-      margin: 14px auto !important;
-      float: none !important;
-    }
-  }
-}
+.panel-group { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.metric-card { background: white; border: 1px solid #e8edf3; border-radius: 10px; padding: 20px; min-width: 0; }
+.metric-title { font-size: 14px; color: #64748b; display: flex; justify-content: space-between; gap: 8px; i { color: #409eff; font-size: 18px; } }
+.metric-value { font-size: 30px; line-height: 1.5; font-weight: 650; color: #172b4d; margin: 8px 0; overflow-wrap: anywhere; small { font-size: 12px; margin-left: 5px; font-weight: 400; } }
+.metric-caption { color: #8a97a8; font-size: 12px; line-height: 1.6; }
+@media (max-width: 1200px) { .panel-group { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 500px) { .panel-group { gap: 10px; } .metric-card { padding: 14px 12px; } .metric-value { font-size: 25px; } .metric-title { font-size: 13px; } }
 </style>

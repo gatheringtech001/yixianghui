@@ -1,10 +1,8 @@
 package com.ruoyi.web.controller.monitor;
 
-import java.math.BigDecimal;
 import java.util.*;
 
 import com.ruoyi.system.service.IAppCustomerService;
-import com.ruoyi.system.service.IAppGoodsOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -12,6 +10,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+import com.ruoyi.web.service.MiniDashboardService;
+import com.ruoyi.web.service.WeChatTrafficClient;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.constant.CacheConstants;
 import com.ruoyi.common.core.controller.BaseController;
@@ -38,11 +39,12 @@ public class SysUserOnlineController extends BaseController
 
     @Autowired
     private IAppCustomerService appCustomerService;
-    @Autowired
-    private IAppGoodsOrderService appGoodsOrderService;
 
     @Autowired
     private RedisCache redisCache;
+
+    @Autowired private MiniDashboardService miniDashboardService;
+    @Autowired private WeChatTrafficClient weChatTrafficClient;
 
     @PreAuthorize("@ss.hasPermi('monitor:online:list')")
     @GetMapping("/list")
@@ -96,21 +98,15 @@ public class SysUserOnlineController extends BaseController
 
     @PreAuthorize("@ss.hasPermi('monitor:online:list')")
     @GetMapping("/getUserStaticCount")
-    public AjaxResult getUserStaticCount()
+    public AjaxResult getUserStaticCount(@RequestParam(defaultValue = "30d") String period)
     {
-        Map retMap = new HashMap();
-        Collection<String> keys = redisCache.keys(CacheConstants.LOGIN_TOKEN_KEY + "*");
-        retMap.put("onlineUserCount",keys.size());
-        Map odermap = appGoodsOrderService.selAppGoodsOrderStatData();
-        if(null!=odermap){
-            retMap.put("orderCount",new BigDecimal(odermap.get("payAmount").toString()).intValue());
-            retMap.put("orderMoney",odermap.get("totalCou"));
-        }else{
-            retMap.put("orderCount","0");
-            retMap.put("orderMoney","0");
-        }
-        retMap.put("msgCount","81212");
-        return success(retMap);
+        return success(miniDashboardService.summary(period));
     }
 
+    @PreAuthorize("@ss.hasPermi('monitor:online:list')")
+    @GetMapping("/getMiniProgramTraffic")
+    public AjaxResult getMiniProgramTraffic()
+    {
+        return success(weChatTrafficClient.yesterday());
+    }
 }

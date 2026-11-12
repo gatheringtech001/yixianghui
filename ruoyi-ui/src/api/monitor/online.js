@@ -20,6 +20,12 @@ export function forceLogout(tokenId) {
 export function getUserStaticCount(query) {
   return request({
     url: '/monitor/online/getUserStaticCount',
-    method: 'get'
+    method: 'get',
+    params: query
   })
+}
+
+// 微信访问统计独立加载，微信不可用不影响订单统计。
+export function getMiniProgramTraffic() {
+  return request({ url: '/monitor/online/getMiniProgramTraffic', method: 'get', timeout: 20000 })
 }
