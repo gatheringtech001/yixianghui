@@ -13,6 +13,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="orderNo"    column="order_no"    />
         <result property="goodsName" column="goods_name" />
         <result property="goodsType" column="goods_type" />
+        <result property="categoryId" column="category_id" />
+        <result property="categoryName" column="category_name" />
         <result property="orderOrigin" column="order_origin" />
         <result property="feishuRecordId" column="feishu_record_id" />
         <result property="feishuOrderNo" column="feishu_order_no" />
@@ -81,10 +83,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                appgoods.is_comment, appgoods.is_apply_cancel,
                appgoods.is_cash, appgoods.create_time, appgoods.update_time, appgoods.status, appgoods.travel_status, appgoods.travel_status_before_refund,
                appgoods.check_in_date, appgoods.check_out_date, appgoods.contact_name, appgoods.contact_phone,
-               dept.dept_name, goods.goods_name, goods.goods_type, orderdetail.inter_count
+               dept.dept_name, goods.goods_name, goods.goods_type, goods.category_id,
+               category.category_name, orderdetail.inter_count
         from app_goods_order appgoods
         LEFT JOIN sys_dept dept on appgoods.dept_id=dept.dept_id
         LEFT JOIN app_goods goods on appgoods.goods_id=goods.goods_id
+        LEFT JOIN app_goods_category category on goods.category_id=category.category_id
         LEFT JOIN (
             select detail.order_id, max(detail.goods_count) as goods_count,
                    max(detail.self_goods_count) as self_goods_count,
@@ -103,6 +107,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="deptId != null "> and appgoods.dept_id = #{deptId}</if>
             <if test="addressId != null "> and appgoods.address_id = #{addressId}</if>
             <if test="orderNo != null  and orderNo != ''"> and appgoods.order_no = #{orderNo}</if>
+            <if test="goodsType != null and goodsType != ''"> and goods.goods_type = #{goodsType}</if>
+            <if test="categoryId != null">
+                and (goods.category_id = #{categoryId} or goods.category_id in (
+                    select category_id from app_goods_category
+                    where find_in_set(#{categoryId}, parent_ids)
+                ))
+            </if>
             <if test="businessType != null and businessType != ''">
                 <choose>
                     <when test="businessType == 'travel'">

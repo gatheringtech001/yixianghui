@@ -49,6 +49,10 @@ public class AppGoodsOrder extends BaseEntity
     /** 列表展示使用，不写入订单表 */
     private String goodsName;
     private String goodsType;
+    /** 使用关联商品的上架分类，只用于查询和展示，不写入订单表。 */
+    private Long categoryId;
+    @Excel(name = "商品分类")
+    private String categoryName;
 
     /** 订单来源：mini_program 或 feishu_history */
     private String orderOrigin;
@@ -271,6 +275,10 @@ public class AppGoodsOrder extends BaseEntity
     public void setGoodsName(String goodsName) { this.goodsName = goodsName; }
     public String getGoodsType() { return goodsType; }
     public void setGoodsType(String goodsType) { this.goodsType = goodsType; }
+    public Long getCategoryId() { return categoryId; }
+    public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
+    public String getCategoryName() { return categoryName; }
+    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
     public String getFeishuRecordId() { return feishuRecordId; }
     public void setFeishuRecordId(String feishuRecordId) { this.feishuRecordId = feishuRecordId; }
     public String getFeishuOrderNo() { return feishuOrderNo; }

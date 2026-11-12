@@ -1,9 +1,8 @@
 <template>
-  <div class="app-container">
+  <div class="app-container goods-orders-page">
     <el-tabs v-model="orderScope" @tab-click="handleOrderScopeChange">
-      <el-tab-pane label="旅居订单" name="travel" />
-      <el-tab-pane label="养老/教育订单" name="education" />
-      <el-tab-pane label="全部订单" name="all" />
+      <el-tab-pane label="全部商品订单" name="all" />
+      <el-tab-pane v-for="type in dict.type.goods_type" :key="type.value" :label="type.label" :name="type.value" />
     </el-tabs>
 
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="110px">
@@ -23,13 +22,17 @@
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
-      <el-form-item v-if="orderScope !== 'travel'" label="所属分站" prop="deptId">
+      <el-form-item v-if="orderScope !== 'hotel'" label="所属分站" prop="deptId">
         <el-input
           v-model="queryParams.deptId"
           placeholder="请输入所属分站"
           clearable
           @keyup.enter.native="handleQuery"
         />
+      </el-form-item>
+      <el-form-item label="商品分类" prop="categoryId">
+        <treeselect v-model="queryParams.categoryId" :options="categoryOptions" :normalizer="normalizeCategory"
+                    placeholder="全部分类" class="order-category-select" @input="handleQuery" />
       </el-form-item>
       <el-form-item label="订单号" prop="orderNo">
         <el-input
@@ -39,19 +42,19 @@
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
-      <el-form-item v-if="orderScope === 'travel'" label="来源" prop="orderOrigin">
+      <el-form-item v-if="orderScope === 'hotel'" label="来源" prop="orderOrigin">
         <el-select v-model="queryParams.orderOrigin" placeholder="请选择来源" clearable>
           <el-option label="小程序" value="mini_program" />
           <el-option label="飞书历史" value="feishu_history" />
         </el-select>
       </el-form-item>
-      <el-form-item v-if="orderScope === 'travel'" label="飞书订单编号" prop="feishuOrderNo">
+      <el-form-item v-if="orderScope === 'hotel'" label="飞书订单编号" prop="feishuOrderNo">
         <el-input v-model="queryParams.feishuOrderNo" placeholder="请输入飞书订单编号" clearable @keyup.enter.native="handleQuery" />
       </el-form-item>
-      <el-form-item v-if="orderScope === 'travel'" label="渠道" prop="channel">
+      <el-form-item v-if="orderScope === 'hotel'" label="渠道" prop="channel">
         <el-input v-model="queryParams.channel" placeholder="请输入渠道" clearable @keyup.enter.native="handleQuery" />
       </el-form-item>
-      <el-form-item v-if="orderScope === 'travel'" label="旅居基地" prop="travelBaseName">
+      <el-form-item v-if="orderScope === 'hotel'" label="旅居基地" prop="travelBaseName">
         <el-input v-model="queryParams.travelBaseName" placeholder="请输入旅居基地" clearable @keyup.enter.native="handleQuery" />
       </el-form-item>
 <!--      <el-form-item label="商品合计金额" prop="moneyTotal">-->
@@ -206,7 +209,7 @@
 <!--          />-->
 <!--        </el-select>-->
 <!--      </el-form-item>-->
-      <el-form-item v-if="orderScope === 'education'" label="是否已评论" prop="isComment">
+      <el-form-item v-if="orderScope !== 'hotel'" label="是否已评论" prop="isComment">
         <el-select v-model="queryParams.isComment" placeholder="请选择是否已评论" clearable>
           <el-option
             v-for="dict in dict.type.common_is_not"
@@ -216,7 +219,7 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item v-if="orderScope === 'education'" label="是否申请取消" prop="isApplyCancel">
+      <el-form-item v-if="orderScope !== 'hotel'" label="是否申请取消" prop="isApplyCancel">
         <el-select v-model="queryParams.isApplyCancel" placeholder="请选择是否申请取消" clearable>
           <el-option
             v-for="dict in dict.type.common_is_not"
@@ -226,7 +229,7 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item v-if="orderScope === 'education'" label="商户是否已结算" prop="isCash">
+      <el-form-item v-if="orderScope !== 'hotel'" label="商户是否已结算" prop="isCash">
         <el-select v-model="queryParams.isCash" placeholder="请选择商户是否已结算" clearable>
           <el-option
             v-for="dict in dict.type.common_is_not"
@@ -236,7 +239,7 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item v-if="orderScope !== 'travel'" label="订单状态" prop="status">
+      <el-form-item v-if="orderScope !== 'hotel'" label="订单状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="请选择订单状态" clearable>
           <el-option
             v-for="dict in dict.type.order_status"
@@ -246,7 +249,7 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item v-if="orderScope === 'travel'" label="旅居状态" prop="travelStatus">
+      <el-form-item v-if="orderScope === 'hotel'" label="旅居状态" prop="travelStatus">
         <el-select v-model="queryParams.travelStatus" placeholder="请选择旅居状态" clearable>
           <el-option
             v-for="item in travelStatusOptions"
@@ -319,59 +322,68 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="55" align="center" fixed="left" />
-      <el-table-column v-if="orderScope === 'education'" label="所属分站" align="center" prop="deptName" fixed="left" min-width="120" show-overflow-tooltip />
-      <el-table-column :label="orderScope === 'travel' ? '订单编号' : '订单号'" align="center" fixed="left" min-width="180" show-overflow-tooltip>
+      <el-table-column v-if="orderScope !== 'hotel'" label="所属分站" align="center" prop="deptName" fixed="left" min-width="120" show-overflow-tooltip />
+      <el-table-column :label="orderScope === 'hotel' ? '订单编号' : '订单号'" align="center" fixed="left" min-width="180" show-overflow-tooltip>
         <template slot-scope="scope">{{ scope.row.feishuOrderNo || scope.row.orderNo }}</template>
       </el-table-column>
-      <el-table-column v-if="orderScope === 'travel'" label="小程序订单号" align="center" min-width="180" show-overflow-tooltip>
+      <el-table-column v-if="orderScope === 'hotel'" label="小程序订单号" align="center" min-width="180" show-overflow-tooltip>
         <template slot-scope="scope">{{ scope.row.orderOrigin === 'mini_program' ? scope.row.orderNo : '—' }}</template>
       </el-table-column>
-      <el-table-column v-if="orderScope !== 'education'" label="来源" align="center" prop="orderOrigin" min-width="90">
+      <el-table-column v-if="orderScope === 'hotel' || orderScope === 'all'" label="来源" align="center" prop="orderOrigin" min-width="90">
         <template slot-scope="scope">
           <el-tag size="small" :type="scope.row.orderOrigin === 'feishu_history' ? 'warning' : 'success'">
             {{ scope.row.orderOrigin === 'feishu_history' ? '飞书历史' : '小程序' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column :label="orderScope === 'travel' ? '旅居基地' : '商品'" align="center" min-width="170" show-overflow-tooltip>
+      <el-table-column :label="orderScope === 'hotel' ? '旅居基地' : '商品'" align="center" min-width="170" show-overflow-tooltip>
         <template slot-scope="scope">
           <span>{{ scope.row.travelBaseName || scope.row.goodsName || '—' }}</span>
           <el-tag v-if="scope.row.orderOrigin === 'feishu_history' && !scope.row.goodsId" size="mini" type="danger">未匹配商品</el-tag>
         </template>
       </el-table-column>
-      <el-table-column v-if="orderScope === 'travel'" label="客户" align="center" min-width="130">
+      <el-table-column label="商品类型" align="center" min-width="110">
+        <template slot-scope="{row}">
+          <dict-tag v-if="row.goodsType" :options="dict.type.goods_type" :value="row.goodsType" />
+          <span v-else>未关联商品</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="商品分类" align="center" prop="categoryName" min-width="120" show-overflow-tooltip>
+        <template slot-scope="{row}">{{ row.categoryName || '未分类' }}</template>
+      </el-table-column>
+      <el-table-column v-if="orderScope === 'hotel'" label="客户" align="center" min-width="130">
         <template slot-scope="scope">
           <div>{{ scope.row.contactName || '—' }}</div>
           <small>{{ maskPhone(scope.row.contactPhone) }}</small>
         </template>
       </el-table-column>
-      <el-table-column v-if="orderScope === 'travel'" label="入住 / 离店" align="center" min-width="190">
+      <el-table-column v-if="orderScope === 'hotel'" label="入住 / 离店" align="center" min-width="190">
         <template slot-scope="scope">
           {{ parseTime(scope.row.checkInDate, '{y}-{m}-{d}') || '—' }} /
           {{ parseTime(scope.row.checkOutDate, '{y}-{m}-{d}') || '—' }}
         </template>
       </el-table-column>
-      <el-table-column v-if="orderScope === 'travel'" label="房型/套餐" align="center" prop="roomType" min-width="140" show-overflow-tooltip />
-      <el-table-column v-if="orderScope === 'travel'" label="房间数" align="center" prop="roomCount" min-width="75" />
-      <el-table-column v-if="orderScope === 'travel'" label="同行人数" align="center" prop="travelerCount" min-width="85" />
-      <el-table-column v-if="orderScope === 'travel'" label="入住晚数" align="center" min-width="85">
+      <el-table-column v-if="orderScope === 'hotel'" label="房型/套餐" align="center" prop="roomType" min-width="140" show-overflow-tooltip />
+      <el-table-column v-if="orderScope === 'hotel'" label="房间数" align="center" prop="roomCount" min-width="75" />
+      <el-table-column v-if="orderScope === 'hotel'" label="同行人数" align="center" prop="travelerCount" min-width="85" />
+      <el-table-column v-if="orderScope === 'hotel'" label="入住晚数" align="center" min-width="85">
         <template slot-scope="scope">{{ displayCount(stayNights(scope.row)) }}</template>
       </el-table-column>
-      <el-table-column v-if="orderScope === 'travel'" label="间夜数" align="center" min-width="75">
+      <el-table-column v-if="orderScope === 'hotel'" label="间夜数" align="center" min-width="75">
         <template slot-scope="scope">{{ displayCount(roomNights(scope.row)) }}</template>
       </el-table-column>
-      <el-table-column v-if="orderScope === 'education'" label="数量" align="center" prop="goodsCount" min-width="70" />
-      <el-table-column :label="orderScope === 'travel' ? '消费金额' : '应付金额'" align="center" prop="moneyPayable" min-width="90" />
+      <el-table-column v-if="orderScope !== 'hotel'" label="数量" align="center" prop="goodsCount" min-width="70" />
+      <el-table-column :label="orderScope === 'hotel' ? '消费金额' : '应付金额'" align="center" prop="moneyPayable" min-width="90" />
       <el-table-column label="支付状态" align="center" prop="payStatus" min-width="90">
         <template slot-scope="scope">
           <span v-if="scope.row.payStatus == null">未记录</span>
           <dict-tag v-else :options="dict.type.order_pay_status" :value="scope.row.payStatus" />
         </template>
       </el-table-column>
-      <el-table-column v-if="orderScope !== 'travel'" label="支付时间" align="center" prop="payTime" min-width="105">
+      <el-table-column v-if="orderScope !== 'hotel'" label="支付时间" align="center" prop="payTime" min-width="105">
         <template slot-scope="scope">{{ parseTime(scope.row.payTime, '{y}-{m}-{d}') || '—' }}</template>
       </el-table-column>
-      <el-table-column v-if="orderScope === 'travel'" label="旅居状态" align="center" prop="travelStatus" min-width="110">
+      <el-table-column v-if="orderScope === 'hotel'" label="旅居状态" align="center" prop="travelStatus" min-width="110">
         <template slot-scope="scope">
           <span v-if="scope.row.travelStatus == null">—</span>
           <el-dropdown
@@ -393,16 +405,16 @@
           <el-tag v-else size="small" type="info">{{ travelStatusLabel(scope.row.travelStatus) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column v-if="orderScope === 'travel'" label="渠道" align="center" prop="channel" min-width="90" />
-      <el-table-column v-if="orderScope === 'travel'" label="客服负责人" align="center" prop="serviceOwner" min-width="105" show-overflow-tooltip />
-      <el-table-column v-if="orderScope === 'travel'" label="服务备注" align="center" prop="serviceRemark" min-width="150" show-overflow-tooltip />
-      <el-table-column v-if="orderScope === 'education'" label="是否核销" align="center" prop="isChecked" min-width="85">
+      <el-table-column v-if="orderScope === 'hotel'" label="渠道" align="center" prop="channel" min-width="90" />
+      <el-table-column v-if="orderScope === 'hotel'" label="客服负责人" align="center" prop="serviceOwner" min-width="105" show-overflow-tooltip />
+      <el-table-column v-if="orderScope === 'hotel'" label="服务备注" align="center" prop="serviceRemark" min-width="150" show-overflow-tooltip />
+      <el-table-column v-if="orderScope !== 'hotel'" label="是否核销" align="center" prop="isChecked" min-width="85">
         <template slot-scope="scope"><dict-tag :options="dict.type.common_is_not" :value="scope.row.isChecked" /></template>
       </el-table-column>
-      <el-table-column v-if="orderScope === 'education'" label="是否评论" align="center" prop="isComment" min-width="85">
+      <el-table-column v-if="orderScope !== 'hotel'" label="是否评论" align="center" prop="isComment" min-width="85">
         <template slot-scope="scope"><dict-tag :options="dict.type.common_is_not" :value="scope.row.isComment" /></template>
       </el-table-column>
-      <el-table-column v-if="orderScope !== 'travel'" :label="orderScope === 'all' ? '业务状态' : '订单状态'" align="center" min-width="90">
+      <el-table-column v-if="orderScope !== 'hotel'" :label="orderScope === 'all' ? '业务状态' : '订单状态'" align="center" min-width="90">
         <template slot-scope="scope">
           <el-tag v-if="orderScope === 'all' && scope.row.travelStatus != null" size="small">
             {{ travelStatusLabel(scope.row.travelStatus) }}
@@ -610,11 +622,16 @@
 </template>
 
 <script>
+import Treeselect from '@riophae/vue-treeselect'
+import '@riophae/vue-treeselect/dist/vue-treeselect.css'
+import { listApp_goods_category } from '@/api/system/app_goods_category'
+import { goodsOrderQuery, resetGoodsOrderQuery } from '@/utils/goods-order-filters.mjs'
 import { exportQuery } from '@/utils/guanjia.mjs'
 import { listApp_goods_order, getApp_goods_order, delApp_goods_order, addApp_goods_order, updateApp_goods_order, updateTravelStatus } from "@/api/system/app_goods_order";
 export default {
   name: "App_goods_order",
-  dicts: ['common_is_not', 'pay_type', 'order_status', 'order_pay_status'],
+  components: { Treeselect },
+  dicts: ['common_is_not', 'pay_type', 'order_status', 'order_pay_status', 'goods_type'],
   data() {
     return {
       // 遮罩层
@@ -631,7 +648,9 @@ export default {
       total: 0,
       // 商品订单表格数据
       app_goods_orderList: [],
-      orderScope: 'travel',
+      orderScope: 'all',
+      categoryOptions: [],
+      listRequest: 0,
       travelStatusOptions: [
         { value: '0', label: '待确认' },
         { value: '1', label: '已确认' },
@@ -650,7 +669,9 @@ export default {
       queryParams: {
         pageNum: 1,
         pageSize: 10,
-        businessType: 'travel',
+        businessType: null,
+        goodsType: null,
+        categoryId: null,
         userId: null,
         goodsId: null,
         deptId: null,
@@ -707,21 +728,30 @@ export default {
     };
   },
   created() {
+    listApp_goods_category().then(response => {
+      this.categoryOptions = this.handleTree(response.data, 'categoryId', 'parentId')
+    }).catch(() => this.$modal.msgError('商品分类读取失败，请刷新重试'))
     this.getList();
   },
   methods: {
     handleRosterExport() {
-      const filters = exportQuery(this.queryParams);
+      const filters = exportQuery(goodsOrderQuery(this.queryParams, this.orderScope));
       this.download('system/app_goods_order/roster', filters, `报名名单_${Date.now()}.xlsx`);
     },
     /** 查询商品订单列表 */
+    normalizeCategory(node) {
+      return { id: node.categoryId, label: node.categoryName, children: node.children && node.children.length ? node.children : undefined }
+    },
     getList() {
-      this.loading = true;
-      listApp_goods_order(this.queryParams).then(response => {
-        this.app_goods_orderList = response.rows;
-        this.total = response.total;
-        this.loading = false;
-      });
+      const request = ++this.listRequest
+      this.loading = true
+      listApp_goods_order(goodsOrderQuery(this.queryParams, this.orderScope)).then(response => {
+        if (request !== this.listRequest) return
+        this.app_goods_orderList = response.rows
+        this.total = response.total
+      }).catch(() => {
+        if (request === this.listRequest) { this.app_goods_orderList = []; this.total = 0 }
+      }).finally(() => { if (request === this.listRequest) this.loading = false })
     },
     // 取消按钮
     cancel() {
@@ -771,9 +801,7 @@ export default {
       this.getList();
     },
     handleOrderScopeChange() {
-      this.resetForm('queryForm')
-      this.queryParams.businessType = this.orderScope === 'all' ? null : this.orderScope
-      this.queryParams.pageNum = 1
+      this.queryParams = resetGoodsOrderQuery(this.queryParams)
       this.getList()
     },
     maskPhone(phone) {
@@ -828,8 +856,7 @@ export default {
     },
     /** 重置按钮操作 */
     resetQuery() {
-      this.resetForm("queryForm");
-      this.queryParams.businessType = this.orderScope === 'all' ? null : this.orderScope
+      this.queryParams = resetGoodsOrderQuery(this.queryParams)
       this.handleQuery();
     },
     // 多选框选中数据
@@ -886,10 +913,12 @@ export default {
     },
     /** 导出按钮操作 */
     handleExport() {
-      this.download('system/app_goods_order/export', {
-        ...this.queryParams
-      }, `app_goods_order_${new Date().getTime()}.xlsx`)
+      this.download('system/app_goods_order/export', exportQuery(goodsOrderQuery(this.queryParams, this.orderScope)), `app_goods_order_${new Date().getTime()}.xlsx`)
     }
   }
 };
 </script>
+
+<style scoped>
+.order-category-select { width: 220px; max-width: 100%; }
+</style>
