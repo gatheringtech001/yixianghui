@@ -29,6 +29,16 @@ export function formatCalendarPrice(value, unit = '人') {
 	return `￥${text}/${travelPriceUnit(unit)}`
 }
 
+// Only nightly catalog references are rounded; package and non-travel prices stay exact.
+export function formatCatalogPrice(goods, price = goods && goods.price) {
+	const unit = String((goods && goods.unit) || '').trim()
+	if (goods && goods.goodsType === 'hotel' && /^(人|间|套)\/晚起?$/.test(unit)) {
+		const number = Number(price)
+		return Number.isFinite(number) && number > 0 ? `${Math.round(number)}/${unit}` : '待确认'
+	}
+	return String(price == null || price === '' ? 0 : price)
+}
+
 export function compactListingText(value, maxLength = 56) {
 	const text = String(value || '')
 		.replace(/<[^>]*>/g, ' ')

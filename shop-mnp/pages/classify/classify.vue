@@ -126,7 +126,7 @@
 								<text class="outline-chip" v-for="(tag, tagIndex) in item.tagList.slice(0, 3)" :key="tagIndex">{{ tag }}</text>
 							</view>
 							<view class="price-row">
-								<text class="price">¥{{ item.price }}</text>
+								<text class="price">¥{{ formatCatalogPrice(item) }}</text>
 								<view class="btn-primary">查看详情</view>
 							</view>
 						</view>
@@ -215,7 +215,7 @@
 	} from '@/utils/catalogRequests'
 	import { catalogImageUrl, catalogImageKey } from '@/utils/catalogImage'
 	import { parseCourseMeta } from '@/utils/courseMeta'
-	import { compactListingText } from '@/utils/travelPresentation'
+	import { compactListingText, formatCatalogPrice } from '@/utils/travelPresentation'
 	import {
 		getTravelCategoryRows,
 		isVisibleCatalogGoods,
@@ -419,6 +419,7 @@
 			}
 		},
 		methods: {
+			formatCatalogPrice,
 			activitySignupText(item) {
 				const count = Number(item.signCount || item.signcount) || 0
 				const max = Number(item.maxCount)

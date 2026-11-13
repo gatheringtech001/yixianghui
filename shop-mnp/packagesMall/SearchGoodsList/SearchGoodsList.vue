@@ -42,7 +42,7 @@
 							<view class="price">
 								<view class="retail-price">
 									<text class="min">￥</text>
-									<text class="max">{{item.price || 0}}</text>
+									<text class="max">{{ formatCatalogPrice(item) }}</text>
 								</view>
 								<!-- 会员价暂时隐藏 -->
 								<!-- <view class="vip-price">会员价：￥{{item.vipPrice}}</view> -->
@@ -60,6 +60,7 @@
 </template>
 
 <script>
+	import { formatCatalogPrice } from '@/utils/travelPresentation'
 	// 引入mescroll-mixins.js
 	import MescrollMixin from "@/components/mescroll-uni/mescroll-mixins.js";
 	import { getGoodsList } from '@/api/shop/index'
@@ -112,6 +113,7 @@
 			}
 		},
 		methods: {
+			formatCatalogPrice,
 			async getCurrentLocation() {
 				try {
 					// 获取经纬度

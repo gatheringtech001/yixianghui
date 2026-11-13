@@ -48,6 +48,7 @@
 </template>
 
 <script>
+	import { formatCatalogPrice } from '@/utils/travelPresentation'
 	import { goodsCollectList, deleteCollect } from '@/api/member/index'
 	export default {
 		data() {
@@ -162,7 +163,7 @@
 					typeLabel,
 					title: goods.goodsName || '商品',
 					meta: '',
-					priceText: `¥${price != null ? price : 0}`,
+					priceText: `¥${formatCatalogPrice(goods, price)}`,
 					coverUrl: cover || '/static/home-design/entry-stay.jpg',
 					vipPrice: goods.vipPrice
 				}

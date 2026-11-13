@@ -150,7 +150,7 @@
 							</view>
 							<view class="product-price-row">
 								<view class="product-price">
-									<text class="price">¥{{ goods.price }}</text>
+									<text class="price">¥{{ formatCatalogPrice(goods) }}</text>
 								</view>
 								<view class="product-btn">
 									<text>{{ goods.goodsType == 'online' || goods.goodsType == 'o2o' ? '购买' : '预订' }}</text>
@@ -225,6 +225,7 @@
 </template>
 
 <script>
+	import { formatCatalogPrice } from '@/utils/travelPresentation'
 	import TabBar from '@/components/TabBar/TabBar.vue'
 	import AuthProfilePopup from '@/components/AuthProfilePopup/AuthProfilePopup.vue'
 	import { ensureLogin } from '@/utils/login'
@@ -336,6 +337,7 @@
 			}
 		},
 		methods: {
+			formatCatalogPrice,
 			async loadDistributionOffer() {
 				const source = getDistributionLaunchSource()
 				if (!source) {

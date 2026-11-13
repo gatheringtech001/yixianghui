@@ -939,3 +939,28 @@ test('fixed-stay last-night bounds enforce the original exclusive check-in cutof
         assert.match(policy.validateTravelSelection(selection('2027-01-01')), /范围/)
     }
 })
+
+test('catalog nightly references use whole yuan across lists without mutating sale prices', () => {
+    for (const [price, expected] of [['99.33', '99/人/晚起'], ['99.67', '100/人/晚起'], ['58.49', '58/人/晚起'], ['58.50', '59/人/晚起'], [86, '86/人/晚起']]) {
+        const goods = { goodsType: 'hotel', unit: '人/晚起', price, vipPrice: price }
+        assert.equal(presentation.formatCatalogPrice(goods), expected)
+        assert.equal(presentation.formatCatalogPrice(goods, goods.vipPrice), expected)
+        assert.equal(goods.price, price)
+        assert.equal(goods.vipPrice, price)
+    }
+    assert.equal(presentation.formatCatalogPrice({ goodsType: 'hotel', unit: '间/晚起', price: 99.67 }), '100/间/晚起')
+    for (const goodsType of ['education', 'online', 'o2o', undefined]) {
+        assert.equal(presentation.formatCatalogPrice({ goodsType, unit: '人/晚起', price: '99.67' }), '99.67')
+    }
+    for (const unit of ['人/7晚', '人/7天', '人/6天5晚', '间/6晚', '']) {
+        assert.equal(presentation.formatCatalogPrice({ goodsType: 'hotel', unit, price: '3336.01' }), '3336.01')
+    }
+    for (const price of [null, '', undefined, NaN, Infinity, 'bad', -1, 0]) {
+        assert.equal(presentation.formatCatalogPrice({ goodsType: 'hotel', unit: '人/晚起', price }), '待确认')
+    }
+    for (const path of ['pages/classify/classify.vue', 'pages/home/home.vue', 'packagesMall/SearchGoodsList/SearchGoodsList.vue', 'packagesMember/GoodsOn/GoodsOn.vue']) {
+        const source = readFileSync(new URL('../' + path, import.meta.url), 'utf8')
+        assert.match(source, /import\s*\{[^}]*formatCatalogPrice[^}]*\}\s*from\s*['"]@\/utils\/travelPresentation['"]/)
+        assert.match(source, /formatCatalogPrice\((item|goods)(, price)?\)/)
+    }
+})
