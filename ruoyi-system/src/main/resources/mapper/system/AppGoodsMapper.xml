@@ -61,6 +61,37 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectRetailGoodsForUpdate" parameterType="Long" resultMap="AppGoodsResult">
         <include refid="selectAppGoodsVo"/> WHERE goods_id=#{goodsId} FOR UPDATE
     </select>
+
+    <!-- A pure travel result uses locality + numeric base number, not insertion ID.
+         Window checks preserve the existing order for mixed/non-travel catalogs.
+         Keep this before LIMIT so pagination cannot scramble the base sequence. -->
+    <sql id="travelBaseSerial">
+        trim(trailing '号' from regexp_substr(g.goods_name, '[一二两三四五六七八九十0-9]+号'))
+    </sql>
+    <sql id="travelBaseNumber">
+        case
+            when <include refid="travelBaseSerial"/> = '两' then 2
+            when <include refid="travelBaseSerial"/> regexp '^[0-9]+$'
+                then cast(<include refid="travelBaseSerial"/> as unsigned)
+            when <include refid="travelBaseSerial"/> like '%十%'
+                then 10 * coalesce(nullif(field(substring_index(<include refid="travelBaseSerial"/>, '十', 1),
+                    '一','二','三','四','五','六','七','八','九'), 0), 1)
+                    + field(substring_index(<include refid="travelBaseSerial"/>, '十', -1),
+                    '一','二','三','四','五','六','七','八','九')
+            else coalesce(nullif(field(<include refid="travelBaseSerial"/>,
+                    '一','二','三','四','五','六','七','八','九'), 0), 2147483647)
+        end
+    </sql>
+    <sql id="catalogNameOrder">
+        order by
+            case when count(case when g.goods_type is null or g.goods_type != 'hotel' then 1 end) over () = 0
+                then convert(regexp_replace(g.goods_name, '[一二两三四五六七八九十0-9]+号.*$', '') using gbk) end asc,
+            case when count(case when g.goods_type is null or g.goods_type != 'hotel' then 1 end) over () = 0
+                then <include refid="travelBaseNumber"/> end asc,
+            case when count(case when g.goods_type is null or g.goods_type != 'hotel' then 1 end) over () = 0
+                then convert(g.goods_name using gbk) end asc,
+            g.goods_id desc
+    </sql>
     <select id="selectAppGoodsList" parameterType="AppGoods" resultMap="AppGoodsResult">
         <include refid="selectAppGoodsListVo"/>
         <where>
@@ -101,7 +132,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="awardType != null  and awardType != ''"> and g.award_type = #{awardType}</if>
             <if test="status != null  and status != ''"> and g.status = #{status}</if>
         </where>
-        order by g.goods_id desc
+        <include refid="catalogNameOrder"/>
     </select>
     
     <select id="selectAppGoodsByGoodsId" parameterType="Long" resultMap="AppGoodsResult">
