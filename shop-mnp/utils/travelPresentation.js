@@ -62,7 +62,8 @@ export function travelQuote(sku, combo) {
 	const displayUnit = unit === '人' || divisor > 1 || occupancy === 1 ? '人' : '间'
 	return {
 		nightly: cents / 100 / divisor / nights,
-		amount: money(Math.round(cents / divisor / nights)), unit: displayUnit,
+		// Whole-yuan nightly reference only; never round the payable package total.
+		amount: String(Math.round(cents / 100 / divisor / nights)), unit: displayUnit,
 		// Native 302 remains the exact payable room/package total, never the rounded reference.
 		total: money(cents), totalUnit: unit,
 		occupancyLabel: unit === '间' && occupancy > 0 ? `${occupancy}人/间套餐` : ''

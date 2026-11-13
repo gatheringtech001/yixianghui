@@ -658,9 +658,9 @@ test('eight source seasonal SKUs render as three durations; selected date choose
 	assert.equal(from.isExact, false)
 	page.reserveFn(page.skuGroupList[0].skuDataList[from.skuIndex], from, 0)
 	assert.equal(page.popupDurationOptions.length, 3)
-	assert.equal(page.calendarRateData.prices['2026-12-01'], '约￥127.25/人')
-	assert.equal(page.calendarRateData.prices['2027-01-04'], '约￥127.25/人')
-	assert.equal(page.calendarRateData.prices['2027-03-01'], '约￥110.21/人')
+	assert.equal(page.calendarRateData.prices['2026-12-01'], '约￥127/人')
+	assert.equal(page.calendarRateData.prices['2027-01-04'], '约￥127/人')
+	assert.equal(page.calendarRateData.prices['2027-03-01'], '约￥110/人')
 	assert.equal(page.calendarRateData.prices['2027-02-01'], undefined)
 	assert.equal(page.calendarRateData.prices['2026-12-27'], undefined)
 	page.calendarClickFn({ startStr: { dateStr: '2026-12-01' } })
@@ -675,7 +675,7 @@ test('eight source seasonal SKUs render as three durations; selected date choose
 	page.selectDayFn(page.popupDurationOptions[2].indices[0])
 	assert.equal(page.popupDate.day, 29)
 	assert.equal(page.calendarRateData.prices['2027-01-04'], undefined)
-	assert.equal(page.calendarRateData.prices['2027-03-03'], '约￥82.07/人')
+	assert.equal(page.calendarRateData.prices['2027-03-03'], '约￥82/人')
 })
 
 test('seasonal prices use the continuous calendar without a separate month selector', () => {
@@ -692,7 +692,7 @@ test('confirmation date changes update season and keep new raw SKU through order
 	const { page } = await confirmation(seasonalCatalog(), { skuId: '1579', day: '6', checkInDate: '2026-12-01', checkOutDate: '2026-12-07' })
 	assert.equal(page.selectionError, '')
 	assert.equal(page.selectedRateFamily.variants.length, 3)
-	assert.equal(page.calendarRateData.prices['2027-03-01'], '约￥110.21/人')
+	assert.equal(page.calendarRateData.prices['2027-03-01'], '约￥110/人')
 	page.calendarClickFn({ startStr: { dateStr: '2027-03-01' } })
 	assert.equal(page.reserveData.checkOutDate, '2027-03-07')
 	assert.equal(page.skuPrice, 2645)
@@ -777,7 +777,7 @@ test('room cards group duration tabs across meals and hide solo quotations', asy
     assert.deepEqual(Array.from(page.durationOptions(0), d => d.label), ['8天7晚', '31天30晚'])
     let rows = page.getCurrentCombinationList(0)
     assert.deepEqual(Array.from(rows, r => r.name), ['一日三餐', '只含早'])
-    assert.equal(rows[0].quote.amount, '85.71') // 1200 / 2 / 7, not days or nightly average option301
+    assert.equal(rows[0].quote.amount, '86') // 1200 / 2 / 7, not days or nightly average option301
     assert.equal(rows[0].quote.total, '1200')
     assert.equal(rows[0].quote.totalUnit, '间')
     assert.equal(rows[1].price, '800')
@@ -796,11 +796,11 @@ test('booking switches source-backed 2 -> 1 -> 2 occupancy without leaking or do
     data.optionList.push(solo)
     const { page, events } = await confirmation(data)
     assert.equal(page.skuPrice, 1200)
-    assert.equal(page.selectedQuote.amount, '85.71')
+    assert.equal(page.selectedQuote.amount, '86')
     page.changePeopleNumber(-1)
     assert.equal(page.selSkuId, 203)
     assert.equal(page.skuPrice, 1500)
-    assert.equal(page.selectedQuote.amount, '214.29')
+    assert.equal(page.selectedQuote.amount, '214')
     assert.equal(page.selectionError, '')
     assert.equal(page.maxPeopleNumber, 2) // the stepper must allow returning from solo to sharing
     page.changePeopleNumber(1)
@@ -874,12 +874,27 @@ test('solo matching never borrows another room, meal, duration, exclusion or exp
     }
 })
 
+test('nightly references round to whole yuan without altering exact totals or pricing precision', () => {
+    const shared = { day: 29, travelPolicy: { capacity: 2 } }
+    const quote = booking.travelQuote(shared, { price: '3336', priceUnit: '间' })
+    assert.equal(quote.amount, '58') // 1668/person / 29 nights
+    assert.equal(quote.nightly, 3336 / 2 / 29)
+    assert.equal(quote.total, '3336')
+    assert.equal(quote.unit, '人')
+    for (const [price, expected] of [['58.49', '58'], ['58.50', '59'], ['58.99', '59'], ['58', '58']]) {
+        const q = booking.travelQuote({ day: 1 }, { price, priceUnit: '人' })
+        assert.equal(q.amount, expected)
+        assert.equal(Number(q.total), Number(price))
+        assert.equal(q.nightly, Number(price))
+    }
+})
+
 test('reference price never guesses occupancy or changes exact cents and ignores stale averages', () => {
     assert.equal(booking.travelQuote({ day: 7 }, { price: 538, priceUnit: '间', average: 1 }).unit, '间')
     const sku = { day: 7, travelPolicy: { capacity: 2 } }
-    assert.equal(booking.travelQuote(sku, { price: '1770.01', priceUnit: '间', average: 99 }).amount, '126.43')
+    assert.equal(booking.travelQuote(sku, { price: '1770.01', priceUnit: '间', average: 99 }).amount, '126')
     assert.equal(booking.travelQuote(sku, { price: '1770.01', priceUnit: '间' }).total, '1770.01')
-    assert.equal(booking.travelQuote(sku, { price: '885', priceUnit: '人' }).amount, '126.43')
+    assert.equal(booking.travelQuote(sku, { price: '885', priceUnit: '人' }).amount, '126')
     for (const price of [0, -1, NaN, Infinity, 'bad']) assert.equal(booking.travelQuote(sku, { price, priceUnit: '人' }), null)
     for (const day of [0, 1.2, 'bad']) assert.equal(booking.travelQuote({ ...sku, day }, { price: 885, priceUnit: '人' }), null)
 })
@@ -899,7 +914,7 @@ test('original room cards keep duration tabs and meal rows with corrected quotes
     let rows = page.getCurrentCombinationList(0)
     assert.equal(rows.length, 2)
     assert.equal(rows[0].name, '一日三餐')
-    assert.equal(rows[0].quote.amount, '85.71')
+    assert.equal(rows[0].quote.amount, '86')
     assert.equal(rows[0].quote.total, '1200')
     assert.equal(rows[1].name, '一早一正（晚餐）')
     page.selectDuration(0, page.durationOptions(0)[1])
