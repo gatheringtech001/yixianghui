@@ -60,6 +60,11 @@ function overviewText(value) {
 		.replace(/\s+/g, ' ').trim()
 }
 
+export function travelOverviewRows(content) {
+	return [...String(content || '').matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)]
+		.map(row => [...row[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(cell => overviewText(cell[1])))
+}
+
 // Read ONLY the published Yuque overview rows; generic catalog tags are not
 // substitutes for the source's 标签 row. No browser DOM dependency on WeChat.
 export function travelCatalogOverview(goods) {
@@ -68,8 +73,7 @@ export function travelCatalogOverview(goods) {
 	const fields = Object.create(null)
 	for (const section of Array.isArray(goods.features) ? goods.features : []) {
 		if (!/基地概况/.test(section.sectionName || '')) continue
-		for (const row of String(section.content || '').matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
-			const cells = [...row[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(cell => overviewText(cell[1]))
+		for (const cells of travelOverviewRows(section.content)) {
 			if (cells.length !== 2) continue
 			const key = cells[0].replace(/[\s：:]/g, '')
 			const value = cells[1]

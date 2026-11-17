@@ -2,8 +2,8 @@
     "name" : "逸享荟养老",
     "appid" : "__UNI__5E21076",
     "description" : "",
-    "versionName" : "1.0.39",
-    "versionCode" : "139",
+    "versionName" : "1.0.40",
+    "versionCode" : "140",
     "transformPx" : false,
     "app-plus" : {
         "usingComponents" : true,

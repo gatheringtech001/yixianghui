@@ -7,6 +7,8 @@ import * as policy from '../utils/travelPolicy.js'
 import * as presentation from '../utils/travelPresentation.js'
 import * as rates from '../utils/travelRates.js'
 import * as booking from '../utils/travelBooking.js'
+import * as overview from '../utils/travelDetailOverview.js'
+import { prepareRichTextHtml } from '../utils/richText.js'
 import { detailImageUrl } from '../utils/detailImagePreview.js'
 
 const travelPolicy = {
@@ -128,7 +130,7 @@ function pageHarness(file, data) {
 		.replace(/^\s*import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]\s*$/gm, '')
 		.replace('export default', 'module.exports =')
 	const context = {
-		...policy, ...presentation, ...rates, ...booking, detailImageUrl,
+		...policy, ...presentation, ...rates, ...booking, ...overview, detailImageUrl, prepareRichTextHtml,
         Date: class extends Date { constructor(...args) { super(...(args.length ? args : ['2026-10-01T00:00:00Z'])) } }, module: { exports: {} }, Calendar: {}, AuthProfilePopup: {},
 		sharePageMixin: {}, console: { log() {} }, BaseUrl: {},
 		getGoodsInfo: async () => ({ data }), getBannerList: async () => ({ data: [] }),
@@ -317,6 +319,24 @@ test('disabled parent rooms and sub-minimum custom nights cannot be submitted', 
 	assert.notEqual(custom.page.selectionError, '')
 	custom.page.createOrderFn()
 	assert.equal(custom.events.requests.length, 0)
+})
+
+test('actual detail mapping replaces source overview tables with native fields and exact source tags', async () => {
+	const data = { ...catalog(), goodsType: 'hotel', tags: '旅居|旧通用标签', features: [
+		{ sectionId: 'web_overview', sectionName: '基地概况', content: '<table><tr><td>海拔</td><td>1891 米</td></tr><tr><td>开业 / 装修</td><td>2019 年装修</td></tr><tr><td>标签</td><td>市中心 / 近商圈 / 花园庭院 / 全年不加价</td></tr></table>' },
+		{ sectionId: 'web_info', sectionName: '基地介绍', content: '<p>保留基地介绍</p>' }
+	] }
+	const { page, events } = pageHarness('GoodsDetails/SojournGoodsDetails', data)
+	page.loadCollectState = () => {}
+	page.getGoodsDetailFn(77)
+	await new Promise(resolve => setImmediate(resolve))
+	assert.deepEqual(Array.from(page.hotelData.tagList), ['市中心', '近商圈', '花园庭院', '全年不加价'])
+	assert.deepEqual(Array.from(page.hotelData.overview.highlights, f => f.value), ['1891米', '2019年装修'])
+	assert.equal(page.hotelData.related[0].overview.structured, true)
+	assert.equal(page.hotelData.related[1].overview, null)
+	assert.equal(page.hotelData.related[1].content, '<p>保留基地介绍</p>')
+	assert.equal(page.skuGroupList[0].skuDataList.length, 1)
+	assert.equal(events.requests.length, 0)
 })
 
 test('detail selects fixed 202 at zero room price, labels capacity and blocks unsupported custom nights', async () => {

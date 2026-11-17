@@ -42,9 +42,15 @@
 				<view class="base_desc_view">
 					{{ formatDescText(hotelData.desc) }}
 				</view>
-				<view class="base_tag_view">
+				<view class="base_tag_view" v-if="hotelData.tagList.length">
 					<view class="tag_view" v-for="(item, index) in hotelData.tagList" :key="index">
 						{{ item }}
+					</view>
+				</view>
+				<view class="base_facts_view" v-if="hotelData.overview.highlights.length">
+					<view class="base_fact_item" v-for="fact in hotelData.overview.highlights" :key="fact.label">
+						<text class="fact_label">{{ fact.label }}</text>
+						<text class="fact_value">{{ fact.value }}</text>
 					</view>
 				</view>
 			</view>
@@ -98,7 +104,17 @@
 						{{item.name}}
 					</view>
 					<view class="relateds_content_view">
-						<u-parse :html="displayRichText(item.content)" :preview="true" />
+						<view v-if="item.overview && item.overview.structured" class="overview_content">
+							<view class="overview_fields">
+								<view class="overview_field" :class="{ 'overview_field_wide': field.wide }" v-for="field in item.overview.fields" :key="field.label">
+									<text class="overview_label">{{ field.label }}</text>
+									<text class="overview_value" :user-select="true">{{ field.value }}</text>
+								</view>
+							</view>
+							<view class="overview_note" v-for="(note, noteIndex) in item.overview.notes" :key="noteIndex">{{ note }}</view>
+							<u-parse v-if="item.overview.extraContent" :html="displayRichText(item.overview.extraContent)" :preview="true" />
+						</view>
+						<u-parse v-else :html="displayRichText(item.content)" :preview="true" />
 					</view>
 					<view class="relateds_button_view" v-if="item.showToggle">
 						<view v-if="item.isExpand" class="button_view" @click="expandFn(item)">
@@ -232,6 +248,7 @@
 	import { goodsCollect, deleteCollect, goodsCollectList } from '@/api/member/index'
 	import { runWithAuth, bindPageAuthPopup } from '@/utils/login'
 	import { prepareRichTextHtml } from '@/utils/richText'
+	import { travelDetailOverview, travelOverviewSection } from '@/utils/travelDetailOverview'
 	import { readTravelPackage, supportsCustomNights, travelPackagePeriodLabel, defaultTravelDates, travelPolicyText, validateTravelSelection } from '@/utils/travelPolicy'
 	import { groupTravelRates, resolveTravelRate, defaultRateSelection, rateCombination, buildTravelRateCalendar } from '@/utils/travelRates'
 	import {
@@ -270,6 +287,7 @@
 					type: '', // 分类
 					desc: '', // 简介
 					tagList: [], // 标签数组
+					overview: { highlights: [] },
 					related: [], // 相关介绍
 				},
 				relatedSelect: '', // 相关介绍选中下标
@@ -677,13 +695,16 @@
 						      }
 						    });
 					}
-					this.hotelData.tagList = res.data.tags ? String(res.data.tags).split('|').filter(Boolean) : []
+					this.hotelData.overview = travelDetailOverview(res.data)
+					this.hotelData.tagList = this.hotelData.overview.hasSource ? this.hotelData.overview.tags
+						: (res.data.tags ? String(res.data.tags).split('|').filter(Boolean) : [])
 					 // 处理 features 映射为 related
 					    if (res.data.features) {
 					      this.hotelData.related = res.data.features.map(feature => ({
 					        id: this.normalizeSectionDomId(feature.sectionId),
 					        name: feature.sectionName,
 					        content: this.addHostPrefixToUrls(feature.content, this.host),
+					        overview: /基地概况/.test(feature.sectionName || '') ? travelOverviewSection(this.addHostPrefixToUrls(feature.content, this.host)) : null,
 					        isExpand: true,
 					        showToggle: false
 					      }));
