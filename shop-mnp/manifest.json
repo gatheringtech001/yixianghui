@@ -96,7 +96,8 @@
         "appid" : "wx233d832646ee4aea",
         "packOptions" : {
             "ignore" : [
-                { "type" : "folder", "value" : "static/settings-icons" }
+                { "type" : "folder", "value" : "static/settings-icons" },
+                { "type" : "file", "value" : "static/home-design/brand-mark.png" }
             ]
         },
         "setting" : {
