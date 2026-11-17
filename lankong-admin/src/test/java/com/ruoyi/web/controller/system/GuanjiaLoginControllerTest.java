@@ -114,4 +114,28 @@ class GuanjiaLoginControllerTest {
         r=mvc.perform(get("/system/auth/guanjia/callback")).andReturn();assertEquals(200,r.getResponse().getStatus());assertTrue(r.getResponse().getContentAsString().contains("微信登录未完成"));
         assertEquals(404,mvc.perform(post("/system/auth/guanjia/exchange").contentType("application/json").content("{\"assertion\":\"old-bridge\"}")).andReturn().getResponse().getStatus());
     }
+    @Test void callbackFailuresReachOwnedDesktopWithoutMisleadingPermissionAdvice() throws Exception {
+        Fixture f=new Fixture(); f.begin(); f.scan(); f.failure=true; f.callback();
+        assertTrue(f.callback.getContentAsString().contains("WX-OAUTH-NETWORK"));
+        assertFalse(f.callback.getContentAsString().contains("请确认使用已授权的管理员微信"));
+        MockHttpServletResponse r=new MockHttpServletResponse();
+        Object result=f.poll(Collections.singletonMap("ticket",f.ticket),f.request(false),r);
+        assertEquals(403,r.getStatus()); assertTrue(result.toString().contains("WX-OAUTH-NETWORK")); assertEquals(0,f.issued);
+        MockHttpServletRequest stranger=f.request(false);stranger.setCookies(new Cookie[0]);r=new MockHttpServletResponse();
+        result=f.poll(Collections.singletonMap("ticket",f.ticket),stranger,r);
+        assertFalse(result.toString().contains("WX-OAUTH-NETWORK"));
+    }
+    @Test void replayCannotInvalidatePendingConfirmation() throws Exception {
+        Fixture f=new Fixture();f.begin();f.scan();f.callback();String original=f.confirm;f.callback();
+        f.confirm(f.state,original,f.request(true),new MockHttpServletResponse());
+        assertTrue(f.poll().toString().contains("synthetic-test-token"));assertEquals(1,f.exchanged);
+    }
+    @Test void diagnosticsAreAllowlistedAndNeverContainExceptionMessage() {
+        assertEquals("WX-OAUTH-40029",failureReason("oauth",new NativeWechatClient.AuthorizationException(40029)));
+        assertEquals("WX-BINDING",failureReason("binding",new IllegalArgumentException("SECRET_URL_SHOULD_NOT_APPEAR")));
+        assertEquals("WX-SESSION",failureReason("session",new Exception("SECRET")));
+        assertTrue(failureMessage("WX-OAUTH-40029").contains("凭证已失效"));
+        assertFalse(failureMessage("untrusted <script>").contains("<script>"));
+    }
+
 }

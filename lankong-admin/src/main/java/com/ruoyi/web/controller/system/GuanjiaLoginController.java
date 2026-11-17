@@ -17,6 +17,8 @@ import com.ruoyi.framework.web.service.*;
 import com.ruoyi.system.service.ISysUserService;
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Native QR login. All state, OAuth and administrator checks stay on this server. */
 @RestController
@@ -25,6 +27,7 @@ public class GuanjiaLoginController {
     static final String ORIGIN = "https://shzxj.lk01.cn";
     static final String PATH = "/api/system/auth/guanjia";
     static final String DESKTOP = "jy_native_qr", MOBILE = "jy_native_mobile";
+    private static final Logger LOG = LoggerFactory.getLogger(GuanjiaLoginController.class);
     private static final SecureRandom RANDOM = new SecureRandom();
     @Value("${native.wechat.app-id:}") private String appId;
     @Value("${native.wechat.app-secret:}") private String appSecret;
@@ -160,20 +163,37 @@ public class GuanjiaLoginController {
     public void callback(@RequestParam(name="state", required=false) String state, @RequestParam(name="code", required=false) String code,
             HttpServletRequest request, HttpServletResponse response) throws IOException {
         headers(response);
+        String stage = "session";
+        JSONObject ownedTicket = null;
+        String ownedTicketId = null;
         try {
-            configured(); JSONObject attempt = mobile(state, request); JSONObject ticket = read("ticket", attempt.getString("ticket"));
+            configured(); JSONObject attempt = mobile(state, request);
+            ownedTicketId = attempt.getString("ticket"); JSONObject ticket = read("ticket", ownedTicketId);
+            ownedTicket = ticket;
             if (!"oauth".equals(attempt.getString("phase")) || !"waiting".equals(ticket.getString("status"))
                     || code == null || !code.matches("[A-Za-z0-9_-]{1,512}")) throw new IllegalArgumentException();
             once("callback", state);
-            String subject = wechat.exchange(appId, appSecret, code); account(subject);
+            stage = "oauth";
+            String subject = wechat.exchange(appId, appSecret, code);
+            stage = "binding"; account(subject);
+            stage = "confirmation";
             String confirm = random(); attempt.put("subject", subject); attempt.put("phase", "confirm");
             attempt.put("confirm", NativeWechatClient.hash(confirm)); save("attempt", state, attempt);
             page(response, "确认登录管理后台", "<p>仅在你本人发起登录时确认。</p><form method=\"post\" action=\"" + PATH + "/confirm\">"
                     + "<input type=\"hidden\" name=\"state\" value=\"" + state + "\"><input type=\"hidden\" name=\"confirm\" value=\"" + confirm
                     + "\"><button type=\"submit\">确认登录</button></form>");
         } catch (Exception e) {
-            // Exceptions may contain OAuth URLs/secrets; never log or echo them.
-            page(response, "微信登录未完成", "<p>请确认使用已授权的管理员微信，并在电脑上刷新二维码重试。</p>");
+            // Log only allowlisted stages and numeric OAuth errors, never exception text or identifiers.
+            String reason = failureReason(stage, e);
+            String message = failureMessage(reason);
+            LOG.warn("Native WeChat login failed: reason={} type={}", reason, e.getClass().getSimpleName());
+            if (!"session".equals(stage) && ownedTicket != null && "waiting".equals(ownedTicket.getString("status"))) {
+                try {
+                    ownedTicket.put("status", "failed"); ownedTicket.put("failure", reason);
+                    save("ticket", ownedTicketId, ownedTicket);
+                } catch (RuntimeException ignored) { }
+            }
+            page(response, "微信登录未完成", "<p>" + message + "</p><p>诊断码：" + reason + "</p>");
         }
     }
     @PostMapping("/confirm")
@@ -199,6 +219,11 @@ public class GuanjiaLoginController {
         headers(response);
         try {
             origin(request); configured(); String id = input.get("ticket"); JSONObject ticket = desktop(id, request);
+            if ("failed".equals(ticket.getString("status"))) {
+                response.setStatus(403);
+                String reason = ticket.getString("failure");
+                return AjaxResult.error(failureMessage(reason) + "（" + reason + "）");
+            }
             if (!"confirmed".equals(ticket.getString("status"))) return AjaxResult.success().put("status", "waiting");
             SysUser user = account(ticket.getString("subject"));
             if (!user.getUserId().equals(ticket.getLong("userId"))) throw new IllegalArgumentException();
@@ -216,6 +241,25 @@ public class GuanjiaLoginController {
             origin(request); String id = input.get("ticket"); desktop(id, request); cache.deleteObject(key("ticket", id));
             cookie(response, DESKTOP, "", 0); return AjaxResult.success();
         } catch (RuntimeException e) { response.setStatus(403); return AjaxResult.error("登录已失效"); }
+    }
+    static String failureReason(String stage, Exception failure) {
+        if ("oauth".equals(stage)) {
+            if (failure instanceof NativeWechatClient.AuthorizationException) {
+                return "WX-OAUTH-" + ((NativeWechatClient.AuthorizationException) failure).getErrorCode();
+            }
+            return "WX-OAUTH-NETWORK";
+        }
+        if ("binding".equals(stage)) return "WX-BINDING";
+        if ("confirmation".equals(stage)) return "WX-CONFIRM";
+        return "WX-SESSION";
+    }
+    static String failureMessage(String reason) {
+        if ("WX-BINDING".equals(reason)) return "微信身份已获取，但未匹配到有效的后台管理员绑定，请联系管理员检查绑定。";
+        if ("WX-OAUTH-40029".equals(reason) || "WX-OAUTH-40163".equals(reason)) return "微信授权凭证已失效，请刷新二维码后重新扫码。";
+        if ("WX-OAUTH-40125".equals(reason) || "WX-OAUTH-40013".equals(reason)) return "微信登录配置异常，请联系管理员检查公众号凭据。";
+        if (reason != null && reason.startsWith("WX-OAUTH-")) return "服务器未能完成微信身份验证，请联系管理员检查授权服务。";
+        if ("WX-CONFIRM".equals(reason)) return "登录确认暂不可用，请稍后刷新二维码重试。";
+        return "本次登录会话已失效，请刷新二维码后重新扫码。";
     }
     private void page(HttpServletResponse response, String title, String body) throws IOException {
         response.setContentType("text/html;charset=UTF-8");

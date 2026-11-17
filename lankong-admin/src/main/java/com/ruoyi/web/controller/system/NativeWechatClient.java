@@ -10,10 +10,19 @@ import org.springframework.stereotype.Component;
 /** Direct official-account OAuth; never logs URLs, codes, secrets or OpenIDs. */
 @Component
 public class NativeWechatClient {
+    /** Only the numeric WeChat error is retained; response text may contain identifiers. */
+    public static class AuthorizationException extends IOException {
+        private final int errorCode;
+        AuthorizationException(int errorCode) { super("WeChat authorization rejected"); this.errorCode = errorCode; }
+        public int getErrorCode() { return errorCode; }
+    }
+    protected HttpURLConnection connect(String url) throws IOException {
+        return (HttpURLConnection) new URL(url).openConnection();
+    }
     public String exchange(String appId, String secret, String code) throws IOException {
         String url = "https://api.weixin.qq.com/sns/oauth2/access_token?appid=" + encode(appId)
                 + "&secret=" + encode(secret) + "&code=" + encode(code) + "&grant_type=authorization_code";
-        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+        HttpURLConnection c = connect(url);
         c.setInstanceFollowRedirects(false);
         c.setConnectTimeout(5000); c.setReadTimeout(10000);
         try {
@@ -26,8 +35,12 @@ public class NativeWechatClient {
                 }
                 JSONObject data = JSONObject.parseObject(new String(out.toByteArray(), StandardCharsets.UTF_8));
                 String openId = data == null ? null : data.getString("openid");
-                if (data == null || data.getIntValue("errcode") != 0 || openId == null
-                        || !openId.matches("[A-Za-z0-9_-]{8,200}")) throw new IOException("WeChat authorization failed");
+                if (data != null && data.getIntValue("errcode") != 0) {
+                    throw new AuthorizationException(data.getIntValue("errcode"));
+                }
+                if (data == null || openId == null || !openId.matches("[A-Za-z0-9_-]{8,200}")) {
+                    throw new IOException("Invalid WeChat response");
+                }
                 return subject(appId, openId);
             }
         } finally { c.disconnect(); }
