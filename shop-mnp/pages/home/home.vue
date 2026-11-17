@@ -131,6 +131,7 @@
 					<view class="product-list" v-if="currentGoodsList.length > 0">
 						<view
 							class="product-card"
+							:class="{ 'travel-product': goods.goodsType === 'hotel' }"
 							v-for="(goods, i) in currentGoodsList"
 							:key="goods.goodsId"
 							:data-goods-id="goods.goodsId"
@@ -140,17 +141,18 @@
 							<image class="product-cover" :src="mediaUrl(goods.goodsCover)" mode="aspectFill" lazy-load @error="onCatalogImageError(goods.goodsCover)" />
 							<view class="product-body">
 								<view class="product-title">{{ goods.goodsName }}</view>
-								<view class="product-tags" v-if="visibleGoodsTags(goods.tags).length">
+								<view class="product-facts" v-if="goods.goodsType === 'hotel' && goods.catalogOverview.facts">{{ goods.catalogOverview.facts }}</view>
+								<view class="product-tags" v-if="catalogTags(goods).length">
 									<text
 										class="product-tag"
-										v-for="(tag, j) in visibleGoodsTags(goods.tags).slice(0, 3)"
+										v-for="(tag, j) in catalogTags(goods)"
 										:key="j"
 									>{{ tag }}</text>
 								</view>
 							</view>
 							<view class="product-price-row">
 								<view class="product-price">
-									<text class="price">¥{{ formatCatalogPrice(goods) }}</text>
+									<text class="price">¥{{ catalogPriceParts(goods).amount }}</text><text class="price-suffix">{{ catalogPriceParts(goods).suffix }}</text>
 								</view>
 								<view class="product-btn">
 									<text>{{ goods.goodsType == 'online' || goods.goodsType == 'o2o' ? '购买' : '预订' }}</text>
@@ -225,7 +227,7 @@
 </template>
 
 <script>
-	import { formatCatalogPrice } from '@/utils/travelPresentation'
+	import { catalogPriceParts, travelCatalogOverview } from '@/utils/travelPresentation'
 	import TabBar from '@/components/TabBar/TabBar.vue'
 	import AuthProfilePopup from '@/components/AuthProfilePopup/AuthProfilePopup.vue'
 	import { ensureLogin } from '@/utils/login'
@@ -337,7 +339,7 @@
 			}
 		},
 		methods: {
-			formatCatalogPrice,
+			catalogPriceParts,
 			async loadDistributionOffer() {
 				const source = getDistributionLaunchSource()
 				if (!source) {
@@ -603,7 +605,7 @@
 					})
 					if (String(categoryId) !== String(this.currentCategoryId)) return
 					const list = res.data || []
-					this.currentGoodsList = list.filter(isVisibleTravelGoods)
+					this.currentGoodsList = list.filter(isVisibleTravelGoods).map(goods => ({ ...goods, catalogOverview: travelCatalogOverview(goods) }))
 					this.hotGoods = this.currentGoodsList.filter(v => v.isHot == 1)
 				} catch (error) {
 					if (String(categoryId) !== String(this.currentCategoryId)) return
@@ -703,6 +705,9 @@
 					return
 				}
 				this.goProdDetail(item)
+			},
+			catalogTags(goods) {
+				return goods.goodsType === 'hotel' ? goods.catalogOverview.tags : this.visibleGoodsTags(goods.tags).slice(0, 3)
 			},
 			visibleGoodsTags(tags) {
 				return String(tags || '').split(/[\,|，]/)

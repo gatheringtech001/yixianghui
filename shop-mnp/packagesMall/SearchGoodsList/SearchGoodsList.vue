@@ -36,8 +36,9 @@
 							<view class="title">
 								<text class="two-omit">{{item.goodsName}}</text>
 							</view>
-							<view class="tag" v-if="item.tags && item.tags != ''">
-								<text v-for="(tag, j) in item.tags.split(/[\,|，]/)" :key="j">{{tag}}</text>
+							<view class="base-facts" v-if="travelCatalogOverview(item).facts">{{ travelCatalogOverview(item).facts }}</view>
+							<view class="tag" v-if="catalogTags(item).length">
+								<text v-for="(tag, j) in catalogTags(item)" :key="j">{{tag}}</text>
 							</view>
 							<view class="price">
 								<view class="retail-price">
@@ -60,7 +61,7 @@
 </template>
 
 <script>
-	import { formatCatalogPrice } from '@/utils/travelPresentation'
+	import { formatCatalogPrice, travelCatalogOverview } from '@/utils/travelPresentation'
 	// 引入mescroll-mixins.js
 	import MescrollMixin from "@/components/mescroll-uni/mescroll-mixins.js";
 	import { getGoodsList } from '@/api/shop/index'
@@ -114,6 +115,10 @@
 		},
 		methods: {
 			formatCatalogPrice,
+			travelCatalogOverview,
+			catalogTags(item) {
+				return item.goodsType === 'hotel' ? travelCatalogOverview(item).tags : String(item.tags || '').split(/[,|，]/).filter(Boolean)
+			},
 			async getCurrentLocation() {
 				try {
 					// 获取经纬度
@@ -206,5 +211,6 @@
 
 <style scoped lang="scss">
 	@import  'SearchGoodsList.scss';
+	.base-facts { margin-top: 8rpx; color: #466879; font-size: 24rpx; line-height: 1.5; }
 	.catalog-state { padding: 24rpx; font-size: 28rpx; color: #701018; text-align: center; }
 </style>

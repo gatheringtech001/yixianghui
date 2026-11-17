@@ -590,3 +590,11 @@ $header: #EFEBDF;
 		background: #a94735;
 	}
 }
+
+.travel-product {
+	.product-facts { margin-top: 8rpx; color: #466879; font-size: 22rpx; line-height: 1.5; }
+	.product-tags { max-height: none; overflow: visible; }
+	.product-price { flex-wrap: wrap; white-space: normal; }
+	.price-suffix { font-size: 22rpx; line-height: 1.4; white-space: nowrap; }
+	.product-price-row { flex-wrap: wrap; }
+}

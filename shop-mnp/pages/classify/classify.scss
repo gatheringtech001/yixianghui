@@ -172,6 +172,15 @@ $rail-bg: #f6f3ed;
 	}
 }
 
+.travel-mode {
+	.category-rail { flex-basis: 140rpx; width: 140rpx; min-width: 140rpx; }
+	.category-rail .category-item {
+		min-height: 92rpx;
+		padding: 0 8rpx;
+		&.active::before { height: 92rpx; }
+	}
+}
+
 .activity-mode {
 	.category-rail {
 		flex-basis: 168rpx;
@@ -469,3 +478,8 @@ $rail-bg: #f6f3ed;
 		font-size: 28rpx;
 	}
 }
+
+.travel-card .base-facts { margin-top: 10rpx; color: #466879; font-size: 24rpx; line-height: 1.5; }
+.travel-card .catalog-price { display: flex; align-items: baseline; flex-wrap: wrap; min-width: 0; }
+.travel-card .price-suffix { color: #701018; font-size: 22rpx; line-height: 1.4; white-space: nowrap; }
+.travel-card .price-row .btn-primary { flex-shrink: 0; }

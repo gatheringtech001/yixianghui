@@ -1,5 +1,5 @@
 <template>
-	<view class="page_view" :class="[displayModeClass, { 'activity-mode': isActivityTab, 'education-mode': isEducationTab }]">
+	<view class="page_view" :class="[displayModeClass, { 'travel-mode': isTravelTab, 'activity-mode': isActivityTab, 'education-mode': isEducationTab }]">
 		<u-navbar class="weapp-nav-box service-nav" :class="{ 'activity-mode': isActivityTab }" :is-back="false" :background="{ background: '#ffffff' }" :border-bottom="false">
 			<view class="slot-wrap home-brand">
 				<image v-if="brandLogoDisplay" class="brand-logo" :src="brandLogoDisplay" mode="aspectFit" />
@@ -121,12 +121,13 @@
 						<image :src="mediaUrl(item.image)" mode="aspectFill" lazy-load @error="onCatalogImageError(item.image)" />
 						<view class="listing-body">
 							<view class="card-title">{{ item.goodsName }}</view>
+							<view class="base-facts" v-if="item.catalogFacts">{{ item.catalogFacts }}</view>
 							<view class="meta" v-if="item.listingSummary">{{ item.listingSummary }}</view>
 							<view class="tags" v-if="item.tagList && item.tagList.length">
-								<text class="outline-chip" v-for="(tag, tagIndex) in item.tagList.slice(0, 3)" :key="tagIndex">{{ tag }}</text>
+								<text class="outline-chip" v-for="(tag, tagIndex) in item.tagList" :key="tagIndex">{{ tag }}</text>
 							</view>
 							<view class="price-row">
-								<text class="price">¥{{ formatCatalogPrice(item) }}</text>
+								<view class="catalog-price"><text class="price">¥{{ catalogPriceParts(item).amount }}</text><text class="price-suffix">{{ catalogPriceParts(item).suffix }}</text></view>
 								<view class="btn-primary">查看详情</view>
 							</view>
 						</view>
@@ -215,7 +216,7 @@
 	} from '@/utils/catalogRequests'
 	import { catalogImageUrl, catalogImageKey } from '@/utils/catalogImage'
 	import { parseCourseMeta } from '@/utils/courseMeta'
-	import { compactListingText, formatCatalogPrice } from '@/utils/travelPresentation'
+	import { compactListingText, catalogPriceParts, travelCatalogOverview } from '@/utils/travelPresentation'
 	import {
 		getTravelCategoryRows,
 		isVisibleCatalogGoods,
@@ -419,7 +420,7 @@
 			}
 		},
 		methods: {
-			formatCatalogPrice,
+			catalogPriceParts,
 			activitySignupText(item) {
 				const count = Number(item.signCount || item.signcount) || 0
 				const max = Number(item.maxCount)
@@ -483,12 +484,15 @@
 				} else if (item.goodsCover) {
 					image = item.goodsCover
 				}
+				const overview = travelCatalogOverview(item)
+				if (item.goodsType === 'hotel') tagList = overview.tags
 				const ext = item.educationExt || {}
 				const courseMeta = parseCourseMeta(item.description)
 				return {
 					goodsId: item.goodsId,
 					goodsName: item.goodsName,
 					tagList,
+					catalogFacts: overview.facts,
 					image,
 					price: item.vipPrice || item.price,
 					paidSignupCount: item.paidSignupCount != null && Number.isFinite(Number(item.paidSignupCount))

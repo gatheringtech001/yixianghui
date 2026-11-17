@@ -41,6 +41,20 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="deptName"    column="dept_name"    />
     </resultMap>
 
+    <!-- One optional overview per hotel, joined in the same list query (no N+1
+         details/SKU requests). Keep the full-detail result map unchanged. -->
+    <resultMap type="AppGoods" id="AppGoodsListResult" extends="AppGoodsResult">
+        <id property="goodsId" column="goods_id"/>
+        <collection property="features" ofType="com.ruoyi.system.domain.AppGoodsRelated"
+                    columnPrefix="catalog_" notNullColumn="id">
+            <id property="id" column="id"/>
+            <result property="goodsId" column="goods_id"/>
+            <result property="sectionId" column="section_id"/>
+            <result property="sectionName" column="section_name"/>
+            <result property="content" column="content"/>
+        </collection>
+    </resultMap>
+
     <sql id="selectAppGoodsVo">
         select goods_id, category_id, category_ids, dept_id, goods_name, goods_cover, goods_images, description, tags, price, vip_price, unit, specifications, stock, goods_type, is_top, is_hot, attr_ids, attr_values, is_sku, award_type, award_parent_ratio, award_grand_parent_ratio, award_golden, content, express_fee, weight, view_count, sale_count, create_time, update_time, status from app_goods
     </sql>
@@ -54,8 +68,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
               and signup.pay_status = '1'
               and signup.status in ('1', '3')
         ) else null end as paid_signup_count
+        , catalog_base.id as catalog_id, catalog_base.goods_id as catalog_goods_id,
+          catalog_base.section_id as catalog_section_id,
+          catalog_base.section_name as catalog_section_name, catalog_base.content as catalog_content
         from app_goods g
         left join sys_dept d on g.dept_id = d.dept_id
+        left join app_goods_related catalog_base on g.goods_type = 'hotel'
+          and catalog_base.id = (
+            select overview.id from app_goods_related overview
+            where overview.goods_id = g.goods_id and overview.section_name like '%基地概况%'
+            order by overview.sort_order asc, overview.id asc limit 1
+          )
     </sql>
 
     <select id="selectRetailGoodsForUpdate" parameterType="Long" resultMap="AppGoodsResult">
@@ -92,7 +115,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 then convert(g.goods_name using gbk) end asc,
             g.goods_id desc
     </sql>
-    <select id="selectAppGoodsList" parameterType="AppGoods" resultMap="AppGoodsResult">
+    <select id="selectAppGoodsList" parameterType="AppGoods" resultMap="AppGoodsListResult">
         <include refid="selectAppGoodsListVo"/>
         <where>
             <if test="params != null and params.keyword != null and params.keyword != ''">
