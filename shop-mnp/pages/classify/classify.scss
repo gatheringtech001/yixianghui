@@ -479,7 +479,19 @@ $rail-bg: #f6f3ed;
 	}
 }
 
-.travel-card .base-facts { margin-top: 10rpx; color: #466879; font-size: 24rpx; line-height: 1.5; }
+.travel-card .listing-body {
+	.card-title { font-size: 34rpx; line-height: 1.4; }
+	.meta { font-size: 28rpx; line-height: 1.55; }
+	.tags { gap: 12rpx; }
+	.outline-chip {
+		min-height: 52rpx;
+		padding: 4rpx 16rpx;
+		font-size: 28rpx;
+		line-height: 1.4;
+		box-sizing: border-box;
+	}
+}
+.travel-card .base-facts { margin-top: 10rpx; color: #466879; font-size: 28rpx; line-height: 1.5; }
 .travel-card .catalog-price { display: flex; align-items: baseline; flex-wrap: wrap; min-width: 0; }
 .travel-card .price-suffix { color: #701018; font-size: 22rpx; line-height: 1.4; white-space: nowrap; }
 // Match the card's responsive scale instead of a fixed-pixel, oversized block.
