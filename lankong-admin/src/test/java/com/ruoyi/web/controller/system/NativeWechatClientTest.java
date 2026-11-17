@@ -21,7 +21,13 @@ class NativeWechatClientTest {
     }
     @Test void validIdentityIsHashedAndConnectionIsClosed() throws Exception {
         Connection c=new Connection("{\"openid\":\"synthetic_openid\",\"access_token\":\"DO_NOT_EXPOSE\"}");
-        assertEquals(NativeWechatClient.subject("wx_test","synthetic_openid"),client(c).exchange("wx_test","secret","code"));assertTrue(c.closed);
+        assertEquals("31ecf49407cd34e9cabc9a62eb85d08fe27cd7e20eb64eb50799ff6d411461df",client(c).exchange("wx1234567890abcdef","secret","code"));assertTrue(c.closed);
+    }
+    @Test void subjectMatchesGoldenValuesFromLegacyNodeStoreDigest() {
+        // Generated using the original store.mjs digest(), independently of this Java implementation.
+        assertEquals("31ecf49407cd34e9cabc9a62eb85d08fe27cd7e20eb64eb50799ff6d411461df",NativeWechatClient.subject("wx1234567890abcdef","synthetic_openid"));
+        assertEquals("525713249f24c2c18c06ea740357fbdd5f711bb23e147d10f8dab52a128f7502",NativeWechatClient.subject("wx_test","test_openid_-"));
+        assertEquals("17e828e70938db62e4faa2f6962540df7d8a00a59a43ce7eb65b4c60f2b665ca",NativeWechatClient.subject("wxotheraccount","synthetic_openid"));
     }
     @Test void wechatErrorRetainsOnlyNumericCode() throws Exception {
         Connection c=new Connection("{\"errcode\":40029,\"errmsg\":\"SECRET_URL_SHOULD_NOT_APPEAR\"}");

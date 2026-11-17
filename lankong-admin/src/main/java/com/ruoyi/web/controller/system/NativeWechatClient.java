@@ -49,7 +49,11 @@ public class NativeWechatClient {
         try { return URLEncoder.encode(value, "UTF-8"); }
         catch (UnsupportedEncodingException impossible) { throw new IllegalStateException(); }
     }
-    static String subject(String appId, String openId) { return hash(appId + "\0" + openId); }
+    // Legacy store.digest hashes JSON.stringify(value), not the raw string bytes.
+    // Keep this separate from hash(), which protects this service's new random proofs.
+    static String subject(String appId, String openId) {
+        return hash(JSONObject.toJSONString(appId + "\0" + openId));
+    }
     static String hash(String value) {
         try {
             byte[] bytes = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));

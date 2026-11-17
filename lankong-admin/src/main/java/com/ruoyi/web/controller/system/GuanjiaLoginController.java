@@ -31,7 +31,7 @@ public class GuanjiaLoginController {
     private static final SecureRandom RANDOM = new SecureRandom();
     @Value("${native.wechat.app-id:}") private String appId;
     @Value("${native.wechat.app-secret:}") private String appSecret;
-    // Same AppID + SHA256(AppID + NUL + OpenID) bindings as the existing administrator identities.
+    // Existing bindings use SHA256(JSON.stringify(AppID + NUL + OpenID)).
     @Value("${native.wechat.members:}") private String members;
     @Autowired private RedisCache cache;
     @Autowired private ISysUserService users;

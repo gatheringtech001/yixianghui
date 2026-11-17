@@ -20,7 +20,7 @@ import static com.ruoyi.web.controller.system.GuanjiaLoginController.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 class GuanjiaLoginControllerTest {
-    static final String APP="wx1234567890abcdef", SUBJECT=NativeWechatClient.subject(APP,"synthetic_openid");
+    static final String APP="wx1234567890abcdef", SUBJECT="31ecf49407cd34e9cabc9a62eb85d08fe27cd7e20eb64eb50799ff6d411461df";
     static class Cache extends RedisCache {
         final Map<String,Object> data = new ConcurrentHashMap<>();
         @Override public <T> T getCacheObject(String key) { return (T) data.get(key); }
@@ -105,6 +105,8 @@ class GuanjiaLoginControllerTest {
     }
     @Test void sameAppSubjectHashRemainsCompatibleWithExistingBindings() throws Exception {
         assertEquals("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",NativeWechatClient.hash("test"));
+        assertEquals(SUBJECT,NativeWechatClient.subject(APP,"synthetic_openid"));
+        assertNotEquals(SUBJECT,NativeWechatClient.hash(APP+"\0synthetic_openid"));
         assertNotEquals(NativeWechatClient.subject(APP,"synthetic_openid"),NativeWechatClient.subject("wxotheraccount","synthetic_openid"));
     }
     @Test void runtimeSpringBindingWorksAndOldBridgeExchangeIsGone() throws Exception {
