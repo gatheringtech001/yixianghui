@@ -53,3 +53,13 @@ test('retains rich content fallback for legacy sections without a structured ove
     assert.match(source, /<u-parse v-else :html="displayRichText\(item\.content\)"/)
     assert.match(source, /overview\.hasSource \? this\.hotelData\.overview\.tags/)
 })
+
+test('detail source tags use brand burgundy on a pale rose background without changing their layout', () => {
+    const style = readFileSync(new URL('../packagesMall/GoodsDetails/SojournGoodsDetails.scss', import.meta.url), 'utf8')
+    const tags = style.split('.base_tag_view {')[1].split('.base_facts_view {')[0]
+    assert.match(tags, /color:\s*\$page-accent/)
+    assert.match(tags, /background:\s*#fff2ef/)
+    assert.match(tags, /border:\s*1rpx solid #e9c2bd/)
+    assert.match(tags, /flex-wrap:\s*wrap/)
+    assert.match(tags, /min-height:\s*52rpx/)
+})
