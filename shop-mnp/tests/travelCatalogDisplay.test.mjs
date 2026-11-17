@@ -70,7 +70,7 @@ test('travel details action uses a proportional height and larger single-line te
 test('travel list card enlarges titles, facts, summaries and wrapping tags without affecting course cards', () => {
     const style = readFileSync(new URL('../pages/classify/classify.scss', import.meta.url), 'utf8')
     const travel = style.slice(style.lastIndexOf('.travel-card .listing-body {'))
-    assert.match(travel, /\.card-title\s*\{[^}]*font-size:\s*34rpx/)
+    assert.match(travel, /\.card-title\s*\{[^}]*font-size:\s*40rpx/)
     assert.match(travel, /\.meta\s*\{[^}]*font-size:\s*28rpx/)
     assert.match(travel, /\.base-facts\s*\{[^}]*font-size:\s*28rpx/)
     assert.match(travel, /\.outline-chip\s*\{[^}]*min-height:\s*52rpx;[^}]*font-size:\s*28rpx;[^}]*box-sizing:\s*border-box/s)
