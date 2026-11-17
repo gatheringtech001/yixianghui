@@ -482,4 +482,16 @@ $rail-bg: #f6f3ed;
 .travel-card .base-facts { margin-top: 10rpx; color: #466879; font-size: 24rpx; line-height: 1.5; }
 .travel-card .catalog-price { display: flex; align-items: baseline; flex-wrap: wrap; min-width: 0; }
 .travel-card .price-suffix { color: #701018; font-size: 22rpx; line-height: 1.4; white-space: nowrap; }
-.travel-card .price-row .btn-primary { flex-shrink: 0; }
+// Match the card's responsive scale instead of a fixed-pixel, oversized block.
+// The whole card remains tappable; senior mode keeps its larger touch target.
+.travel-card .price-row .btn-primary {
+	flex-shrink: 0;
+	min-width: 176rpx;
+	height: 80rpx;
+	min-height: 80rpx;
+	padding: 0 20rpx;
+	box-sizing: border-box;
+	font-size: 32rpx;
+	line-height: 1.2;
+	white-space: nowrap;
+}

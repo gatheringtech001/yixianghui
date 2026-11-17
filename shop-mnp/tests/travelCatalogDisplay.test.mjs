@@ -52,3 +52,16 @@ test('both catalog cards use source overview with all tags and a compact price s
     const style = readFileSync(new URL('../pages/classify/classify.scss', import.meta.url), 'utf8')
     assert.match(style, /\.travel-mode[\s\S]*?flex-basis: 140rpx/)
 })
+
+test('travel details action uses a proportional height and larger single-line text without shrinking senior targets', () => {
+    const style = readFileSync(new URL('../pages/classify/classify.scss', import.meta.url), 'utf8')
+    const action = style.match(/\.travel-card \.price-row \.btn-primary\s*\{([^}]+)\}/)[1]
+    assert.match(action, /height:\s*80rpx/)
+    assert.match(action, /min-height:\s*80rpx/)
+    assert.match(action, /font-size:\s*32rpx/)
+    assert.match(action, /white-space:\s*nowrap/)
+    assert.match(action, /box-sizing:\s*border-box/)
+    assert.doesNotMatch(action, /!important/)
+    const senior = readFileSync(new URL('../style/senior-mode.scss', import.meta.url), 'utf8')
+    assert.match(senior, /min-height:\s*\$senior-touch !important/)
+})
