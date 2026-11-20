@@ -55,7 +55,7 @@ $rail-bg: #f6f3ed;
 
 .switcher {
 	display: grid;
-	grid-template-columns: repeat(4, 1fr);
+	grid-template-columns: repeat(3, 1fr);
 	margin: 0 28rpx;
 	overflow: hidden;
 	border: 1rpx solid $line;

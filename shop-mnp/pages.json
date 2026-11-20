@@ -70,13 +70,6 @@
 				"navigationBarTextStyle": "black"
 			}
 		}, {
-			"path": "shop/list",
-			"style": {
-				"navigationBarBackgroundColor": "#EFEBDF",
-				"navigationBarTitleText": "商城",
-				"navigationBarTextStyle": "black"
-			}
-		}, 		{
 			"path": "search/search",
 			"style": {
 				"navigationBarBackgroundColor": "#EFEBDF",

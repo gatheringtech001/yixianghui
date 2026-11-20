@@ -8,7 +8,7 @@
 						<text>更换账号</text>
 					</view>
 					<view class="describe">
-						<text>切换账号需重新进行微信授权登录</text>
+						<text>切换账号后需重新登录</text>
 					</view>
 				</view>
 				<view class="more">

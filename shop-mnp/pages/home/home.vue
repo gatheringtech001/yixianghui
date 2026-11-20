@@ -69,13 +69,6 @@
 						</view>
 					</view>
 					<view class="secondary-entry-grid">
-						<view class="entry-card" @click="goClassify('云南好物')">
-							<image class="entry-bg" src="/static/home-design/entry-yunnan.jpg" mode="aspectFill" />
-							<view class="entry-copy">
-								<text class="entry-title">云南好物</text>
-								<text class="entry-desc">山野风味甄选</text>
-							</view>
-						</view>
 						<view class="entry-card" @click="goClassify('聚会活动')">
 							<image class="entry-bg" src="/static/home-design/entry-activity.jpg" mode="aspectFill" />
 							<view class="entry-copy">
@@ -840,6 +833,7 @@
 				}
 			},
 			goClassify(categoryName) {
+				if (['云南好物', '云野好物', '商城'].includes(String(categoryName || '').trim())) return
 				const navList = (uni.getStorageSync('cls') || []).filter(v => v.parentId == 0)
 				const matched = navList.find(v => String(v.categoryName || '').trim().replace('云野好物', '云南好物') === categoryName)
 					|| (categoryName === '聚会活动' ? navList.find(v => v.linkType === 'activity') : null)

@@ -41,14 +41,6 @@
 				<image class="switcher-icon" src="/static/navigation-icons/service-education.png" mode="aspectFit" />
 				<text>芳华学院</text>
 			</view>
-			<view
-				class="switcher-item"
-				:class="{ active: isYunnanGoodsTab }"
-				@click="switchToYunnanGoods"
-			>
-				<image class="switcher-icon" src="/static/navigation-icons/service-yunnan.png" mode="aspectFit" />
-				<text>云南好物</text>
-			</view>
 		</view>
 
 		<view class="page_body_view">
@@ -314,7 +306,7 @@
 				uni.setStorageSync('currentCls', options.cls)
 			}
 			if (uni.getStorageSync('cls')) {
-				this.navbarList = uni.getStorageSync('cls').filter(e => e.parentId == 0)
+				this.navbarList = this.visibleServiceNavbars(uni.getStorageSync('cls'))
 				if (this.navbarList.length > 0) {
 					const cls = uni.getStorageSync('currentCls')
 					const matched = cls ? this.navbarList.find(v => v.categoryId == cls) : null
@@ -347,7 +339,10 @@
 			this.$nextTick(() => {
 				this.setBodyScrollHeight()
 			})
-			if (this.navbarList.length === 0) return
+			if (this.navbarList.length === 0) {
+				this.loadContentList()
+				return
+			}
 
 			const keyword = uni.getStorageSync('searchKeyword')
 			const hasKeyword = keyword != null && keyword !== ''
@@ -453,10 +448,24 @@
 			async loadBrandLogo() {
 				this.brandLogoUrl = await loadAdImageUrl(AD_POSITION.BRAND_LOGO, this.host)
 			},
+			visibleServiceNavbars(categories) {
+				return (Array.isArray(categories) ? categories : []).filter(item => (
+					item && item.parentId == 0 && (
+						['全国旅居', '老年教育', '芳华学院', '聚会活动'].includes(String(item.categoryName || '').trim())
+						|| item.linkType === 'activity'
+					)
+				))
+			},
+			setVisibleServiceNavbars(categories) {
+				this.navbarList = this.visibleServiceNavbars(categories)
+				if (!this.navbarList.some(item => item.categoryId == this.navbarSelect)) {
+					this.navbarSelect = this.navbarList.length ? this.navbarList[0].categoryId : 0
+				}
+			},
 			syncNavbarListFromCache() {
 				const cls = uni.getStorageSync('cls') || []
 				if (!cls.length) return
-				this.navbarList = cls.filter(e => e.parentId == 0)
+				this.setVisibleServiceNavbars(cls)
 				if (!this.navbarSelect && this.navbarList.length > 0) {
 					this.navbarSelect = this.navbarList[0].categoryId
 				}
@@ -467,7 +476,7 @@
 				}).then(res => {
 					const data = res.data || []
 					uni.setStorageSync('cls', data)
-					this.navbarList = data.filter(e => e.parentId == 0)
+					this.setVisibleServiceNavbars(data)
 					return this.navbarList
 				})
 			},
@@ -594,11 +603,6 @@
 					})
 				})
 			},
-			switchToYunnanGoods() {
-				if (this.isYunnanGoodsTab) return
-				const item = this.navbarList.find(v => ['云南好物', '云野好物'].includes(String(v.categoryName || '').trim()))
-				if (item) this.applyNavbarItem(item)
-			},
 			async syncSiteDisplay() {
 				let site = uni.getStorageSync('site')
 				if (!site) {
@@ -631,6 +635,7 @@
 				}
 			},
 			applyNavbarItem(item, keepSearch = false) {
+				if (!this.visibleServiceNavbars([item]).length) return
 				this.contentRequestId += 1
 				this.visibleCardCount = 12
 				this.goodsList = []
@@ -749,7 +754,20 @@
 					this.setBodyScrollHeight()
 				})
 			},
-			loadContentList() {
+			async loadContentList() {
+				if (!this.navbarList.length) {
+					this.loading = true
+					this.contentError = ''
+					try {
+						await this.refreshNavbarListFromApi()
+						if (!this.navbarList.length) throw new Error('暂时没有可用服务')
+						this.applyNavbarItem(this.navbarList[0])
+					} catch (error) {
+						this.contentError = '服务分类加载失败，请重试'
+						this.loading = false
+					}
+					return
+				}
 				if (this.isActivityTab) {
 					return this.getActivityListFn()
 				} else {

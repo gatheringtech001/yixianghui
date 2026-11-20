@@ -7,7 +7,8 @@ module.exports = function loadPage(file, dependencies = {}) {
   const script = source.match(/<script[^>]*>([\s\S]*?)<\/script>/)[1]
     .replace(/import\s+[\s\S]*?from\s+['"][^'"]+['"];?/g, '')
     .replace('export default', 'module.exports =')
-  const context = {module:{exports:{}}, console, setTimeout, clearTimeout, ...dependencies}
+  const context = {module:{exports:{}}, console, setTimeout, clearTimeout,
+    ...require('../../shop-mnp/utils/travelPresentation.js'), ...dependencies}
   vm.runInNewContext(script, context, {filename:file})
   const component = context.module.exports
   const page = {$host:'https://example.invalid', ...(component.data?.call({$host:'https://example.invalid'}) || {})}

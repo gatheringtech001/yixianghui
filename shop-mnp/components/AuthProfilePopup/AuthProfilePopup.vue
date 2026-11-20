@@ -26,7 +26,7 @@
 						class="primary-btn"
 						:class="{ disabled: !agreementChecked || loggingIn }"
 						@tap="goProfileStep"
-					>微信登录</view>
+					>手机号快捷登录</view>
 					<view class="agreement-row" @tap="toggleAgreement">
 						<view class="agreement-checkbox" :class="{ checked: agreementChecked }">
 							<text v-if="agreementChecked">✓</text>
@@ -44,7 +44,7 @@
 			<view v-else-if="step === 2" class="auth-step profile-step">
 				<view class="step-heading">
 					<view class="title">申请获取您的头像、昵称</view>
-					<view class="desc center">微信要求头像和昵称分别确认一次，完成后自动进入下一步。</view>
+					<view class="desc center">请设置头像和昵称，完成后进入下一步。</view>
 				</view>
 				<view class="profile-form">
 					<button class="avatar-btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
@@ -53,7 +53,7 @@
 							<u-icon name="camera-fill" color="#ffffff" size="28" />
 						</view>
 					</button>
-					<text class="avatar-tip">点击头像选择微信头像</text>
+					<text class="avatar-tip">点击设置头像</text>
 					<view class="nickname-row">
 						<text class="label">昵称</text>
 						<input
@@ -62,7 +62,7 @@
 							v-model="nickName"
 							maxlength="30"
 							confirm-type="done"
-							placeholder="请输入微信昵称"
+							placeholder="请输入昵称"
 							placeholder-class="nickname-placeholder"
 							@blur="onNicknameBlur"
 						/>
@@ -84,7 +84,7 @@
 						class="one-tap-btn"
 						open-type="getPhoneNumber"
 						@getphonenumber="onGetPhoneNumber"
-					>授权手机号</button>
+					>手机号快捷登录</button>
 					<view class="skip-btn" @tap="onSkipPhone">暂不授权</view>
 				</view>
 			</view>
@@ -123,7 +123,7 @@
 				return (info.statusBarHeight || 20) + 44
 			},
 			topbarTitle() {
-				return ['登录', '头像与昵称', '授权手机'][this.step - 1] || ''
+				return ['登录', '头像与昵称', '手机号快捷登录'][this.step - 1] || ''
 			},
 			profileReady() {
 				const nickName = (this.nickName || '').trim()
@@ -194,7 +194,7 @@
 					this.step = 2
 				} catch (error) {
 					uni.showToast({
-						title: (error && error.message) || '微信登录失败，请重试',
+						title: (error && error.message) || '手机号快捷登录失败，请重试',
 						icon: 'none',
 						duration: 3000
 					})

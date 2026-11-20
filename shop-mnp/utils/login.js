@@ -79,7 +79,7 @@ function wxSilentLogin() {
 			provider: 'weixin',
 			success(loginRes) {
 				if (!loginRes.code) {
-					reject(new Error('微信登录失败'))
+					reject(new Error('登录失败，请重试'))
 					return
 				}
 				loginByWx({ code: loginRes.code, parentUserId: getInviteParentUserId() }).then(res => {
@@ -91,7 +91,7 @@ function wxSilentLogin() {
 					fetchUserInfo().then(resolve).catch(reject)
 				}).catch(reject)
 			},
-			fail: () => reject(new Error('微信登录失败'))
+			fail: () => reject(new Error('登录失败，请重试'))
 		})
 	})
 }

@@ -40,15 +40,16 @@ test('preparing service does not fetch goods or expose search and cart actions',
   assert.deepEqual(calls,[])
 })
 
-test('home still routes its Yunnan entry to the corresponding service tab', () => {
+test('home hides Yunnan and rejects stale Yunnan entry actions', () => {
   const actions=[]
   const {page,source}=loadPage('pages/home/home.vue',{TabBar:{},AuthProfilePopup:{},sharePageMixin:{},
     uni:{getStorageSync:()=>[{categoryId:83,parentId:0,categoryName:'云南好物'}],
       setStorageSync:(key,value)=>actions.push([key,value]),switchTab:o=>actions.push(o.url)}})
   page.goClassify('云南好物')
-  assert.match(source,/@click="goClassify\('云南好物'\)"/)
-  assert.ok(actions.some(value=>Array.isArray(value)&&value[0]==='currentCls'&&value[1]===83))
-  assert.ok(actions.includes('/pages/classify/classify'))
+  page.goClassify('云野好物')
+  page.goClassify('商城')
+  assert.doesNotMatch(source, /@click="goClassify\('云南好物'\)"/)
+  assert.deepEqual(actions,[])
 })
 
 test('home recommendations skip Yunnan goods without changing the other sections', async () => {

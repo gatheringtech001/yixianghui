@@ -15,11 +15,11 @@ test('home keeps its structure while adding the requested recommendation and ser
 
 	assert.match(home, /class="recommendation-swiper"/)
 	assert.match(home, /loadRecommendations/)
-	assert.ok(travelIndex < yunnanIndex)
-	assert.ok(yunnanIndex < activityIndex)
+	assert.equal(yunnanIndex, -1)
+	assert.ok(travelIndex < activityIndex)
 	assert.ok(activityIndex < schoolIndex)
 	assert.match(home, /entry-stay-wide\.jpg/)
-	assert.match(home, /entry-yunnan\.jpg/)
+	assert.doesNotMatch(home, /entry-yunnan\.jpg/)
 })
 
 test('shop pages do not expose membership pricing and use regular price for checkout', () => {

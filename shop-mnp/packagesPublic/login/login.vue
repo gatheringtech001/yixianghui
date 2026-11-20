@@ -40,13 +40,13 @@
       <text>其他登录方式</text>
     </view> -->
 		<view class="other-ways">
-			<text>微信授权登录</text>
+			<text>手机号快捷登录</text>
 		</view>
 		<!-- 登录方式 -->
 		<view class="login-way">
 			<view class="way" @click="$u.throttle(wxLogin, 500)">
-				<image src="/static/wx_ico.png" mode=""></image>
-				<text>微信登录</text>
+				<u-icon name="phone-fill" color="#701018" size="64" />
+				<text>手机号快捷登录</text>
 			</view>
 		</view>
 		<AuthProfilePopup ref="authProfilePopup" />
