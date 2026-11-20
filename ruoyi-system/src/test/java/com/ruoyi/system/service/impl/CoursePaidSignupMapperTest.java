@@ -4,7 +4,6 @@ import com.ruoyi.system.domain.AppGoods;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.Statement;
-import java.util.List;
 import java.util.UUID;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.mapping.Environment;
@@ -44,12 +43,17 @@ class CoursePaidSignupMapperTest {
             s.execute("insert into app_goods_order values (1,2,'1','1'),(1,3,'1','3'),(1,9,'0','0'),(1,8,'1','2'),(1,7,'4','4'),(1,6,'3','1'),(3,10,'1','1')");
         }
         try (SqlSession session = new SqlSessionFactoryBuilder().build(config).openSession()) {
-            List<AppGoods> rows = session.selectList("com.ruoyi.system.mapper.AppGoodsMapper.selectAppGoodsList", new AppGoods());
-            AppGoods course = rows.stream().filter(g -> g.getGoodsId() == 1L).findFirst().get();
+            String detail = "com.ruoyi.system.mapper.AppGoodsMapper.selectAppGoodsByGoodsId";
+            AppGoods course = session.selectOne(detail, 1L);
             assertEquals(5L, course.getPaidSignupCount());
             assertEquals(99L, course.getSaleCount());
-            assertEquals(0L, rows.stream().filter(g -> g.getGoodsId() == 2L).findFirst().get().getPaidSignupCount());
-            assertNull(rows.stream().filter(g -> g.getGoodsId() == 3L).findFirst().get().getPaidSignupCount());
+            assertEquals(0L, ((AppGoods) session.selectOne(detail, 2L)).getPaidSignupCount());
+            assertNull(((AppGoods) session.selectOne(detail, 3L)).getPaidSignupCount());
+            assertNull(session.selectOne(detail, 999L));
+            // Both list and detail must use the exact same paid-seat aggregate.
+            String detailSql = config.getMappedStatement(detail).getBoundSql(1L).getSql();
+            String aggregate = projection.substring(projection.indexOf(", case"), projection.indexOf("as paid_signup_count") + "as paid_signup_count".length());
+            assertTrue(detailSql.contains(aggregate));
         }
     }
 }

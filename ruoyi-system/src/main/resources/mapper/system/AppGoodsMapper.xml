@@ -55,12 +55,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </collection>
     </resultMap>
 
-    <sql id="selectAppGoodsVo">
-        select goods_id, category_id, category_ids, dept_id, goods_name, goods_cover, goods_images, description, tags, price, vip_price, unit, specifications, stock, goods_type, is_top, is_hot, attr_ids, attr_values, is_sku, award_type, award_parent_ratio, award_grand_parent_ratio, award_golden, content, express_fee, weight, view_count, sale_count, create_time, update_time, status from app_goods
-    </sql>
-
-    <sql id="selectAppGoodsListVo">
-        select g.goods_id, g.category_id, g.category_ids, g.dept_id, g.goods_name, g.goods_cover, g.goods_images, g.description, g.tags, g.price, g.vip_price, g.unit, g.specifications, g.stock, g.goods_type, g.is_top, g.is_hot, g.attr_ids, g.attr_values, g.is_sku, g.award_type, g.award_parent_ratio, g.award_grand_parent_ratio, g.award_golden, g.content, g.express_fee, g.weight, g.view_count, g.sale_count, g.create_time, g.update_time, g.status, d.dept_name
+    <sql id="educationPaidSignupCount">
         , case when g.goods_type = 'education' then (
             select IFNULL(sum(signup.goods_count), 0)
             from app_goods_order signup
@@ -68,6 +63,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
               and signup.pay_status = '1'
               and signup.status in ('1', '3')
         ) else null end as paid_signup_count
+    </sql>
+
+    <sql id="selectAppGoodsVo">
+        select g.goods_id, g.category_id, g.category_ids, g.dept_id, g.goods_name, g.goods_cover, g.goods_images, g.description, g.tags, g.price, g.vip_price, g.unit, g.specifications, g.stock, g.goods_type, g.is_top, g.is_hot, g.attr_ids, g.attr_values, g.is_sku, g.award_type, g.award_parent_ratio, g.award_grand_parent_ratio, g.award_golden, g.content, g.express_fee, g.weight, g.view_count, g.sale_count, g.create_time, g.update_time, g.status
+        <include refid="educationPaidSignupCount"/>
+        from app_goods g
+    </sql>
+
+    <sql id="selectAppGoodsListVo">
+        select g.goods_id, g.category_id, g.category_ids, g.dept_id, g.goods_name, g.goods_cover, g.goods_images, g.description, g.tags, g.price, g.vip_price, g.unit, g.specifications, g.stock, g.goods_type, g.is_top, g.is_hot, g.attr_ids, g.attr_values, g.is_sku, g.award_type, g.award_parent_ratio, g.award_grand_parent_ratio, g.award_golden, g.content, g.express_fee, g.weight, g.view_count, g.sale_count, g.create_time, g.update_time, g.status, d.dept_name
+        <include refid="educationPaidSignupCount"/>
         , catalog_base.id as catalog_id, catalog_base.goods_id as catalog_goods_id,
           catalog_base.section_id as catalog_section_id,
           catalog_base.section_name as catalog_section_name, catalog_base.content as catalog_content

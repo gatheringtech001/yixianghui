@@ -112,3 +112,36 @@ test('return still reaches service retry UI when live categories fail', async ()
   await page.backToCourses()
   assert.deepEqual(actions,['/pages/classify/classify'])
 })
+
+
+test('detail shows paid signup people including zero, never generic sales or missing data', async () => {
+  for (const [input, expected] of [[0,0], [7,7], ['12',12], [2.9,2], [-3,0], [null,null], [undefined,null], ['',null], [' ',null], ['invalid',null]]) {
+    const {page,source} = setup(() => ({data:{...valid.data,paidSignupCount:input,saleCount:99}}))
+    await page.getCourseDetail(279)
+    assert.equal(page.courseData.paidSignupCount,expected)
+    assert.match(source, /已售 {{ courseData.paidSignupCount }} 人/)
+    assert.match(source, /courseData.paidSignupCount !== null/)
+  }
+})
+
+test('course scroll fills the actual space above fixed actions on phones and larger footers', () => {
+  for (const [scroll,footer,windowInfo,courseData,expected] of [
+    [{top:88,height:1},{top:740,height:106},{windowHeight:846,statusBarHeight:44},{id:279},652],
+    [{top:103,height:500},{top:790,height:136},{windowHeight:926,statusBarHeight:59},{id:279},687],
+    [{top:88},{top:700,height:146},{windowHeight:846},{id:279},612],
+    [{top:88},null,{windowHeight:846},null,758],
+    [{top:88},null,{windowHeight:846,safeAreaInsets:{bottom:34}},{id:279},660],
+    [null,null,{windowHeight:846,statusBarHeight:44},null,758],
+    [{top:900},{top:740},{windowHeight:846},{id:279},0]
+  ]) {
+    const selectors=[]
+    const query={in(){return this}, select(selector){selectors.push(selector);return this}, boundingClientRect(){return this}, exec(fn){fn([scroll,footer])}}
+    const {page,component} = loadPage(file,{AuthProfilePopup:{},sharePageMixin:{},uni:{createSelectorQuery:()=>query,getWindowInfo:()=>windowInfo,upx2px:n=>n/2}})
+    page.$nextTick=fn=>fn()
+    page.courseData=courseData
+    page.setPageScrollHeight()
+    assert.equal(page.pageScrollHeight,expected)
+    assert.deepEqual(selectors,['.page_scroll','.bottom-action'])
+    assert.equal(typeof component.onResize,'function')
+  }
+})

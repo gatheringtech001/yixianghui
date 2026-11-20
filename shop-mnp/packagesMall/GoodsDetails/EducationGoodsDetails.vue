@@ -23,7 +23,7 @@
 				<button v-if="!loading && courseId" class="state-primary" @tap="getCourseDetail(courseId)">重新加载</button>
 				<button v-if="!loading" class="state-secondary" @tap="backToCourses">返回课程列表</button>
 			</view>
-			<view v-else-if="courseData">
+			<view v-else-if="courseData" class="course-body">
 				<view class="course-detail-hero">
 					<image :src="resolveCoverUrl(courseData.cover)" mode="aspectFill" @tap.stop="previewDetailImages(resolveCoverUrl(courseData.cover))" />
 					<view class="course-detail-copy">
@@ -39,6 +39,7 @@
 							><u-icon :name="collectId ? 'heart-fill' : 'heart'" color="#701018" size="32" /><text>{{ collectId ? '已收藏' : '收藏' }}</text></view>
 						</view>
 						<text class="course-desc" v-if="courseData.summary">{{ courseData.summary }}</text>
+						<text class="course-sales" v-if="courseData.paidSignupCount !== null">已售 {{ courseData.paidSignupCount }} 人</text>
 						<view class="detail-tags" v-if="courseData.tagList.length">
 							<text class="outline-chip" v-for="(tag, index) in courseData.tagList" :key="index">{{ tag }}</text>
 						</view>
@@ -178,6 +179,9 @@
 				this.refreshSignupPhase()
 			}
 		},
+		onResize() {
+			this.setPageScrollHeight()
+		},
 		onReady() {
 			this.setPageScrollHeight()
 		},
@@ -208,13 +212,17 @@
 			setPageScrollHeight() {
 				this.$nextTick(() => {
 					const query = uni.createSelectorQuery().in(this)
-					query.select('.weapp-nav-box').boundingClientRect()
+					query.select('.page_scroll').boundingClientRect()
 					query.select('.bottom-action').boundingClientRect()
 					query.exec((res) => {
 						const windowInfo = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync()
-						const navH = (res[0] && res[0].height) || ((windowInfo.statusBarHeight || 0) + 44)
-						const footH = (res[1] && res[1].height) || uni.upx2px(120)
-						this.pageScrollHeight = windowInfo.windowHeight - navH - footH
+						// Use viewport coordinates, not component-host heights: navbar placeholders
+						// and safe areas must not be subtracted a second time on real phones.
+						const scrollTop = res[0] && Number.isFinite(res[0].top)
+							? res[0].top : (windowInfo.statusBarHeight || 0) + 44
+						const bottom = res[1] && Number.isFinite(res[1].top)
+							? res[1].top : windowInfo.windowHeight - (this.courseData ? uni.upx2px(128) + ((windowInfo.safeAreaInsets || {}).bottom || 0) : 0)
+						this.pageScrollHeight = Math.max(0, bottom - scrollTop)
 					})
 				})
 			},
@@ -347,6 +355,8 @@
 						signupEnd: ext.signupEnd || '',
 						startDate: ext.startDate || '',
 						price: data.vipPrice || data.price,
+						paidSignupCount: data.paidSignupCount != null && String(data.paidSignupCount).trim() !== '' && Number.isFinite(Number(data.paidSignupCount))
+							? Math.max(0, Math.floor(Number(data.paidSignupCount))) : null,
 						unit: data.unit,
 						cover,
 						tagList,
