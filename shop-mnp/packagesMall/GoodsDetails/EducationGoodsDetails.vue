@@ -17,7 +17,13 @@
 			scroll-y
 			:show-scrollbar="false"
 		>
-			<view v-if="courseData">
+			<view v-if="loading || loadError" class="course-state" role="status">
+				<text class="state-title">{{ loading ? '正在加载课程详情…' : loadError }}</text>
+				<text v-if="!loading" class="state-description">您可以重新加载，或返回课程列表选择其他课程。</text>
+				<button v-if="!loading && courseId" class="state-primary" @tap="getCourseDetail(courseId)">重新加载</button>
+				<button v-if="!loading" class="state-secondary" @tap="backToCourses">返回课程列表</button>
+			</view>
+			<view v-else-if="courseData">
 				<view class="course-detail-hero">
 					<image :src="resolveCoverUrl(courseData.cover)" mode="aspectFill" @tap.stop="previewDetailImages(resolveCoverUrl(courseData.cover))" />
 					<view class="course-detail-copy">
@@ -91,7 +97,7 @@
 </template>
 
 <script>
-	import { getGoodsInfo } from '@/api/shop/index'
+	import { getGoodsInfo, getGoodsCatrgorys } from '@/api/shop/index'
 	import { goodsCollect, deleteCollect, goodsCollectList } from '@/api/member/index'
 	import { prepareRichTextHtml } from '@/utils/richText'
 	import { parseCourseMeta } from '@/utils/courseMeta'
@@ -120,6 +126,9 @@
 				pageScrollHeight: 0,
 				consultPhone: '13764363947',
 				courseData: null,
+				courseId: '',
+				loading: false,
+				loadError: '',
 				signupPhase: 'open',
 				currencySymbol: '\uFFE5',
 				collectId: null,
@@ -158,11 +167,9 @@
 				return ''
 			}
 		},
-		onLoad(options) {
+		onLoad(options = {}) {
 			parseInvitePageOptions(options)
-			if (options.id) {
-				this.getCourseDetail(options.id)
-			}
+			return this.getCourseDetail(options.id || options.goodsId)
 		},
 		onShow() {
 			bindPageAuthPopup(this)
@@ -182,8 +189,8 @@
 				const course = this.courseData || {}
 				return {
 					title: course.name || '逸享荟芳华学院课程',
-					path: '/packagesMall/GoodsDetails/EducationGoodsDetails',
-					query: { id: course.id },
+					path: course.id ? '/packagesMall/GoodsDetails/EducationGoodsDetails' : '/pages/classify/classify',
+					query: course.id ? { id: course.id } : {},
 					imageUrl: course.cover ? this.resolveCoverUrl(course.cover) : ''
 				}
 			},
@@ -274,9 +281,41 @@
 					})
 				})
 			},
+			async backToCourses() {
+				let categories = uni.getStorageSync('cls') || []
+				if (!Array.isArray(categories) || !categories.length) {
+					try {
+						const result = await getGoodsCatrgorys({})
+						categories = Array.isArray(result && result.data) ? result.data : []
+						if (categories.length) uni.setStorageSync('cls', categories)
+					} catch (error) {
+						// The service page also provides category retry when the network is unavailable.
+						categories = []
+					}
+				}
+				const education = Array.isArray(categories) && categories.find(item => (
+					item && item.parentId == 0 && ['老年教育', '芳华学院'].includes(String(item.categoryName || '').trim())
+				))
+				if (education) uni.setStorageSync('currentCls', education.categoryId)
+				uni.switchTab({ url: '/pages/classify/classify' })
+			},
 			getCourseDetail(id) {
-				getGoodsInfo(id).then(res => {
-					const data = res.data || {}
+				if (this.loading) return
+				this.courseId = /^\d+$/.test(String(id || '')) && Number(id) > 0 ? String(id) : ''
+				this.courseData = null
+				this.collectId = null
+				this.loadError = ''
+				if (!this.courseId) {
+					this.loadError = '未找到课程信息，请从课程列表重新进入'
+					return
+				}
+				this.loading = true
+				return getGoodsInfo(this.courseId).then(res => {
+					const data = res && res.data
+					if (!data || !data.goodsId || !data.goodsName) {
+						this.loadError = '该课程暂不可查看，请选择其他课程'
+						return
+					}
 					const ext = data.educationExt || {}
 					const courseMeta = parseCourseMeta(data.description, { includeNote: true })
 					let cover = ''
@@ -286,7 +325,7 @@
 						cover = String(data.goodsImages).split(',')[0]
 					}
 					const tagList = data.tags ? String(data.tags).split(/[,，|]/).filter(Boolean) : []
-					const sections = (data.features || []).map(feature => ({
+					const sections = (Array.isArray(data.features) ? data.features : []).filter(Boolean).map(feature => ({
 						name: feature.sectionName,
 						content: prepareRichTextHtml(feature.content, this.host)
 					}))
@@ -322,10 +361,11 @@
 						this.setPageScrollHeight()
 					})
 				}).catch(() => {
-					uni.showToast({
-						title: '\u8bfe\u7a0b\u8be6\u60c5\u52a0\u8f7d\u5931\u8d25',
-						icon: 'none'
-					})
+					this.courseData = null
+					this.loadError = '课程详情加载失败，请检查网络后重试'
+				}).finally(() => {
+					this.loading = false
+					this.setPageScrollHeight()
 				})
 			},
 			callPhone() {
